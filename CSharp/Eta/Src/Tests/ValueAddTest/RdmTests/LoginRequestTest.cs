@@ -2,7 +2,7 @@
  *|            This source code is provided under the Apache 2.0 license
  *|  and is provided AS IS with no warranty or guarantee of fit for purpose.
  *|                See the project's LICENSE.md for details.
- *|           Copyright (C) 2023-2024 LSEG. All rights reserved.
+ *|           Copyright (C) 2023-2025 LSEG. All rights reserved.
  *|-----------------------------------------------------------------------------
  */
 
@@ -637,7 +637,9 @@ namespace LSEG.Eta.ValuedAdd.Tests
                 LoginRequestFlags.HAS_ROLE,
                 LoginRequestFlags.HAS_USERNAME_TYPE,
                 LoginRequestFlags.PAUSE_ALL,
-                LoginRequestFlags.NO_REFRESH
+                LoginRequestFlags.NO_REFRESH,
+                LoginRequestFlags.HAS_UPDATE_TYPE_FILTER,
+                LoginRequestFlags.HAS_NEGATIVE_UPDATE_TYPE_FILTER
             };
             LoginRequestFlags[] flagsList = TypedMessageUtil.CreateFlagCombinations(flagsBase, false);
             UserIdTypes[] userNameTypeList = {
@@ -722,6 +724,12 @@ namespace LSEG.Eta.ValuedAdd.Tests
                         if (encRDMMsg.HasRole)
                             encRDMMsg.Role = role;
 
+                        if (encRDMMsg.HasUpdateTypeFilter)
+                            encRDMMsg.UpdateTypeFilter = UpdateTypeFilter.RDM_UPT_VERIFY | UpdateTypeFilter.RDM_UPT_QUOTES_TRADE;
+
+                        if (encRDMMsg.HasNegativeUpdateTypeFilter)
+                            encRDMMsg.NegativeUpdateTypeFilter = UpdateTypeFilter.RDM_UPT_VOLUME_ALERT | UpdateTypeFilter.RDM_UPT_TRADE;
+
                         // Encode
                         encIter.SetBufferAndRWFVersion(membuf, Codec.Codec.MajorVersion(), Codec.Codec.MinorVersion());
                         var ret = encRDMMsg.Encode(encIter);
@@ -755,6 +763,12 @@ namespace LSEG.Eta.ValuedAdd.Tests
 
                         if (decRDMMsg.HasAuthenticationExtended)
                             Assert.Equal(authenticationExtended, decRDMMsg.AuthenticationExtended.ToString());
+
+                        if (decRDMMsg.HasUpdateTypeFilter)
+                            Assert.Equal(UpdateTypeFilter.RDM_UPT_VERIFY | UpdateTypeFilter.RDM_UPT_QUOTES_TRADE, decRDMMsg.UpdateTypeFilter);
+
+                        if (decRDMMsg.HasNegativeUpdateTypeFilter)
+                            Assert.Equal(UpdateTypeFilter.RDM_UPT_VOLUME_ALERT | UpdateTypeFilter.RDM_UPT_TRADE, decRDMMsg.NegativeUpdateTypeFilter);
 
                         if (decRDMMsg.HasAttrib)
                         {

@@ -107,7 +107,7 @@ namespace LSEG.Ema.Access
                     case "DirectoryGroup":
                         string defaultDirectoryName;
                         ParseDirectoryGroup((ElementList)entry.Load, out defaultDirectoryName, providerConfig.DirectoryConfigMap, true, providerConfig.ConfigErrorLog);
-                        if(string.IsNullOrEmpty(defaultDirectoryName))
+                        if (string.IsNullOrEmpty(defaultDirectoryName))
                         {
                             providerConfig.DefaultDirectory = defaultDirectoryName;
                         }
@@ -311,7 +311,7 @@ namespace LSEG.Ema.Access
 
                                         tmpConfig.ItemCountHint = Utilities.Convert_ulong_uint(consumerEntry.UIntValue());
 
-                                        if(tmpConfig.ItemCountHint == 0)
+                                        if (tmpConfig.ItemCountHint == 0)
                                         {
                                             tmpConfig.ItemCountHint = 1024;
                                         }
@@ -433,13 +433,31 @@ namespace LSEG.Ema.Access
 
                                         tmpConfig.ServiceCountHint = Utilities.Convert_ulong_int(consumerEntry.UIntValue());
 
-                                        if(tmpConfig.ServiceCountHint == 0)
+                                        if (tmpConfig.ServiceCountHint == 0)
                                         {
                                             tmpConfig.ServiceCountHint = 513;
                                         }
 
                                         break;
+                                    case "UpdateTypeFilter":
+                                        CheckElementEntry("Consumer", "UpdateTypeFilter", DataTypes.UINT, consumerEntry);
+                                        tmpConfig.UpdateTypeFilter = consumerEntry.UIntValue();
 
+                                        if (tmpConfig.UpdateTypeFilter < 0)
+                                        {
+                                            tmpConfig.UpdateTypeFilter = 0;
+                                        }
+                                        break;
+
+                                    case "NegativeUpdateTypeFilter":
+                                        CheckElementEntry("Consumer", "NegativeUpdateTypeFilter", DataTypes.UINT, consumerEntry);
+                                        tmpConfig.NegativeUpdateTypeFilter = consumerEntry.UIntValue();
+
+                                        if (tmpConfig.NegativeUpdateTypeFilter < 0)
+                                        {
+                                            tmpConfig.NegativeUpdateTypeFilter = 0;
+                                        }
+                                        break;
                                     default:
                                         if (!ParseXmlTraceConfigNodes("Consumer", tmpConfig, consumerEntry))
                                         {
@@ -577,7 +595,7 @@ namespace LSEG.Ema.Access
 
                                         tmpConfig.ItemCountHint = Utilities.Convert_ulong_uint(niProviderEntry.UIntValue());
 
-                                        if(tmpConfig.ItemCountHint == 0)
+                                        if (tmpConfig.ItemCountHint == 0)
                                         {
                                             tmpConfig.ItemCountHint = 1024;
                                         }
@@ -655,7 +673,7 @@ namespace LSEG.Ema.Access
 
                                             int value = Utilities.Convert_long_int(niProviderEntry.IntValue());
 
-                                            if(value > 0)
+                                            if (value > 0)
                                                 tmpConfig.ReconnectMaxDelay = value;
                                         }
                                         break;
@@ -669,7 +687,7 @@ namespace LSEG.Ema.Access
 
                                             int value = Utilities.Convert_long_int(niProviderEntry.IntValue());
 
-                                            if(value > 0)
+                                            if (value > 0)
                                                 tmpConfig.ReconnectMinDelay = value;
                                         }
                                         break;
@@ -841,7 +859,7 @@ namespace LSEG.Ema.Access
 
                                         tmpConfig.ItemCountHint = Utilities.Convert_ulong_uint(iProviderEntry.UIntValue());
 
-                                        if(tmpConfig.ItemCountHint == 0)
+                                        if (tmpConfig.ItemCountHint == 0)
                                         {
                                             tmpConfig.ItemCountHint = 1024;
                                         }
@@ -2163,9 +2181,9 @@ namespace LSEG.Ema.Access
                                                             throw new OmmInvalidConfigurationException("Invalid entry payload type for Source Directory StateFilter element Status. This element entry must contain an Element List.");
                                                         }
 
-                                                        foreach(ElementEntry statusEntry in (ElementList)stateEntry.Load)
+                                                        foreach (ElementEntry statusEntry in (ElementList)stateEntry.Load)
                                                         {
-                                                            switch(statusEntry.Name)
+                                                            switch (statusEntry.Name)
                                                             {
                                                                 case "StreamState":
                                                                     if (statusEntry.Load == null || statusEntry.Load.Code == DataCode.BLANK || statusEntry.LoadType != DataTypes.ASCII_STRING)
@@ -2488,4 +2506,3 @@ namespace LSEG.Ema.Access
     }
 }
 
-    

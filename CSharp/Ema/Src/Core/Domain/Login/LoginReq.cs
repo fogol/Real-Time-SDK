@@ -2,7 +2,7 @@
  *|            This source code is provided under the Apache 2.0 license
  *|  and is provided AS IS with no warranty or guarantee of fit for purpose.
  *|                See the project's LICENSE.md for details.
- *|           Copyright (C) 2023-2024 LSEG. All rights reserved.
+ *|           Copyright (C) 2023-2025 LSEG. All rights reserved.
  *|-----------------------------------------------------------------------------
  */
 
@@ -106,6 +106,10 @@ public sealed class LoginReq : Login
         m_NameTypeSet = true;
         m_PauseSet = false;
         m_Pause = false;
+        m_UpdateTypeFilterSet = false;
+        m_UpdateTypeFilter = DEFAULT_UPDATE_TYPE_FILTER;
+        m_NegativeUpdateTypeFilterSet = false;
+        m_NegativeUpdateTypeFilter = DEFAULT_NEGATIVE_UPDATE_TYPE_FILTER;
 
         m_AuthenticationExtended?.Clear();
         m_ElementList?.Clear();
@@ -378,6 +382,34 @@ public sealed class LoginReq : Login
     }
 
     /// <summary>
+    /// Sets the UpdateTypeFilter.
+    /// </summary>
+    /// <param name="filter"> long representing UpdateTypeFilter.</param>
+    /// <returns>Reference to current <see cref="LoginReq"/> object.</returns>
+    public LoginReq UpdateTypeFilter(ulong filter)
+    {
+        m_Changed = true;
+        m_UpdateTypeFilterSet = true;
+        m_UpdateTypeFilter = filter;
+
+        return this;
+    }
+
+    /// <summary>
+    /// Sets the NegativeUpdateTypeFilter.
+    /// </summary>
+    /// <param name="filter"> long representing NegativeUpdateTypeFilter.</param>
+    /// <returns>Reference to current <see cref="LoginReq"/> object.</returns>
+    public LoginReq NegativeUpdateTypeFilter(ulong filter)
+    {
+        m_Changed = true;
+        m_NegativeUpdateTypeFilterSet = true;
+        m_NegativeUpdateTypeFilter = filter;
+
+        return this;
+    }
+
+    /// <summary>
     /// Returns true if AuthenticationExtended set, false if not set.
     /// </summary>
     public bool HasAuthenticationExtended { get => m_AuthenticationExtendedSet; }
@@ -461,6 +493,16 @@ public sealed class LoginReq : Login
     /// Returns true if pause is set, false if not set.
     /// </summary>
     public bool HasPause { get => m_PauseSet; }
+
+    /// <summary>
+    /// Returns true if UpdateTypeFilter is set, false if not set.
+    /// </summary>
+    public bool HasUpdateTypeFilter {  get => m_UpdateTypeFilterSet; }
+
+    /// <summary>
+    /// Returns true if NegativeUpdateTypeFilter is set, false if not set.
+    /// </summary>
+    public bool HasNegativeUpdateTypeFilter { get => m_NegativeUpdateTypeFilterSet; }
 
     /// <summary>
     /// Returns <see cref="RequestMsg"/> of the current LoginReq.
@@ -638,6 +680,39 @@ public sealed class LoginReq : Login
 
         return m_AuthenticationExtended!;
     }
+
+    /// <summary>
+    /// Returns UpdateTypeFilter value
+    /// </summary>
+    /// <returns>long representing current UpdateTypeFilter</returns>
+    /// <exception cref="OmmInvalidUsageException">Thrown if <see cref="HasUpdateTypeFilter"/> returns false</exception>
+    public ulong UpdateTypeFilter()
+    {
+        if (!m_UpdateTypeFilterSet)
+        {
+            throw new OmmInvalidUsageException($"{EmaRdm.ENAME_UPDATE_TYPE_FILTER} element is not set",
+                OmmInvalidUsageException.ErrorCodes.INVALID_OPERATION);
+        }
+
+        return m_UpdateTypeFilter!;
+    }
+
+    /// <summary>
+    /// Returns NegativeUpdateTypeFilter value
+    /// </summary>
+    /// <returns>long representing current NegativeUpdateTypeFilter</returns>
+    /// <exception cref="OmmInvalidUsageException">Thrown if <see cref="HasNegativeUpdateTypeFilter"/> returns false</exception>
+    public ulong NegativeUpdateTypeFilter()
+    {
+        if (!m_NegativeUpdateTypeFilterSet)
+        {
+            throw new OmmInvalidUsageException($"{EmaRdm.ENAME_NEGATIVE_UPDATE_TYPE_FILTER} element is not set",
+                OmmInvalidUsageException.ErrorCodes.INVALID_OPERATION);
+        }
+
+        return m_NegativeUpdateTypeFilter!;
+    }
+
 
     /// <summary>
     /// Returns ProvidePermissionExpressions
@@ -827,6 +902,16 @@ public sealed class LoginReq : Login
             m_ToString.AppendLine().Append(EmaRdm.ENAME_USERNAME_TYPE).Append(" : ").Append(m_NameType);
         }
 
+        if (m_UpdateTypeFilterSet)
+        {
+            m_ToString.AppendLine().Append(EmaRdm.ENAME_UPDATE_TYPE_FILTER).Append(" : ").Append(m_UpdateTypeFilter);
+        }
+
+        if (m_NegativeUpdateTypeFilterSet)
+        {
+            m_ToString.AppendLine().Append(EmaRdm.ENAME_NEGATIVE_UPDATE_TYPE_FILTER).Append(" : ").Append(m_NegativeUpdateTypeFilter);
+        }
+
         return m_ToString.ToString();
     }
 
@@ -848,6 +933,8 @@ public sealed class LoginReq : Login
     private string? m_AuthenticationToken;
     private EmaBuffer? m_AuthenticationExtended;
     private bool m_Pause;
+    private ulong m_UpdateTypeFilter;
+    private ulong m_NegativeUpdateTypeFilter;
 
     private bool m_AllowSuspectDataSet;
     private bool m_DownloadConnectionConfigSet;
@@ -864,11 +951,16 @@ public sealed class LoginReq : Login
     private bool m_PositionSet;
     private bool m_PauseSet;
     private bool m_AuthenticationExtendedSet;
+    private bool m_UpdateTypeFilterSet;
+    private bool m_NegativeUpdateTypeFilterSet;
+
 
     private const string DEFAULT_APPLICATION_ID = "256";
     private const string DEFAULT_APPLICATION_NAME = "ema";
     private static string DEFAULT_POSITION;
     private static string DEFAULT_USER_NAME;
+    private const long DEFAULT_UPDATE_TYPE_FILTER = 65533;
+    private const long DEFAULT_NEGATIVE_UPDATE_TYPE_FILTER = 0;
 
     private void Decode(RequestMsg reqMsg)
     {
@@ -893,6 +985,8 @@ public sealed class LoginReq : Login
         m_PositionSet = false;
         m_PauseSet = false;
         m_AuthenticationExtendedSet = false;
+        m_UpdateTypeFilterSet = false;
+        m_NegativeUpdateTypeFilterSet = false;
 
         if (reqMsg.HasNameType)
             NameType(reqMsg.NameType());
@@ -1085,6 +1179,22 @@ public sealed class LoginReq : Login
                                 Name(elementEntry.OmmAsciiValue().Value);
                             }
                             break;
+                        case EmaRdm.ENAME_UPDATE_TYPE_FILTER:
+                            {
+                                if (elementEntry.Code != DataCode.BLANK)
+                                {
+                                    UpdateTypeFilter(elementEntry.UIntValue());
+                                }
+                            }
+                            break;
+                        case EmaRdm.ENAME_NEGATIVE_UPDATE_TYPE_FILTER:
+                            {
+                                if (elementEntry.Code != DataCode.BLANK)
+                                {
+                                    NegativeUpdateTypeFilter(elementEntry.UIntValue());
+                                }
+                            }
+                            break;
                         default:
                             break;
                     }
@@ -1179,6 +1289,16 @@ public sealed class LoginReq : Login
                 m_ElementList.AddAscii(EmaRdm.ENAME_AUTHN_EXTENDED,
                     Encoding.ASCII.GetString(m_AuthenticationExtended!.Buffer));
             }
+        }
+
+        if (m_UpdateTypeFilterSet)
+        {
+            m_ElementList.AddUInt(EmaRdm.ENAME_UPDATE_TYPE_FILTER, m_UpdateTypeFilter);
+        }
+
+        if (m_NegativeUpdateTypeFilterSet)
+        {
+            m_ElementList.AddUInt(EmaRdm.ENAME_NEGATIVE_UPDATE_TYPE_FILTER, m_NegativeUpdateTypeFilter);
         }
 
         reqMsg.Attrib(m_ElementList.Complete());

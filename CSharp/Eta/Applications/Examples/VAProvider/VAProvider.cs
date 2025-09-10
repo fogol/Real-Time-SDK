@@ -368,6 +368,7 @@ namespace LSEG.Eta.ValueAdd.Provider
                         }
 
                         Console.WriteLine($"\nReceived Login Request for Username: {loginRequest.UserName}");
+                        Console.WriteLine(loginRequest.ToString());
 
                         if (m_LoginHandler.SendRefresh(reactorChannel!, loginRequest, out m_ErrorInfo) != ReactorReturnCode.SUCCESS)
                         {

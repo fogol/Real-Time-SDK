@@ -2,7 +2,7 @@
  *|            This source code is provided under the Apache 2.0 license
  *|  and is provided AS IS with no warranty or guarantee of fit for purpose.
  *|                See the project's LICENSE.md for details.
- *|           Copyright (C) 2023-2024 LSEG. All rights reserved.     
+ *|           Copyright (C) 2023-2025 LSEG. All rights reserved.
  *|-----------------------------------------------------------------------------
  */
 
@@ -1122,10 +1122,70 @@ namespace LSEG.Ema.Rdm
         public const string ENAME_DATA_STREAMS = ":DataStreams";
 
         /// <summary>
+        /// UpdateTypeFilter
+        /// </summary>
+        public const string ENAME_UPDATE_TYPE_FILTER = "UpdateTypeFilter";
+
+        /// <summary>
+        /// NegativeUpdateTypeFilter
+        /// </summary>
+	    public const string ENAME_NEGATIVE_UPDATE_TYPE_FILTER = "NegativeUpdateTypeFilter";
+
+
+        /// <summary>
         /// Support Round Trip Time type describes that Round Trip Time is supported.
         /// A provider specifies it to indicate that it does support Round Trip Time.
         /// </summary>
         /// <seealso cref="ENAME_LATENCY"/>
         public const int LOGIN_RTT_ELEMENT = 2;
+
+        /// <summary>
+        /// (0x001) Unspecified Update Event
+        /// </summary>
+        public const ulong RDM_UPDATE_FILTER_TYPE_UNSPECIFIED = 0x001;
+        /// <summary>
+        ///  (0x002) Update Event Quote
+        /// </summary>
+        public const ulong RDM_UPDATE_FILTER_TYPE_QUOTE = 0x002;
+        /// <summary>
+        ///  (0x004) Update Event Trade
+        /// </summary>
+        public const ulong RDM_UPDATE_FILTER_TYPE_TRADE = 0x004;
+        /// <summary>
+        /// (0x008) Update Event News Alert
+        /// </summary>
+        public const ulong RDM_UPDATE_FILTER_TYPE_NEWS_ALERT = 0x008;
+        /// <summary>
+        /// (0x010) Update Event Volume Alert
+        /// </summary>
+        public const ulong RDM_UPDATE_FILTER_TYPE_VOLUME_ALERT = 0x010;
+        /// <summary>
+        /// (0x020) Update Event Order Indication
+        /// </summary>
+        public const ulong RDM_UPDATE_FILTER_TYPE_ORDER_INDICATION = 0x020;
+        /// <summary>
+        ///  (0x040) Update Event Closing Run
+        /// </summary>
+        public const ulong RDM_UPDATE_FILTER_TYPE_CLOSING_RUN = 0x040;
+        /// <summary>
+        /// (0x080) Update Event Correction
+        /// </summary>
+        public const ulong RDM_UPDATE_FILTER_TYPE_CORRECTION = 0x080;
+        /// <summary>
+        /// (0x100) Update Event Market Digest
+        /// </summary>
+        public const ulong RDM_UPDATE_FILTER_TYPE_MARKET_DIGEST = 0x100;
+        /// <summary>
+        /// (0x200) Update Event Quotes followed by a Trade
+        /// </summary>
+        public const ulong RDM_UPDATE_FILTER_TYPE_QUOTES_TRADE = 0x200;
+        /// <summary>
+        /// (0x400) Update Event with filtering and conflation applied
+        /// </summary>
+        public const ulong RDM_UPDATE_FILTER_TYPE_MULTIPLE = 0x400;
+        /// <summary>
+        /// (0x800) Fields may have changed
+        /// </summary>
+        public const ulong RDM_UPDATE_FILTER_TYPE_VERIFY = 0x800;
     }
 }

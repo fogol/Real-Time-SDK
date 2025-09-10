@@ -349,7 +349,9 @@ namespace LSEG.Ema.Access
                     .Parse(() => tmpConfig.RestProxyPort)
                     .Parse(() => tmpConfig.RestEnableLog)
                     .Parse(() => tmpConfig.RestEnableLogViaCallback)
-                    .Parse(() => tmpConfig.SessionEnhancedItemRecovery);
+                    .Parse(() => tmpConfig.SessionEnhancedItemRecovery)
+                    .Parse(() => tmpConfig.UpdateTypeFilter, v => v > 0 ? v : tmpConfig.UpdateTypeFilter)
+                    .Parse(() => tmpConfig.NegativeUpdateTypeFilter, v => v > 0 ? v : tmpConfig.NegativeUpdateTypeFilter);
 
                 ParseXmlTraceConfigNodes(consumerNodeParser, tmpConfig);
                 if (foundConfig == false)

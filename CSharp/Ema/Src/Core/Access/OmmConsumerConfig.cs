@@ -2,7 +2,7 @@
  *|            This source code is provided under the Apache 2.0 license
  *|  and is provided AS IS with no warranty or guarantee of fit for purpose.
  *|                See the project's LICENSE.md for details.
- *|           Copyright (C) 2023, 2024-2025 LSEG. All rights reserved.
+ *|           Copyright (C) 2023-2025 LSEG. All rights reserved.
  *|-----------------------------------------------------------------------------
  */
 
@@ -281,7 +281,7 @@ namespace LSEG.Ema.Access
                 channelType != EmaConfig.ConnectionTypeEnum.ENCRYPTED)
             {
                 throw new OmmInvalidUsageException($"Try to pass invalid argument: {channelType.ToString()} to ChannelType(). " +
-					$"Please use channel types present in EmaConfig.ConnectionTypeEnum.",
+                    $"Please use channel types present in EmaConfig.ConnectionTypeEnum.",
                     OmmInvalidUsageException.ErrorCodes.INVALID_OPERATION);
             }
 
@@ -429,6 +429,28 @@ namespace LSEG.Ema.Access
         public OmmConsumerConfig OperationModel(OperationModelMode operationModel)
         {
             OmmConsConfigImpl.OperationModel((int)operationModel);
+            return this;
+        }
+
+        /// <summary>
+        /// Specifies the UpdateTypeFilter for the underlying Login message.
+        /// </summary>
+        /// <param name="updateTypeFilter">specifies UpdateTypeFilter that will be used in the Login Request message</param>
+        /// <returns>Reference to current <see cref="OmmConsumerConfig"/> object.</returns>
+        public OmmConsumerConfig UpdateTypeFilter(ulong updateTypeFilter)
+        {
+            OmmConsConfigImpl.UpdateTypeFilter = updateTypeFilter;
+            return this;
+        }
+
+        /// <summary>
+        /// Specifies the UpdateTypeFilter for the underlying Login message.
+        /// </summary>
+        /// <param name="negativeUpdateTypeFilter">specifies NegativeUpdateTypeFilter that will be used in the Login Request message</param>
+        /// <returns>Reference to current <see cref="OmmConsumerConfig"/> object.</returns>
+        public OmmConsumerConfig NegativeUpdateTypeFilter(ulong negativeUpdateTypeFilter)
+        {
+            OmmConsConfigImpl.NegativeUpdateTypeFilter = negativeUpdateTypeFilter;
             return this;
         }
 

@@ -2,7 +2,7 @@
  *|            This source code is provided under the Apache 2.0 license
  *|  and is provided AS IS with no warranty or guarantee of fit for purpose.
  *|                See the project's LICENSE.md for details.
- *|           Copyright (C) 2023-2024 LSEG. All rights reserved.
+ *|           Copyright (C) 2023-2025 LSEG. All rights reserved.
  *|-----------------------------------------------------------------------------
  */
 
@@ -100,6 +100,9 @@ namespace LSEG.Eta.ValueAdd.Consumer
         internal string? Location { get; private set; }
 
         internal EncryptionProtocolFlags Protocol { get; private set; }
+
+        internal ulong UpdateTypeFilter { get; set; } = 0;
+        internal ulong NegativeUpdateTypeFilter { get; set; } = 0;
 
         #endregion
 
@@ -368,6 +371,16 @@ namespace LSEG.Eta.ValueAdd.Consumer
                         return false;
                     }
                 }
+                else if ("-updateTypeFilter".Equals(args[argsCount]))
+                {
+                    UpdateTypeFilter = ulong.Parse(args[++argsCount]);
+                    ++argsCount;
+                }
+                else if ("-negativeUpdateTypeFilter".Equals(args[argsCount]))
+                {
+                    NegativeUpdateTypeFilter = ulong.Parse(args[++argsCount]);
+                    ++argsCount;
+                }
                 else // unrecognized command line argument
                 {
                     Console.WriteLine($"\nUnrecognized command line argument '{args[argsCount]}'\n");
@@ -425,7 +438,9 @@ namespace LSEG.Eta.ValueAdd.Consumer
                                "\n -restEnableLog enable REST logging message" +
                                "\n -restLogFileName set REST logging output stream" +
                                "\n -rtt Enables rtt support by a consumer. If provider makes distribution of RTT messages, consumer will return back them. In another case, consumer will ignore them." +
-                               "\n -location specifies location/region when doing service discovery");
+                               "\n -location specifies location/region when doing service discovery" +
+                               "\n -updateTypeFilter specifies UpdateTypeFilter in the Login Request message" +
+                               "\n -negativeUpdateTypeFilter specifies NegativeUpdateTypeFilter in the Login Request message");
         }
     }
 }

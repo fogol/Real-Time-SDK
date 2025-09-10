@@ -2,7 +2,7 @@
  *|            This source code is provided under the Apache 2.0 license
  *|  and is provided AS IS with no warranty or guarantee of fit for purpose.
  *|                See the project's LICENSE.md for details.
- *|           Copyright (C) 2023-2024 LSEG. All rights reserved.
+ *|           Copyright (C) 2023-2025 LSEG. All rights reserved.
  *|-----------------------------------------------------------------------------
  */
 
@@ -356,6 +356,16 @@ namespace LSEG.Eta.Rdm
 		/// :ViewData </summary>
 		public static readonly Buffer VIEW_DATA = new Buffer();
 
+        /// <summary>
+        /// UpdateTypeFilter
+        /// </summary>
+        public static readonly Buffer UPDATE_TYPE_FILTER = new Buffer();
+
+        /// <summary>
+        /// NegativeUpdateTypeFilter
+        /// </summary>
+        public static readonly Buffer NEGATIVE_UPDATE_TYPE_FILTER  = new Buffer();
+
 		static ElementNames()
 		{
             // ApplicationId
@@ -671,6 +681,10 @@ namespace LSEG.Eta.Rdm
 			
             // :ViewData 
 			VIEW_DATA.Data(":ViewData");
-		}
+
+            UPDATE_TYPE_FILTER.Data("UpdateTypeFilter");
+
+            NEGATIVE_UPDATE_TYPE_FILTER.Data("NegativeUpdateTypeFilter");
+        }
 	}
 }

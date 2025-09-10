@@ -444,7 +444,7 @@ namespace LSEG.Ema.Access
                     LoginCallbackClient.SendLoginClose();
                 }
 
-                if(DictionaryCallbackClient != null)
+                if (DictionaryCallbackClient != null)
                 {
                     if (OmmConfigBaseImpl is OmmConsumerConfigImpl impl)
                     {
@@ -506,7 +506,7 @@ namespace LSEG.Ema.Access
         [MethodImpl(MethodImplOptions.AggressiveOptimization | MethodImplOptions.AggressiveInlining)]
         internal void CloseReactorChannel(ReactorChannel? reactorChannel)
         {
-            if(reactorChannel == null)
+            if (reactorChannel == null)
             {
                 return;
             }
@@ -514,9 +514,9 @@ namespace LSEG.Ema.Access
             UnregisterSocket(reactorChannel.Socket!);
 
             ChannelInfo? channelInfo = reactorChannel.UserSpecObj as ChannelInfo;
-            if(reactorChannel.Reactor != null && reactorChannel.Close(out var errorInfo) != ReactorReturnCode.SUCCESS)
+            if (reactorChannel.Reactor != null && reactorChannel.Close(out var errorInfo) != ReactorReturnCode.SUCCESS)
             {
-                if(LoggerClient.IsErrorEnabled && errorInfo != null)
+                if (LoggerClient.IsErrorEnabled && errorInfo != null)
                 {
                     StringBuilder strBuilder = GetStrBuilder();
                     strBuilder.Append($"Failed to close reactor channel (ReactorChannel).")
@@ -577,7 +577,7 @@ namespace LSEG.Ema.Access
         [MethodImpl(MethodImplOptions.AggressiveOptimization | MethodImplOptions.AggressiveInlining)]
         public int Dispatch(int dispatchTimeout)
         {
-            if(operationModel == (int)OmmConsumerConfig.OperationModelMode.USER_DISPATCH)
+            if (operationModel == (int)OmmConsumerConfig.OperationModelMode.USER_DISPATCH)
             {
                 DispatchLock.Enter();
 
@@ -609,12 +609,12 @@ namespace LSEG.Ema.Access
         [MethodImpl(MethodImplOptions.AggressiveOptimization | MethodImplOptions.AggressiveInlining)]
         internal bool ReactorDispatchLoop(long timeOut, int count)
         {
-            if(Interlocked.Read(ref ImplState) == OmmImplState.NOT_INITIALIZED)
+            if (Interlocked.Read(ref ImplState) == OmmImplState.NOT_INITIALIZED)
             {
                 UserLock.Enter();
                 try
                 {
-                    if(LoggerClient.IsErrorEnabled && m_LogDispatchError)
+                    if (LoggerClient.IsErrorEnabled && m_LogDispatchError)
                     {
                         m_LogDispatchError = false;
                         LoggerClient.Error(InstanceName, "Call to ReactorDispatchLoop() failed. The State is set to OmmImplState.NOT_INITIALIZED.");
@@ -690,7 +690,7 @@ namespace LSEG.Ema.Access
                     {
                         if (socketReadList.Contains(TimeoutEventManager.TimeoutSignal.GetEventSignalSocket()))
                         {
-                           TimeoutEventManager.TimeoutSignal.ResetEventSignal();
+                            TimeoutEventManager.TimeoutSignal.ResetEventSignal();
                         }
 
                         loopCount = 0;
@@ -715,7 +715,7 @@ namespace LSEG.Ema.Access
 
                         } while (reactorRetCode > ReactorReturnCode.SUCCESS && !m_receivedEvent && loopCount < DISPATCH_LOOP_COUNT);
 
-                        if(reactorRetCode < ReactorReturnCode.SUCCESS)
+                        if (reactorRetCode < ReactorReturnCode.SUCCESS)
                         {
                             StringBuilder strBuilder = new(1024);
                             strBuilder.Append($"Call to Reactor.Dispatch() failed.")
@@ -775,17 +775,17 @@ namespace LSEG.Ema.Access
             }
             catch (SocketException)
             {
-                registerSocketList.RemoveAll(e => (e.SafeHandle.IsClosed || e.SafeHandle.IsInvalid) );
+                registerSocketList.RemoveAll(e => (e.SafeHandle.IsClosed || e.SafeHandle.IsInvalid));
 
                 return true;
             }
             catch (ObjectDisposedException)
             {
-                registerSocketList.RemoveAll(e => (e.SafeHandle.IsClosed || e.SafeHandle.IsInvalid) );
+                registerSocketList.RemoveAll(e => (e.SafeHandle.IsClosed || e.SafeHandle.IsInvalid));
 
                 return true;
             }
-            catch(ArgumentNullException)
+            catch (ArgumentNullException)
             {
                 return false;
             }
@@ -1044,7 +1044,9 @@ namespace LSEG.Ema.Access
                     .Append($"DirectoryRequestTimeOut: {configImpl.ConsumerConfig.DirectoryRequestTimeOut}{ILoggerClient.CR}")
                     .Append($"DictionaryRequestTimeOut: {configImpl.ConsumerConfig.DictionaryRequestTimeOut}{ILoggerClient.CR}")
                     .Append($"RestRequestTimeOut: {configImpl.ConsumerConfig.RestRequestTimeOut}{ILoggerClient.CR}")
-                    .Append($"LoginRequestTimeOut: {configImpl.ConsumerConfig.LoginRequestTimeOut}");
+                    .Append($"LoginRequestTimeOut: {configImpl.ConsumerConfig.LoginRequestTimeOut}")
+                    .Append($"UpdateTypeFilter: {configImpl.ConsumerConfig.UpdateTypeFilter}")
+                    .Append($"NegativeUpdateTypeFilter: {configImpl.ConsumerConfig.NegativeUpdateTypeFilter}");
             }
             else
             {

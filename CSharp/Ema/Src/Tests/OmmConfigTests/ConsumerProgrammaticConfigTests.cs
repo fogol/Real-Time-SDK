@@ -2,7 +2,7 @@
  *|            This source code is provided under the Apache 2.0 license      --
  *|  and is provided AS IS with no warranty or guarantee of fit for purpose.  --
  *|                See the project's LICENSE.md for details.                  --
- *|           Copyright (C) 2024-2025 LSEG. All rights reserved.              --
+ *|           Copyright (C) 2024-2025 LSEG. All rights reserved.                   --
  *|-----------------------------------------------------------------------------
  */
 
@@ -583,6 +583,7 @@ namespace LSEG.Ema.Access.Tests.OmmConfigTests
                 .AddUInt("XmlTraceWrite", 0)
                 .AddUInt("XmlTraceRead", 0)
                 .AddUInt("XmlTracePing", 1)
+                .AddUInt("UpdateTypeFilter", 16)
                 .MarkForClear().Complete();
 
             innerMap.AddKeyAscii("TestConsumer_1", MapAction.ADD, encodeObjectList);
@@ -738,6 +739,8 @@ namespace LSEG.Ema.Access.Tests.OmmConfigTests
             Assert.Equal("ProgRestLog", testConsConfig.RestLogFileName);
             Assert.Equal((ulong)2150, testConsConfig.RestRequestTimeOut);
             Assert.Equal((int)2140, testConsConfig.ServiceCountHint);
+            Assert.Equal((ulong)16, testConsConfig.UpdateTypeFilter);
+            Assert.Equal((ulong)0, testConsConfig.NegativeUpdateTypeFilter);
             // XML tracing block
             Assert.False(testConsConfig.XmlTraceToStdout);
             Assert.True(testConsConfig.XmlTraceToFile);

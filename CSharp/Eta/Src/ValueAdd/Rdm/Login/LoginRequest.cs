@@ -2,7 +2,7 @@
  *|            This source code is provided under the Apache 2.0 license
  *|  and is provided AS IS with no warranty or guarantee of fit for purpose.
  *|                See the project's LICENSE.md for details.
- *|           Copyright (C) 2023-2024 LSEG. All rights reserved.
+ *|           Copyright (C) 2023-2025 LSEG. All rights reserved.
  *|-----------------------------------------------------------------------------
  */
 
@@ -183,6 +183,16 @@ namespace LSEG.Eta.ValueAdd.Rdm
         public Login.UserIdTypes UserNameType { get; set; }
 
         /// <summary>
+        /// The <see cref="UpdateTypeFilter"/> that is ued in the Login request.
+        /// </summary>
+        public ulong UpdateTypeFilter { get; set; }
+
+        /// <summary>
+        /// The negative <see cref="UpdateTypeFilter"/> that is ued in the Login request.
+        /// </summary>
+        public ulong NegativeUpdateTypeFilter { get; set; }
+
+        /// <summary>
         /// Checks the presence of user name type.
         /// </summary>
         public bool HasUserNameType
@@ -319,6 +329,38 @@ namespace LSEG.Eta.ValueAdd.Rdm
             }
         }
 
+        /// <summary>
+        /// Checks the presence of UpdateTypeFilter field
+        /// </summary>
+        public bool HasUpdateTypeFilter
+        {
+            get => (Flags & LoginRequestFlags.HAS_UPDATE_TYPE_FILTER) != 0;
+
+            set
+            {
+                if (value)
+                    Flags |= LoginRequestFlags.HAS_UPDATE_TYPE_FILTER;
+                else
+                    Flags &= ~LoginRequestFlags.HAS_UPDATE_TYPE_FILTER;
+            }
+        }
+
+        /// <summary>
+        /// Checks the presence of UpdateTypeFilter field
+        /// </summary>
+        public bool HasNegativeUpdateTypeFilter
+        {
+            get => (Flags & LoginRequestFlags.HAS_NEGATIVE_UPDATE_TYPE_FILTER) != 0;
+
+            set
+            {
+                if (value)
+                    Flags |= LoginRequestFlags.HAS_NEGATIVE_UPDATE_TYPE_FILTER;
+                else
+                    Flags &= ~LoginRequestFlags.HAS_NEGATIVE_UPDATE_TYPE_FILTER;
+            }
+        }
+
         #endregion
 
         /// <summary>
@@ -360,6 +402,8 @@ namespace LSEG.Eta.ValueAdd.Rdm
             UserNameType = 0;
             AuthenticationToken.Clear();
             AuthenticationExtended.Clear();
+            UpdateTypeFilter = 65533;
+            NegativeUpdateTypeFilter = 0;
         }
 
         /// <summary>
@@ -426,6 +470,18 @@ namespace LSEG.Eta.ValueAdd.Rdm
             {
                 destRequestMsg.HasAuthenticationExtended = true;
                 BufferHelper.CopyBuffer(AuthenticationExtended, destRequestMsg.AuthenticationExtended);
+            }
+
+            if (HasUpdateTypeFilter)
+            {
+                destRequestMsg.HasUpdateTypeFilter = true;
+                destRequestMsg.UpdateTypeFilter = UpdateTypeFilter;
+            }
+
+            if (HasNegativeUpdateTypeFilter)
+            {
+                destRequestMsg.HasNegativeUpdateTypeFilter = true;
+                destRequestMsg.NegativeUpdateTypeFilter = NegativeUpdateTypeFilter;
             }
 
             return CodecReturnCode.SUCCESS;
@@ -637,6 +693,30 @@ namespace LSEG.Eta.ValueAdd.Rdm
                 ret = elementEntry.Encode(EncodeIter, tmpUInt);
                 if (ret != CodecReturnCode.SUCCESS)
                     return ret;
+            }
+
+            if (HasUpdateTypeFilter)
+            {
+                elementEntry.DataType = DataTypes.UINT;
+                elementEntry.Name = ElementNames.UPDATE_TYPE_FILTER;
+                tmpUInt.Value(UpdateTypeFilter);
+                ret = elementEntry.Encode(EncodeIter, tmpUInt);
+                if (ret != CodecReturnCode.SUCCESS)
+                {
+                    return ret;
+                }
+            }
+
+            if (HasNegativeUpdateTypeFilter)
+            {
+                elementEntry.DataType = DataTypes.UINT;
+                elementEntry.Name = ElementNames.NEGATIVE_UPDATE_TYPE_FILTER;
+                tmpUInt.Value(NegativeUpdateTypeFilter);
+                ret = elementEntry.Encode(EncodeIter, tmpUInt);
+                if (ret != CodecReturnCode.SUCCESS)
+                {
+                    return ret;
+                }
             }
 
             if ((ret = elementList.EncodeComplete(EncodeIter, true)) != CodecReturnCode.SUCCESS)
@@ -861,6 +941,34 @@ namespace LSEG.Eta.ValueAdd.Rdm
                     LoginAttrib.HasSupportRoundTripLatencyMonitoring = true;
                     LoginAttrib.SupportConsumerRTTMonitoring = tmpUInt.ToLong();
                 }
+                else if (elementEntry.Name.Equals(ElementNames.UPDATE_TYPE_FILTER))
+                {
+                    if (elementEntry.DataType != DataTypes.UINT)
+                    {
+                        return CodecReturnCode.FAILURE;
+                    }
+                    ret = tmpUInt.Decode(dIter);
+                    if (ret != CodecReturnCode.SUCCESS)
+                    {
+                        return ret;
+                    }
+                    HasUpdateTypeFilter = true;
+                    UpdateTypeFilter = tmpUInt.ToULong();
+                }
+                else if (elementEntry.Name.Equals(ElementNames.NEGATIVE_UPDATE_TYPE_FILTER))
+                {
+                    if (elementEntry.DataType != DataTypes.UINT)
+                    {
+                        return CodecReturnCode.FAILURE;
+                    }
+                    ret = tmpUInt.Decode(dIter);
+                    if (ret != CodecReturnCode.SUCCESS)
+                    {
+                        return ret;
+                    }
+                    HasNegativeUpdateTypeFilter = true;
+                    NegativeUpdateTypeFilter = tmpUInt.ToULong();
+                }
             }
 
             return CodecReturnCode.SUCCESS;
@@ -940,6 +1048,26 @@ namespace LSEG.Eta.ValueAdd.Rdm
                 stringBuf.Append(tab);
                 stringBuf.Append("authenticationExtended: ");
                 stringBuf.Append(AuthenticationExtended);
+                stringBuf.AppendLine();
+            }
+
+            if (HasUpdateTypeFilter)
+            {
+                stringBuf.Append(tab);
+                stringBuf.Append("updateTypeFilter: ");
+                stringBuf.Append(UpdateTypeFilter).Append(" (");
+                stringBuf.Append(Eta.Rdm.UpdateTypeFilter.UpdateTypeFilterToString(UpdateTypeFilter));
+                stringBuf.Append(")");
+                stringBuf.AppendLine();
+            }
+
+            if (HasNegativeUpdateTypeFilter)
+            {
+                stringBuf.Append(tab);
+                stringBuf.Append("negativeUpdateTypeFilter: ");
+                stringBuf.Append(NegativeUpdateTypeFilter).Append(" (");
+                stringBuf.Append(Eta.Rdm.UpdateTypeFilter.UpdateTypeFilterToString(NegativeUpdateTypeFilter));
+                stringBuf.Append(")");
                 stringBuf.AppendLine();
             }
 

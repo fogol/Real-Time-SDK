@@ -39,6 +39,8 @@
 				
 				<RestProxyHostName value="proxy.local" />
 				<RestProxyPort value="3128" />
+				<UpdateTypeFilter value="2"/>
+				<NegativeUpdateTypeFilter value="4"/>
 			</Consumer>
 			<!-- ChannelSet should override Channel here. -->
 			<Consumer>

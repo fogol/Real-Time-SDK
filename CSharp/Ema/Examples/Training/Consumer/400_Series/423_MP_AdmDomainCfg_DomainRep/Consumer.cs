@@ -2,7 +2,7 @@
  *|            This source code is provided under the Apache 2.0 license
  *|  and is provided AS IS with no warranty or guarantee of fit for purpose.
  *|                See the project's LICENSE.md for details.
- *|           Copyright (C) 2023-2024 LSEG. All rights reserved.
+ *|           Copyright (C) 2023-2025 LSEG. All rights reserved.
  *|-----------------------------------------------------------------------------
  */
 
@@ -122,7 +122,13 @@ public class Consumer
             RequestMsg reqMsg = new();
 
             consumer = new(new OmmConsumerConfig().OperationModel(OmmConsumerConfig.OperationModelMode.USER_DISPATCH)
-                    .AddAdminMsg(loginReq.Name("user").NameType(EmaRdm.USER_NAME).ApplicationId("127").Position("127.0.0.1/net").AllowSuspectData(true).Message())
+                    .AddAdminMsg(loginReq.Name("user")
+                        .NameType(EmaRdm.USER_NAME)
+                        .ApplicationId("127")
+                        .Position("127.0.0.1/net")
+                        .AllowSuspectData(true)
+                        .UpdateTypeFilter(EmaRdm.RDM_UPDATE_FILTER_TYPE_QUOTE | EmaRdm.RDM_UPDATE_FILTER_TYPE_TRADE | EmaRdm.RDM_UPDATE_FILTER_TYPE_VERIFY)
+                        .Message())
                     .AddAdminMsg(reqMsg.DomainType(EmaRdm.MMT_DIRECTORY).Filter(EmaRdm.SERVICE_INFO_FILTER | EmaRdm.SERVICE_STATE_FILTER | EmaRdm.SERVICE_GROUP_FILTER))
                     .AddAdminMsg(reqMsg.Clear().DomainType(EmaRdm.MMT_DICTIONARY).Filter(EmaRdm.DICTIONARY_VERBOSE).Name("RWFFld").ServiceId(1))
                     .AddAdminMsg(reqMsg.Clear().DomainType(EmaRdm.MMT_DICTIONARY).Filter(EmaRdm.DICTIONARY_VERBOSE).Name("RWFEnum").ServiceId(1)));

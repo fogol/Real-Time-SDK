@@ -88,6 +88,14 @@ public class LoginHelperTest
         Assert.True(loginReq.HasAuthenticationExtended);
         Assert.Equal(authenticationExtended, loginReq.AuthenticationExtended());
 
+        loginReq.UpdateTypeFilter(EmaRdm.RDM_UPDATE_FILTER_TYPE_VOLUME_ALERT | EmaRdm.RDM_UPDATE_FILTER_TYPE_ORDER_INDICATION);
+        Assert.True(loginReq.HasUpdateTypeFilter);
+        Assert.Equal(EmaRdm.RDM_UPDATE_FILTER_TYPE_VOLUME_ALERT | EmaRdm.RDM_UPDATE_FILTER_TYPE_ORDER_INDICATION, loginReq.UpdateTypeFilter());
+
+        loginReq.NegativeUpdateTypeFilter(EmaRdm.RDM_UPDATE_FILTER_TYPE_CORRECTION | EmaRdm.RDM_UPDATE_FILTER_TYPE_MARKET_DIGEST);
+        Assert.True(loginReq.HasNegativeUpdateTypeFilter);
+        Assert.Equal(EmaRdm.RDM_UPDATE_FILTER_TYPE_CORRECTION | EmaRdm.RDM_UPDATE_FILTER_TYPE_MARKET_DIGEST, loginReq.NegativeUpdateTypeFilter());
+
         Eta.Codec.DataDictionary dictionary = new Eta.Codec.DataDictionary();
         TestUtilities.eta_EncodeDictionaryMsg(dictionary);
 
@@ -151,6 +159,12 @@ public class LoginHelperTest
                     break;
                 case EmaRdm.ENAME_AUTHN_EXTENDED:
                     Assert.Equal(authenticationExtended, elementEntry.OmmBufferValue().Value);
+                    break;
+                case EmaRdm.ENAME_UPDATE_TYPE_FILTER:
+                    Assert.Equal(EmaRdm.RDM_UPDATE_FILTER_TYPE_VOLUME_ALERT | EmaRdm.RDM_UPDATE_FILTER_TYPE_ORDER_INDICATION, elementEntry.UIntValue());
+                    break;
+                case EmaRdm.ENAME_NEGATIVE_UPDATE_TYPE_FILTER:
+                    Assert.Equal(EmaRdm.RDM_UPDATE_FILTER_TYPE_CORRECTION | EmaRdm.RDM_UPDATE_FILTER_TYPE_MARKET_DIGEST, elementEntry.UIntValue());
                     break;
                 default:
                     break;

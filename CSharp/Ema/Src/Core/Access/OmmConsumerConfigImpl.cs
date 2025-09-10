@@ -2,7 +2,7 @@
  *|            This source code is provided under the Apache 2.0 license
  *|  and is provided AS IS with no warranty or guarantee of fit for purpose.
  *|                See the project's LICENSE.md for details.
- *|           Copyright (C) 2023, 2024-2025 LSEG. All rights reserved.
+ *|           Copyright (C) 2023-2025 LSEG. All rights reserved.
  *|-----------------------------------------------------------------------------
  */
 
@@ -44,6 +44,26 @@ namespace LSEG.Ema.Access
         internal string RestProxyUserName { get; set; } = string.Empty;
         // RestProxyPassword config from OmmConsumerConfig methods
         internal string RestProxyPassword { get; set; } = string.Empty;
+        // UpdateTypeFilter config from OmmConsumerConfig methods
+        internal ulong UpdateTypeFilter
+        {
+            get => m_updateTypeFilter;
+            set
+            {
+                if (value > 0) m_updateTypeFilter = value;
+                else m_updateTypeFilter = 0;
+            }
+        }
+        // NegativeUpdateTypeFilter config from OmmConsumerConfig methods
+        internal ulong NegativeUpdateTypeFilter
+        {
+            get => m_negativeUpdateTypeFilter;
+            set
+            {
+                if (value > 0) m_negativeUpdateTypeFilter = value;
+                else m_negativeUpdateTypeFilter = 0;
+            }
+        }
 
         // Dictionary tables indexed by the name of the config.
         internal Dictionary<string, ConsumerConfig> ConsumerConfigMap { get; set; }
@@ -72,6 +92,8 @@ namespace LSEG.Ema.Access
         private const string DefaultHost = "localhost";
         private const string DefaultPort = "14002";
 
+        private ulong m_updateTypeFilter = 0;
+        private ulong m_negativeUpdateTypeFilter = 0;
         private static readonly HostPortParser hostPortParser = new (DefaultHost, DefaultPort);
         internal Dictionary<string, ServiceList>? ServiceListDict { get; private set; }
 
@@ -140,6 +162,8 @@ namespace LSEG.Ema.Access
             CipherSuites = OldConfigImpl.CipherSuites;
             ChanType = OldConfigImpl.ChanType;
             EncProtocolType = OldConfigImpl.EncProtocolType;
+            UpdateTypeFilter = OldConfigImpl.UpdateTypeFilter;
+            NegativeUpdateTypeFilter = OldConfigImpl.NegativeUpdateTypeFilter;
 
             if (OldConfigImpl.AdminDirectoryRequest != null)
             {
@@ -191,7 +215,7 @@ namespace LSEG.Ema.Access
                 OldConfigImpl.ConsumerConfigMap[ConsumerName].Copy(ConsumerConfig);
 
                 // If the hostname and port are set, remove all other channels from the channel set.
-                if(!string.IsNullOrEmpty(HostName) && !string.IsNullOrEmpty(Port) && ConsumerConfig.ChannelSet.Count > 1)
+                if (!string.IsNullOrEmpty(HostName) && !string.IsNullOrEmpty(Port) && ConsumerConfig.ChannelSet.Count > 1)
                 {
                     ConsumerConfig.ChannelSet.RemoveRange(1, ConsumerConfig.ChannelSet.Count - 1);
                 }
@@ -240,7 +264,7 @@ namespace LSEG.Ema.Access
                 ClientChannelConfigMap.Add(tmpChannelConfig.Name, tmpChannelConfig);
                 ConsumerConfig.ChannelSet.Add(tmpChannelConfig.Name);
             }
-            else   
+            else
             {
                 CopyChannelConfigs(OldConfigImpl, ConsumerConfig.ChannelSet);
             }
@@ -289,7 +313,7 @@ namespace LSEG.Ema.Access
             }
 
             DictionaryConfig.Clear();
-            
+
             if (!string.IsNullOrEmpty(ConsumerConfig.Dictionary))
             {
                 // There's a configured dictionary config, so copy it over.
@@ -393,6 +417,8 @@ namespace LSEG.Ema.Access
             CipherSuites = null;
             m_DataDictionary = null;
             ServiceListDict = null;
+            UpdateTypeFilter = 0;
+            NegativeUpdateTypeFilter = 0;
         }
 
         // Takes in a host name formatted in the following way:
@@ -769,6 +795,28 @@ namespace LSEG.Ema.Access
                 }
             }
 
+            if (!AdminLoginRequest.HasUpdateTypeFilter && UpdateTypeFilter == 0 && consConfig.UpdateTypeFilter != 0)
+            {
+                AdminLoginRequest.HasUpdateTypeFilter = true;
+                AdminLoginRequest.UpdateTypeFilter = consConfig.UpdateTypeFilter;
+            }
+            else if (UpdateTypeFilter != 0)
+            {
+                AdminLoginRequest.HasUpdateTypeFilter = true;
+                AdminLoginRequest.UpdateTypeFilter = UpdateTypeFilter;
+            }
+
+            if (!AdminLoginRequest.HasNegativeUpdateTypeFilter && NegativeUpdateTypeFilter == 0 && consConfig.NegativeUpdateTypeFilter != 0)
+            {
+                AdminLoginRequest.HasNegativeUpdateTypeFilter = true;
+                AdminLoginRequest.NegativeUpdateTypeFilter = consConfig.NegativeUpdateTypeFilter;
+            }
+            else if (NegativeUpdateTypeFilter != 0)
+            {
+                AdminLoginRequest.HasNegativeUpdateTypeFilter = true;
+                AdminLoginRequest.NegativeUpdateTypeFilter = NegativeUpdateTypeFilter;
+            }
+
             AdminLoginRequest.StreamId = 1; // Set the stream ID for login domain
             role.RdmLoginRequest = AdminLoginRequest;
             role.RdmDirectoryRequest = AdminDirectoryRequest;
@@ -823,7 +871,7 @@ namespace LSEG.Ema.Access
             connOpts.SetReconnectMinDelay(consConfig.ReconnectMinDelay);
             connOpts.SetReconnectAttempLimit(consConfig.ReconnectAttemptLimit);
 
-            foreach(string chnlName in consConfig.ChannelSet)
+            foreach (string chnlName in consConfig.ChannelSet)
             {
                 ClientChannelConfig chnlConfig = ClientChannelConfigMap[chnlName];
                 connOpts.ConnectionList.Add(chnlConfig.ConnectInfo);

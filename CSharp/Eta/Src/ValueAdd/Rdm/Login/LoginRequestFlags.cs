@@ -2,7 +2,7 @@
  *|            This source code is provided under the Apache 2.0 license
  *|  and is provided AS IS with no warranty or guarantee of fit for purpose.
  *|                See the project's LICENSE.md for details.
- *|           Copyright (C) 2023-2024 LSEG. All rights reserved.
+ *|           Copyright (C) 2023-2025 LSEG. All rights reserved.
  *|-----------------------------------------------------------------------------
  */
 
@@ -51,9 +51,8 @@ namespace LSEG.Eta.ValueAdd.Rdm
         HAS_USERNAME_TYPE = 0x0020,
 
         /// <summary>
-        /// (0x0040) Indicates the Consumer or Non-Interactive provider does not
+        /// (0x0040) Indicates the Consumer or Non-Interactive provider does not require a refresh.
         /// </summary>
-        /// require a refresh.
         NO_REFRESH = 0x0040,
 
         /// <summary>
@@ -68,6 +67,16 @@ namespace LSEG.Eta.ValueAdd.Rdm
         /// </summary>
         /// This is optionally used when the userNameType member is set to
         /// ElementNames.AUTHN_TOKEN
-        HAS_AUTHENTICATION_EXTENDED = 0x0200
+        HAS_AUTHENTICATION_EXTENDED = 0x0200,
+
+        /// <summary>
+        /// (0x0400) Indicates that the Login Request message has UpdateTypeFilter value
+        /// </summary>
+        HAS_UPDATE_TYPE_FILTER = 0x0400,
+
+        /// <summary>
+        /// (0x0800) Indicates that the Login REquest message has NegativeUpdateTypeFilter value.
+        /// </summary>
+        HAS_NEGATIVE_UPDATE_TYPE_FILTER = 0x0800
     }
 }

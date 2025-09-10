@@ -2,7 +2,7 @@
  *|            This source code is provided under the Apache 2.0 license
  *|  and is provided AS IS with no warranty or guarantee of fit for purpose.
  *|                See the project's LICENSE.md for details.
- *|           Copyright (C) 2023-2024 LSEG. All rights reserved.
+ *|           Copyright (C) 2022-2025 LSEG. All rights reserved.
  *|-----------------------------------------------------------------------------
  */
 
@@ -1288,6 +1288,20 @@ namespace LSEG.Eta.ValueAdd.Consumer
             {
                 LoginRequest loginRequest = chnlInfo.ConsumerRole.RdmLoginRequest!;
                 loginRequest.LoginAttrib.ApplicationId.Data(m_ConsumerCmdLineParser.ApplicationId);
+            }
+
+            if (m_ConsumerCmdLineParser.UpdateTypeFilter != 0)
+            {
+                LoginRequest loginRequest = chnlInfo.ConsumerRole.RdmLoginRequest;
+                loginRequest.HasUpdateTypeFilter = true;
+                loginRequest.UpdateTypeFilter = m_ConsumerCmdLineParser.UpdateTypeFilter;
+            }
+
+            if (m_ConsumerCmdLineParser.NegativeUpdateTypeFilter != 0)
+            {
+                LoginRequest loginRequest = chnlInfo.ConsumerRole.RdmLoginRequest;
+                loginRequest.HasNegativeUpdateTypeFilter = true;
+                loginRequest.NegativeUpdateTypeFilter = m_ConsumerCmdLineParser.NegativeUpdateTypeFilter;
             }
 
             if (m_ConsumerCmdLineParser.EnableRtt)
