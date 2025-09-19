@@ -1036,6 +1036,7 @@ void watchlistConsumerConfigInit(int argc, char** argv)
 	/* New RsslPreferredHostOptions values that will be updated by Ioctl call */
 	preferredHostConfig.directFallbackTime = 0U;
 	preferredHostConfig.ioctlCallTime = 0U;
+	preferredHostConfig.isIoctlCalled = RSSL_FALSE;
 
 	preferredHostConfig.setIoctlEnablePH = RSSL_FALSE;
 	preferredHostConfig.setIoctlConnectListIndex = RSSL_FALSE;

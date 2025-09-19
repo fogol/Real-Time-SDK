@@ -1034,7 +1034,7 @@ RsslReactorCallbackRet channelEventCallback(RsslReactor *pReactor, RsslReactorCh
 
 				/* Adjust the Ioctl preferred host options. */
 				/* Defaults to whatever application has already set it to so it doesn't change. */
-				if (preferredHostConfig.ioctlCallTimeInterval > 0)
+				if (!preferredHostConfig.isIoctlCalled  &&  preferredHostConfig.ioctlCallTimeInterval > 0)
 				{
 					RsslPreferredHostOptions* pIoctlPreferredHostOpts = &preferredHostConfig.rsslIoctlPreferredHostOpts;
 
@@ -1090,7 +1090,7 @@ RsslReactorCallbackRet channelEventCallback(RsslReactor *pReactor, RsslReactorCh
 				}
 
 				/* Set timeout when MultiCredWLConsumer should initiate Ioctl call */
-				if (preferredHostConfig.ioctlCallTimeInterval > 0)
+				if (!preferredHostConfig.isIoctlCalled  &&  preferredHostConfig.ioctlCallTimeInterval > 0)
 				{
 					preferredHostConfig.ioctlCallTime = currentTime + (time_t)preferredHostConfig.ioctlCallTimeInterval;
 
@@ -1398,8 +1398,10 @@ static RsslRet handlePreferredHostRuntime(RsslErrorInfo* pErrorInfo)
 		}
 	}
 
-	if (preferredHostConfig.ioctlCallTime > 0 && currentTime >= preferredHostConfig.ioctlCallTime)
+	if (!preferredHostConfig.isIoctlCalled &&
+		preferredHostConfig.ioctlCallTime > 0 && currentTime >= preferredHostConfig.ioctlCallTime)
 	{
+		preferredHostConfig.isIoctlCalled = RSSL_TRUE;
 		preferredHostConfig.ioctlCallTime = 0;
 		if (pConsumerChannel != NULL)
 		{

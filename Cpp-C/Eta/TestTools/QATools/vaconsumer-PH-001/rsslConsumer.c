@@ -2,7 +2,7 @@
  *|            This source code is provided under the Apache 2.0 license
  *|  and is provided AS IS with no warranty or guarantee of fit for purpose.
  *|                See the project's LICENSE.md for details.
- *|           Copyright (C) 2024-2025 LSEG. All rights reserved.
+ *|           Copyright (C) 2015-2020,2022-2025 LSEG. All rights reserved.
  *|-----------------------------------------------------------------------------
  */
 
@@ -77,6 +77,9 @@ static RsslBool sendJsonConvError = RSSL_FALSE;
 static RsslUInt32 jsonOutputBufferSize = 0;
 static RsslUInt32 jsonTokenIncrementSize = 0;
 
+static RsslUInt64 updateTypeFilter = 0;
+static RsslUInt64 negativeUpdateTypeFilter = 0;
+
 #define MAX_CHAN_COMMANDS 4
 static ChannelCommand chanCommands[MAX_CHAN_COMMANDS];
 static int channelCommandCount = 0;
@@ -146,9 +149,6 @@ static char prefHostDetectionTimeCron[RSSL_REACTOR_MAX_BUFFER_LEN_INFO_CRON];
 static RsslUInt32 prefHostDetectionTimeInterval = 0U;
 
 static RsslBool prefHostPrintDetails = RSSL_TRUE;
-
-static RsslReactorConnectOptions prefHostReactorConnectOpts;
-static RsslReactorConnectInfo prefHostReactorConnectionList[MAX_CHAN_COMMANDS];
 
 // API QA
 static RsslInt32 reconnectAttemptLimit = -1;
@@ -246,6 +246,8 @@ void printUsageAndExit(char *appName)
 			"\n -jsonOutputBufferSize size of the buffer that the converter will allocate for its output buffer. The conversion fails if the size is not large enough"
 			"\n -jsonTokenIncrementSize number of json token increment size for parsing JSON messages"
 			"\n -sendJsonConvError enable send json conversion error to provider"
+			"\n -updateTypeFilter set update type filter for login request"
+			"\n -negativeUpdateTypeFilter set negative update type filter for login request"
 			"\n"
 			"\n Options for Preferred host:"
 			"\n -enablePH enable Preferred host feature"
@@ -344,7 +346,7 @@ void parseCommandLine(int argc, char **argv)
 				i += 2; if (i > argc) printUsageAndExit(argv[0]);
 				snprintf(sslCAStore, 255, "%s", argv[i - 1]);
 			}
-			else if(strcmp("-uname", argv[i]) == 0)
+			else if (strcmp("-uname", argv[i]) == 0)
 			{
 				i += 2; if (i > argc) printUsageAndExit(argv[0]);
 				userName.length = snprintf(userNameBlock, sizeof(userNameBlock), "%s", argv[i-1]);
@@ -428,25 +430,25 @@ void parseCommandLine(int argc, char **argv)
 				password.length = snprintf(passwordBlock, sizeof(passwordBlock), "%s", argv[i - 1]);
 				password.data = passwordBlock;
 			}
-			else if(strcmp("-at", argv[i]) == 0)
+			else if (strcmp("-at", argv[i]) == 0)
 			{
 				i += 2; if (i > argc) printUsageAndExit(argv[0]);
 				authnToken.length = snprintf(authnTokenBlock, sizeof(authnTokenBlock), "%s", argv[i-1]);
 				authnToken.data = authnTokenBlock;
 			}
-			else if(strcmp("-ax", argv[i]) == 0)
+			else if (strcmp("-ax", argv[i]) == 0)
 			{
 				i += 2; if (i > argc) printUsageAndExit(argv[0]);
 				authnExtended.length = snprintf(authnExtendedBlock, sizeof(authnExtendedBlock), "%s", argv[i-1]);
 				authnExtended.data = authnExtendedBlock;
 			}
-			else if(strcmp("-aid", argv[i]) == 0)
+			else if (strcmp("-aid", argv[i]) == 0)
 			{
 				i += 2; if (i > argc) printUsageAndExit(argv[0]);
 				appId.length = snprintf(appIdBlock, sizeof(appIdBlock), "%s", argv[i-1]);
 				appId.data = appIdBlock;
 			}
-			else if(strcmp("-view", argv[i]) == 0)
+			else if (strcmp("-view", argv[i]) == 0)
 			{
 				i++;
 				setViewRequest();
@@ -461,7 +463,7 @@ void parseCommandLine(int argc, char **argv)
 				i++;
 				offPostEnabled = RSSL_TRUE;
 			}
-			else if(strcmp("-snapshot", argv[i]) == 0)
+			else if (strcmp("-snapshot", argv[i]) == 0)
 			{
 				i++;
 				setMPSnapshotRequest();
@@ -549,6 +551,16 @@ void parseCommandLine(int argc, char **argv)
 			{
 				i++;
 				sendJsonConvError = RSSL_TRUE;
+			}
+			else if (strcmp("-updateTypeFilter", argv[i]) == 0)
+			{
+				i += 2; if (i > argc) printUsageAndExit(argv[0]);
+				updateTypeFilter = atoi(argv[i - 1]);
+			}
+			else if (strcmp("-negativeUpdateTypeFilter", argv[i]) == 0)
+			{
+				i += 2; if (i > argc) printUsageAndExit(argv[0]);
+				negativeUpdateTypeFilter = atoi(argv[i - 1]);
 			}
 			else if ((strcmp("-c", argv[i]) == 0) || (strcmp("-tcp", argv[i]) == 0) ||
 				(strcmp("-webSocket", argv[i]) == 0) ||
@@ -640,7 +652,7 @@ void parseCommandLine(int argc, char **argv)
 
 						while(pToken)
 						{
-							ItemRequest *pItemRequest;
+							ItemRequest *pItemRequest = NULL;
 							/* domain */
 							pToken2 = strtok_r(pToken, ":", &pSaveToken2);
 							if (!pToken2) { printf("Error: Missing domain.\n"); printUsageAndExit(argv[0]); }
@@ -697,7 +709,7 @@ void parseCommandLine(int argc, char **argv)
 									printf("Number of Yield Curve items exceeded\n");
 								}
 							}
-							else if(0 == strcmp(pToken2, "sl"))
+							else if (0 == strcmp(pToken2, "sl"))
 							{
 								itemDomain = RSSL_DMT_SYMBOL_LIST;
 								pItemRequest = &pCommand->symbolListRequest;
@@ -772,7 +784,7 @@ void parseCommandLine(int argc, char **argv)
 							pToken2 = strtok_r(NULL, ":", &pSaveToken2);
 							if (!pToken2) 
 							{ 
-								if(itemDomain != RSSL_DMT_SYMBOL_LIST)
+								if (itemDomain != RSSL_DMT_SYMBOL_LIST)
 								{
 									printf("Error: Missing item name.\n"); 
 									printUsageAndExit(argv[0]);
@@ -793,7 +805,7 @@ void parseCommandLine(int argc, char **argv)
 								pItemRequest->itemName.data = pItemRequest->itemNameString;
 
 								/* A specific name was specified for the symbol list request. */
-								if(itemDomain == RSSL_DMT_SYMBOL_LIST)
+								if (itemDomain == RSSL_DMT_SYMBOL_LIST)
 									pCommand->userSpecSymbolList = RSSL_TRUE;
 							}
 							pToken = strtok_r(NULL, ",", &pSaveToken);
@@ -1278,7 +1290,7 @@ void parseCommandLine(int argc, char **argv)
 			else if (0 == strcmp("-debuginfoInterval", argv[i]))
 			{
 				i+=2; if (i > argc) printUsageAndExit(argv[0]);
-				reactorDebugLevel = (time_t)atoi(argv[i]);
+				reactorDebugLevel = (RsslUInt32)atoi(argv[i]);
 			}
 			else if (strcmp("-tsServiceName", argv[i]) == 0)
 			{
@@ -1653,7 +1665,7 @@ static void parseConnectionListArg(ChannelCommand* pCommand, char* argStr, char*
 			/* Port */
 			pToken2 = strtok_r(NULL, ":", &pSaveToken2);
 			if (!pToken2 && !enableSessionMgnt) { printf("Error: Missing port. ind: %u\n", indHost); printUsageAndExit(appName); }
-			snprintf(pCommand->port[indHost], MAX_BUFFER_LENGTH, "%s", pToken2);
+			else snprintf(pCommand->port[indHost], MAX_BUFFER_LENGTH, "%s", pToken2);
 			if (indHost == 0)
 				pCommand->cInfo.rsslConnectOptions.connectionInfo.unified.serviceName = pCommand->port[indHost];
 
@@ -1698,7 +1710,7 @@ RsslReactorCallbackRet authTokenEventCallback(RsslReactor *pReactor, RsslReactor
 {
 	RsslRet ret;
 	ChannelCommand *pCommand = pReactorChannel ? (ChannelCommand*)pReactorChannel->userSpecPtr: NULL;
-	char timeBuf[64];
+	char timeBuf[248] = { 0 };
 
 	// yyyy-MM-dd HH:mm:ss.SSS
 	dumpDateTime(timeBuf, sizeof(timeBuf));
@@ -1740,7 +1752,7 @@ RsslReactorCallbackRet oAuthCredentialEventCallback(RsslReactor *pReactor, RsslR
 	RsslReactorOAuthCredentialRenewalOptions renewalOptions;
 	RsslReactorOAuthCredentialRenewal reactorOAuthCredentialRenewal;
 	RsslErrorInfo rsslError;
-	char timeBuf[64];
+	char timeBuf[248] = { 0 };
 
 	// yyyy-MM-dd HH:mm:ss.SSS
 	dumpDateTime(timeBuf, sizeof(timeBuf));
@@ -1770,7 +1782,7 @@ RsslReactorCallbackRet oAuthCredentialEventCallback(RsslReactor *pReactor, RsslR
 RsslReactorCallbackRet channelEventCallback(RsslReactor *pReactor, RsslReactorChannel *pReactorChannel, RsslReactorChannelEvent *pConnEvent)
 {
 	ChannelCommand *pCommand = (ChannelCommand*)pReactorChannel->userSpecPtr;
-	char timeBuf[64];
+	char timeBuf[248] = { 0 };
 	time_t currTime;
 
 	currTime = time(NULL);
@@ -1833,7 +1845,7 @@ RsslReactorCallbackRet channelEventCallback(RsslReactor *pReactor, RsslReactorCh
 						memcpy(hostName, pRsslChannel->hostname, len);
 					}
 
-					printf("pRsslChannel.state=%d, socketId=%llu. Host=%s:%u\n\n",
+					printf("pRsslChannel.state=%d, socketId="SOCKET_PRINT_TYPE". Host=%s:%u\n\n",
 						pRsslChannel->state, pRsslChannel->socketId, hostName, port);
 				}
 				else
@@ -1860,7 +1872,7 @@ RsslReactorCallbackRet channelEventCallback(RsslReactor *pReactor, RsslReactorCh
 
 				/* Adjust the Ioctl preferred host options. */
 				/* Defaults to whatever application has already set it to so it doesn't change. */
-				if (preferredHostConfig.ioctlCallTimeInterval > 0)
+				if (!preferredHostConfig.isIoctlCalled  &&  preferredHostConfig.ioctlCallTimeInterval > 0)
 				{
 					RsslPreferredHostOptions* pIoctlPreferredHostOpts = &preferredHostConfig.rsslIoctlPreferredHostOpts;
 
@@ -1935,18 +1947,18 @@ RsslReactorCallbackRet channelEventCallback(RsslReactor *pReactor, RsslReactorCh
 
 				printf("   Direct Fallback.\n");
 				printf("   Time interval: %u\n", preferredHostConfig.directFallbackTimeInterval);
-				printf("   Remaining time: %lld\n", (preferredHostConfig.directFallbackTime - time(NULL)));
+				printf("   Remaining time: %lld\n", (long long int)(preferredHostConfig.directFallbackTime - time(NULL)));
 				printf("\n");
 			}
 
 			/* Set timeout when VAConsumer should initiate Ioctl call */
-			if (preferredHostConfig.ioctlCallTimeInterval > 0)
+			if (!preferredHostConfig.isIoctlCalled  &&  preferredHostConfig.ioctlCallTimeInterval > 0)
 			{
 				preferredHostConfig.ioctlCallTime = currTime + (time_t)preferredHostConfig.ioctlCallTimeInterval;
 
 				printf("   Ioctl call to update PreferredHostOptions.\n");
 				printf("   Time interval: %u\n", preferredHostConfig.ioctlCallTimeInterval);
-				printf("   Remaining time: %lld\n", (preferredHostConfig.ioctlCallTime - time(NULL)));
+				printf("   Remaining time: %lld\n", (long long int)(preferredHostConfig.ioctlCallTime - time(NULL)));
 				printf("\n");
 			}
 
@@ -2029,7 +2041,7 @@ RsslReactorCallbackRet channelEventCallback(RsslReactor *pReactor, RsslReactorCh
 		case RSSL_RC_CET_PREFERRED_HOST_STARTING_FALLBACK:
 		{
 			/* The preferred host operation has started. */
-			/* The event means - that a timer or function triggered the preferred host operation. */
+			/* The event means - that a timer or function triggered preferred host operation has started. */
 			printf("%s Received PREFERRED_HOST_STARTING_FALLBACK for Channel fd="SOCKET_PRINT_TYPE".\n", timeBuf, pReactorChannel->socketId);
 			return RSSL_RC_CRET_SUCCESS;
 		}
@@ -2286,7 +2298,7 @@ int main(int argc, char **argv)
 		loginRequest.userName = authnToken;
 		loginRequest.userNameType = RDM_LOGIN_USER_AUTHN_TOKEN;
 		
-		if(authnExtended.length)
+		if (authnExtended.length)
 		{
 			loginRequest.flags |= RDM_LG_RQF_HAS_AUTHN_EXTENDED;
 			loginRequest.authenticationExtended = authnExtended;
@@ -2308,6 +2320,19 @@ int main(int argc, char **argv)
 	if (RTTSupport == RSSL_TRUE)
 	{
 		loginRequest.flags |= RDM_LG_RQF_RTT_SUPPORT;
+	}
+
+	/* Set update type filter*/
+	if (updateTypeFilter)
+	{
+		loginRequest.flags |= RDM_LG_RQF_HAS_UPDATE_TYPE_FILTER;
+		loginRequest.updateTypeFilter = updateTypeFilter;
+	}
+	/* Set negative update type filter*/
+	if (negativeUpdateTypeFilter)
+	{
+		loginRequest.flags |= RDM_LG_RQF_HAS_NEGATIVE_UPDATE_TYPE_FILTER;
+		loginRequest.negativeUpdateTypeFilter = negativeUpdateTypeFilter;
 	}
 
 	/* Initialize the default directory request(Use 2 as the Directory Stream Id) */
@@ -2451,7 +2476,7 @@ int main(int argc, char **argv)
 		}
 
 		/* Specify interests to get channel statistics */
-		if(statisticInterval > 0)
+		if (statisticInterval > 0)
 			pCommand->cOpts.statisticFlags = RSSL_RC_ST_READ | RSSL_RC_ST_WRITE | RSSL_RC_ST_PING;
 
 		/* Initialize connection list */
@@ -2486,6 +2511,13 @@ int main(int argc, char **argv)
 					pInfo->enableSessionManagement = enableSessionMgnt;
 					pInfo->pAuthTokenEventCallback = authTokenEventCallback;
 				}
+
+				pInfo->rsslConnectOptions.proxyOpts.proxyHostName = proxyHost;
+				pInfo->rsslConnectOptions.proxyOpts.proxyPort = proxyPort;
+				pInfo->rsslConnectOptions.proxyOpts.proxyUserName = proxyUserName;
+				pInfo->rsslConnectOptions.proxyOpts.proxyPasswd = proxyPasswd;
+				pInfo->rsslConnectOptions.proxyOpts.proxyDomain = proxyDomain;
+				pInfo->rsslConnectOptions.encryptionOpts.openSSLCAStore = sslCAStore;
 			}
 
 			pOpts->reactorConnectionList = pCommand->InfoItems;
@@ -2679,6 +2711,7 @@ int main(int argc, char **argv)
 				printf("All reactor channels closed.\n\n");
 				cleanUpAndExit(-1);
 			}
+
 
 			/* Preferred Host. Check timeout and Initiate fallback direct call. */
 			if (ret = handlePreferredHostRuntime(&rsslErrorInfo) != RSSL_RET_SUCCESS)
@@ -2936,8 +2969,8 @@ static RsslRet handlePreferredHostRuntime(RsslErrorInfo* pErrorInfo)
 
 	RsslBool callDirectFallback =
 		(preferredHostConfig.directFallbackTime > 0 && currentTime >= preferredHostConfig.directFallbackTime ? RSSL_TRUE : RSSL_FALSE);
-	RsslBool callIoctl =
-		(preferredHostConfig.ioctlCallTime > 0 && currentTime >= preferredHostConfig.ioctlCallTime ? RSSL_TRUE : RSSL_FALSE);
+	RsslBool callIoctl = (!preferredHostConfig.isIoctlCalled &&
+			preferredHostConfig.ioctlCallTime > 0 && currentTime >= preferredHostConfig.ioctlCallTime ? RSSL_TRUE : RSSL_FALSE);
 
 	if (callDirectFallback || callIoctl)
 	{
@@ -2965,6 +2998,7 @@ static RsslRet handlePreferredHostRuntime(RsslErrorInfo* pErrorInfo)
 			{
 				if (chanCommands[i].reactorChannelReady == RSSL_TRUE)
 				{
+					preferredHostConfig.isIoctlCalled = RSSL_TRUE;
 					preferredHostConfig.ioctlCallTime = 0;
 					callIoctl = RSSL_FALSE;
 

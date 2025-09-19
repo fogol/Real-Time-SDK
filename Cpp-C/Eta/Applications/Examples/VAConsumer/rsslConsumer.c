@@ -1866,7 +1866,7 @@ RsslReactorCallbackRet channelEventCallback(RsslReactor *pReactor, RsslReactorCh
 
 				/* Adjust the Ioctl preferred host options. */
 				/* Defaults to whatever application has already set it to so it doesn't change. */
-				if (preferredHostConfig.ioctlCallTimeInterval > 0)
+				if (!preferredHostConfig.isIoctlCalled  &&  preferredHostConfig.ioctlCallTimeInterval > 0)
 				{
 					RsslPreferredHostOptions* pIoctlPreferredHostOpts = &preferredHostConfig.rsslIoctlPreferredHostOpts;
 
@@ -1946,7 +1946,7 @@ RsslReactorCallbackRet channelEventCallback(RsslReactor *pReactor, RsslReactorCh
 			}
 
 			/* Set timeout when VAConsumer should initiate Ioctl call */
-			if (preferredHostConfig.ioctlCallTimeInterval > 0)
+			if (!preferredHostConfig.isIoctlCalled  &&  preferredHostConfig.ioctlCallTimeInterval > 0)
 			{
 				preferredHostConfig.ioctlCallTime = currTime + (time_t)preferredHostConfig.ioctlCallTimeInterval;
 
@@ -2957,8 +2957,8 @@ static RsslRet handlePreferredHostRuntime(RsslErrorInfo* pErrorInfo)
 
 	RsslBool callDirectFallback =
 		(preferredHostConfig.directFallbackTime > 0 && currentTime >= preferredHostConfig.directFallbackTime ? RSSL_TRUE : RSSL_FALSE);
-	RsslBool callIoctl =
-		(preferredHostConfig.ioctlCallTime > 0 && currentTime >= preferredHostConfig.ioctlCallTime ? RSSL_TRUE : RSSL_FALSE);
+	RsslBool callIoctl = (!preferredHostConfig.isIoctlCalled &&
+			preferredHostConfig.ioctlCallTime > 0 && currentTime >= preferredHostConfig.ioctlCallTime ? RSSL_TRUE : RSSL_FALSE);
 
 	if (callDirectFallback || callIoctl)
 	{
@@ -2986,6 +2986,7 @@ static RsslRet handlePreferredHostRuntime(RsslErrorInfo* pErrorInfo)
 			{
 				if (chanCommands[i].reactorChannelReady == RSSL_TRUE)
 				{
+					preferredHostConfig.isIoctlCalled = RSSL_TRUE;
 					preferredHostConfig.ioctlCallTime = 0;
 					callIoctl = RSSL_FALSE;
 

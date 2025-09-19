@@ -289,6 +289,7 @@ typedef struct
 
 	time_t directFallbackTime;		/* Time when direct fallback will be invoked (when > 0), calculated by directFallbackTimeInterval */
 	time_t ioctlCallTime;			/* Time when Ioctl will be invoked (when > 0), calculated by ioctlCallTimeInterval */
+	RsslBool isIoctlCalled;			/* Indicates whether Ioctl has been called */
 	
 	RsslBool setIoctlEnablePH;					/* ioctlEnablePH is specified on the command line */
 	RsslBool setIoctlConnectListIndex;			/* ioctlConnectListIndex is specified on the command line */
@@ -308,6 +309,7 @@ RTR_C_INLINE void clearPreferredHostConfig(PreferredHostConfig* pPreferredHostCo
 
 	pPreferredHostConfig->directFallbackTime = 0U;
 	pPreferredHostConfig->ioctlCallTime = 0U;
+	pPreferredHostConfig->isIoctlCalled = RSSL_FALSE;
 
 	pPreferredHostConfig->setIoctlEnablePH = RSSL_FALSE;
 	pPreferredHostConfig->setIoctlConnectListIndex = RSSL_FALSE;
