@@ -84,16 +84,16 @@ class WlItemHandler implements WlHandler
     
     // used for requests that are submitted when directory stream is not up
     // two tables are required - one is indexed by service id and one is indexed by service name
-    LinkedHashMap<WlInteger,LinkedHashSet<WlRequest>> _pendingRequestByIdTable = new LinkedHashMap<WlInteger,LinkedHashSet<WlRequest>>();
-    LinkedHashMap<String,LinkedHashSet<WlRequest>> _pendingRequestByNameTable = new LinkedHashMap<String,LinkedHashSet<WlRequest>>();
+    LinkedHashMap<WlInteger,LinkedHashSet<WlRequest>> _pendingRequestByIdTable = new LinkedHashMap<>();
+    LinkedHashMap<String,LinkedHashSet<WlRequest>> _pendingRequestByNameTable = new LinkedHashMap<>();
     // pool of pending request lists (to avoid GC)
-    LinkedList<LinkedHashSet<WlRequest>> _pendingRequestListPool = new LinkedList<LinkedHashSet<WlRequest>>();
+    LinkedList<LinkedHashSet<WlRequest>> _pendingRequestListPool = new LinkedList<>();
     
     ReactorErrorInfo _errorInfo = ReactorFactory.createReactorErrorInfo();
     ReactorSubmitOptions _submitOptions = ReactorFactory.createReactorSubmitOptions();
     
     // list of streams
-    LinkedHashSet<WlStream> _streamList = new LinkedHashSet<WlStream>();
+    LinkedHashSet<WlStream> _streamList = new LinkedHashSet<>();
     
     // table that maps item aggregation key to streams
     HashMap<WlItemAggregationKey,WlStream> _itemAggregationKeytoWlStreamTable;
@@ -109,26 +109,26 @@ class WlItemHandler implements WlHandler
 	CloseMsg _closeMsg = (CloseMsg)CodecFactory.createMsg();
 
     // pool of StatusMsgs
-    LinkedList<StatusMsg> _statusMsgPool = new LinkedList<StatusMsg>();
+    LinkedList<StatusMsg> _statusMsgPool = new LinkedList<>();
     
     // List of StatusMsgs to send when dispatch is called
-    LinkedHashMap<WlInteger, StatusMsg> _statusMsgDispatchList = new LinkedHashMap<WlInteger, StatusMsg>();
+    LinkedHashMap<WlInteger, StatusMsg> _statusMsgDispatchList = new LinkedHashMap<>();
     
     // List of streams with pending messages to send
-    LinkedList<WlStream> _pendingSendMsgList = new LinkedList<WlStream>();
+    LinkedList<WlStream> _pendingSendMsgList = new LinkedList<>();
     
     // List of user requests to re-submit upon dispatch that had request timeout
-    LinkedList<WlRequest> _requestTimeoutList = new LinkedList<WlRequest>();
+    LinkedList<WlRequest> _requestTimeoutList = new LinkedList<>();
     
     // RDM dictionary message for callback
     DictionaryMsg _rdmDictionaryMsg = DictionaryMsgFactory.createMsg();
 
     // in case of close recover, the streamId list of user streams 
-    LinkedHashSet<WlInteger> _userStreamIdListToRecover = new LinkedHashSet<WlInteger>();
+    LinkedHashSet<WlInteger> _userStreamIdListToRecover = new LinkedHashSet<>();
   
 	// table that maps item provider request aggregation key to application
 	// requests for symbol list data stream
-	HashMap<WlItemAggregationKey, RequestMsg> _providerRequestTable = new HashMap<WlItemAggregationKey, RequestMsg>();
+	HashMap<WlItemAggregationKey, RequestMsg> _providerRequestTable = new HashMap<>();
 	RequestMsg _requestMsg = (RequestMsg) CodecFactory.createMsg();
 	WlItemAggregationKey _symbolListRequestKey = ReactorFactory
 			.createWlItemAggregationKey();
@@ -181,7 +181,7 @@ class WlItemHandler implements WlHandler
         _defaultQos.rate(QosRates.TICK_BY_TICK);
         _statusMsg.msgClass(MsgClasses.STATUS);
         _wlViewHandler = new WlViewHandler(watchlist);
-        _itemAggregationKeytoWlStreamTable = new LinkedHashMap<WlItemAggregationKey,WlStream>(_watchlist.role().watchlistOptions().itemCountHint() + 10, 1);
+        _itemAggregationKeytoWlStreamTable = new LinkedHashMap<>(_watchlist.role().watchlistOptions().itemCountHint() + 10, 1);
     }
     
     @Override
@@ -190,31 +190,24 @@ class WlItemHandler implements WlHandler
         if (!isReissue)
         {
             // validate Qos
-            if (requestMsg.checkHasQos() && requestMsg.qos() != null &&
-                (requestMsg.qos().timeliness() == QosTimeliness.UNSPECIFIED ||
-                requestMsg.qos().rate() == QosRates.UNSPECIFIED ||
-                requestMsg.qos().timeliness() > QosTimeliness.DELAYED ||
-                requestMsg.qos().rate() > QosRates.TIME_CONFLATED))
+            Qos msgQos;
+            if (requestMsg.checkHasQos() && (msgQos = requestMsg.qos()) != null && validateQos(msgQos))
             {
                 return _watchlist.reactor().populateErrorInfo(errorInfo,
                                                               CodecReturnCodes.INVALID_DATA,
                                                               "WlItemHandler.submitRequest",
-                                                              "Request has invalid QoS (Timeliness: " + requestMsg.qos().timeliness() + 
-                                                              ", Rate: " + requestMsg.qos().rate() + ").");
+                                                              "Request has invalid QoS (Timeliness: " + msgQos.timeliness() +
+                                                              ", Rate: " + msgQos.rate() + ").");
             }
             
             // validate WorstQos
-            if (requestMsg.checkHasWorstQos() && requestMsg.worstQos() != null &&
-                (requestMsg.worstQos().timeliness() == QosTimeliness.UNSPECIFIED ||
-                requestMsg.worstQos().rate() == QosRates.UNSPECIFIED ||
-                requestMsg.worstQos().timeliness() > QosTimeliness.DELAYED ||
-                requestMsg.worstQos().rate() > QosRates.TIME_CONFLATED))
+            if (requestMsg.checkHasWorstQos() && (msgQos = requestMsg.worstQos()) != null && validateQos(msgQos))
             {
                 return _watchlist.reactor().populateErrorInfo(errorInfo,
                                                               CodecReturnCodes.INVALID_DATA,
                                                               "WlItemHandler.submitRequest",
-                                                              "Request has invalid worst QoS (Timeliness: " + requestMsg.worstQos().timeliness() + 
-                                                              ", Rate: " + requestMsg.worstQos().rate() + ").");
+                                                              "Request has invalid worst QoS (Timeliness: " + msgQos.timeliness() +
+                                                              ", Rate: " + msgQos.rate() + ").");
             }
 
             if (requestMsg.checkHasBatch())
@@ -232,6 +225,13 @@ class WlItemHandler implements WlHandler
             // handle reissue
             return handleReissue(wlRequest, requestMsg, submitOptions, errorInfo);
         }
+    }
+
+    private static boolean validateQos(Qos qos) {
+        return qos.timeliness() == QosTimeliness.UNSPECIFIED ||
+                qos.rate() == QosRates.UNSPECIFIED ||
+                qos.timeliness() > QosTimeliness.DELAYED ||
+                qos.rate() > QosRates.TIME_CONFLATED;
     }
 
     /* Handles a user request. */
@@ -275,284 +275,22 @@ class WlItemHandler implements WlHandler
             if (requestMsg.domainType() == DomainTypes.DICTIONARY || isWindowOpen(wlService))
             {
                 // find aggregation stream
-                WlStream wlStream = null;
-                if ((wlStream = findItemAggregationStream(requestMsg, _tempMatchedQos, submitOptions)) == null)
+                WlStream wlStream = findItemAggregationStream(requestMsg, _tempMatchedQos, submitOptions);
+                if (wlStream == null)
                 {
                     // item cannot be aggregated, create new stream
-                    wlStream = createNewStream(requestMsg);
-                    wlRequest.stream(wlStream);
-                    
-                    // add to fanout list                        
-                    wlStream.userRequestList().add(wlRequest);
-                    
-               		if ( requestMsg.checkHasView() && requestMsg.domainType() != DomainTypes.SYMBOL_LIST)
-            		{ 
-               			if ( (ret = handleViews(wlRequest, errorInfo)) < ReactorReturnCodes.SUCCESS)
-               				return ret;			
-            		}
-            	                    
-                    WlItemAggregationKey itemAggregationKey = null;
-                    
-                    // copy temporary item aggregation key from findItemAggregationStream() into new one if not private stream
-                    if (!requestMsg.checkPrivateStream())
+                    ret = handleNonAggregatedRequest(wlService, wlRequest, requestMsg, submitOptions, errorInfo, sendNow);
+                    if (ret < ReactorReturnCodes.SUCCESS)
                     {
-                        itemAggregationKey = ReactorFactory.createWlItemAggregationKey();
-                        _tempItemAggregationKey.copy(itemAggregationKey);
-                    }                    
-                    // update temporary item aggregation request and send
-                    _tempItemAggregationRequest.clear();
-                    if (!requestMsg.checkPrivateStream())
-                    {
-                        requestMsg.copy(_tempItemAggregationRequest, defaultCopyFlags);
-                        _tempItemAggregationRequest.containerType(DataTypes.NO_DATA);
-                    }
-                    else
-                    {
-                        requestMsg.copy(_tempItemAggregationRequest, privateStreamCopyFlags);
-                    	if ( requestMsg.checkHasView())
-                    	{
-                    		_tempItemAggregationRequest.containerType(DataTypes.ELEMENT_LIST);                    	
-                        	_tempItemAggregationRequest.applyHasView();
-                        	_tempItemAggregationRequest.encodedDataBody(_viewElemList);
-                    	}
-                    }
-                    // stream id is that of watchlist stream
-                    _tempItemAggregationRequest.streamId(wlStream.streamId());
-                    // Service id is that of item aggregation key
-                    _tempItemAggregationRequest.msgKey().applyHasServiceId();
-                    _tempItemAggregationRequest.msgKey().serviceId(_tempItemAggregationKey.msgKey().serviceId());
-                    // qos is that of item aggregation key if not dictionary domain
-                    if (requestMsg.domainType() != DomainTypes.DICTIONARY)
-                    {
-                        _tempItemAggregationRequest.applyHasQos();
-                        _tempItemAggregationKey.qos().copy(_tempItemAggregationRequest.qos());
-                        // clear worst qos flag
-                        _tempItemAggregationRequest.flags(_tempItemAggregationRequest.flags() & ~RequestMsgFlags.HAS_WORST_QOS);
-                    }
-                    // priority is that of request or 1/1 if not present
-                    if (requestMsg.checkHasPriority())
-                    {
-                        _tempItemAggregationRequest.applyHasPriority();
-                        _tempItemAggregationRequest.priority().priorityClass(requestMsg.priority().priorityClass());
-                        _tempItemAggregationRequest.priority().count(requestMsg.priority().count());
-                    }
-                    else if (!requestMsg.checkPrivateStream()) // request has no priority, use default of 1/1 if not private stream
-                    {
-                        _tempItemAggregationRequest.applyHasPriority();
-                        _tempItemAggregationRequest.priority().priorityClass(1);
-                        _tempItemAggregationRequest.priority().count(1);
-                    }
-                    // reset MSG_KEY_IN_UPDATES flag if set
-                    if (_tempItemAggregationRequest.checkMsgKeyInUpdates())
-                    {
-                        _tempItemAggregationRequest.flags(_tempItemAggregationRequest.flags() & ~RequestMsgFlags.MSG_KEY_IN_UPDATES);
-                    }
-
-					if ( requestMsg.checkPause() && requestMsg.checkStreaming())
-						wlStream.numPausedRequestsCount(1);
-                    
-                    // send message to stream
-                    if (sendNow)
-                    {
-                        // send now
-                        ret = wlStream.sendMsgOutOfLoop(_tempItemAggregationRequest, submitOptions, _errorInfo);
-                        wlStream.refreshState( _tempItemAggregationRequest.checkHasView() ? WlStream.RefreshStates.REFRESH_VIEW_PENDING :
-                        						WlStream.RefreshStates.REFRESH_PENDING);
-                    }
-                    else // don't send now, just set request message on stream
-                    {
-                        ret = wlStream.requestMsg(_tempItemAggregationRequest);
-                    }
-
-                    // increment number of outstanding requests if not dictionary domain
-                    if (requestMsg.domainType() != DomainTypes.DICTIONARY && !requestMsg.checkNoRefresh())
-                    {
-                        wlService.numOutstandingRequests(wlService.numOutstandingRequests() + 1);
-                    }
-                    
-                    // update tables and lists if send successful
-                    if (ret >= ReactorReturnCodes.SUCCESS)
-                    {
-                        // save stream info
-                        wlRequest.streamInfo().serviceName(submitOptions.serviceName());
-                        wlRequest.streamInfo().userSpecObject(submitOptions.requestMsgOptions().userSpecObj());
-                        
-                        // save matched Qos if not dictionary
-                        if (requestMsg.domainType() != DomainTypes.DICTIONARY)
-                        {
-                            _tempMatchedQos.copy(wlRequest.matchedQos());
-                        }
-    
-                        // add to list of streams
-                        _streamList.add(wlStream);
-                        
-                        // add stream to watchlist table
-                        WlInteger wlInteger = ReactorFactory.createWlInteger();
-                        wlInteger.value(wlStream.streamId());
-                        wlStream.tableKey(wlInteger);
-                        _watchlist.streamIdtoWlStreamTable().put(wlInteger, wlStream);
-
-                        // add to _itemAggregationKeytoWlStreamTable if not private stream
-                        if (!requestMsg.checkPrivateStream())
-                        {
-                            _itemAggregationKeytoWlStreamTable.put(itemAggregationKey, wlStream);
-                        }
-                        
-                        // associate stream and item aggregation key if not private stream
-                        if (!requestMsg.checkPrivateStream())
-                        {
-                            wlStream.itemAggregationKey(itemAggregationKey);
-                        }
-                        
-                        // associate stream and service
-                        wlStream.wlService(wlService);
-                        
-                        // add stream to service's stream list
-                        wlService.streamList().add(wlStream);
-                        
-                        // update request state to PENDING_REFRESH
-                        wlRequest.state(WlRequest.State.PENDING_REFRESH);
-                        
-                        // associate stream and service
-                        wlStream.wlService(wlService);                    
-    
-                        // if not sendNow, add stream to pending send message list
-                        if (!sendNow)
-                        {
-                            _pendingSendMsgList.add(wlStream);
-                        }
-                    }
-                    else
-                    {
-                        // return watchlist stream to pool
-                        wlStream.returnToPool();
+                        return ret;
                     }
                 }
                 else // item can be aggregated
                 {
-                    // save stream info
-                    wlRequest.streamInfo().serviceName(submitOptions.serviceName());
-                    wlRequest.streamInfo().userSpecObject(submitOptions.requestMsgOptions().userSpecObj());
-    
-                    // save matched Qos if not dictionary
-                    if (requestMsg.domainType() != DomainTypes.DICTIONARY)
+                    ret = handleAggregatedRequest(wlStream, wlService, wlRequest, requestMsg, submitOptions, errorInfo, sendNow);
+                    if (ret < ReactorReturnCodes.SUCCESS)
                     {
-                        _tempMatchedQos.copy(wlRequest.matchedQos());
-                    }
-                    
-                    // set stream associated with request
-                    wlRequest.stream(wlStream);
-                    
-                    /* Add request to stream if the stream is not waiting for a refresh or the stream is streaming but it it not waiting for multi-part and view pending */
-                    if( !wlStream.requestPending() || wlStream.refreshState() == WlStream.RefreshStates.REFRESH_NOT_REQUIRED ||
-                    	( wlStream.requestMsg().checkStreaming() && wlStream.refreshState() != RefreshStates.REFRESH_COMPLETE_PENDING && 
-                    	  wlStream.refreshState() != RefreshStates.REFRESH_VIEW_PENDING )
-                    	)
-                    {                   	
-                        if (requestMsg.checkHasView())
-                        {   
-                            if ( (ret = handleViews(wlRequest, errorInfo)) < ReactorReturnCodes.SUCCESS)
-                                return ret;
-                        }
-                		
-                        // add request to stream
-                        wlStream.userRequestList().add(wlRequest);
-
-                        if ( wlRequest.requestMsg().checkPause() && wlRequest.requestMsg().checkStreaming())
-                        	wlStream.numPausedRequestsCount(wlStream.numPausedRequestsCount() + 1);
-                                                
-                        // update request state to PENDING_REFRESH
-                        wlRequest.state(WlRequest.State.PENDING_REFRESH);
-    
-                        // retrieve request from stream
-                        RequestMsg streamRequestMsg = wlStream.requestMsg();
-                        
-                        // increment number of snapshots pending
-                        if (!requestMsg.checkStreaming())
-                        {
-                            // Join the existing request if the current request haven't received a refresh yet. 
-                            if( wlStream.refreshState() == WlStream.RefreshStates.REFRESH_PENDING)
-                            	return ret;
-                        }
-                        else
-                        {
-	                        // Update priority for streaming requests only
-	                        if (requestMsg.checkHasPriority())
-	                        {
-	                            // use priorityClass of request if greater than existing one
-	                            if (requestMsg.priority().priorityClass() > streamRequestMsg.priority().priorityClass())
-	                            {
-	                                streamRequestMsg.priority().priorityClass(requestMsg.priority().priorityClass());
-	                            }
-	                            
-	                            // add priorityCount to that of existing one
-	                            if (!streamRequestMsg.checkStreaming())
-	                            	streamRequestMsg.priority().count(requestMsg.priority().count());
-	                            else
-	                            	streamRequestMsg.priority().count(streamRequestMsg.priority().count() + requestMsg.priority().count());
-	                        }
-	                        else // request has no priority, assume default of 1/1
-	                        {
-	                            streamRequestMsg.applyHasPriority();
-	                            if (!streamRequestMsg.checkStreaming())
-	                            	streamRequestMsg.priority().count(1);
-	                            else
-	                            	streamRequestMsg.priority().count(streamRequestMsg.priority().count() + 1);
-	                        }
-
-	                        if (!streamRequestMsg.checkStreaming())
-	                            streamRequestMsg.applyStreaming();
-                        }
-
-                        if (sendNow)
-                        {
-                            // increment number of outstanding requests if not dictionary domain and a request isn't currently pending
-                            if (requestMsg.domainType() != DomainTypes.DICTIONARY && !wlStream.requestPending() && !requestMsg.checkNoRefresh())
-                            {
-                                wlService.numOutstandingRequests(wlService.numOutstandingRequests() + 1);
-                            }
-
-                            ret = wlStream.sendMsgOutOfLoop(streamRequestMsg, submitOptions, _errorInfo);
-                            wlStream.refreshState(streamRequestMsg.checkHasView() ? WlStream.RefreshStates.REFRESH_VIEW_PENDING : WlStream.RefreshStates.REFRESH_PENDING );
-                        }
-                        else // if not sendNow, add stream to pending send message list if not already there
-                        {
-                            if (!_pendingSendMsgList.contains(wlStream))
-                            {
-                                _pendingSendMsgList.add(wlStream);
- 
-                                // increment number of outstanding requests if not dictionary domain and a request isn't currently pending
-                                if (requestMsg.domainType() != DomainTypes.DICTIONARY && !wlStream.requestPending() && !requestMsg.checkNoRefresh())
-                                {
-                                    wlService.numOutstandingRequests(wlService.numOutstandingRequests() + 1);
-                                }
-                            }
-                            else // stream is pending, if this request has no pause flag set while the pending stream has it set, remove pause flag from pending stream
-                            {
-                            	RequestMsg pendingRequestMsg = _pendingSendMsgList.get(_pendingSendMsgList.indexOf(wlStream)).requestMsg();
-                            	if (pendingRequestMsg.checkPause() && !requestMsg.checkPause())
-                            	{
-                            		pendingRequestMsg.flags(pendingRequestMsg.flags() & ~RequestMsgFlags.PAUSE);
-                            	}
-                            }
-                        }
-                    }
-                    else
-                    {  
-                    	// WlStream is waiting a response for snapshot request and the user's request is snapshot without view
-                    	if( (!wlStream.requestMsg().checkStreaming() && (wlStream.refreshState() == WlStream.RefreshStates.REFRESH_PENDING )) &&
-                    		!requestMsg.checkStreaming() && !requestMsg.checkHasView() )
-                    	{
-                    	    // join the snapshot request to the existing snapshot stream
-                    		wlRequest.state(State.PENDING_REFRESH);
-                            wlStream.userRequestList().add(wlRequest);
-                    	}
-                    	else
-                    	{
-                    	    // currently in the middle of snapshot, multi-part refresh or pending view
-                    	    wlRequest.state(State.PENDING_REQUEST);
-                    	    wlStream.waitingRequestList().add(wlRequest);
-                    	}
+                        return ret;
                     }
                 }
             }
@@ -576,7 +314,7 @@ class WlItemHandler implements WlHandler
             }
 
             // queue status message to send on next dispatch call
-            if (_userStreamIdListToRecover.size() == 0 || sendNow)                        
+            if (_userStreamIdListToRecover.isEmpty() || sendNow)
             	queueStatusForDispatch(requestMsg.streamId(), requestMsg.domainType(), errorInfo.error().text(), requestMsg.checkPrivateStream());
             else
             {            	
@@ -600,7 +338,307 @@ class WlItemHandler implements WlHandler
         }
         return ret;
     }
-    
+
+    private int handleAggregatedRequest(WlStream wlStream, WlService wlService, WlRequest wlRequest, RequestMsg requestMsg, ReactorSubmitOptions submitOptions, ReactorErrorInfo errorInfo, boolean sendNow)
+    {
+        int ret = ReactorReturnCodes.SUCCESS;
+        // save stream info
+        wlRequest.streamInfo().serviceName(submitOptions.serviceName());
+        wlRequest.streamInfo().userSpecObject(submitOptions.requestMsgOptions().userSpecObj());
+
+        // save matched Qos if not dictionary
+        if (requestMsg.domainType() != DomainTypes.DICTIONARY)
+        {
+            _tempMatchedQos.copy(wlRequest.matchedQos());
+        }
+
+        // set stream associated with request
+        wlRequest.stream(wlStream);
+
+        /* Add request to stream if the stream is not waiting for a refresh or the stream is streaming but it it not waiting for multi-part and view pending */
+        if( !wlStream.requestPending() || wlStream.refreshState() == WlStream.RefreshStates.REFRESH_NOT_REQUIRED ||
+                ( wlStream.requestMsg().checkStreaming() && wlStream.refreshState() != RefreshStates.REFRESH_COMPLETE_PENDING &&
+                        wlStream.refreshState() != RefreshStates.REFRESH_VIEW_PENDING )
+        )
+        {
+            if (requestMsg.checkHasView())
+            {
+                if ( (ret = handleViews(wlRequest, errorInfo)) < ReactorReturnCodes.SUCCESS)
+                    return ret;
+            }
+
+            // add request to stream
+            wlStream.userRequestList().add(wlRequest);
+
+            if ( wlRequest.requestMsg().checkPause() && wlRequest.requestMsg().checkStreaming())
+                wlStream.numPausedRequestsCount(wlStream.numPausedRequestsCount() + 1);
+
+            // update request state to PENDING_REFRESH
+            wlRequest.state(WlRequest.State.PENDING_REFRESH);
+
+            // retrieve request from stream
+            RequestMsg streamRequestMsg = wlStream.requestMsg();
+
+            // increment number of snapshots pending
+            if (!requestMsg.checkStreaming())
+            {
+                // Join the existing request if the current request haven't received a refresh yet.
+                if( wlStream.refreshState() == WlStream.RefreshStates.REFRESH_PENDING)
+                    return ret;
+            }
+            else
+            {
+                // Update priority for streaming requests only
+                if (requestMsg.checkHasPriority())
+                {
+                    // use priorityClass of request if greater than existing one
+                    if (requestMsg.priority().priorityClass() > streamRequestMsg.priority().priorityClass())
+                    {
+                        streamRequestMsg.priority().priorityClass(requestMsg.priority().priorityClass());
+                    }
+
+                    // add priorityCount to that of existing one
+                    if (!streamRequestMsg.checkStreaming())
+                        streamRequestMsg.priority().count(requestMsg.priority().count());
+                    else
+                        streamRequestMsg.priority().count(streamRequestMsg.priority().count() + requestMsg.priority().count());
+                }
+                else // request has no priority, assume default of 1/1
+                {
+                    streamRequestMsg.applyHasPriority();
+                    if (!streamRequestMsg.checkStreaming())
+                        streamRequestMsg.priority().count(1);
+                    else
+                        streamRequestMsg.priority().count(streamRequestMsg.priority().count() + 1);
+                }
+
+                if (!streamRequestMsg.checkStreaming())
+                    streamRequestMsg.applyStreaming();
+            }
+
+            if (sendNow)
+            {
+                // increment number of outstanding requests if not dictionary domain and a request isn't currently pending
+                if (requestMsg.domainType() != DomainTypes.DICTIONARY && !wlStream.requestPending() && !requestMsg.checkNoRefresh())
+                {
+                    wlService.numOutstandingRequests(wlService.numOutstandingRequests() + 1);
+                }
+
+                ret = wlStream.sendMsgOutOfLoop(streamRequestMsg, submitOptions, _errorInfo);
+                wlStream.refreshState(streamRequestMsg.checkHasView() ? WlStream.RefreshStates.REFRESH_VIEW_PENDING : WlStream.RefreshStates.REFRESH_PENDING );
+            }
+            else // if not sendNow, add stream to pending send message list if not already there
+            {
+                if (!_pendingSendMsgList.contains(wlStream))
+                {
+                    _pendingSendMsgList.add(wlStream);
+
+                    // increment number of outstanding requests if not dictionary domain and a request isn't currently pending
+                    if (requestMsg.domainType() != DomainTypes.DICTIONARY && !wlStream.requestPending() && !requestMsg.checkNoRefresh())
+                    {
+                        wlService.numOutstandingRequests(wlService.numOutstandingRequests() + 1);
+                    }
+                }
+                else // stream is pending, if this request has no pause flag set while the pending stream has it set, remove pause flag from pending stream
+                {
+                    RequestMsg pendingRequestMsg = _pendingSendMsgList.get(_pendingSendMsgList.indexOf(wlStream)).requestMsg();
+                    if (pendingRequestMsg.checkPause() && !requestMsg.checkPause())
+                    {
+                        pendingRequestMsg.flags(pendingRequestMsg.flags() & ~RequestMsgFlags.PAUSE);
+                    }
+                }
+            }
+        }
+        else
+        {
+            // WlStream is waiting a response for snapshot request and the user's request is snapshot without view
+            if( (!wlStream.requestMsg().checkStreaming() && (wlStream.refreshState() == WlStream.RefreshStates.REFRESH_PENDING )) &&
+                    !requestMsg.checkStreaming() && !requestMsg.checkHasView() )
+            {
+                // join the snapshot request to the existing snapshot stream
+                wlRequest.state(State.PENDING_REFRESH);
+                wlStream.userRequestList().add(wlRequest);
+            }
+            else
+            {
+                // WlStream is waiting a response for request and the user's request is snapshot with view
+                // and doesn't cause changes in aggregateView
+                if( !requestMsg.checkStreaming() && requestMsg.checkHasView() &&
+                        ( wlStream.refreshState() == RefreshStates.REFRESH_VIEW_PENDING ) &&
+                        _wlViewHandler.aggregateViewContainsView(wlStream._aggregateView, wlRequest) ) {
+                    // add view into request
+                    if ( (ret = handleViews(wlRequest, errorInfo)) < ReactorReturnCodes.SUCCESS)
+                        return ret;
+
+                    // join the snapshot request to the existing stream
+                    wlRequest.state(State.PENDING_REFRESH);
+                    wlStream.userRequestList().add(wlRequest);
+                } else {
+                    // currently in the middle of snapshot, multi-part refresh or pending view
+                    wlRequest.state(State.PENDING_REQUEST);
+                    wlStream.waitingRequestList().add(wlRequest);
+                }
+            }
+        }
+
+        return ret;
+    }
+
+    private int handleNonAggregatedRequest(WlService wlService, WlRequest wlRequest, RequestMsg requestMsg, ReactorSubmitOptions submitOptions, ReactorErrorInfo errorInfo, boolean sendNow)
+    {
+        WlStream wlStream = createNewStream(requestMsg);
+        wlRequest.stream(wlStream);
+
+        // add to fanout list
+        wlStream.userRequestList().add(wlRequest);
+
+        int ret;
+        if ( requestMsg.checkHasView() && requestMsg.domainType() != DomainTypes.SYMBOL_LIST)
+        {
+            if ( (ret = handleViews(wlRequest, errorInfo)) < ReactorReturnCodes.SUCCESS)
+                return ret;
+        }
+
+        WlItemAggregationKey itemAggregationKey = null;
+
+        // copy temporary item aggregation key from findItemAggregationStream() into new one if not private stream
+        if (!requestMsg.checkPrivateStream())
+        {
+            itemAggregationKey = ReactorFactory.createWlItemAggregationKey();
+            _tempItemAggregationKey.copy(itemAggregationKey);
+        }
+        // update temporary item aggregation request and send
+        _tempItemAggregationRequest.clear();
+        if (!requestMsg.checkPrivateStream())
+        {
+            requestMsg.copy(_tempItemAggregationRequest, defaultCopyFlags);
+            _tempItemAggregationRequest.containerType(DataTypes.NO_DATA);
+        }
+        else
+        {
+            requestMsg.copy(_tempItemAggregationRequest, privateStreamCopyFlags);
+            if ( requestMsg.checkHasView())
+            {
+                _tempItemAggregationRequest.containerType(DataTypes.ELEMENT_LIST);
+                _tempItemAggregationRequest.applyHasView();
+                _tempItemAggregationRequest.encodedDataBody(_viewElemList);
+            }
+        }
+        // stream id is that of watchlist stream
+        _tempItemAggregationRequest.streamId(wlStream.streamId());
+        // Service id is that of item aggregation key
+        _tempItemAggregationRequest.msgKey().applyHasServiceId();
+        _tempItemAggregationRequest.msgKey().serviceId(_tempItemAggregationKey.msgKey().serviceId());
+        // qos is that of item aggregation key if not dictionary domain
+        if (requestMsg.domainType() != DomainTypes.DICTIONARY)
+        {
+            _tempItemAggregationRequest.applyHasQos();
+            _tempItemAggregationKey.qos().copy(_tempItemAggregationRequest.qos());
+            // clear worst qos flag
+            _tempItemAggregationRequest.flags(_tempItemAggregationRequest.flags() & ~RequestMsgFlags.HAS_WORST_QOS);
+        }
+        // priority is that of request or 1/1 if not present
+        if (requestMsg.checkHasPriority())
+        {
+            _tempItemAggregationRequest.applyHasPriority();
+            _tempItemAggregationRequest.priority().priorityClass(requestMsg.priority().priorityClass());
+            _tempItemAggregationRequest.priority().count(requestMsg.priority().count());
+        }
+        else if (!requestMsg.checkPrivateStream()) // request has no priority, use default of 1/1 if not private stream
+        {
+            _tempItemAggregationRequest.applyHasPriority();
+            _tempItemAggregationRequest.priority().priorityClass(1);
+            _tempItemAggregationRequest.priority().count(1);
+        }
+        // reset MSG_KEY_IN_UPDATES flag if set
+        if (_tempItemAggregationRequest.checkMsgKeyInUpdates())
+        {
+            _tempItemAggregationRequest.flags(_tempItemAggregationRequest.flags() & ~RequestMsgFlags.MSG_KEY_IN_UPDATES);
+        }
+
+        if ( requestMsg.checkPause() && requestMsg.checkStreaming())
+            wlStream.numPausedRequestsCount(1);
+
+        // send message to stream
+        if (sendNow)
+        {
+            // send now
+            ret = wlStream.sendMsgOutOfLoop(_tempItemAggregationRequest, submitOptions, _errorInfo);
+            wlStream.refreshState( _tempItemAggregationRequest.checkHasView() ? WlStream.RefreshStates.REFRESH_VIEW_PENDING :
+                    WlStream.RefreshStates.REFRESH_PENDING);
+        }
+        else // don't send now, just set request message on stream
+        {
+            ret = wlStream.requestMsg(_tempItemAggregationRequest);
+        }
+
+        // increment number of outstanding requests if not dictionary domain
+        if (requestMsg.domainType() != DomainTypes.DICTIONARY && !requestMsg.checkNoRefresh())
+        {
+            wlService.numOutstandingRequests(wlService.numOutstandingRequests() + 1);
+        }
+
+        // update tables and lists if send successful
+        if (ret >= ReactorReturnCodes.SUCCESS)
+        {
+            // save stream info
+            wlRequest.streamInfo().serviceName(submitOptions.serviceName());
+            wlRequest.streamInfo().userSpecObject(submitOptions.requestMsgOptions().userSpecObj());
+
+            // save matched Qos if not dictionary
+            if (requestMsg.domainType() != DomainTypes.DICTIONARY)
+            {
+                _tempMatchedQos.copy(wlRequest.matchedQos());
+            }
+
+            // add to list of streams
+            _streamList.add(wlStream);
+
+            // add stream to watchlist table
+            WlInteger wlInteger = ReactorFactory.createWlInteger();
+            wlInteger.value(wlStream.streamId());
+            wlStream.tableKey(wlInteger);
+            _watchlist.streamIdtoWlStreamTable().put(wlInteger, wlStream);
+
+            // add to _itemAggregationKeytoWlStreamTable if not private stream
+            if (!requestMsg.checkPrivateStream())
+            {
+                _itemAggregationKeytoWlStreamTable.put(itemAggregationKey, wlStream);
+            }
+
+            // associate stream and item aggregation key if not private stream
+            if (!requestMsg.checkPrivateStream())
+            {
+                wlStream.itemAggregationKey(itemAggregationKey);
+            }
+
+            // associate stream and service
+            wlStream.wlService(wlService);
+
+            // add stream to service's stream list
+            wlService.streamList().add(wlStream);
+
+            // update request state to PENDING_REFRESH
+            wlRequest.state(WlRequest.State.PENDING_REFRESH);
+
+            // associate stream and service
+            wlStream.wlService(wlService);
+
+            // if not sendNow, add stream to pending send message list
+            if (!sendNow)
+            {
+                _pendingSendMsgList.add(wlStream);
+            }
+        }
+        else
+        {
+            // return watchlist stream to pool
+            wlStream.returnToPool();
+        }
+
+        return ret;
+    }
+
     int handleBatchRequest(WlRequest wlRequest, RequestMsg requestMsg, ReactorSubmitOptions submitOptions, ReactorErrorInfo errorInfo)
     {
     	int ret = ReactorReturnCodes.SUCCESS;
@@ -614,8 +652,8 @@ class WlItemHandler implements WlHandler
     	int currentStreamId = requestMsg.streamId();
     	Buffer itemName = CodecFactory.createBuffer();
     	Buffer encodedDataBody = null;
-    	ArrayDeque<String> itemNames = new ArrayDeque<String>();
-    	int retDecodeVal = CodecReturnCodes.SUCCESS;
+    	ArrayDeque<String> itemNames = new ArrayDeque<>();
+    	int retDecodeVal;
     	
     	// Make sure requestMsg does not have item name set on MsgKey
     	if (requestMsg.msgKey().checkHasName())
@@ -645,7 +683,7 @@ class WlItemHandler implements WlHandler
 
     	if (requestMsg.containerType() == DataTypes.ELEMENT_LIST)
     	{
-        	if ((retDecodeVal = elementList.decode(_dIterBatch, null)) <= CodecReturnCodes.FAILURE)
+        	if (elementList.decode(_dIterBatch, null) <= CodecReturnCodes.FAILURE)
         	{
                 return _watchlist.reactor().populateErrorInfo(errorInfo,
                         ReactorReturnCodes.FAILURE,
@@ -676,7 +714,7 @@ class WlItemHandler implements WlHandler
     				
 					foundBatch = true;
 					
-					if ((retDecodeVal = batchArray.decode(_dIterBatch)) <= CodecReturnCodes.FAILURE)
+					if (batchArray.decode(_dIterBatch) <= CodecReturnCodes.FAILURE)
 					{
 			            return _watchlist.reactor().populateErrorInfo(errorInfo,
 			            		ReactorReturnCodes.FAILURE,
@@ -684,9 +722,9 @@ class WlItemHandler implements WlHandler
 			                    "Array.decode() failure.");
 					}
 					
-					while ((retDecodeVal = batchArrayEntry.decode(_dIterBatch)) != CodecReturnCodes.END_OF_CONTAINER)
+					while (batchArrayEntry.decode(_dIterBatch) != CodecReturnCodes.END_OF_CONTAINER)
 					{
-						if ((retDecodeVal = itemName.decode(_dIterBatch)) == CodecReturnCodes.SUCCESS)
+						if (itemName.decode(_dIterBatch) == CodecReturnCodes.SUCCESS)
 						{
 							itemNames.add(itemName.toString());
 						}
@@ -727,7 +765,7 @@ class WlItemHandler implements WlHandler
     	    	        if(elementList.checkHasSetId())
     	    	        	elementListEnc.setId(elementList.setId());
     	    	        
-    	    	        if ((ret = elementListEnc.encodeInit(encodeIter, null, 0)) <= CodecReturnCodes.FAILURE)
+    	    	        if (elementListEnc.encodeInit(encodeIter, null, 0) <= CodecReturnCodes.FAILURE)
     	    	        {
     	    	        	return _watchlist.reactor().populateErrorInfo(errorInfo,
     	                            ReactorReturnCodes.FAILURE,
@@ -739,7 +777,7 @@ class WlItemHandler implements WlHandler
     	    	        decodeIter.setBufferAndRWFVersion(requestMsg.encodedDataBody(), _watchlist.reactorChannel().majorVersion(),
     	    	    			_watchlist.reactorChannel().minorVersion());
     	    			
-    	    			if ((ret = elementList.decode(decodeIter, null)) <= CodecReturnCodes.FAILURE)
+    	    			if (elementList.decode(decodeIter, null) <= CodecReturnCodes.FAILURE)
     	            	{
     	                    return _watchlist.reactor().populateErrorInfo(errorInfo,
     	                            ReactorReturnCodes.FAILURE,
@@ -818,8 +856,8 @@ class WlItemHandler implements WlHandler
                     "Item in batch has same ID as existing stream.");
 		}
 		
-		HashMap<Integer, WlRequest> wlRequestList = new HashMap<Integer, WlRequest>(itemNames.size());
-		HashMap<Integer, RequestMsg> requestMsgList = new HashMap<Integer, RequestMsg>(itemNames.size());
+		HashMap<Integer, WlRequest> wlRequestList = new HashMap<>(itemNames.size());
+		HashMap<Integer, RequestMsg> requestMsgList = new HashMap<>(itemNames.size());
 		int possibleStreamId = currentStreamId;
 		
 		while(!itemNames.isEmpty()) 
@@ -1002,17 +1040,12 @@ class WlItemHandler implements WlHandler
     			{
     				
     				if (!_hasViewType && tempWlRequest._viewElemCount == 0)
-//    				if (tempWlRequest.viewType() != ViewTypes.FIELD_ID_LIST &&  tempWlRequest.viewType() != ViewTypes.ELEMENT_NAME_LIST)
     				{
     					// no view type and empty view content, use the old view type and view field list, do not remove old view, still send out request
     					removeOldView = false;
     					// same view needs to go out on the wire again
     					wlRequest._reissue_hasViewChange = true;
     				}
-//    				else if (!_viewDataFound)
-//    				{
-//    				  // valid but empty fieldId list and empty elementyNameList, use this new empty view 	
-//    				}
     				else
     					return ret;
     			}
@@ -1028,8 +1061,8 @@ class WlItemHandler implements WlHandler
                         return ret;
             		}	        
             		 // for only one view, aggView is that view and might be removed later
-            		if(_wlViewHandler.aggregateViewContainsView(wlRequest.stream()._aggregateView, tempWlRequest) && streamRequestMsg.checkHasView())         	
-            		effectiveViewChange = false;
+            		if(_wlViewHandler.aggregateViewContainsView(wlRequest.stream()._aggregateView, tempWlRequest) && streamRequestMsg.checkHasView())
+                        effectiveViewChange = false;
             	}     			
     		}
             WlView oldView = null; 
@@ -1125,7 +1158,7 @@ class WlItemHandler implements WlHandler
 	            			ret = wlRequest.stream().sendMsgOutOfLoop(streamRequestMsg, submitOptions, _errorInfo);
 	              			
 	            			// Check if we repooled already, making the view null and already destroyed
-	            			if (!repooled && oldView!= null &&  wlRequest._reissue_hasViewChange)
+	            			if (!repooled && oldView != null &&  wlRequest._reissue_hasViewChange)
 	            			{
 	               				// this stems from when no_refresh is set on request, but later still get refresh callback from Provider,
 	               				// need this flag to send fan out to all
@@ -1218,7 +1251,7 @@ class WlItemHandler implements WlHandler
                         else // no Qos specified
                         {
                             // best effort qos is supported
-                            if (service.info().qosList().size() > 0)
+                            if (!service.info().qosList().isEmpty())
                             {
                                 service.info().bestQos().copy(matchedQos);
                             } 
@@ -1298,7 +1331,7 @@ class WlItemHandler implements WlHandler
         wlRequest.stream(null);
         
     	// retrieve pending request list for this service id/name if one exists
-    	LinkedHashSet<WlRequest> pendingRequestList = null;
+    	LinkedHashSet<WlRequest> pendingRequestList;
     	if (submitOptions.serviceName() != null)
     	{
     		pendingRequestList = _pendingRequestByNameTable.get(submitOptions.serviceName());
@@ -1321,7 +1354,7 @@ class WlItemHandler implements WlHandler
     		pendingRequestList = _pendingRequestListPool.poll();
     		if (pendingRequestList == null)
     		{
-    			pendingRequestList = new LinkedHashSet<WlRequest>();
+    			pendingRequestList = new LinkedHashSet<>();
     		}
                 
     		// add pending request to list
@@ -1434,7 +1467,7 @@ class WlItemHandler implements WlHandler
                     ret = _defaultQos.isInRange(qos, worstQos);
                 }
                 
-                if (ret == true)
+                if (ret)
                 {
                     _defaultQos.copy(matchedQos);
                 }
@@ -1442,7 +1475,7 @@ class WlItemHandler implements WlHandler
         }
         
         // set isDynamic flag to that of requested qos before returning
-        if (ret == true)
+        if (ret)
         {
             matchedQos.dynamic(qos.isDynamic());
         }
@@ -1472,7 +1505,7 @@ class WlItemHandler implements WlHandler
     @Override
     public int submitMsg(WlRequest wlRequest, Msg msg, ReactorSubmitOptions submitOptions, ReactorErrorInfo errorInfo)
     {
-        int ret = ReactorReturnCodes.SUCCESS;
+        int ret;
         
         switch (msg.msgClass())
         {
@@ -1532,7 +1565,7 @@ class WlItemHandler implements WlHandler
                             
                         }
                         
-                        if ((ret = _watchlist.changeServiceNameToID(((GenericMsg)msg).msgKey(), submitOptions.serviceName(), errorInfo)) < ReactorReturnCodes.SUCCESS)
+                        if ((ret = _watchlist.changeServiceNameToID(msg.msgKey(), submitOptions.serviceName(), errorInfo)) < ReactorReturnCodes.SUCCESS)
                         {
                             return ret;
                         }
@@ -1589,13 +1622,10 @@ class WlItemHandler implements WlHandler
         while (wlRequestIter.hasNext())
         {
         	WlRequest wlRequestInList = wlRequestIter.next();
-        	
-        	if (wlRequestInList.requestMsg().streamId() != wlRequest.requestMsg().streamId())
-                continue;
-            else
-            {
+
+            if (wlRequestInList.requestMsg().streamId() == wlRequest.requestMsg().streamId()) {
             	wlRequestIter.remove();
-                
+
                 // close watchlist request
                 closeWlRequest(wlRequest);
                 repoolWlRequest(wlRequest);
@@ -1607,20 +1637,17 @@ class WlItemHandler implements WlHandler
         while (wlRequestIter.hasNext())
         {
         	WlRequest wlRequestInList = wlRequestIter.next();
-            
-            if (wlRequestInList.requestMsg().streamId() != wlRequest.requestMsg().streamId())
-                continue;
-            else
-            {
+
+            if (wlRequestInList.requestMsg().streamId() == wlRequest.requestMsg().streamId()) {
             	wlRequestIter.remove();
 
-            	wlStream.refreshState(WlStream.RefreshStates.REFRESH_NOT_REQUIRED);
-            	
+            	wlStream.refreshState(RefreshStates.REFRESH_NOT_REQUIRED);
+
        			if (wlRequest.requestMsg().checkPause())
     			{
        				wlStream.numPausedRequestsCount(wlStream.numPausedRequestsCount() - 1);
     			}
-       			
+
        			if (wlRequest.requestMsg().checkHasView() &&  wlStream._requestsWithViewCount > 0)
        			{
        				removeRequestView(wlStream, wlRequest, errorInfo);
@@ -1628,18 +1655,18 @@ class WlItemHandler implements WlHandler
        			}
        			else if (wlStream._requestsWithViewCount > 0 )
        				wlStream._pendingViewChange = true;
-                
+
        			if (wlStream.state().streamState() == StreamStates.OPEN)
        			{
                     // Stream is open; need to change priority or close it.
-	                if (wlStream.userRequestList().size() == 0)
-	                {                        
+	                if (wlStream.userRequestList().isEmpty())
+	                {
                         closeWlStream(wlRequest.stream());
-                        
+
                         msg.copy(_closeMsg, CopyMsgFlags.NONE);
-	
+
                         _closeMsg.streamId(wlRequest.stream().streamId());
-	            
+
 	                    if ((ret = wlRequest.stream().sendMsgOutOfLoop(_closeMsg, submitOptions, errorInfo)) < ReactorReturnCodes.SUCCESS)
 	                    {
 	                        return ret;
@@ -1649,7 +1676,7 @@ class WlItemHandler implements WlHandler
                         // don't repool it yet. The fanout will still be accessing it, e.g. iterating over its userRequestList.
                         // If not in dispatch, however, it's safe to repool it now.
 	                    if (wlStream == _currentFanoutStream)
-	                        _currentFanoutStream = null;                          
+	                        _currentFanoutStream = null;
 	                    else
 	                        wlRequest.stream().returnToPool();
 	                }
@@ -1657,19 +1684,19 @@ class WlItemHandler implements WlHandler
 	                {
 	                    // update priority
 	                    // reduce stream priority count by that in user request being closed
-	                    int streamPriorityCount =  wlRequest.stream().requestMsg().checkHasPriority() ? 
+	                    int streamPriorityCount =  wlRequest.stream().requestMsg().checkHasPriority() ?
 	                            wlRequest.stream().requestMsg().priority().count() : 1;
-	                    int userRequestPriorityCount = wlRequest.requestMsg().checkHasPriority() ? 
+	                    int userRequestPriorityCount = wlRequest.requestMsg().checkHasPriority() ?
 	                            wlRequest.requestMsg().priority().count() : 1;
-	                    wlRequest.stream().requestMsg().priority().count(streamPriorityCount - userRequestPriorityCount);                            
-	                    	
-	                    // resend  
-	                    wlRequest.stream().requestMsg().flags(wlStream.requestMsg().flags() | RequestMsgFlags.NO_REFRESH);            		   
+	                    wlRequest.stream().requestMsg().priority().count(streamPriorityCount - userRequestPriorityCount);
+
+	                    // resend
+	                    wlRequest.stream().requestMsg().flags(wlStream.requestMsg().flags() | RequestMsgFlags.NO_REFRESH);
 	                    wlRequest.stream().sendMsgOutOfLoop(wlRequest.stream().requestMsg(), submitOptions, errorInfo);
 	                    wlRequest.stream().requestMsg().flags(wlStream.requestMsg().flags() & ~RequestMsgFlags.NO_REFRESH);
 	                }
        			}
-                
+
                 // close watchlist request
                 closeWlRequest(wlRequest);
                 repoolWlRequest(wlRequest);
@@ -1735,7 +1762,7 @@ class WlItemHandler implements WlHandler
     /* Handles a post message. */
     int handlePost(WlRequest wlRequest, Msg msg, ReactorSubmitOptions submitOptions, ReactorErrorInfo errorInfo)
     {
-        int ret = ReactorReturnCodes.SUCCESS;
+        int ret;
         WlStream wlStream =  wlRequest.stream();
         if (_watchlist.numOutstandingPosts() < _watchlist.watchlistOptions().maxOutstandingPosts())
         {
@@ -1759,7 +1786,7 @@ class WlItemHandler implements WlHandler
                     
                 }
                 
-                if ((ret = _watchlist.changeServiceNameToID(((PostMsg)msg).msgKey(), submitOptions.serviceName(), errorInfo)) < ReactorReturnCodes.SUCCESS)
+                if ((ret = _watchlist.changeServiceNameToID(msg.msgKey(), submitOptions.serviceName(), errorInfo)) < ReactorReturnCodes.SUCCESS)
                 {
                     return ret;
                 }
@@ -1778,8 +1805,8 @@ class WlItemHandler implements WlHandler
             // reset service id if checkAck() return false
             if( resetServiceId && (!((PostMsg) msg).checkAck() || ( ret < ReactorReturnCodes.SUCCESS)))
             {
-                ((PostMsg) msg).msgKey().flags(((PostMsg) msg).msgKey().flags() & ~MsgKeyFlags.HAS_SERVICE_ID);
-                ((PostMsg) msg).msgKey().serviceId(0);
+                msg.msgKey().flags(msg.msgKey().flags() & ~MsgKeyFlags.HAS_SERVICE_ID);
+                msg.msgKey().serviceId(0);
                 resetServiceId = false;
             }
             if (ret < ReactorReturnCodes.SUCCESS)
@@ -1797,8 +1824,8 @@ class WlItemHandler implements WlHandler
                       // reset service id if necessary
                       if (resetServiceId)
                       {
-                          ((PostMsg) msg).msgKey().flags(((PostMsg) msg).msgKey().flags() & ~MsgKeyFlags.HAS_SERVICE_ID);
-                          ((PostMsg) msg).msgKey().serviceId(0);
+                          msg.msgKey().flags(msg.msgKey().flags() & ~MsgKeyFlags.HAS_SERVICE_ID);
+                          msg.msgKey().serviceId(0);
                       }
                   }
             }
@@ -1971,7 +1998,7 @@ class WlItemHandler implements WlHandler
 
             closeWlStream(wlStream);
 
-            WlRequest usrRequest = null;
+            WlRequest usrRequest;
             for (usrRequest = wlStream.userRequestList().poll(); usrRequest != null; usrRequest = wlStream.userRequestList().poll())
             {
                 msg.streamId(usrRequest.requestMsg().streamId());
@@ -2026,7 +2053,7 @@ class WlItemHandler implements WlHandler
         }
     
         /* send next request in service's waiting request list */
-        if (wlService != null && wlService.waitingRequestList().size() > 0 && msg.msgClass() != MsgClasses.REFRESH)
+        if (wlService != null && !wlService.waitingRequestList().isEmpty() && msg.msgClass() != MsgClasses.REFRESH)
         {
             WlRequest waitingRequest = wlService.waitingRequestList().poll();
             _submitOptions.serviceName(waitingRequest.streamInfo().serviceName());
@@ -2173,17 +2200,18 @@ class WlItemHandler implements WlHandler
                     if (wlStream._requestsWithViewCount > 0) 
                     {
                         if (wlRequest.requestMsg().checkHasView())
-                            removeRequestView(wlStream, wlRequest, errorInfo);     
+                            removeRequestView(wlStream, wlRequest, errorInfo);
                         wlStream._pendingViewChange = true;
                         _snapshotViewClosed = true;
-                        // save the current view count as callbackuser() and waiting list below can potentially add views 
+
+                        // save the current view count as callbackuser() and waiting list below can potentially add views
                         currentViewCount = wlStream._requestsWithViewCount;
                     }
                     closeWlRequest(wlRequest);
                     
                     // if no more requests in stream, close stream
-                    boolean allRequestsClosed = (wlStream.userRequestList().size() == 0 &&   
-                        wlStream.waitingRequestList().size() == 0);
+                    boolean allRequestsClosed = (wlStream.userRequestList().isEmpty() &&
+                            wlStream.waitingRequestList().isEmpty());
                     
                     wlStream.refreshState(WlStream.RefreshStates.REFRESH_NOT_REQUIRED);
                     
@@ -2225,10 +2253,10 @@ class WlItemHandler implements WlHandler
         if (_currentFanoutStream != null)
         {
             /* if no longer waiting for snapshot, send requests in waiting request list */
-            if (wlStream.waitingRequestList().size() > 0 &&
+            if (!wlStream.waitingRequestList().isEmpty() &&
                     (wlStream.refreshState() != WlStream.RefreshStates.REFRESH_COMPLETE_PENDING))
             {
-                WlRequest waitingRequest = null;
+                WlRequest waitingRequest;
 
                 while( (wlStream.refreshState() < WlStream.RefreshStates.REFRESH_PENDING) && (waitingRequest = wlStream.waitingRequestList().poll()) != null) 
                 {
@@ -2247,7 +2275,7 @@ class WlItemHandler implements WlHandler
             {
                 _snapshotViewClosed = false;
 
-                if ( currentViewCount > 0 && wlStream._requestsWithViewCount == currentViewCount && wlStream.userRequestList().size()  > 0 && (_wlViewHandler.resorted() ||
+                if ( currentViewCount > 0 && wlStream._requestsWithViewCount == currentViewCount && !wlStream.userRequestList().isEmpty() && (_wlViewHandler.resorted() ||
                             !_wlViewHandler.commitedViewsContainsAggregateView(wlStream._aggregateView)) && wlStream._requestsWithViewCount == wlStream._userRequestList.size())
                 { 
                     wlStream.requestMsg().flags(wlStream.requestMsg().flags() | RequestMsgFlags.NO_REFRESH);            		 
@@ -2259,7 +2287,7 @@ class WlItemHandler implements WlHandler
         }
 
         /* send next request in service's waiting request list */
-        if (wlService != null && wlService.waitingRequestList().size() > 0 && isRefreshComplete)
+        if (wlService != null && !wlService.waitingRequestList().isEmpty() && isRefreshComplete)
         {
             WlRequest waitingRequest = wlService.waitingRequestList().poll();
             _submitOptions.serviceName(waitingRequest.streamInfo().serviceName());
@@ -2406,7 +2434,7 @@ class WlItemHandler implements WlHandler
         // dispatch streams
         
         // send any queued status messages to the user
-        StatusMsg statusMsg = null;
+        StatusMsg statusMsg;
         Iterator<Map.Entry<WlInteger, StatusMsg>> statusMsgIter = _statusMsgDispatchList.entrySet().iterator();
         _removeStatusMsgList.clear();
         while (statusMsgIter.hasNext())
@@ -2452,7 +2480,7 @@ class WlItemHandler implements WlHandler
         _statusMsgDispatchList.clear();
         
         // re-submit user requests that had request timeout
-        WlRequest wlRequest = null;
+        WlRequest wlRequest;
         while ((wlRequest = _requestTimeoutList.poll()) != null)
         {
             _submitOptions.serviceName(wlRequest.streamInfo().serviceName());
@@ -2465,7 +2493,7 @@ class WlItemHandler implements WlHandler
         
         // call sendMsg on all streams in pending stream send list
         
-        WlStream wlStream = null;
+        WlStream wlStream;
         int loopCount = _pendingSendMsgList.size();
         while((wlStream = _pendingSendMsgList.poll()) != null)
         {
@@ -2625,7 +2653,7 @@ class WlItemHandler implements WlHandler
     int serviceAdded(WlService wlService)
     {
         int ret = ReactorReturnCodes.SUCCESS;
-        LinkedHashSet<WlRequest> pendingRequestList = null;
+        LinkedHashSet<WlRequest> pendingRequestList;
         
         // handle any pending requests
         // retrieve matching requests based on service id or service name
@@ -2639,7 +2667,7 @@ class WlItemHandler implements WlHandler
         // handle request
         if (pendingRequestList != null)
         {
-            WlRequest wlRequest = null;
+            WlRequest wlRequest;
             Iterator<WlRequest> wlRequestIter = pendingRequestList.iterator();
             while(wlRequestIter.hasNext())
             {
@@ -2662,7 +2690,7 @@ class WlItemHandler implements WlHandler
         }
         
         // call sendMsg on all streams in pending stream send list
-        WlStream wlStream = null;
+        WlStream wlStream;
         int loopCount = _pendingSendMsgList.size();
         while((wlStream = _pendingSendMsgList.poll()) != null)
         {
@@ -2696,7 +2724,7 @@ class WlItemHandler implements WlHandler
     /* Handles service updated event. */
     int serviceUpdated(WlService wlService, boolean containsServiceStateUpdate)
     {
-    	int ret = ReactorReturnCodes.SUCCESS;
+    	int ret;
     	_errorInfo.clear();
 		
     	// Check if streamList is empty or there are no userRequests and call serviceAdded in these cases,
@@ -2714,7 +2742,7 @@ class WlItemHandler implements WlHandler
     		boolean userRequestExists = false;
 			for (int streamCount = 0; streamCount < wlService.streamList().size(); streamCount++)
 			{
-				if (wlService.streamList().get(streamCount).userRequestList().size() != 0)
+				if (!wlService.streamList().get(streamCount).userRequestList().isEmpty())
 				{
 					userRequestExists = true;
 					break;
@@ -2865,7 +2893,7 @@ class WlItemHandler implements WlHandler
         			{
                 		ReactorWSBService wsbService = _watchlist.reactorChannel().warmStandByHandlerImpl.currentWarmStandbyGroupImpl()._perServiceById.get(wlService.tableKey());
                 		
-                		if(wsbService == null || (wsbService.channels.size() == 0))
+                		if(wsbService == null || (wsbService.channels.isEmpty()))
                 		{
                 			// Don't have the service in any channels, force close the item 
                 			forceClose = true;
@@ -2881,7 +2909,7 @@ class WlItemHandler implements WlHandler
         		{
 	        		boolean containsChannel = wsbService.channels.contains(_watchlist.reactorChannel());
 	        		// We haven't removed the channel from the list yet, so we need to check if there are additional channels
-	        		if(wsbService != null && ((!containsChannel && wsbService.channels.size() > 0) || (containsChannel && wsbService.channels.size() > 1)))
+	        		if((!containsChannel && !wsbService.channels.isEmpty()) || (containsChannel && wsbService.channels.size() > 1))
 	        		{
 	        			hasService = true;
 	        			sendChannelDownText = false;
@@ -2911,7 +2939,7 @@ class WlItemHandler implements WlHandler
     				}
         		}
         		
-        		if(!hasChannelDown && hasService == false)
+        		if (!hasChannelDown && !hasService)
         		{
         			forceClose = true;
         			sendChannelDownText = false;
@@ -3007,7 +3035,7 @@ class WlItemHandler implements WlHandler
     @Override
     public int callbackUser(String location, Msg msg, MsgBase rdmMsg, WlRequest wlRequest, ReactorErrorInfo errorInfo)
     {
-        int ret = ReactorReturnCodes.SUCCESS;
+        int ret;
         int msgFlagsToReset = 0;
 
         /* Check if we need to add a MsgKey to the message. */
@@ -3180,7 +3208,7 @@ class WlItemHandler implements WlHandler
 
         // fanout status to user and add requests to request timeout list
         LinkedList<WlRequest> requestList = wlStream.userRequestList();
-        WlRequest usrRequest = null;
+        WlRequest usrRequest;
         for (usrRequest = requestList.poll(); usrRequest != null; usrRequest = requestList.poll())
         {
             usrRequest.state(State.PENDING_REQUEST);
@@ -3254,6 +3282,7 @@ class WlItemHandler implements WlHandler
         _userStreamIdListToRecover.clear();
         _currentFanoutStream = null;
         _hasPendingViewRequest = false;
+        _wlViewHandler.resorted(false);
     }
     
 	private int extractSymbolListFromMsg(WlRequest wlRequest, RequestMsg requestMsg, ReactorErrorInfo errorInfo)
@@ -3360,7 +3389,7 @@ class WlItemHandler implements WlHandler
 			WlRequest wlRequest = wlStream.userRequestList().get(i);
 			if (!wlRequest.hasBehaviour() || wlRequest.symbolListFlags() == 0 )
 				continue;
-			int ret = ReactorReturnCodes.SUCCESS;
+			int ret;
 			int serviceId = 0;
 			if (wlRequest.requestMsg().msgKey().checkHasServiceId())
 			{
@@ -3399,7 +3428,7 @@ class WlItemHandler implements WlHandler
 			_requestMsg.msgKey().applyHasName();
 
 			Qos itemQos;
-			if (wlService.rdmService().info().qosList().size() > 0)
+			if (!wlService.rdmService().info().qosList().isEmpty())
 			{
 				itemQos = wlService.rdmService().info().bestQos();
 				itemQos.copy(_requestMsg.qos());
@@ -3589,7 +3618,7 @@ class WlItemHandler implements WlHandler
 			
 							if (wlRequest._viewFieldIdList == null)	 										
 								wlRequest._viewFieldIdList = _wlViewHandler._viewFieldIdListPool.poll();
-							if (wlRequest._viewFieldIdList == null) wlRequest._viewFieldIdList  = new ArrayList<Integer>();
+							if (wlRequest._viewFieldIdList == null) wlRequest._viewFieldIdList  = new ArrayList<>();
 							else 
 								wlRequest._viewFieldIdList.clear();
 								
@@ -3652,7 +3681,7 @@ class WlItemHandler implements WlHandler
 						
 							if (wlRequest._viewElementNameList == null)	 	
 								wlRequest._viewElementNameList = _wlViewHandler._viewElementNameListPool.poll();
-							if (wlRequest._viewElementNameList == null) wlRequest._viewElementNameList = new ArrayList<String>();
+							if (wlRequest._viewElementNameList == null) wlRequest._viewElementNameList = new ArrayList<>();
 							else
 								wlRequest._viewElementNameList.clear();
 	
@@ -3703,7 +3732,7 @@ class WlItemHandler implements WlHandler
 							{
 								if (wlRequest._viewFieldIdList == null)								
 									wlRequest._viewFieldIdList  = _wlViewHandler._viewFieldIdListPool.poll();
-								if (wlRequest._viewFieldIdList == null) wlRequest._viewFieldIdList = new ArrayList<Integer>();
+								if (wlRequest._viewFieldIdList == null) wlRequest._viewFieldIdList = new ArrayList<>();
 								else 
 									wlRequest._viewFieldIdList.clear();
 									
@@ -3748,7 +3777,7 @@ class WlItemHandler implements WlHandler
 							{
 								if (wlRequest._viewElementNameList == null)	 	
 									wlRequest._viewElementNameList = _wlViewHandler._viewElementNameListPool.poll();
-								if (wlRequest._viewElementNameList == null) wlRequest._viewElementNameList = new ArrayList<String>();
+								if (wlRequest._viewElementNameList == null) wlRequest._viewElementNameList = new ArrayList<>();
 								
 								else
 									wlRequest._viewElementNameList.clear();
