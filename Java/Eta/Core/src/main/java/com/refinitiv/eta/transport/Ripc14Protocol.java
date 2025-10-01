@@ -495,13 +495,23 @@ class Ripc14Protocol extends IpcProtocol
         /* Compression Bitmap Size */
         int compBitmapSize = buffer.get(position + 9) & 0xFF;
 
-        /* Only care about compression if the server wants to do compression */
-        if ((compBitmapSize > 0 && _protocolOptions._sessionInDecompress > 0) || _protocolOptions._serverForceCompression)
+        if (_protocolOptions._serverForceCompression) // Server forces compression
         {
-            /* take bitmap off wire if its there */
-            if (compBitmapSize > 0)
+            if (_protocolOptions._sessionInDecompress > 0)
+            {
+                _protocolOptions._sessionOutCompression = _protocolOptions._sessionInDecompress;
+            }
+            else
+            {
+                _protocolOptions._sessionOutCompression = CompressionTypes.NONE;
+            }
+        }
+        else // Server doesn't force compression
+        {
+            if (compBitmapSize > 0 && _protocolOptions._sessionInDecompress > 0) // both Server and Client have CompressionType set
             {
                 byte compbitmap;
+                int compval = 0;
 
                 for (int i = 0; i <= RIPC_COMP_MAX_TYPE; i++)
                 {
@@ -511,20 +521,28 @@ class Ripc14Protocol extends IpcProtocol
                         compbitmap = buffer.get(position + 10 + idx);
                         if ((compbitmap & _ripccompressions[i][RIPC_COMP_BYTEBIT]) > 0)
                         {
-                            _protocolOptions._sessionOutCompression = _ripccompressions[i][RIPC_COMP_TYPE];
+                            compval = _ripccompressions[i][RIPC_COMP_TYPE];
                             break;
                         }
                     }
                 }
-            }
-            else
-            // force compression
-            {
-                _protocolOptions._sessionOutCompression = _protocolOptions._sessionInDecompress;
-            }
 
-            if (_protocolOptions._sessionOutCompression > RIPC_COMP_MAX_TYPE)
-                _protocolOptions._sessionOutCompression = 0;
+                if (compval != _protocolOptions._sessionInDecompress)
+                {
+                    _protocolOptions._sessionOutCompression = CompressionTypes.NONE;
+                }
+                else
+                {
+                    _protocolOptions._sessionOutCompression = compval;
+                }
+
+                if (_protocolOptions._sessionOutCompression > RIPC_COMP_MAX_TYPE)
+                    _protocolOptions._sessionOutCompression = 0;
+            }
+            else // either Server or Client does not have CompressionType set
+            {
+                _protocolOptions._sessionOutCompression = CompressionTypes.NONE;
+            }
         }
 
         /* set buffer index past compression bitmap info */

@@ -1372,6 +1372,8 @@ public class TransportMessageJunit
         boolean globalLocking = true;
         boolean writeLocking = true;
         boolean blocking = false;
+        int clientCompressionType = -1; //CompressionTypes.NONE;
+        int serverCompressionType = -1; //CompressionTypes.NONE;
         int compressionType = CompressionTypes.NONE;
         int compressionLevel = 6;
         int messageSizes[];
@@ -1382,6 +1384,7 @@ public class TransportMessageJunit
         int expectedUncompressedBytes = -1;
         boolean encrypted = false;
         String[] securityProtocolVersions = {"1.2", "1.3"};
+        boolean forceCompression = false;
 
 	private static int portNumber = 15200;
 	String PORT_NUMBER;
@@ -2429,7 +2432,64 @@ public class TransportMessageJunit
         testRunner("test11z_encrypted: ", args);
     }
 
+    @Test
+    public void testClientServerCompressionScenarios()
+    {
+        TestArgs args = TestArgs.getInstance();
+
+        args.runTime = 30;
+        args.guaranteedOutputBuffers = 700;
+        args.globalLocking = true;
+        args.writeLocking = false;
+        args.blocking = false;
+
+        int[] sizes = { 6128 };
+        args.messageSizes = sizes;
+        args.printReceivedData = false;
+        args.messageContent = MessageContentType.RANDOM;
+
+        for (int serverCompression = 0; serverCompression < 3; serverCompression++)
+            for (int clientCompression = 0; clientCompression < 3; clientCompression++)
+            {
+                args.clientCompressionType = clientCompression;
+                args.serverCompressionType = serverCompression;
+                args.forceCompression = true;
+                args._receivedCount = 0;
+
+                final int sc = serverCompression;
+                final int cc = clientCompression;
+                testRunner("testClientServerCompressionScenarios: ", args, (s, c) -> {
+                    ChannelInfo info = new ChannelInfoImpl();
+                    c._channel.info(info, new ErrorImpl());
+                    System.out.printf("Compression: server %d, client %d, resulting: %d; forceCompression: true\n", sc, cc, info.compressionType());
+                    assertEquals(info.compressionType(), sc);
+                });
+
+                args.forceCompression = false;
+                args._receivedCount = 0;
+
+                testRunner("testClientServerCompressionScenarios: ", args, (s, c) -> {
+                    ChannelInfo info = new ChannelInfoImpl();
+                    c._channel.info(info, new ErrorImpl());
+                    System.out.printf("Compression: server %d, client %d, resulting: %d, forceCompression: false\n", sc, cc, info.compressionType());
+                    if (sc == cc)
+                    {
+                        assertEquals(sc, info.compressionType());
+                    }
+                    else
+                    {
+                        assertEquals(0, info.compressionType());
+                    }
+                });
+            }
+    }
+
     public void testRunner(String testName, TestArgs args)
+    {
+        testRunner(testName, args, null);
+    }
+
+    public void testRunner(String testName, TestArgs args, java.util.function.BiConsumer<EtajServer, EtajClient> customChecks)
     {
         System.out.println("--------------------------------------------------------------------------------");
         System.out.println("Test: " + testName);
@@ -2441,9 +2501,10 @@ public class TransportMessageJunit
 
         // BindOptions
         BindOptions bindOptions = args.encrypted ? encryptedBindOptions(args.PORT_NUMBER, args.securityProtocolVersions) : defaultBindOptions(args.PORT_NUMBER);
-        bindOptions.compressionType(args.compressionType);
+        bindOptions.compressionType(args.serverCompressionType != -1 ? args.serverCompressionType : args.compressionType);
         if (args.compressionType > CompressionTypes.NONE)
             bindOptions.compressionLevel(args.compressionLevel);
+        bindOptions.forceCompression(args.forceCompression);
 
         // AcceptOptions
         AcceptOptions acceptOptions = defaultAcceptOptions();
@@ -2465,8 +2526,11 @@ public class TransportMessageJunit
             Channel clientChannel = startClientChannel(args.guaranteedOutputBuffers,
                                                        args.blocking,
                                                        args.writeLocking,
-                                                       args.compressionType,
-							args.PORT_NUMBER, args.encrypted);
+                                                       args.clientCompressionType != -1
+                                                               ? args.clientCompressionType
+                                                               : args.compressionType,
+                                                       args.PORT_NUMBER,
+                                                       args.encrypted);
             assertNotNull("startClientChannel failed, check output", clientChannel);
 
             EtajClient etajClient = new EtajClient(1, // etajClientCount
@@ -2517,9 +2581,7 @@ public class TransportMessageJunit
                 {
                     // wait for message to be received to compare with message sent
                     boolean messageTestComplete = false;
-                    while (!messageTestComplete
-                            && server.state() == RunningState.RUNNING
-                            && System.currentTimeMillis() < endTime)
+                    while (!messageTestComplete && server.state() == RunningState.RUNNING && System.currentTimeMillis() < endTime)
                     {
                         Thread.sleep(1000);
                     
@@ -2536,13 +2598,18 @@ public class TransportMessageJunit
                                 messageTestComplete = true; // next
                                 break;
                             }
-
                         }
                     }
+                    assertTrue(messageTestComplete);
                 }
                 catch (InterruptedException e)
                 {
                 }
+            }
+
+            if (customChecks != null)
+            {
+                customChecks.accept(server, etajClient);
             }
 
             // verify test made it through all messages before exit
