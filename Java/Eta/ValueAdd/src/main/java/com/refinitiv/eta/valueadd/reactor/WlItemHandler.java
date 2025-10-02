@@ -981,16 +981,52 @@ class WlItemHandler implements WlHandler
     int handleReissue(WlRequest wlRequest, RequestMsg requestMsg, ReactorSubmitOptions submitOptions, ReactorErrorInfo errorInfo)
     { 	
         int ret = ReactorReturnCodes.SUCCESS;
-        
+
         if (wlRequest.stream() == null ) 
         {
-            ret = _watchlist.reactor().populateErrorInfo(errorInfo,
-                    ReactorReturnCodes.FAILURE,
-                    "WlItemHandler.handleReissue",
-                    "Reissue request not allowed on an unopen stream.");
-            return ret;
+            return _watchlist.reactor().populateErrorInfo(errorInfo, ReactorReturnCodes.FAILURE,
+                    "WlItemHandler.handleReissue", "Reissue request not allowed on an unopen stream.");
         }
-    	wlRequest._reissue_hasChange = (!requestMsg.checkNoRefresh() && !requestMsg.checkPause());
+
+        if (requestMsg.domainType() != wlRequest.requestMsg().domainType())
+        {
+            return _watchlist.reactor().populateErrorInfo(errorInfo, ReactorReturnCodes.FAILURE,
+                    "WlItemHandler.handleReissue", "Domain type does not match existing request.");
+        }
+
+        if (requestMsg.checkHasBatch())
+        {
+            return _watchlist.reactor().populateErrorInfo(errorInfo, ReactorReturnCodes.FAILURE,
+                    "WlItemHandler.handleReissue", "Request reissue may not contain batch flag.");
+        }
+
+        if (!wlRequest.requestMsg().checkPrivateStream() && requestMsg.checkPrivateStream())
+        {
+            return _watchlist.reactor().populateErrorInfo(errorInfo, ReactorReturnCodes.FAILURE,
+                    "WlItemHandler.handleReissue", "Request reissue may not add private stream flag.");
+        }
+
+        if (!compareMsgKeys(requestMsg.msgKey(), wlRequest.requestMsg().msgKey()))
+        {
+            return _watchlist.reactor().populateErrorInfo(errorInfo, ReactorReturnCodes.FAILURE,
+                    "WlItemHandler.handleReissue", "Message key does not match existing request.");
+        }
+
+        if (wlRequest.requestMsg().checkHasQos() != requestMsg.checkHasQos() ||
+                (wlRequest.requestMsg().checkHasQos() && !wlRequest.requestMsg().qos().equals(requestMsg.qos())))
+        {
+            return _watchlist.reactor().populateErrorInfo(errorInfo, ReactorReturnCodes.FAILURE,
+                    "WlItemHandler.handleReissue", "QoS does not match existing request.");
+        }
+
+        if (wlRequest.requestMsg().checkHasWorstQos() != requestMsg.checkHasWorstQos() ||
+                (wlRequest.requestMsg().checkHasWorstQos() && !wlRequest.requestMsg().worstQos().equals(requestMsg.worstQos())))
+        {
+            return _watchlist.reactor().populateErrorInfo(errorInfo, ReactorReturnCodes.FAILURE,
+                    "WlItemHandler.handleReissue", "Worst QoS does not match existing request.");
+        }
+
+        wlRequest._reissue_hasChange = (!requestMsg.checkNoRefresh() && !requestMsg.checkPause());
     	wlRequest._reissue_hasViewChange = false;
                 
 		if (requestMsg.domainType() == DomainTypes.SYMBOL_LIST)
@@ -1207,14 +1243,41 @@ class WlItemHandler implements WlHandler
                                                           "WlItemHandler.handleReissue",
                                                           "Reissue requests may not alter streaming flag.");
         }
-       
-        
-        
 
-        
         return ret;
     }
-    
+
+    static boolean compareMsgKeys(MsgKey key1, MsgKey key2)
+    {
+        int flags1 = key1.flags();
+        int flags2 = key2.flags();
+
+        if (!key1.checkHasName())
+        {
+            key2.flags(flags2 &= ~MsgKeyFlags.HAS_NAME);
+        }
+
+        if (!key2.checkHasName())
+        {
+            key1.flags(flags1 &= ~MsgKeyFlags.HAS_NAME);
+        }
+
+        if(key1.checkHasServiceId()) {
+            key1.flags(flags1 &= ~MsgKeyFlags.HAS_SERVICE_ID);
+        }
+
+        if(key2.checkHasServiceId()) {
+            key2.flags(flags2 &= ~MsgKeyFlags.HAS_SERVICE_ID);
+        }
+
+        boolean result = key1.equals(key2);
+
+        key1.flags(flags1);
+        key2.flags(flags2);
+
+        return result;
+    }
+
     /* Determines if an item can be opened. */
     boolean canItemBeOpened(RequestMsg requestMsg, ReactorSubmitOptions submitOptions, Qos matchedQos, Qos staticQos, Service service, ReactorErrorInfo errorInfo)
     {

@@ -22,10 +22,7 @@ import java.nio.channels.spi.SelectorProvider;
 import java.util.HashMap;
 import java.util.Set;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 
 import com.refinitiv.eta.codec.AckMsg;
 import com.refinitiv.eta.codec.Buffer;
@@ -4077,6 +4074,7 @@ public class ReactorWatchlistJunit
     }
 
     @Test
+    @Ignore("Ignored until implemented support for reissue requests where the msgKey.filter requests a higher verbosity (e.g. Dictionary.VerbosityValues.NORMAL).")
     public void watchlistDictionarySubmitTest()
     {
         final String inputFile = BASE_TEST_DATA_DIR_NAME

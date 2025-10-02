@@ -20,11 +20,16 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.junit.Assert.assertEquals;
+import static com.refinitiv.eta.valueadd.reactor.WlItemHandler.compareMsgKeys;
+import static org.junit.Assert.*;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class ReactorWatchlistItemHandlerJunit {
+    private final Reactor reactor = mock(Reactor.class);
     private final ReactorChannel reactorChannel = mock(ReactorChannel.class);
     private final ConsumerRole consumerRole = mock(ConsumerRole.class);
     private final Watchlist watchlist = mock(Watchlist.class);
@@ -37,10 +42,21 @@ public class ReactorWatchlistItemHandlerJunit {
     private final Service.ServiceInfo serviceInfo = new Service.ServiceInfo();
     private final Service rdmService = DirectoryMsgFactory.createService();
     private final List<Long> capabilitiesList = new ArrayList<>();
+    private final WlStream stream = ReactorFactory.createWlStream();
+    private final WlRequest wlRequest = ReactorFactory.createWlRequest();
+    private final RequestMsg requestMsg = (RequestMsg) CodecFactory.createMsg();
+    private final MsgKey key1 = CodecFactory.createMsgKey();
+    private final MsgKey key2 = CodecFactory.createMsgKey();
+    private final boolean isReissue = true;
+
+    private WlItemHandler itemHandler;
+    private RequestMsg wlRequestMsg;
 
     @Before
     public void init() {
         // Prepare mocks & stabs
+        when(reactor.populateErrorInfo(any(ReactorErrorInfo.class), anyInt(), anyString(), anyString())).thenCallRealMethod();
+
         consumerWatchlistOptions.obeyOpenWindow(false);
 
         serviceState.serviceState(1);
@@ -60,6 +76,7 @@ public class ReactorWatchlistItemHandlerJunit {
         when(consumerRole.watchlistOptions()).thenReturn(consumerWatchlistOptions);
 
         when(watchlist.role()).thenReturn(consumerRole);
+        when(watchlist.reactor()).thenReturn(reactor);
         when(watchlist.reactorChannel()).thenReturn(reactorChannel);
         when(watchlist.directoryHandler()).thenReturn(directoryHandler);
         when(watchlist.watchlistOptions()).thenReturn(consumerWatchlistOptions);
@@ -67,6 +84,234 @@ public class ReactorWatchlistItemHandlerJunit {
         when(directoryHandler.service(1)).thenReturn(wlService);
 
         when(wlService.rdmService()).thenReturn(rdmService);
+
+        itemHandler = new  WlItemHandler(watchlist);
+
+        wlRequest.stream(stream);
+        wlRequestMsg =  wlRequest.requestMsg();
+        wlRequestMsg.msgClass(MsgClasses.REQUEST);
+        wlRequestMsg.domainType(DomainTypes.MARKET_PRICE);
+
+        requestMsg.msgClass(MsgClasses.REQUEST);
+        requestMsg.domainType(DomainTypes.MARKET_PRICE);
+
+        // Prepare message keys
+        key1.clear();
+        key2.clear();
+
+        Buffer name1 = CodecFactory.createBuffer();
+        name1.data("etaj");
+        Buffer name2 = CodecFactory.createBuffer();
+        ByteBuffer bb = ByteBuffer.allocate(7);
+        byte[] bts = { 1, 2, 0, 10, 57, 0x7F, 4 };
+        bb.put(bts);
+        name2.data(bb, 0, 7);
+        Buffer attrib = CodecFactory.createBuffer();
+        ByteBuffer bb1 = ByteBuffer.allocate(4);
+        byte[] bts1 = { 4, 8, 5, 10 };
+        bb1.put(bts1);
+        name2.data(bb1, 0, 4);
+
+        key1.applyHasFilter();
+        key1.filter(67);
+        key1.applyHasName();
+        key1.name(name1);
+        key1.applyHasAttrib();
+        key1.encodedAttrib(attrib);
+        key1.applyHasIdentifier();
+        key1.identifier(7);
+        key1.applyHasNameType();
+        key1.nameType(4);
+        key1.applyHasServiceId();
+        key1.serviceId(667);
+        key1.attribContainerType();
+
+        key1.copy(key2);
+    }
+
+    @Test
+    public void compareMsgKeys_EqualKeys_ReturnTrue()
+    {
+        assertTrue(compareMsgKeys(key1, key2));
+        assertTrue(compareMsgKeys(key2, key1));
+    }
+
+    @Test
+    public void compareMsgKeys_KeysWithDifferentNames_ReturnFalse()
+    {
+        Buffer name1 = CodecFactory.createBuffer();
+        name1.data("emaj");
+        key1.name(name1);
+
+        assertFalse(compareMsgKeys(key1, key2));
+        assertFalse(compareMsgKeys(key2, key1));
+    }
+
+    @Test
+    public void compareMsgKeys_OnlyOneKeyContainsName_ReturnTrue()
+    {
+        Buffer name1 = CodecFactory.createBuffer();
+        name1.data("emaj");
+        key1.name(name1);
+        key1.flags(key1.flags() & ~MsgKeyFlags.HAS_NAME);
+
+        assertTrue(compareMsgKeys(key1, key2));
+        assertTrue(compareMsgKeys(key2, key1));
+    }
+
+    @Test
+    public void compareMsgKeys_KeysWithoutNames_ReturnTrue()
+    {
+        Buffer name1 = CodecFactory.createBuffer();
+        name1.data("emaj");
+        key1.name(name1);
+        key1.flags(key1.flags() & ~MsgKeyFlags.HAS_NAME);
+        key2.flags(key2.flags() & ~MsgKeyFlags.HAS_NAME);
+
+        assertTrue(compareMsgKeys(key1, key2));
+    }
+
+    @Test
+    public void compareMsgKeys_KeysWithDifferentServiceId_ReturnTrue()
+    {
+        key1.serviceId(1);
+        key2.serviceId(2);
+
+        assertTrue(compareMsgKeys(key1, key2));
+        assertTrue(compareMsgKeys(key2, key1));
+    }
+
+    @Test
+    public void submitRequest_ReissueDifferentDomainTypes_ReturnFailure() {
+        requestMsg.domainType(DomainTypes.SYMBOL_LIST);
+
+        // Call target method
+        int returnValue = itemHandler.submitRequest(wlRequest, requestMsg, isReissue, submitOptions, errorInfo);
+
+        assertEquals(ReactorReturnCodes.FAILURE, returnValue);
+        assertEquals("WlItemHandler.handleReissue", errorInfo.location());
+        assertEquals("Domain type does not match existing request.", errorInfo.error().text());
+    }
+
+    @Test
+    public void submitRequest_ReissueRequestMessageHasBatch_ReturnFailure() {
+        requestMsg.applyHasBatch();
+
+        // Call target method
+        int returnValue = itemHandler.submitRequest(wlRequest, requestMsg, isReissue, submitOptions, errorInfo);
+
+        assertEquals(ReactorReturnCodes.FAILURE, returnValue);
+        assertEquals("WlItemHandler.handleReissue", errorInfo.location());
+        assertEquals("Request reissue may not contain batch flag.", errorInfo.error().text());
+    }
+
+    @Test
+    public void submitRequest_ReissueRequestMessageAddPrivateStreamFlag_ReturnFailure() {
+        requestMsg.applyPrivateStream();
+
+        // Call target method
+        int returnValue = itemHandler.submitRequest(wlRequest, requestMsg, isReissue, submitOptions, errorInfo);
+
+        assertEquals(ReactorReturnCodes.FAILURE, returnValue);
+        assertEquals("WlItemHandler.handleReissue", errorInfo.location());
+        assertEquals("Request reissue may not add private stream flag.", errorInfo.error().text());
+    }
+
+    @Test
+    public void submitRequest_ReissueDifferentMessageKeys_ReturnFailure() {
+        Buffer name1 = CodecFactory.createBuffer();
+        name1.data("emaj");
+        key1.name(name1);
+
+        MsgKey wlRequestMsgKey = wlRequestMsg.msgKey();
+        key1.copy(wlRequestMsgKey);
+
+        // Create request message
+        MsgKey requestMsgKey = wlRequestMsg.msgKey();
+        key2.copy(requestMsgKey);
+
+        // Call target method
+        int returnValue = itemHandler.submitRequest(wlRequest, requestMsg, isReissue, submitOptions, errorInfo);
+
+        assertEquals(ReactorReturnCodes.FAILURE, returnValue);
+        assertEquals("WlItemHandler.handleReissue", errorInfo.location());
+        assertEquals("Message key does not match existing request.", errorInfo.error().text());
+    }
+
+    @Test
+    public void submitRequest_ReissueOnlyOneRequestMsgHasQos_ReturnFailure() {
+        wlRequestMsg.applyHasQos();
+        Qos wlRequestMsgQos = wlRequestMsg.qos();
+        wlRequestMsgQos.rate(QosRates.TIME_CONFLATED);
+        wlRequestMsgQos.rateInfo(65532);
+        wlRequestMsgQos.timeliness(QosTimeliness.DELAYED);
+
+        // Call target method
+        int returnValue = itemHandler.submitRequest(wlRequest, requestMsg, isReissue, submitOptions, errorInfo);
+
+        assertEquals(ReactorReturnCodes.FAILURE, returnValue);
+        assertEquals("WlItemHandler.handleReissue", errorInfo.location());
+        assertEquals("QoS does not match existing request.", errorInfo.error().text());
+    }
+
+    @Test
+    public void submitRequest_ReissueDifferentQos_ReturnFailure() {
+        wlRequestMsg.applyHasQos();
+        Qos wlRequestMsgQos = wlRequestMsg.qos();
+        wlRequestMsgQos.rate(QosRates.TIME_CONFLATED);
+        wlRequestMsgQos.rateInfo(65532);
+        wlRequestMsgQos.timeliness(QosTimeliness.DELAYED);
+
+        requestMsg.applyHasQos();
+        Qos requestMsgQos = wlRequestMsg.qos();
+        requestMsgQos.rate(QosRates.TIME_CONFLATED);
+        requestMsgQos.rateInfo(65534);
+        requestMsgQos.timeliness(QosTimeliness.DELAYED);
+
+        // Call target method
+        int returnValue = itemHandler.submitRequest(wlRequest, requestMsg, isReissue, submitOptions, errorInfo);
+
+        assertEquals(ReactorReturnCodes.FAILURE, returnValue);
+        assertEquals("WlItemHandler.handleReissue", errorInfo.location());
+        assertEquals("QoS does not match existing request.", errorInfo.error().text());
+    }
+
+    @Test
+    public void submitRequest_ReissueOnlyOneRequestMsgHasWorstQos_ReturnFailure() {
+        wlRequestMsg.applyHasWorstQos();
+        Qos wlRequestMsgQos = wlRequestMsg.worstQos();
+        wlRequestMsgQos.rate(QosRates.TIME_CONFLATED);
+        wlRequestMsgQos.rateInfo(65532);
+        wlRequestMsgQos.timeliness(QosTimeliness.DELAYED);
+
+        // Call target method
+        int returnValue = itemHandler.submitRequest(wlRequest, requestMsg, isReissue, submitOptions, errorInfo);
+
+        assertEquals(ReactorReturnCodes.FAILURE, returnValue);
+        assertEquals("WlItemHandler.handleReissue", errorInfo.location());
+        assertEquals("Worst QoS does not match existing request.", errorInfo.error().text());
+    }
+
+    @Test
+    public void submitRequest_ReissueDifferentWorstQos_ReturnFailure() {
+        wlRequestMsg.applyHasWorstQos();
+        Qos wlRequestMsgQos = wlRequestMsg.worstQos();
+        wlRequestMsgQos.rate(QosRates.TIME_CONFLATED);
+        wlRequestMsgQos.rateInfo(65532);
+        wlRequestMsgQos.timeliness(QosTimeliness.DELAYED);
+
+        requestMsg.applyHasWorstQos();
+        Qos requestMsgQos = wlRequestMsg.worstQos();
+        requestMsgQos.rate(QosRates.TIME_CONFLATED);
+        requestMsgQos.rateInfo(65534);
+        requestMsgQos.timeliness(QosTimeliness.DELAYED);
+
+        // Call target method
+        int returnValue = itemHandler.submitRequest(wlRequest, requestMsg, isReissue, submitOptions, errorInfo);
+
+        assertEquals(ReactorReturnCodes.FAILURE, returnValue);
+        assertEquals("WlItemHandler.handleReissue", errorInfo.location());
+        assertEquals("Worst QoS does not match existing request.", errorInfo.error().text());
     }
 
     @Test
