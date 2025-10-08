@@ -2646,18 +2646,22 @@ RSSL_VA_API RsslRet rsslReactorConnect(RsslReactor *pReactor, RsslReactorConnect
 		/* Iterate through the connection count and make sure that the credentials or login messages have been set */
 		for (i = 0; i < pReactorChannel->connectionListCount; ++i)
 		{
-			if (pRole->base.roleType == RSSL_RC_RT_OMM_CONSUMER && pReactorChannel->connectionOptList[i].base.enableSessionManagement == RSSL_TRUE)
+			if (pRole->base.roleType == RSSL_RC_RT_OMM_CONSUMER
+				&& pReactorChannel->connectionOptList[i].base.enableSessionManagement == RSSL_TRUE)
 			{
 				/* Check the session management credentials to see if they exist for all connections */
-				if (pRole->ommConsumerRole.pOAuthCredentialList != 0)
+				if (pRole->ommConsumerRole.pOAuthCredentialList != NULL
+					&& pRole->ommConsumerRole.oAuthCredentialCount > 0)
 				{
-					if (pRole->ommConsumerRole.pOAuthCredentialList[pRole->ommConsumerRole.oAuthCredentialCount] != NULL && pReactorChannel->connectionOptList[i].base.oAuthCredentialIndex >= pRole->ommConsumerRole.oAuthCredentialCount)
+					if (pRole->ommConsumerRole.pOAuthCredentialList[pRole->ommConsumerRole.oAuthCredentialCount - 1] != NULL
+						&& pReactorChannel->connectionOptList[i].base.oAuthCredentialIndex >= pRole->ommConsumerRole.oAuthCredentialCount)
 					{
 						rsslSetErrorInfo(pError, RSSL_EIC_FAILURE, RSSL_RET_INVALID_ARGUMENT, __FILE__, __LINE__, "Invalid oAuth credential array index of %d set.", pReactorChannel->connectionOptList[i].base.oAuthCredentialIndex);
 						goto reactorConnectFail;
 					}
 				}
-				else if(pRole->ommConsumerRole.pLoginRequest == NULL && pRole->ommConsumerRole.pOAuthCredential == NULL)
+				else if(pRole->ommConsumerRole.pLoginRequest == NULL
+						&& pRole->ommConsumerRole.pOAuthCredential == NULL)
 				{
 					rsslSetErrorInfo(pError, RSSL_EIC_FAILURE, RSSL_RET_INVALID_ARGUMENT, __FILE__, __LINE__, "No oAuth credentials have been set for a channel with session management turned on");
 					goto reactorConnectFail;
@@ -2666,9 +2670,12 @@ RSSL_VA_API RsslRet rsslReactorConnect(RsslReactor *pReactor, RsslReactorConnect
 			else
 			{
 				/* Check the session management credentials to see if they exist for all connections */
-				if (pRole->base.roleType == RSSL_RC_RT_OMM_CONSUMER && pRole->ommConsumerRole.pLoginRequestList != 0)
+				if (pRole->base.roleType == RSSL_RC_RT_OMM_CONSUMER
+					&& pRole->ommConsumerRole.pLoginRequestList != NULL
+					&& pRole->ommConsumerRole.loginRequestMsgCredentialCount > 0)
 				{
-					if (pRole->ommConsumerRole.pLoginRequestList[pRole->ommConsumerRole.loginRequestMsgCredentialCount] && pReactorChannel->connectionOptList[i].base.loginReqIndex >= pRole->ommConsumerRole.loginRequestMsgCredentialCount)
+					if (pRole->ommConsumerRole.pLoginRequestList[pRole->ommConsumerRole.loginRequestMsgCredentialCount - 1]
+						&& pReactorChannel->connectionOptList[i].base.loginReqIndex >= pRole->ommConsumerRole.loginRequestMsgCredentialCount)
 					{
 						rsslSetErrorInfo(pError, RSSL_EIC_FAILURE, RSSL_RET_INVALID_ARGUMENT, __FILE__, __LINE__, "Invalid login message array index of %d set.", pReactorChannel->connectionOptList[i].base.oAuthCredentialIndex);
 						goto reactorConnectFail;
