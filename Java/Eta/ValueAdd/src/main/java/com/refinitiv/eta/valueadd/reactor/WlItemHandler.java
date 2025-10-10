@@ -1061,10 +1061,11 @@ class WlItemHandler implements WlHandler
             boolean effectiveViewChange = true;
             boolean repooled = false;
                       
-            WlRequest tempWlRequest = ReactorFactory.createWlRequest();
+            WlRequest tempWlRequest = null;
             
     		if (requestMsg.checkHasView())  // has viewFlag
-    		{    			
+    		{
+                tempWlRequest = ReactorFactory.createWlRequest();
     			// for re-issue, in case incoming request does not have view data, re-use the cached one
     			if (requestMsg.encodedDataBody().data() == null )
     			{
@@ -3426,7 +3427,7 @@ class WlItemHandler implements WlHandler
 									return ret;
 								}
 	
-								if (_dataStreamFlag.toBigInteger().intValue() < SymbolList.SymbolListDataStreamRequestFlags.SYMBOL_LIST_NAMES_ONLY || _dataStreamFlag.toBigInteger().intValue() > SymbolList.SymbolListDataStreamRequestFlags.SYMBOL_LIST_DATA_SNAPSHOTS )
+								if ((int)_dataStreamFlag.toLong() < SymbolList.SymbolListDataStreamRequestFlags.SYMBOL_LIST_NAMES_ONLY || (int)_dataStreamFlag.toLong() > SymbolList.SymbolListDataStreamRequestFlags.SYMBOL_LIST_DATA_SNAPSHOTS )
 								{
 									_watchlist.reactor().populateErrorInfo(errorInfo, ReactorReturnCodes.FAILURE,
 											"ItemHandler.extractSymbollistFromMsg",
@@ -3434,7 +3435,7 @@ class WlItemHandler implements WlHandler
 									return CodecReturnCodes.FAILURE;
 								}
 																
-								wlRequest.symbolListFlags(_dataStreamFlag.toBigInteger().intValue());
+								wlRequest.symbolListFlags((int)_dataStreamFlag.toLong());
 							}
 						}
 					}
@@ -3630,7 +3631,14 @@ class WlItemHandler implements WlHandler
 				if (_elementEntry.name().equals(ElementNames.VIEW_TYPE) &&
 					_elementEntry.dataType() == DataTypes.UINT) 
 				{
-					_viewType.decode(_dIter);
+                    ret = _viewType.decode(_dIter);
+                    if (ret != CodecReturnCodes.SUCCESS)
+                    {
+                        _watchlist.reactor().populateErrorInfo(errorInfo, ReactorReturnCodes.FAILURE,
+                                "ItemHandler.extractViewFromMsg",
+                                "Error decoding view type");
+                        return ret;
+                    }
 					_hasViewType = true;
 				}
 			
@@ -3644,7 +3652,7 @@ class WlItemHandler implements WlHandler
 			
 		} // while
 					
-		int viewType = _viewType.toBigInteger().intValue();		
+		int viewType = (int)_viewType.toLong();
 		wlRequest.viewType(viewType);
 	    wlRequest.viewAction(VIEW_ACTION_SET);
 	    
