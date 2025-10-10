@@ -39,6 +39,8 @@ typedef struct
 	char				serverCert[255];			/* Server certificate file location */
 	char				serverKey[255];				/* Server private key file location */
 	char				cipherSuite[255];			/* Server cipher suite */
+	char				cipherSuite_TLSV1_3[255];	/* Server TLS 1.3 cipher suite */
+	RsslEncryptionProtocolTypes tlsProtocol;		/* Bitmap flag set defining the TLS version(s) to be used by this connection. See RsslEncryptionProtocolTypes */
 
 	char				protocolList[255];			/* List of supported WebSocket sub-protocols */
 	RsslUInt32			guaranteedOutputTunnelBuffers;	/* Guaranteed Output Tunnel Buffers. See -tunnelStreamOutputBufs */

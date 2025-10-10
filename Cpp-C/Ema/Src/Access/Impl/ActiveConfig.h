@@ -331,6 +331,9 @@ public :
 	UInt64			wsMaxMsgSize;
 	EmaString		wsProtocols;
 
+	EmaString				cipherSuite;
+	EmaString				cipherSuite_TLSV1_3;
+
 private :
 
 	EmaString		defaultServiceName;
@@ -360,6 +363,7 @@ public:
 	EmaString				serverCert;
 	EmaString				serverPrivateKey;
 	EmaString				cipherSuite;
+	EmaString				cipherSuite_TLSV1_3;
 	EmaString				dhParams;
 
 	UInt64			maxFragmentSize;

@@ -1497,6 +1497,8 @@ static RsslRet connectChannel(ConsumerThread* pConsumerThread)
 		if (consPerfConfig.tlsProtocolFlags != 0)
 			copts.encryptionOpts.encryptionProtocolFlags = consPerfConfig.tlsProtocolFlags;
 		copts.encryptionOpts.openSSLCAStore = consPerfConfig.caStore;
+		copts.encryptionOpts.cipherSuite = consPerfConfig.cipher;
+		copts.encryptionOpts.cipherSuite_TLSV1_3 = consPerfConfig.cipher_TLSV1_3;
 	}
 
 	copts.connectionInfo.unified.address = consPerfConfig.hostName;
@@ -1658,6 +1660,8 @@ static RsslRet connectReactor(ConsumerThread* pConsumerThread)
 			if (consPerfConfig.tlsProtocolFlags != 0)
 				cInfo.rsslConnectOptions.encryptionOpts.encryptionProtocolFlags = consPerfConfig.tlsProtocolFlags;
 			cInfo.rsslConnectOptions.encryptionOpts.openSSLCAStore = consPerfConfig.caStore;
+			cInfo.rsslConnectOptions.encryptionOpts.cipherSuite = consPerfConfig.cipher;
+			cInfo.rsslConnectOptions.encryptionOpts.cipherSuite_TLSV1_3 = consPerfConfig.cipher_TLSV1_3;
 		}
 
 		cInfo.rsslConnectOptions.connectionInfo.unified.address = consPerfConfig.hostName;
@@ -1727,6 +1731,12 @@ static RsslRet connectReactor(ConsumerThread* pConsumerThread)
 
 			reactorWarmStandbyGroup.startingActiveServer.reactorConnectInfo.rsslConnectOptions.encryptionOpts.openSSLCAStore = consPerfConfig.caStore;
 			standbyServerInfo.reactorConnectInfo.rsslConnectOptions.encryptionOpts.openSSLCAStore = consPerfConfig.caStore;
+
+			reactorWarmStandbyGroup.startingActiveServer.reactorConnectInfo.rsslConnectOptions.encryptionOpts.cipherSuite = consPerfConfig.cipher;
+			standbyServerInfo.reactorConnectInfo.rsslConnectOptions.encryptionOpts.cipherSuite = consPerfConfig.cipher;
+
+			reactorWarmStandbyGroup.startingActiveServer.reactorConnectInfo.rsslConnectOptions.encryptionOpts.cipherSuite_TLSV1_3 = consPerfConfig.cipher_TLSV1_3;
+			standbyServerInfo.reactorConnectInfo.rsslConnectOptions.encryptionOpts.cipherSuite_TLSV1_3 = consPerfConfig.cipher_TLSV1_3;
 		}
 
 		reactorWarmStandbyGroup.standbyServerCount = 1;

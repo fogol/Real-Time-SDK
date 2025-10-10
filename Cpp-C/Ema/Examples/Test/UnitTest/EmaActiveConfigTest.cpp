@@ -104,6 +104,9 @@ void EmaActiveConfigTest::SocketChannelConfigTestDefaultValues(SocketChannelConf
 	EXPECT_TRUE(socketChannelConfig.objectName.empty());
 	EXPECT_TRUE(socketChannelConfig.sslCAStore.empty());
 
+	EXPECT_TRUE(socketChannelConfig.cipherSuite.empty());
+	EXPECT_TRUE(socketChannelConfig.cipherSuite_TLSV1_3.empty());
+
 	EXPECT_TRUE(socketChannelConfig.proxyHostName.empty());
 	EXPECT_TRUE(socketChannelConfig.proxyPort.empty());
 	EXPECT_TRUE(socketChannelConfig.proxyUserName.empty());
@@ -163,6 +166,9 @@ TEST_F(EmaActiveConfigTest, SocketChannelConfigTest)
 	socketChannelConfig.tcpNodelay = RSSL_FALSE;
 	socketChannelConfig.objectName = "ooo";
 	socketChannelConfig.sslCAStore = "ccc";
+
+	socketChannelConfig.cipherSuite = "CIP";
+	socketChannelConfig.cipherSuite_TLSV1_3 = "CIP13";
 
 	socketChannelConfig.proxyHostName = "non def proxyHostName";
 	socketChannelConfig.proxyPort = "non def proxyHostPort";
@@ -273,6 +279,7 @@ void EmaActiveConfigTest::SocketServerConfigTestDefaultValues(SocketServerConfig
 	EXPECT_TRUE(socketServerConfig.serverCert.empty());
 	EXPECT_TRUE(socketServerConfig.serverPrivateKey.empty());
 	EXPECT_TRUE(socketServerConfig.cipherSuite.empty());
+	EXPECT_TRUE(socketServerConfig.cipherSuite_TLSV1_3.empty());
 	EXPECT_TRUE(socketServerConfig.dhParams.empty());
 }
 
@@ -296,6 +303,7 @@ TEST_F(EmaActiveConfigTest, SocketServerConfigTest)
 	socketServerConfig.serverCert = "serverCert";
 	socketServerConfig.serverPrivateKey = "liserverPrivateKeybSslName";
 	socketServerConfig.cipherSuite = "cipherSuite";
+	socketServerConfig.cipherSuite_TLSV1_3 = "cipherSuite_TLSV1_3";
 	socketServerConfig.dhParams = "dhParams";
 
 	socketServerConfig.securityProtocol = RSSL_ENC_NONE;

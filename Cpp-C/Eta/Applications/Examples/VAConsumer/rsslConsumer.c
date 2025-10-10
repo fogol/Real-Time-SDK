@@ -143,6 +143,9 @@ static RsslEncryptionProtocolTypes tlsProtocol = RSSL_ENC_NONE;
 /* default sub-protocol list */
 static const char *defaultProtocols = "tr_json2";
 
+static char cipherSuite[255];
+static char cipherSuite_TLSV1_3[255];
+
 static RsslBool prefHostEnabled = RSSL_FALSE;			/* Whether to use Preferred host feature. */
 static RsslUInt32 prefHostConnectionListIndex = 0U;		/* Specifies an index to set as preferred host. */
 static char prefHostDetectionTimeCron[RSSL_REACTOR_MAX_BUFFER_LEN_INFO_CRON];
@@ -220,6 +223,8 @@ void printUsageAndExit(char *appName)
 			"\n -libcryptName specifies the name of libcrypto shared object\n"
 			"\n -spTLSv1.2 enable use of cryptographic protocol TLSv1.2 used with linux encrypted connections\n"
 			"\n -spTLSv1.3 enable use of cryptographic protocol TLSv1.3 used with linux encrypted connections\n"
+			"\n -cipher optional OpenSSL formatted list of ciphers\n"
+			"\n -cipherTLSv1.3 optional OpenSSL formatted list of TLS 1.3 ciphers\n"
 			"\n -runtime adjusts the running time of the application.\n"
 			"\n -maxEventsInPool size of event pool\n"
 			"\n -restEnableLog enable REST logging message\n"
@@ -314,6 +319,9 @@ void parseCommandLine(int argc, char **argv)
 		snprintf(libcurlName, sizeof(libcurlName), "%s", "");
 		snprintf(sslCAStore, sizeof(sslCAStore), "%s", "");
 
+		snprintf(cipherSuite, sizeof(cipherSuite), "%s", "");
+		snprintf(cipherSuite_TLSV1_3, sizeof(cipherSuite_TLSV1_3), "%s", "");
+
 		snprintf(prefHostDetectionTimeCron, sizeof(prefHostDetectionTimeCron), "%s", "");
 
 		clearPreferredHostConfig(&preferredHostConfig);
@@ -341,6 +349,16 @@ void parseCommandLine(int argc, char **argv)
 			{
 				i += 2; if (i > argc) printUsageAndExit(argv[0]);
 				snprintf(sslCAStore, 255, "%s", argv[i - 1]);
+			}
+			else if (strcmp("-cipher", argv[i]) == 0)
+			{
+				i += 2; if (i > argc) printUsageAndExit(argv[0]);
+				snprintf(cipherSuite, 255, "%s", argv[i - 1]);
+			}
+			else if (strcmp("-cipherTLSv1.3", argv[i]) == 0)
+			{
+				i += 2; if (i > argc) printUsageAndExit(argv[0]);
+				snprintf(cipherSuite_TLSV1_3, 255, "%s", argv[i - 1]);
 			}
 			else if (strcmp("-uname", argv[i]) == 0)
 			{
@@ -1620,6 +1638,8 @@ void parseCommandLine(int argc, char **argv)
 		pCommand->cInfo.rsslConnectOptions.proxyOpts.proxyPasswd = proxyPasswd;
 		pCommand->cInfo.rsslConnectOptions.proxyOpts.proxyDomain = proxyDomain;
 		pCommand->cInfo.rsslConnectOptions.encryptionOpts.openSSLCAStore = sslCAStore;
+		pCommand->cInfo.rsslConnectOptions.encryptionOpts.cipherSuite = cipherSuite;
+		pCommand->cInfo.rsslConnectOptions.encryptionOpts.cipherSuite_TLSV1_3 = cipherSuite_TLSV1_3;
 		if (tlsProtocol != RSSL_ENC_NONE)
 			pCommand->cInfo.rsslConnectOptions.encryptionOpts.encryptionProtocolFlags = tlsProtocol;
 	}
@@ -2506,6 +2526,8 @@ int main(int argc, char **argv)
 				pInfo->rsslConnectOptions.proxyOpts.proxyPasswd = proxyPasswd;
 				pInfo->rsslConnectOptions.proxyOpts.proxyDomain = proxyDomain;
 				pInfo->rsslConnectOptions.encryptionOpts.openSSLCAStore = sslCAStore;
+				pInfo->rsslConnectOptions.encryptionOpts.cipherSuite = cipherSuite;
+				pInfo->rsslConnectOptions.encryptionOpts.cipherSuite_TLSV1_3 = cipherSuite_TLSV1_3;
 			}
 
 			pOpts->reactorConnectionList = pCommand->InfoItems;

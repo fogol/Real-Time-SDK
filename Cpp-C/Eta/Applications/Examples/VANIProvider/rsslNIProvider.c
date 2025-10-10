@@ -2,7 +2,7 @@
  *|            This source code is provided under the Apache 2.0 license
  *|  and is provided AS IS with no warranty or guarantee of fit for purpose.
  *|                See the project's LICENSE.md for details.
- *|           Copyright (C) 2015-2020,2023-2024 LSEG. All rights reserved.
+ *|           Copyright (C) 2015-2020,2023-2025 LSEG. All rights reserved.
  *|-----------------------------------------------------------------------------
  */
 
@@ -92,6 +92,9 @@ static char libcurlName[255];
 
 static char sslCAStore[255];
 
+static char cipherSuite[255];
+static char cipherSuite_TLSV1_3[255];
+
 static RsslEncryptionProtocolTypes tlsProtocol = RSSL_ENC_NONE;
 
 static RsslBool cacheCommandlineOption = RSSL_FALSE;
@@ -137,6 +140,8 @@ void printUsageAndExit(char *appName)
 			"\n -castore specifies the filename or directory of the OpenSSL CA store\n"
 			"\n -spTLSv1.2 enable use of cryptographic protocol TLSv1.2 used with linux encrypted connections\n"
 			"\n -spTLSv1.3 enable use of cryptographic protocol TLSv1.3 used with linux encrypted connections\n"
+			"\n -cipher optional OpenSSL formatted list of ciphers\n"
+			"\n -cipherTLSv1.3 optional OpenSSL formatted list of TLS 1.3 ciphers\n"
 			"\n -maxEventsInPool size of event pool\n"
 			, appName);
 	exit(-1);
@@ -162,6 +167,9 @@ void handleConfig(int argc, char **argv, NIChannelCommand *pCommand)
 	snprintf(libsslName, sizeof(libsslName), "%s", "");
 	snprintf(libcurlName, sizeof(libcurlName), "%s", "");
 	snprintf(sslCAStore, sizeof(sslCAStore), "%s", "");
+
+	snprintf(cipherSuite, sizeof(cipherSuite), "%s", "");
+	snprintf(cipherSuite_TLSV1_3, sizeof(cipherSuite_TLSV1_3), "%s", "");
 
 	while(i < argc)
 	{
@@ -201,6 +209,18 @@ void handleConfig(int argc, char **argv, NIChannelCommand *pCommand)
 			i++;
 			tlsProtocol |= RSSL_ENC_TLSV1_3;
 			pCommand->cOpts.rsslConnectOptions.encryptionOpts.encryptionProtocolFlags = tlsProtocol;
+		}
+		else if (strcmp("-cipher", argv[i]) == 0)
+		{
+			i += 2; if (i > argc) printUsageAndExit(argv[0]);
+			snprintf(cipherSuite, 255, "%s", argv[i - 1]);
+			pCommand->cOpts.rsslConnectOptions.encryptionOpts.cipherSuite = cipherSuite;
+		}
+		else if (strcmp("-cipherTLSv1.3", argv[i]) == 0)
+		{
+			i += 2; if (i > argc) printUsageAndExit(argv[0]);
+			snprintf(cipherSuite_TLSV1_3, 255, "%s", argv[i - 1]);
+			pCommand->cOpts.rsslConnectOptions.encryptionOpts.cipherSuite_TLSV1_3 = cipherSuite_TLSV1_3;
 		}
 		else if(strcmp("-uname", argv[i]) == 0)
 		{

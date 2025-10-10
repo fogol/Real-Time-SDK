@@ -2,7 +2,7 @@
  *|            This source code is provided under the Apache 2.0 license
  *|  and is provided AS IS with no warranty or guarantee of fit for purpose.
  *|                See the project's LICENSE.md for details.
- *|           Copyright (C) 2015-2016,2018-2020,2022-2025 LSEG. All rights reserved.
+ *|       Copyright (C) 2015-2016,2018-2020,2022-2025 LSEG. All rights reserved.
  *|-----------------------------------------------------------------------------
  */
 
@@ -620,12 +620,15 @@ typedef struct {
 														A NULL input will result in the following behavior:<BR>
 															Windows: RSSL will load Windows Root Certificate store.<BR>
 															Linux: Load the default CA Store path based on the OpenSSL library's default behavior. This may be distribution specific, please see vendor documentation for more information */
+	char*				cipherSuite;				/*!< Optional OpenSSL formatted cipher suite string.  ETA's default configuration is OWASP's "B" tier recommendations, which are the following:
+														ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384:!aNULL:!eNULL:!LOW:!3DES:!MD5:!EXP:!PSK:!DSS:!RC4:!SEED:!ADH:!IDEA:!3DES */
+	char*				cipherSuite_TLSV1_3;		/*!< Optional OpenSSL formatted TLS 1.3 cipher suite string. */
 } RsslEncryptionOpts;
 
 #ifdef _WIN32
-#define RSSL_INIT_ENCRYPTION_OPTS { (RSSL_ENC_TLSV1_2 | RSSL_ENC_TLSV1_3), RSSL_CONN_TYPE_HTTP, NULL}
+#define RSSL_INIT_ENCRYPTION_OPTS { (RSSL_ENC_TLSV1_2 | RSSL_ENC_TLSV1_3), RSSL_CONN_TYPE_HTTP, NULL, NULL, NULL }
 #else
-#define RSSL_INIT_ENCRYPTION_OPTS { (RSSL_ENC_TLSV1_2 | RSSL_ENC_TLSV1_3), RSSL_CONN_TYPE_SOCKET, NULL}
+#define RSSL_INIT_ENCRYPTION_OPTS { (RSSL_ENC_TLSV1_2 | RSSL_ENC_TLSV1_3), RSSL_CONN_TYPE_SOCKET, NULL, NULL, NULL }
 #endif
 
 
@@ -791,6 +794,8 @@ RTR_C_INLINE void rsslClearConnectOpts(RsslConnectOptions *opts)
 #endif
 	opts->extLineOptions.numConnections = 20;
 	opts->encryptionOpts.openSSLCAStore = NULL;
+	opts->encryptionOpts.cipherSuite = NULL;
+	opts->encryptionOpts.cipherSuite_TLSV1_3 = NULL;
 	opts->proxyOpts.proxyHostName = NULL;
 	opts->proxyOpts.proxyPort = NULL;
 	opts->proxyOpts.proxyUserName = NULL;
@@ -946,10 +951,11 @@ typedef struct {
 	char*				cipherSuite;				/*!< Optional OpenSSL formatted cipher suite string.  ETA's default configuration is OWASP's "B" tier recommendations, which are the following:
 														ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384:!aNULL:!eNULL:!LOW:!3DES:!MD5:!EXP:!PSK:!DSS:!RC4:!SEED:!ADH:!IDEA:!3DES */
 	char*				dhParams;					/*!< Optional Diffie-Hellman parameter file.  If this is not present, RSSL will load it's default DH parameters */
+	char*				cipherSuite_TLSV1_3;		/*!< Optional OpenSSL formatted TLS 1.3 cipher suite string. */
 } RsslBindEncryptionOpts;
 
 
-#define RSSL_INIT_BIND_ENCRYPTION_OPTS { (RSSL_ENC_TLSV1_2 | RSSL_ENC_TLSV1_3), NULL, NULL, NULL, NULL}
+#define RSSL_INIT_BIND_ENCRYPTION_OPTS { (RSSL_ENC_TLSV1_2 | RSSL_ENC_TLSV1_3), NULL, NULL, NULL, NULL, NULL}
  
 /**
  * @brief RSSL Bind Options used in the rsslBind call.
@@ -1040,6 +1046,7 @@ RTR_C_INLINE void rsslClearBindOpts(RsslBindOptions *opts)
 	opts->wsOpts.cookies.cookie = NULL;
 	opts->wsOpts.cookies.numberOfCookies = 0;
 	opts->encryptionOpts.cipherSuite = NULL;
+	opts->encryptionOpts.cipherSuite_TLSV1_3 = NULL;
 	opts->encryptionOpts.dhParams = NULL;
 	opts->encryptionOpts.encryptionProtocolFlags = (RSSL_ENC_TLSV1_2 | RSSL_ENC_TLSV1_3);
 	opts->encryptionOpts.serverCert = NULL;

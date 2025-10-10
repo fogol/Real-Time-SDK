@@ -2,7 +2,7 @@
  *|            This source code is provided under the Apache 2.0 license
  *|  and is provided AS IS with no warranty or guarantee of fit for purpose.
  *|                See the project's LICENSE.md for details.
- *|           Copyright (C) 2020-2021,2023-2024 LSEG. All rights reserved.
+ *|           Copyright (C) 2020-2021,2023-2025 LSEG. All rights reserved.
  *|-----------------------------------------------------------------------------
  */
 
@@ -22,6 +22,8 @@ void printHelp()
 		<< " -pdomain Proxy Domain \n"
 		<< " -spTLSv1.2 enable use of cryptographic protocol TLSv1.2 used with linux encrypted connections \n"
 		<< " -spTLSv1.3 enable use of cryptographic protocol TLSv1.3 used with linux encrypted connections \n"
+		<< " -cipher Optional TLS cipher suite string \n"
+		<< " -cipherTLSv1.3 Optional TLS 1.3 cipher suite string \n"
 		<< " -libsslName name of the libssl.so shared library used with linux encrypted connections. \n"
 		<< " -libcryptoName name of the libcrypto.so shared library used with linux encrypted connections \n" << endl;
 }
@@ -67,6 +69,14 @@ int main( int argc, char* argv[] )
 			else if (strcmp(argv[i], "-spTLSv1.3") == 0)
 			{
 				securityProtocol |= OmmNiProviderConfig::ENC_TLSV1_3;
+			}
+			else if (strcmp(argv[i], "-cipher") == 0)
+			{
+				config.cipherSuite(i < (argc - 1) ? argv[++i] : NULL);
+			}
+			else if (strcmp(argv[i], "-cipherTLSv1.3") == 0)
+			{
+				config.cipherSuite_TLSV1_3(i < (argc - 1) ? argv[++i] : NULL);
 			}
 			else if (strcmp(argv[i], "-libsslName") == 0)
 			{

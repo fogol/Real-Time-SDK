@@ -1294,10 +1294,12 @@ public:
 
 	void addLoginMsgCredential(const ReqMsg&, const EmaString&, const OmmLoginCredentialConsumerClient&, void*);
 
-
 	void libcurlName(const EmaString&);
 
 	void sslCAStore(const EmaString&);
+
+	void cipherSuite(const EmaString&);
+	void cipherSuite_TLSV1_3(const EmaString&);
 
 	void protocolList(const EmaString& protocolList);
 
@@ -1322,7 +1324,6 @@ public:
 	AdminRefreshMsg* getDirectoryRefreshMsg();
 
 	OAuth2Credential& getOAuthCredential();
-
 
 	const EmaString& getUserSpecifiedHostname() const
 	{
@@ -1394,6 +1395,16 @@ public:
 		return _sslCAStoreSetViaFunctionCall;
 	}
 
+	const EmaString& getUserSpecifiedCipherSuite()
+	{
+		return _cipherSuiteViaFunctionCall;
+	}
+
+	const EmaString& getUserSpecifiedCipherSuite_TLSV1_3()
+	{
+		return _cipherSuite_TLSV1_3ViaFunctionCall;
+	}
+
 	const EmaString& getUserSpecifiedTokenServiceUrlV1()
 	{
 		return _tokenServiceUrlV1;
@@ -1425,7 +1436,6 @@ public:
 	}
 
 	LoginRdmReqMsgImpl& getLoginRdmReqMsg();
-
 
 	virtual OmmRestLoggingClient* getOmmRestLoggingClient() const {
 		return ((OmmRestLoggingClient*)NULL);
@@ -1502,6 +1512,9 @@ protected:
 	RsslConnectionTypes		_channelTypeViaFunctionCall;
 	RsslConnectionTypes		_encryptedProtocolTypeViaFunctionCall;
 
+	EmaString				_cipherSuiteViaFunctionCall;
+	EmaString				_cipherSuite_TLSV1_3ViaFunctionCall;
+
 	void addLoginReqMsg( RsslRequestMsg* );
 
 	void addDirectoryReqMsg( RsslRequestMsg* );
@@ -1566,6 +1579,7 @@ public:
 	void serverCert(const EmaString&);
 	void serverPrivateKey(const EmaString&);
 	void cipherSuite(const EmaString&);
+	void cipherSuite_TLSV1_3(const EmaString&);
 	void dhParams(const EmaString&);
 
 	void connectionType(const RsslConnectionTypes& connectionType);
@@ -1600,6 +1614,11 @@ public:
 		return _cipherSuite;
 	}
 
+	const EmaString& getUserSpecifiedCipherSuite_TLSV1_3()
+	{
+		return _cipherSuite_TLSV1_3;
+	}
+
 	const EmaString& getUserSpecifiedDhParams()
 	{
 		return _dhParams;
@@ -1618,6 +1637,7 @@ protected:
 	EmaString		_serverCert;
 	EmaString		_serverPrivateKey;
 	EmaString		_cipherSuite;
+	EmaString		_cipherSuite_TLSV1_3;
 	EmaString		_dhParams;
 
 };

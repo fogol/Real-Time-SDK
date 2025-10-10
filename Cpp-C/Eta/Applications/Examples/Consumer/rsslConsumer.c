@@ -2,16 +2,9 @@
  *|            This source code is provided under the Apache 2.0 license
  *|  and is provided AS IS with no warranty or guarantee of fit for purpose.
  *|                See the project's LICENSE.md for details.
- *|           Copyright (C) 2015,2017-2020,2022-2024 LSEG. All rights reserved.
+ *|           Copyright (C) 2015,2017-2020,2022-2025 LSEG. All rights reserved.
  *|-----------------------------------------------------------------------------
  */
-
-/*
- * This source code is provided under the Apache 2.0 license and is provided
- * AS IS with no warranty or guarantee of fit for purpose.  See the project's 
- * LICENSE.md for details. 
- * Copyright (C) 2019-2020 LSEG. All rights reserved.     
-*/
 
 /*
  * This is the main file for the rsslConsumer application. It is
@@ -85,6 +78,7 @@ static char libsslName[255];
 static char libcryptoName[255];
 static char libcurlName[255];
 static char cipherSuite[255];
+static char cipherSuite_TLSV1_3[255];
 static char authenticationToken[AUTH_TOKEN_LENGTH];
 static char authenticationExtended[AUTH_TOKEN_LENGTH];
 static char applicationId[128];
@@ -176,6 +170,8 @@ void printUsageAndExit(char *appName)
 	printf(" -castore specifies the filename or directory of the OpenSSL CA store\n");
 	printf(" -spTLSv1.2 Specifies that TLSv1.2 can be used for an OpenSSL-based encrypted connection\n");
 	printf(" -spTLSv1.3 Specifies that TLSv1.3 can be used for an OpenSSL-based encrypted connection\n");
+	printf(" -cipher optional OpenSSL formatted list of ciphers\n");
+	printf(" -cipherTLSv1.3 optional OpenSSL formatted list of TLS 1.3 ciphers\n");
 	printf("\n -ph specifies the proxy host\n");
 	printf(" -pp specifies the proxy port\n");
 	printf(" -plogin specifies the proxy user name\n");
@@ -233,6 +229,7 @@ int main(int argc, char **argv)
 	snprintf(cookiesData, 128, "%s", defaultCookies);
 	snprintf(sslCAStore, 255, "%s", defaultCAStore);
 	memset((void*)cipherSuite, 0, 255);
+	memset((void*)cipherSuite_TLSV1_3, 0, 255);
 
 	tlsProtocol = RSSL_ENC_NONE;
 
@@ -344,6 +341,16 @@ int main(int argc, char **argv)
 			{
 				i += 2; if (i > argc) printUsageAndExit(argv[0]);
 				snprintf(sslCAStore, 255, "%s", argv[i - 1]);
+			}
+			else if (strcmp("-cipher", argv[i]) == 0)
+			{
+				i += 2; if (i > argc) printUsageAndExit(argv[0]);
+				snprintf(cipherSuite, 255, "%s", argv[i - 1]);
+			}
+			else if (strcmp("-cipherTLSv1.3", argv[i]) == 0)
+			{
+				i += 2; if (i > argc) printUsageAndExit(argv[0]);
+				snprintf(cipherSuite_TLSV1_3, 255, "%s", argv[i - 1]);
 			}
 			else if(strcmp("-s", argv[i]) == 0)
 			{
@@ -1069,6 +1076,8 @@ static RsslChannel* connectToRsslServer(RsslConnectionTypes connType, RsslError*
 	if (tlsProtocol != RSSL_ENC_NONE)
 		copts.encryptionOpts.encryptionProtocolFlags = tlsProtocol;
 	copts.encryptionOpts.openSSLCAStore = sslCAStore;
+	copts.encryptionOpts.cipherSuite = cipherSuite;
+	copts.encryptionOpts.cipherSuite_TLSV1_3 = cipherSuite_TLSV1_3;
 	/* Set the JSON session on the user spec ptr so we can get this from the rsslChannel structure */
 	copts.userSpecPtr = &jsonSession;
 

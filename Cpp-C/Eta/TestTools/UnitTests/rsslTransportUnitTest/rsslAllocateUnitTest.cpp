@@ -2,7 +2,7 @@
  *|            This source code is provided under the Apache 2.0 license
  *|  and is provided AS IS with no warranty or guarantee of fit for purpose.
  *|                See the project's LICENSE.md for details.
- *|           Copyright (C) 2020,2023-2024 LSEG. All rights reserved.
+ *|           Copyright (C) 2020,2023-2025 LSEG. All rights reserved.
  *|-----------------------------------------------------------------------------
  */
 
@@ -253,6 +253,7 @@ TEST_F(ServerStartStopTests, ServerSSLStartStopTest)
 	snprintf(serverConfig.serverKey, sizeof(serverConfig.serverKey), "%s", pServerKey);
 	snprintf(serverConfig.serverCert, sizeof(serverConfig.serverCert), "%s", pServerCert);
 	snprintf(serverConfig.cipherSuite, sizeof(serverConfig.cipherSuite), "%s", "");
+	snprintf(serverConfig.cipherSuite_TLSV1_3, sizeof(serverConfig.cipherSuite_TLSV1_3), "%s", "");
 
 	server = bindRsslServer(&serverConfig);
 	ASSERT_NE(server, (RsslServer*)NULL) << "Server creation failed! Creation of server on an encrypted connection"
@@ -310,6 +311,7 @@ TEST_F(ServerStartStopTests, ServerSSLStartStop100Test)
 		snprintf(serverConfig[i].serverKey, sizeof(serverConfig[i].serverKey), "%s", pServerKey);
 		snprintf(serverConfig[i].serverCert, sizeof(serverConfig[i].serverCert), "%s",  pServerCert);
 		snprintf(serverConfig[i].cipherSuite, sizeof(serverConfig[i].cipherSuite), "%s", "");
+		snprintf(serverConfig[i].cipherSuite_TLSV1_3, sizeof(serverConfig[i].cipherSuite_TLSV1_3), "%s", "");
 
 		server[i] = NULL;
 		server[i] = bindRsslServer(&(serverConfig[i]));
@@ -338,6 +340,7 @@ TEST_F(ServerStartStopTests, ServerSSLStartStop100Test)
 		snprintf(serverConfig[i].serverKey, sizeof(serverConfig[i].serverKey), "%s", pServerKey);
 		snprintf(serverConfig[i].serverCert, sizeof(serverConfig[i].serverCert), "%s", pServerCert);
 		snprintf(serverConfig[i].cipherSuite, sizeof(serverConfig[i].cipherSuite), "%s", "");
+		snprintf(serverConfig[i].cipherSuite_TLSV1_3, sizeof(serverConfig[i].cipherSuite_TLSV1_3), "%s", "");
 
 		server[i] = NULL;
 		server[i] = bindRsslServer(&(serverConfig[i]));
@@ -461,6 +464,7 @@ TEST_F(ServerStartStopTests, ServerSHMemStartStop100Test)
 		snprintf(serverConfig[i].serverKey, sizeof(serverConfig[i].serverKey), "localhost.key");
 		snprintf(serverConfig[i].serverCert, sizeof(serverConfig[i].serverCert), "localhost.crt");
 		snprintf(serverConfig[i].cipherSuite, sizeof(serverConfig[i].cipherSuite), "%s", "");
+		snprintf(serverConfig[i].cipherSuite_TLSV1_3, sizeof(serverConfig[i].cipherSuite_TLSV1_3), "%s", "");
 
 		server[i] = NULL;
 		server[i] = bindRsslServer(&(serverConfig[i]));
@@ -486,6 +490,7 @@ TEST_F(ServerStartStopTests, ServerSHMemStartStop100Test)
 		snprintf(serverConfig[i].serverKey, sizeof(serverConfig[i].serverKey), "localhost.key");
 		snprintf(serverConfig[i].serverCert, sizeof(serverConfig[i].serverCert), "localhost.crt");
 		snprintf(serverConfig[i].cipherSuite, sizeof(serverConfig[i].cipherSuite), "%s", "");
+		snprintf(serverConfig[i].cipherSuite_TLSV1_3, sizeof(serverConfig[i].cipherSuite_TLSV1_3), "%s", "");
 
 		server[i] = NULL;
 		server[i] = bindRsslServer(&(serverConfig[i]));

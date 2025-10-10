@@ -715,6 +715,9 @@ int main(int argc, char **argv)
 		sopts.encryptionOpts.serverCert = provPerfConfig.serverCert;
 		sopts.encryptionOpts.serverPrivateKey = provPerfConfig.serverKey;
 		sopts.encryptionOpts.cipherSuite = provPerfConfig.cipherSuite;
+		sopts.encryptionOpts.cipherSuite_TLSV1_3 = provPerfConfig.cipherSuite_TLSV1_3;
+		if (provPerfConfig.tlsProtocol != RSSL_ENC_NONE)
+			sopts.encryptionOpts.encryptionProtocolFlags = provPerfConfig.tlsProtocol;
 	}
 
 	if ((rsslSrvr = rsslBind(&sopts, &error)) == 0)

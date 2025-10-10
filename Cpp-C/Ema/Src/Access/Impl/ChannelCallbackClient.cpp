@@ -414,6 +414,8 @@ void ChannelCallbackClient::channelParametersToString(ActiveConfig& activeConfig
 			.append("ProxyConnectionTimeout ").append(pTempChannelCfg->proxyConnectionTimeout).append(CR)
 			.append("SecurityProtocol ").append(pTempChannelCfg->securityProtocol).append(CR)
 			.append("EnableSessionManagement ").append(pTempChannelCfg->enableSessionMgnt).append(CR)
+			.append("CipherSuite ").append(pTempChannelCfg->cipherSuite).append(CR)
+			.append("CipherSuite_TLSV1_3 ").append(pTempChannelCfg->cipherSuite_TLSV1_3).append(CR)
 			.append("Location ").append(pTempChannelCfg->location).append(CR)
 			.append("ServiceDiscoveryRetryCount ").append(pTempChannelCfg->serviceDiscoveryRetryCount).append(CR);
 
@@ -527,6 +529,8 @@ Channel* ChannelCallbackClient::channelConfigToReactorConnectInfo(ChannelConfig*
 
 			reactorConnectInfo->rsslConnectOptions.encryptionOpts.encryptionProtocolFlags = static_cast<SocketChannelConfig*>(activeChannelConfig)->securityProtocol;
 			reactorConnectInfo->rsslConnectOptions.encryptionOpts.openSSLCAStore = (char*)(static_cast<SocketChannelConfig*>(activeChannelConfig)->sslCAStore.c_str());
+			reactorConnectInfo->rsslConnectOptions.encryptionOpts.cipherSuite = (char*)(static_cast<SocketChannelConfig*>(activeChannelConfig)->cipherSuite.c_str());
+			reactorConnectInfo->rsslConnectOptions.encryptionOpts.cipherSuite_TLSV1_3 = (char*)(static_cast<SocketChannelConfig*>(activeChannelConfig)->cipherSuite_TLSV1_3.c_str());
 			reactorConnectInfo->enableSessionManagement = static_cast<SocketChannelConfig*>(activeChannelConfig)->enableSessionMgnt;
 			reactorConnectInfo->location.length = static_cast<SocketChannelConfig*>(activeChannelConfig)->location.length();
 			reactorConnectInfo->location.data = (char*)static_cast<SocketChannelConfig*>(activeChannelConfig)->location.c_str();

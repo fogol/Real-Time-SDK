@@ -1169,6 +1169,18 @@
                             </xs:complexType>
                           </xs:element>
 
+                          <xs:element name="CipherSuite" minOccurs="0" maxOccurs="1">
+                            <xs:complexType>
+                              <xs:attribute name="value" type="NonEmptyString" use="required" />
+                            </xs:complexType>
+                          </xs:element>
+
+                          <xs:element name="CipherSuite_TLSV1_3" minOccurs="0" maxOccurs="1">
+                            <xs:complexType>
+                              <xs:attribute name="value" type="NonEmptyString" use="required" />
+                            </xs:complexType>
+                          </xs:element>
+
                           <xs:element name="SecurityProtocol" minOccurs="0" maxOccurs="1">
                             <xs:complexType>
                               <xs:attribute name="value" type="xs:unsignedLong" use="required" />
@@ -1574,6 +1586,12 @@
                           <!-- 3.7.4 Parameters for Use with ServerType RSSL_ENCRYPTED -->
 
                           <xs:element name="CipherSuite" minOccurs="0" maxOccurs="1">
+                            <xs:complexType>
+                              <xs:attribute name="value" type="NonEmptyString" use="required" />
+                            </xs:complexType>
+                          </xs:element>
+
+                          <xs:element name="CipherSuite_TLSV1_3" minOccurs="0" maxOccurs="1">
                             <xs:complexType>
                               <xs:attribute name="value" type="NonEmptyString" use="required" />
                             </xs:complexType>

@@ -481,6 +481,13 @@ ServerConfig* OmmServerBaseImpl::readServerConfig( EmaConfigServerImpl* pConfigS
 			else
 				pConfigServerImpl->get<EmaString>(serverNodeName + "CipherSuite", socketServerConfig->cipherSuite);
 
+			if (pConfigServerImpl->getUserSpecifiedCipherSuite_TLSV1_3().length() > 0)
+			{
+				socketServerConfig->cipherSuite_TLSV1_3 = pConfigServerImpl->getUserSpecifiedCipherSuite_TLSV1_3();
+			}
+			else
+				pConfigServerImpl->get<EmaString>(serverNodeName + "CipherSuite_TLSV1_3", socketServerConfig->cipherSuite);
+
 			if (pConfigServerImpl->getUserSpecifiedSecurityProtocol() > 0)
 			{
 				socketServerConfig->securityProtocol = pConfigServerImpl->getUserSpecifiedSecurityProtocol();
@@ -1050,6 +1057,7 @@ void OmmServerBaseImpl::bindServerOptions(RsslBindOptions& bindOptions, const Em
 			bindOptions.encryptionOpts.serverPrivateKey = const_cast<char *>(socketServerConfig->serverPrivateKey.c_str());
 			bindOptions.encryptionOpts.dhParams = const_cast<char *>(socketServerConfig->dhParams.c_str());
 			bindOptions.encryptionOpts.cipherSuite = const_cast<char *>(socketServerConfig->cipherSuite.c_str());
+			bindOptions.encryptionOpts.cipherSuite_TLSV1_3 = const_cast<char *>(socketServerConfig->cipherSuite_TLSV1_3.c_str());
 			bindOptions.encryptionOpts.encryptionProtocolFlags = (RsslUInt32)socketServerConfig->securityProtocol;
 			bindOptions.maxFragmentSize = (RsslUInt32)socketServerConfig->maxFragmentSize;
 

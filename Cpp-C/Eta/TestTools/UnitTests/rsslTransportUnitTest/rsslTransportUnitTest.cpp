@@ -3109,6 +3109,7 @@ RsslServer* bindRsslServer(TUServerConfig* pServerConfig)
 		bindOpts.encryptionOpts.serverCert = pServerConfig->serverCert;
 		bindOpts.encryptionOpts.serverPrivateKey = pServerConfig->serverKey;
 		bindOpts.encryptionOpts.cipherSuite = pServerConfig->cipherSuite;
+		bindOpts.encryptionOpts.cipherSuite_TLSV1_3 = pServerConfig->cipherSuite_TLSV1_3;
 	}
 
 	bindOpts.compressionType = pServerConfig->compressionType;
@@ -3136,6 +3137,7 @@ void clearTUServerConfig(TUServerConfig* pServerConfig)
 	snprintf(pServerConfig->serverCert, sizeof(pServerConfig->serverCert), "%s", "");
 	snprintf(pServerConfig->serverKey, sizeof(pServerConfig->serverKey), "%s", "");
 	snprintf(pServerConfig->cipherSuite, sizeof(pServerConfig->cipherSuite), "%s", "");
+	snprintf(pServerConfig->cipherSuite_TLSV1_3, sizeof(pServerConfig->cipherSuite_TLSV1_3), "%s", "");
 
 	pServerConfig->compressionType = RSSL_COMP_NONE;
 	pServerConfig->compressionLevel = 0U;
@@ -3187,6 +3189,7 @@ void constructTUServerConfig(
 		snprintf(serverConfig.serverKey, sizeof(serverConfig.serverKey), "%s", getPathServerKey());
 		snprintf(serverConfig.serverCert, sizeof(serverConfig.serverCert), "%s", getPathServerCert());
 		snprintf(serverConfig.cipherSuite, sizeof(serverConfig.cipherSuite), "%s", "");
+		snprintf(serverConfig.cipherSuite_TLSV1_3, sizeof(serverConfig.cipherSuite_TLSV1_3), "%s", "");
 	}
 
 	serverConfig.compressionType = compressType;

@@ -86,7 +86,8 @@ public:
 		ServerSharedSocketEnum =		0x0400000,
 		WebsocketProtocolEnum =			0x0800000,
 		DirectWriteFlagEnum =			0x1000000,
-		SecurityProtocolFlagEnum =		0x2000000
+		SecurityProtocolFlagEnum =		0x2000000,
+		CipherSuiteEnum_TLSV1_3 =		0x4000000
 	};
 
 	enum ClientEntryFlagEnum

@@ -315,6 +315,20 @@ public :
 	*/
 	OmmConsumerConfig& sslCAStore(const EmaString& sslCAStore);
 
+	/** Specifies the cipher suites used by the provider. This is an OpenSSL formatted string string.
+
+	@param[in] cipherSuite specifies the ciphers to be used by the consumer.
+	@return reference to this object
+	*/
+	OmmConsumerConfig& cipherSuite(const EmaString& cipherSuite);
+
+	/** Specifies TLS 1.3 cipher suites used by the provider. This is an OpenSSL formatted string string.
+
+	@param[in] cipherSuite specifies the ciphers to be used by the consumer.
+	@return reference to this object
+	*/
+	OmmConsumerConfig& cipherSuite_TLSV1_3(const EmaString& cipherSuite);
+
 	/** Specifies the local configuration, overriding and adding to the current content. 
 		@param[in] config specifies OmmConsumer configuration
 		@return reference to this object

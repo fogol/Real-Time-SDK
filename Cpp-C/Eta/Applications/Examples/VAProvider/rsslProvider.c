@@ -2,7 +2,7 @@
  *|            This source code is provided under the Apache 2.0 license
  *|  and is provided AS IS with no warranty or guarantee of fit for purpose.
  *|                See the project's LICENSE.md for details.
- *|           Copyright (C) 2015-2024 LSEG. All rights reserved.
+ *|           Copyright (C) 2015-2025 LSEG. All rights reserved.
  *|-----------------------------------------------------------------------------
  */
 
@@ -45,6 +45,7 @@ static char traceOutputFile[128];
 static char certFile[128];
 static char keyFile[128];
 static char cipherSuite[128];
+static char cipherSuite_TLSV1_3[128];
 static char libsslName[255];
 static char libcryptoName[255];
 static RsslConnectionTypes connType;
@@ -54,6 +55,7 @@ static time_t rsslProviderRuntime = 0;
 static RsslBool runTimeExpired = RSSL_FALSE;
 static RsslBool xmlTrace = RSSL_FALSE;
 static RsslBool userSpecCipher = RSSL_FALSE;
+static RsslBool userSpecCipher_TLSV1_3 = RSSL_FALSE;
 static RsslBool rttSupport = RSSL_FALSE;
 static RsslBool sendJsonConvError = RSSL_FALSE;
 
@@ -94,7 +96,7 @@ void exitWithUsage()
 	printf(" -rtt turns on support of the round trip time measuring feature in the login\n");
 
 	printf("Additional encryption options:\n");
-	printf("\t-keyfile <required filename of the server private key file> -cert <required filname of the server certificate> -cipher <optional OpenSSL formatted list of ciphers>\n");
+	printf("\t-keyfile <required filename of the server private key file> -cert <required filname of the server certificate> -cipher <optional OpenSSL formatted list of ciphers> -cipherTLSv1.3 <optional OpenSSL formatted list of TLS 1.3 ciphers>\n");
 	printf(" -libsslName specifies the name of libssl shared object\n");
 	printf(" -libcryptoName specifies the name of libcrypto shared object\n");
 	printf(" -spTLSv1.2 enable use of cryptographic protocol TLSv1.2 used with linux encrypted connections\n");
@@ -290,6 +292,7 @@ int main(int argc, char **argv)
 	snprintf(certFile, 128, "%s", "");
 	snprintf(keyFile, 128, "%s", "");
 	snprintf(cipherSuite, 128, "%s", "");
+	snprintf(cipherSuite_TLSV1_3, 128, "%s", "");
 	connType = RSSL_CONN_TYPE_SOCKET;
 	setServiceId(1);
 	for (iargs = 1; iargs < argc; ++iargs)
@@ -389,6 +392,12 @@ int main(int argc, char **argv)
 			++iargs; if (iargs == argc) exitWithUsage();
 			snprintf(cipherSuite, 128, "%s", argv[iargs]);
 			userSpecCipher = RSSL_TRUE;
+		}
+		else if (0 == strcmp("-cipherTLSv1.3", argv[iargs]))
+		{
+			++iargs; if (iargs == argc) exitWithUsage();
+			snprintf(cipherSuite_TLSV1_3, 128, "%s", argv[iargs]);
+			userSpecCipher_TLSV1_3 = RSSL_TRUE;
 		}
 		else if (0 == strcmp("-rtt", argv[iargs]))
 		{
@@ -560,6 +569,9 @@ int main(int argc, char **argv)
 
 	if (userSpecCipher == RSSL_TRUE)
 		sopts.encryptionOpts.cipherSuite = cipherSuite;
+
+	if (userSpecCipher_TLSV1_3 == RSSL_TRUE)
+		sopts.encryptionOpts.cipherSuite_TLSV1_3 = cipherSuite_TLSV1_3;
 
 	if (guaranteedOutputBuffers)
 		sopts.guaranteedOutputBuffers = guaranteedOutputBuffers;

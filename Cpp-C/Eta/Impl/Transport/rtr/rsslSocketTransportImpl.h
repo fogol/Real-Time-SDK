@@ -308,9 +308,8 @@ typedef struct {
 	RsslHttpCallback *httpCallback;
 	RsslUserCookies	cookies;
 	RsslUInt32		maxCommonMsgSize; /* The maximum message size is accounted for JSON message over websocket which can be more than RIPC max message size(65535). */
+	char*			cipherSuite_TLSV1_3;
 } RsslServerSocketChannel;
-
-#define RSSL_INIT_SERVER_SOCKET_Bind { 0, 0, 0, 0, 0, 0, 0, RSSL_COMP_NONE, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (RSSL_ENC_TLSV1_2 | RSSL_ENC_TLSV1_3), 0, 0 };
 
 RTR_C_INLINE void rsslClearRsslServerSocketChannel(RsslServerSocketChannel *rsslServerSocketChannel)
 {
@@ -424,6 +423,9 @@ typedef struct
 	RsslUInt32 sslCurrentProtocol;	/* This is the current TLS protocol */
 	RsslInt32			 sslEncryptedProtocolType;	/* Encrypted protocol type.  Currently either RSSL_CONN_TYPE_SOCKET or RSSL_CONN_TYPE_HTTP */
 	char				 *sslCAStore;
+
+	char* cipherSuite;
+	char* cipherSuite_TLSV1_3;
 
 
 	RsslInt32			ripcVersion;
@@ -665,6 +667,8 @@ RTR_C_INLINE void ripcClearRsslSocketChannel(RsslSocketChannel *rsslSocketChanne
 	rsslSocketChannel->sslProtocolBitmap = RSSL_ENC_NONE;
 	rsslSocketChannel->sslEncryptedProtocolType = 0;
 	rsslSocketChannel->sslCAStore = 0;
+	rsslSocketChannel->cipherSuite = 0;
+	rsslSocketChannel->cipherSuite_TLSV1_3 = 0;
 
 	rsslSocketChannel->rwsSession = 0;
 	rsslSocketChannel->rwsLargeMsgBufferList = 0;

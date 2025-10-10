@@ -2360,6 +2360,20 @@ ChannelConfig* OmmBaseImpl::readChannelConfig(EmaConfigImpl* pConfigImpl, const 
 		else
 			pConfigImpl->get<EmaString>(channelNodeName + "OpenSSLCAStore", socketChannelCfg->sslCAStore);
 
+		if (pConfigImpl->getUserSpecifiedCipherSuite().length() > 0)
+		{
+			socketChannelCfg->cipherSuite = pConfigImpl->getUserSpecifiedCipherSuite();
+		}
+		else
+			pConfigImpl->get<EmaString>(channelNodeName + "CipherSuite", socketChannelCfg->cipherSuite);
+
+		if (pConfigImpl->getUserSpecifiedCipherSuite_TLSV1_3().length() > 0)
+		{
+			socketChannelCfg->cipherSuite_TLSV1_3 = pConfigImpl->getUserSpecifiedCipherSuite_TLSV1_3();
+		}
+		else
+			pConfigImpl->get<EmaString>(channelNodeName + "CipherSuite_TLSV1_3", socketChannelCfg->cipherSuite_TLSV1_3);
+
 		if (!pConfigImpl->get< EmaString >(channelNodeName + "Location", socketChannelCfg->location))
 			socketChannelCfg->location = DEFAULT_RDP_RT_LOCATION;
 
@@ -2447,6 +2461,16 @@ ChannelConfig* OmmBaseImpl::readChannelConfig(EmaConfigImpl* pConfigImpl, const 
 		if (pConfigImpl->getUserSpecifiedSslCAStore().length())
 		{
 			socketChannelCfg->sslCAStore = pConfigImpl->getUserSpecifiedSslCAStore();
+		}
+
+		if (pConfigImpl->getUserSpecifiedCipherSuite().length())
+		{
+			socketChannelCfg->cipherSuite = pConfigImpl->getUserSpecifiedCipherSuite();
+		}
+
+		if (pConfigImpl->getUserSpecifiedCipherSuite_TLSV1_3().length())
+		{
+			socketChannelCfg->cipherSuite_TLSV1_3 = pConfigImpl->getUserSpecifiedCipherSuite_TLSV1_3();
 		}
 
 		tempUInt = 1;

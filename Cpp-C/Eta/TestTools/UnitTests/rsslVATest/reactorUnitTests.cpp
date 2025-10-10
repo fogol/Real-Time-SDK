@@ -6882,6 +6882,9 @@ void reactorUtilTest_ConnectDeepCopy(RsslConnectionTypes connectionType)
 	inOpts.proxyOpts.proxyPort = const_cast<char*>("1234");
 	inOpts.componentVersion = const_cast<char*>("5");
 	inOpts.encryptionOpts.encryptionProtocolFlags = RSSL_ENC_TLSV1_2;
+	inOpts.encryptionOpts.cipherSuite = const_cast<char*>("cipherSuite");
+	inOpts.encryptionOpts.cipherSuite_TLSV1_3 = const_cast<char*>("cipherSuite_TLSV1_3");
+	inOpts.encryptionOpts.openSSLCAStore = const_cast<char*>("openSSLCAStore");
 
 	if (connectionType == RSSL_CONN_TYPE_WEBSOCKET)
 	{
@@ -6955,6 +6958,9 @@ void reactorUtilTest_ConnectDeepCopy(RsslConnectionTypes connectionType)
 	ASSERT_TRUE(inOpts.componentVersion != outOpts.componentVersion);
 	ASSERT_TRUE(strcmp((const char*)inOpts.componentVersion, (const char*)outOpts.componentVersion) == 0);
 	ASSERT_TRUE(inOpts.encryptionOpts.encryptionProtocolFlags == outOpts.encryptionOpts.encryptionProtocolFlags);
+	ASSERT_TRUE(strcmp((const char*)inOpts.encryptionOpts.openSSLCAStore, (const char*)outOpts.encryptionOpts.openSSLCAStore) == 0);
+	ASSERT_TRUE(strcmp((const char*)inOpts.encryptionOpts.cipherSuite, (const char*)outOpts.encryptionOpts.cipherSuite) == 0);
+	ASSERT_TRUE(strcmp((const char*)inOpts.encryptionOpts.cipherSuite_TLSV1_3, (const char*)outOpts.encryptionOpts.cipherSuite_TLSV1_3) == 0);
 
 	if (connectionType == RSSL_CONN_TYPE_WEBSOCKET)
 	{

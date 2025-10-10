@@ -70,6 +70,8 @@ static void clearConsPerfConfig()
 
 	snprintf(consPerfConfig.caStore, sizeof(consPerfConfig.caStore), "%s", "");
 	consPerfConfig.tlsProtocolFlags = 0;
+	snprintf(consPerfConfig.cipher, sizeof(consPerfConfig.cipher), "%s", "");
+	snprintf(consPerfConfig.cipher_TLSV1_3, sizeof(consPerfConfig.cipher_TLSV1_3), "%s", "");
 
 	snprintf(consPerfConfig.protocolList, sizeof(consPerfConfig.protocolList), "%s", "");
 
@@ -416,6 +418,16 @@ void initConsPerfConfig(int argc, char **argv)
 		else if (strcmp("-spTLSv1.3", argv[iargs]) == 0)
 		{
 			++iargs; consPerfConfig.tlsProtocolFlags |= RSSL_ENC_TLSV1_3;
+		}
+		else if (strcmp("-cipher", argv[iargs]) == 0)
+		{
+			++iargs; if (iargs == argc) exitMissingArgument(argv, iargs - 1);
+			snprintf(consPerfConfig.cipher, sizeof(consPerfConfig.cipher), "%s", argv[iargs++]);
+		}
+		else if (strcmp("-cipherTLSv1.3", argv[iargs]) == 0)
+		{
+			++iargs; if (iargs == argc) exitMissingArgument(argv, iargs - 1);
+			snprintf(consPerfConfig.cipher_TLSV1_3, sizeof(consPerfConfig.cipher_TLSV1_3), "%s", argv[iargs++]);
 		}
 		else if (strcmp("-tunnel", argv[iargs]) == 0)
 		{
@@ -773,6 +785,8 @@ void printConsPerfConfig(FILE *file)
 		" Reactor/Watchlist Usage: %s\n"
 		"       CA store location: %s\n"
 		"      TLS Protocol flags: %i\n"
+		"             TLS ciphers: %s\n"
+		"         TLS 1.3 ciphers: %s\n"
 		"        WS Protocol List: %s\n"
 		"          Tunnel Enabled: %s\n"
 		"   Tunnel Authentication: %s\n"
@@ -818,6 +832,8 @@ void printConsPerfConfig(FILE *file)
 		reactorWatchlistUsageString,
 		consPerfConfig.caStore,
 		consPerfConfig.tlsProtocolFlags,
+		consPerfConfig.cipher,
+		consPerfConfig.cipher_TLSV1_3,
 		consPerfConfig.protocolList,
 		(consPerfConfig.tunnelMessagingEnabled ? "Yes" : "No"),
 		(consPerfConfig.tunnelUseAuthentication ? "Yes" : "No"),
@@ -893,6 +909,8 @@ void exitWithUsage()
 			"  -castore                              File location of the certificate authority store.\n"
 			"  -spTLSv1.2                            Specifies that TLSv1.2 can be used for an OpenSSL-based encrypted connection\n"
 			"  -spTLSv1.3                            Specifies that TLSv1.3 can be used for an OpenSSL-based encrypted connection\n"
+			"  -cipher                               Optional TLS cipher suite string.\n"
+			"  -cipherTLSv1.3                        Optional TLS 1.3 cipher suite string.\n"
 			"\n"
 			"  -tunnel                               Causes the consumer to open a tunnel stream that exchanges basic messages. Require using -reactor or -watchlist.\n"
 			"  -tunnelAuth                           Causes the consumer to enable authentication when opening tunnel streams.\n"

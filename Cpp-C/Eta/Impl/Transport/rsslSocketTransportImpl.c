@@ -7694,7 +7694,7 @@ RsslRet rsslSocketBind(rsslServerImpl* rsslSrvrImpl, RsslBindOptions *opts, Rssl
 			return RSSL_RET_FAILURE;
 		}
 
-		if (opts->encryptionOpts.cipherSuite != NULL && strlen(opts->encryptionOpts.cipherSuite) != 0)
+		if (opts->encryptionOpts.cipherSuite != NULL && *(opts->encryptionOpts.cipherSuite) != 0)
 		{
 			tempLen = (RsslInt32)(strlen(opts->encryptionOpts.cipherSuite) + 1);
 			rsslServerSocketChannel->cipherSuite = (char*)strcpy((char*)_rsslMalloc(tempLen), opts->encryptionOpts.cipherSuite);
@@ -7702,6 +7702,20 @@ RsslRet rsslSocketBind(rsslServerImpl* rsslSrvrImpl, RsslBindOptions *opts, Rssl
 			{
 				_rsslSetError(error, NULL, RSSL_RET_FAILURE, errno);
 				snprintf(error->text, MAX_RIPC_ERROR_TEXT, "<%s:%d> Error: 1001 Failed to allocate or copy the encryption cipherSuite. System errno: (%d)\n",
+					__FILE__, __LINE__, errno);
+				transFuncs[rsslServerSocketChannel->connType].shutdownSrvrError(rsslSrvrImpl);
+				return RSSL_RET_FAILURE;
+			}
+		}
+
+		if (opts->encryptionOpts.cipherSuite_TLSV1_3 != NULL && *(opts->encryptionOpts.cipherSuite_TLSV1_3) != 0)
+		{
+			tempLen = (RsslInt32)(strlen(opts->encryptionOpts.cipherSuite_TLSV1_3) + 1);
+			rsslServerSocketChannel->cipherSuite_TLSV1_3 = (char*)strcpy((char*)_rsslMalloc(tempLen), opts->encryptionOpts.cipherSuite_TLSV1_3);
+			if (rsslServerSocketChannel->cipherSuite_TLSV1_3 == 0)
+			{
+				_rsslSetError(error, NULL, RSSL_RET_FAILURE, errno);
+				snprintf(error->text, MAX_RIPC_ERROR_TEXT, "<%s:%d> Error: 1001 Failed to allocate or copy the encryption TLS 1.3 cipherSuite. System errno: (%d)\n",
 					__FILE__, __LINE__, errno);
 				transFuncs[rsslServerSocketChannel->connType].shutdownSrvrError(rsslSrvrImpl);
 				return RSSL_RET_FAILURE;
@@ -8315,6 +8329,38 @@ RsslRet rsslSocketConnect(rsslChannelImpl* rsslChnlImpl, RsslConnectOptions *opt
 				_rsslSetError(error, NULL, RSSL_RET_FAILURE, errno);
 				snprintf(error->text, MAX_RSSL_ERROR_TEXT,
 					"<%s:%d> Error: 1001 Failed to allocate or copy hostName. System errno: (%d)\n",
+					__FILE__, __LINE__, errno);
+
+				ripcRelSocketChannel(rsslSocketChannel);
+				return RSSL_RET_FAILURE;
+			}
+		}
+
+		if (opts->encryptionOpts.cipherSuite != NULL && (opts->encryptionOpts.cipherSuite[0] != '\0'))
+		{
+			tempLen = (RsslInt32)strlen(opts->encryptionOpts.cipherSuite) + 1;
+			rsslSocketChannel->cipherSuite = (char*)strcpy((char*)_rsslMalloc(tempLen), opts->encryptionOpts.cipherSuite);
+			if (rsslSocketChannel->cipherSuite == 0)
+			{
+				_rsslSetError(error, NULL, RSSL_RET_FAILURE, errno);
+				snprintf(error->text, MAX_RSSL_ERROR_TEXT,
+					"<%s:%d> Error: 1001 Failed to allocate or copy cipherSuite. System errno: (%d)\n",
+					__FILE__, __LINE__, errno);
+
+				ripcRelSocketChannel(rsslSocketChannel);
+				return RSSL_RET_FAILURE;
+			}
+		}
+
+		if (opts->encryptionOpts.cipherSuite_TLSV1_3 != NULL && (opts->encryptionOpts.cipherSuite_TLSV1_3[0] != '\0'))
+		{
+			tempLen = (RsslInt32)strlen(opts->encryptionOpts.cipherSuite_TLSV1_3) + 1;
+			rsslSocketChannel->cipherSuite_TLSV1_3 = (char*)strcpy((char*)_rsslMalloc(tempLen), opts->encryptionOpts.cipherSuite_TLSV1_3);
+			if (rsslSocketChannel->cipherSuite_TLSV1_3 == 0)
+			{
+				_rsslSetError(error, NULL, RSSL_RET_FAILURE, errno);
+				snprintf(error->text, MAX_RSSL_ERROR_TEXT,
+					"<%s:%d> Error: 1001 Failed to allocate or copy cipherSuite_TLSV1_3. System errno: (%d)\n",
 					__FILE__, __LINE__, errno);
 
 				ripcRelSocketChannel(rsslSocketChannel);
@@ -12401,6 +12447,12 @@ RSSL_RSSL_SOCKET_IMPL_FAST(void) relRsslServerSocketChannel(RsslServerSocketChan
 			rsslServerSocketChannel->cipherSuite = 0;
 		}
 
+		if (rsslServerSocketChannel->cipherSuite_TLSV1_3 != 0)
+		{
+			_rsslFree((void*)rsslServerSocketChannel->cipherSuite_TLSV1_3);
+			rsslServerSocketChannel->cipherSuite_TLSV1_3 = 0;
+		}
+
 		if (rsslServerSocketChannel->serverCert != 0)
 		{
 			_rsslFree((void*)rsslServerSocketChannel->serverCert);
@@ -12609,6 +12661,16 @@ RSSL_RSSL_SOCKET_IMPL_FAST(void) ripcRelSocketChannel(RsslSocketChannel *rsslSoc
 	{
 		/* we created and own memory for this, free it */
 		_rsslFree((void*)rsslSocketChannel->sslCAStore);
+	}
+	if (rsslSocketChannel->cipherSuite)
+	{
+		/* we created and own memory for this, free it */
+		_rsslFree((void*)rsslSocketChannel->cipherSuite);
+	}
+	if (rsslSocketChannel->cipherSuite_TLSV1_3)
+	{
+		/* we created and own memory for this, free it */
+		_rsslFree((void*)rsslSocketChannel->cipherSuite_TLSV1_3);
 	}
 
 	if (rsslSocketChannel->cookies.cookie && !rsslSocketChannel->isCookiesShallowCopy)

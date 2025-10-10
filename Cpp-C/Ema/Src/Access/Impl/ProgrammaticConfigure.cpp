@@ -2266,6 +2266,7 @@ void ProgrammaticConfigure::retrieveChannelInfo( const MapEntry& mapEntry, const
 	const ElementList& elementListChannel = mapEntry.getElementList();
 
 	EmaString name, interfaceName, host, port, objectName, tunnelingProxyHost, tunnelingProxyPort, location, sslCAStore, wsProtocols;
+	EmaString cipherSuite, cipherSuite_TLSV1_3;
 	UInt16 channelType, compressionType, encryptedProtocolType;
 	UInt64 guaranteedOutputBuffers, compressionThreshold, connectionPingTimeout, numInputBuffers, sysSendBufSize, sysRecvBufSize, highWaterMark,
 	       tcpNodelay, enableSessionMgnt, encryptedSslProtocolVer, initializationTimeout, wsMaxMsgSize, directWrite, proxyConnectionTimeout;
@@ -2321,6 +2322,16 @@ void ProgrammaticConfigure::retrieveChannelInfo( const MapEntry& mapEntry, const
 			{
 				sslCAStore = channelEntry.getAscii();
 				flags |= OpenSSLCAStoreEnum;
+			}
+			else if (channelEntry.getName() == "CipherSuite")
+			{
+				cipherSuite = channelEntry.getAscii();
+				flags |= CipherSuiteEnum;
+			}
+			else if (channelEntry.getName() == "CipherSuite_TLSV1_3")
+			{
+				cipherSuite_TLSV1_3 = channelEntry.getAscii();
+				flags |= CipherSuiteEnum_TLSV1_3;
 			}
 			else if ( channelEntry.getName() == "RecvAddress" )
 			{
@@ -2694,6 +2705,16 @@ void ProgrammaticConfigure::retrieveChannelInfo( const MapEntry& mapEntry, const
 					socketChannelConfig->sslCAStore = sslCAStore;
 				else if (fileCfgSocket)
 					socketChannelConfig->sslCAStore = fileCfgSocket->sslCAStore;
+
+				if (flags & CipherSuiteEnum)
+					socketChannelConfig->cipherSuite = cipherSuite;
+				else if (fileCfgSocket)
+					socketChannelConfig->cipherSuite = fileCfgSocket->cipherSuite;
+
+				if (flags & CipherSuiteEnum_TLSV1_3)
+					socketChannelConfig->cipherSuite_TLSV1_3 = cipherSuite_TLSV1_3;
+				else if (fileCfgSocket)
+					socketChannelConfig->cipherSuite_TLSV1_3 = fileCfgSocket->cipherSuite_TLSV1_3;
 
 				if (channelType == RSSL_CONN_TYPE_WEBSOCKET || (channelType == RSSL_CONN_TYPE_ENCRYPTED && socketChannelConfig->encryptedConnectionType == RSSL_CONN_TYPE_WEBSOCKET))
 				{
@@ -3208,7 +3229,7 @@ void ProgrammaticConfigure::retrieveServerInfo(const MapEntry& mapEntry, const E
 {
 	const ElementList& elementListServer = mapEntry.getElementList();
 
-	EmaString name, interfaceName, port, serverCert, serverPrivateKey, dhParams, cipherSuite, libSslName, libCryptoName, libCurlName, wsProtocols;
+	EmaString name, interfaceName, port, serverCert, serverPrivateKey, dhParams, cipherSuite, cipherSuite_TLSV1_3, libSslName, libCryptoName, libCurlName, wsProtocols;
 	UInt16 serverType, compressionType;
 	UInt64 guaranteedOutputBuffers, compressionThreshold, connectionMinPingTimeout, connectionPingTimeout, numInputBuffers, sysSendBufSize, sysRecvBufSize, highWaterMark,
 		tcpNodelay, initializationTimeout, maxFragmentSize, serverSharedSocket, directWrite,
@@ -3256,6 +3277,11 @@ void ProgrammaticConfigure::retrieveServerInfo(const MapEntry& mapEntry, const E
 			{
 				cipherSuite = serverEntry.getAscii();
 				flags |= CipherSuiteEnum;
+			}
+			else if (serverEntry.getName() == "CipherSuite_TLSV1_3")
+			{
+				cipherSuite_TLSV1_3 = serverEntry.getAscii();
+				flags |= CipherSuiteEnum_TLSV1_3;
 			}
 			else if (serverEntry.getName() == "LibSslName")
 			{
@@ -3536,6 +3562,11 @@ void ProgrammaticConfigure::retrieveServerInfo(const MapEntry& mapEntry, const E
 					pCurrentServerConfig->cipherSuite = cipherSuite;
 				else if (fileCfgSocket)
 					pCurrentServerConfig->cipherSuite = fileCfgSocket->cipherSuite;
+
+				if (flags & CipherSuiteEnum_TLSV1_3)
+					pCurrentServerConfig->cipherSuite_TLSV1_3 = cipherSuite_TLSV1_3;
+				else if (fileCfgSocket)
+					pCurrentServerConfig->cipherSuite_TLSV1_3 = fileCfgSocket->cipherSuite_TLSV1_3;
 
 				if (flags & SecurityProtocolFlagEnum)
 					pCurrentServerConfig->securityProtocol = (int)securityProtocol;

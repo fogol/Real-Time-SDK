@@ -2,7 +2,7 @@
  *|            This source code is provided under the Apache 2.0 license
  *|  and is provided AS IS with no warranty or guarantee of fit for purpose.
  *|                See the project's LICENSE.md for details.
- *|           Copyright (C) 2015,2017,2019-2020,2023-2024 LSEG. All rights reserved.
+ *|       Copyright (C) 2015,2017,2019-2020,2023-2025 LSEG. All rights reserved.
  *|-----------------------------------------------------------------------------
  */
 
@@ -151,211 +151,7 @@ RTR_C_INLINE RsslRet rsslDeepCopyPreferredHostOpts(RsslPreferredHostOptions* des
  *	@param sourceOpts RsslConnectOpts to be copied from.
  *	@return RSSL_RET_SUCCESS if successful, RSSL_RET_FAILURE if an error occurred.
  */
-RTR_C_INLINE RsslRet rsslDeepCopyConnectOpts(RsslConnectOptions *destOpts, RsslConnectOptions *sourceOpts)
-{
-	size_t tempLen = 0;
-	memset(destOpts, 0, sizeof(RsslConnectOptions));
-
-	*destOpts = *sourceOpts;
-	
-	if(sourceOpts->hostName != 0)
-	{
-		tempLen = (strlen(sourceOpts->hostName)+1)*sizeof(char);
-		destOpts->hostName = (char*)malloc(tempLen);
-
-		if(destOpts->hostName == 0)
-			return RSSL_RET_FAILURE;
-
-		strncpy(destOpts->hostName, sourceOpts->hostName, tempLen);
-	}
-
-	if(sourceOpts->serviceName != 0)
-	{
-		tempLen = (strlen(sourceOpts->serviceName)+1)*sizeof(char);
-		destOpts->serviceName = (char*)malloc(tempLen);
-
-		if(destOpts->serviceName == 0)
-			return RSSL_RET_FAILURE;
-
-		strncpy(destOpts->serviceName, sourceOpts->serviceName, tempLen);
-	}
-
-	if(sourceOpts->objectName != 0)
-	{
-		tempLen = (strlen(sourceOpts->objectName)+1)*sizeof(char);
-		destOpts->objectName = (char*)malloc(tempLen);
-
-		if(destOpts->objectName == 0)
-			return RSSL_RET_FAILURE;
-
-		strncpy(destOpts->objectName, sourceOpts->objectName, tempLen);
-	}
-
-	if(sourceOpts->connectionInfo.segmented.recvAddress != 0)
-	{
-		tempLen = (strlen(sourceOpts->connectionInfo.segmented.recvAddress)+1)*sizeof(char);
-		destOpts->connectionInfo.segmented.recvAddress = (char*)malloc(tempLen);
-
-		if(destOpts->connectionInfo.segmented.recvAddress == 0)
-			return RSSL_RET_FAILURE;
-
-		strncpy(destOpts->connectionInfo.segmented.recvAddress, sourceOpts->connectionInfo.segmented.recvAddress, tempLen);
-	}
-
-	if(sourceOpts->connectionInfo.segmented.recvServiceName != 0)
-	{
-		tempLen = (strlen(sourceOpts->connectionInfo.segmented.recvServiceName)+1)*sizeof(char);
-		destOpts->connectionInfo.segmented.recvServiceName = (char*)malloc(tempLen);
-
-		if(destOpts->connectionInfo.segmented.recvServiceName == 0)
-			return RSSL_RET_FAILURE;
-		strncpy(destOpts->connectionInfo.segmented.recvServiceName, sourceOpts->connectionInfo.segmented.recvServiceName, tempLen);
-	}
-
-	if(sourceOpts->connectionInfo.segmented.unicastServiceName != 0)
-	{
-		tempLen = (strlen(sourceOpts->connectionInfo.segmented.unicastServiceName)+1)*sizeof(char);
-		destOpts->connectionInfo.segmented.unicastServiceName = (char*)malloc(tempLen);
-
-		if(destOpts->connectionInfo.segmented.unicastServiceName == 0)
-			return RSSL_RET_FAILURE;
-
-
-		strncpy(destOpts->connectionInfo.segmented.unicastServiceName, sourceOpts->connectionInfo.segmented.unicastServiceName, tempLen);
-	}
-
-	if(sourceOpts->connectionInfo.segmented.interfaceName != 0)
-	{
-		tempLen = (strlen(sourceOpts->connectionInfo.segmented.interfaceName)+1)*sizeof(char);
-		destOpts->connectionInfo.segmented.interfaceName = (char*)malloc(tempLen);
-
-		if(destOpts->connectionInfo.segmented.interfaceName == 0)
-			return RSSL_RET_FAILURE;
-
-		strncpy(destOpts->connectionInfo.segmented.interfaceName, sourceOpts->connectionInfo.segmented.interfaceName, tempLen);
-	}
-
-	if(sourceOpts->connectionInfo.segmented.sendAddress != 0)
-	{
-		tempLen = (strlen(sourceOpts->connectionInfo.segmented.sendAddress)+1)*sizeof(char);
-		destOpts->connectionInfo.segmented.sendAddress = (char*)malloc(tempLen);
-
-		if(destOpts->connectionInfo.segmented.sendAddress == 0)
-			return RSSL_RET_FAILURE;
-
-		strncpy(destOpts->connectionInfo.segmented.sendAddress, sourceOpts->connectionInfo.segmented.sendAddress, tempLen);
-	}
-
-	if(sourceOpts->connectionInfo.segmented.sendServiceName != 0)
-	{
-		tempLen = (strlen(sourceOpts->connectionInfo.segmented.sendServiceName)+1)*sizeof(char);
-		destOpts->connectionInfo.segmented.sendServiceName = (char*)malloc(tempLen);
-
-
-		if(destOpts->connectionInfo.segmented.sendServiceName == 0)
-			return RSSL_RET_FAILURE;
-
-		strncpy(destOpts->connectionInfo.segmented.sendServiceName, sourceOpts->connectionInfo.segmented.sendServiceName, tempLen);
-	}
-	
-	if (sourceOpts->componentVersion != 0)
-	{
-		tempLen = (strlen(sourceOpts->componentVersion)+1)*sizeof(char);
-		destOpts->componentVersion = (char*)malloc(tempLen);
-
-		if (destOpts->componentVersion == 0)
-		{
-			return RSSL_RET_FAILURE;
-		}
-
-		strncpy(destOpts->componentVersion, sourceOpts->componentVersion, tempLen);
-	}
-	
-	if (sourceOpts->multicastOpts.hsmInterface != 0)
-	{
-		tempLen = (strlen(sourceOpts->multicastOpts.hsmInterface)+1)*sizeof(char);
-		destOpts->multicastOpts.hsmInterface = (char*)malloc(tempLen);
-
-		if (destOpts->multicastOpts.hsmInterface == 0)
-		{
-			return RSSL_RET_FAILURE;
-		}
-
-		strncpy(destOpts->multicastOpts.hsmInterface, sourceOpts->multicastOpts.hsmInterface, tempLen);
-	}
-	
-	if (sourceOpts->multicastOpts.hsmMultAddress != 0)
-	{
-		tempLen = (strlen(sourceOpts->multicastOpts.hsmMultAddress)+1)*sizeof(char);
-		destOpts->multicastOpts.hsmMultAddress = (char*)malloc(tempLen);
-
-		if (destOpts->multicastOpts.hsmMultAddress == 0)
-		{
-			return RSSL_RET_FAILURE;
-		}
-
-		strncpy(destOpts->multicastOpts.hsmMultAddress, sourceOpts->multicastOpts.hsmMultAddress, tempLen);
-	}
-	
-	if (sourceOpts->multicastOpts.hsmPort != 0)
-	{
-		tempLen = (strlen(sourceOpts->multicastOpts.hsmPort)+1)*sizeof(char);
-		destOpts->multicastOpts.hsmPort = (char*)malloc(tempLen);
-
-		if (destOpts->multicastOpts.hsmPort == 0)
-		{
-			return RSSL_RET_FAILURE;
-		}
-
-		strncpy(destOpts->multicastOpts.hsmPort, sourceOpts->multicastOpts.hsmPort, tempLen);
-	}
-	
-	if (sourceOpts->multicastOpts.tcpControlPort != 0)
-	{
-		tempLen = (strlen(sourceOpts->multicastOpts.tcpControlPort)+1)*sizeof(char);
-		destOpts->multicastOpts.tcpControlPort = (char*)malloc(tempLen);
-
-		if (destOpts->multicastOpts.tcpControlPort == 0)
-		{
-			return RSSL_RET_FAILURE;
-		}
-
-		strncpy(destOpts->multicastOpts.tcpControlPort, sourceOpts->multicastOpts.tcpControlPort, tempLen);
-	}
-
-	if (sourceOpts->encryptionOpts.openSSLCAStore != 0)
-	{
-		tempLen = (strlen(sourceOpts->encryptionOpts.openSSLCAStore) + 1) * sizeof(char);
-		destOpts->encryptionOpts.openSSLCAStore = (char*)malloc(tempLen);
-
-		if (destOpts->encryptionOpts.openSSLCAStore == 0)
-		{
-			return RSSL_RET_FAILURE;
-		}
-
-		strncpy(destOpts->encryptionOpts.openSSLCAStore, sourceOpts->encryptionOpts.openSSLCAStore, tempLen);
-	}
-
-	if (sourceOpts->wsOpts.protocols != 0)
-	{
-		tempLen = (strlen(sourceOpts->wsOpts.protocols) + 1) * sizeof(char);
-		destOpts->wsOpts.protocols = (char*)malloc(tempLen);
-
-		if (destOpts->wsOpts.protocols == 0)
-		{
-			return RSSL_RET_FAILURE;
-		}
-
-		strcpy(destOpts->wsOpts.protocols, sourceOpts->wsOpts.protocols);
-	}
-
-	if (rsslDeepCopyProxyOpts(&destOpts->proxyOpts, &sourceOpts->proxyOpts) != RSSL_RET_SUCCESS)
-	{
-		return RSSL_RET_FAILURE;
-	}
-	
-	return RSSL_RET_SUCCESS;
-}
+RSSL_VA_API RsslRet rsslDeepCopyConnectOpts(RsslConnectOptions* destOpts, RsslConnectOptions* sourceOpts);
 
 RTR_C_INLINE void rsslFreeProxyOpts(RsslProxyOpts* proxyOpts)
 {
@@ -473,6 +269,16 @@ RTR_C_INLINE void rsslFreeConnectOpts(RsslConnectOptions *connOpts)
 	if(connOpts->encryptionOpts.openSSLCAStore != 0)
 	{
 		free(connOpts->encryptionOpts.openSSLCAStore);
+	}
+
+	if (connOpts->encryptionOpts.cipherSuite != 0)
+	{
+		free(connOpts->encryptionOpts.cipherSuite);
+	}
+
+	if (connOpts->encryptionOpts.cipherSuite_TLSV1_3 != 0)
+	{
+		free(connOpts->encryptionOpts.cipherSuite_TLSV1_3);
 	}
 
 	if (connOpts->wsOpts.protocols != 0)

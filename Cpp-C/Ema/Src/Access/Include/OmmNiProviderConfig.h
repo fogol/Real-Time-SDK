@@ -2,7 +2,7 @@
  *|            This source code is provided under the Apache 2.0 license
  *|  and is provided AS IS with no warranty or guarantee of fit for purpose.
  *|                See the project's LICENSE.md for details.
- *|           Copyright (C) 2016-2020,2022-2024 LSEG. All rights reserved.
+ *|           Copyright (C) 2016-2020,2022-2025 LSEG. All rights reserved.
  *|-----------------------------------------------------------------------------
  */
 
@@ -275,6 +275,20 @@ public :
 	@return reference to this object
 	*/
 	OmmNiProviderConfig& sslCAStore(const EmaString& sslCAStore);
+
+	/** Specifies the cipher suites used by the provider. This is an OpenSSL formatted string string.
+
+	@param[in] cipherSuite specifies the ciphers to be used by the provider.
+	@return reference to this object
+	*/
+	OmmNiProviderConfig& cipherSuite(const EmaString& cipherSuite);
+
+	/** Specifies TLS 1.3 cipher suites used by the provider. This is an OpenSSL formatted string string.
+
+	@param[in] cipherSuite specifies the ciphers to be used by the provider.
+	@return reference to this object
+	*/
+	OmmNiProviderConfig& cipherSuite_TLSV1_3(const EmaString& cipherSuite);
 
 	/** Specifies the local configuration, overriding and adding to the current content.
 		@param[in] config specifies OmmProvider configuration

@@ -49,6 +49,8 @@ static void clearNIProvPerfConfig()
 	niProvPerfConfig.commonItemCount = 0;
 
 	snprintf(niProvPerfConfig.caStore, sizeof(niProvPerfConfig.caStore), "%s", "");
+	snprintf(niProvPerfConfig.cipher, sizeof(niProvPerfConfig.cipher), "%s", "");
+	snprintf(niProvPerfConfig.cipher_TLSV1_3, sizeof(niProvPerfConfig.cipher_TLSV1_3), "%s", "");
 	niProvPerfConfig.tlsProtocolFlags = 0;
 }
 
@@ -385,6 +387,24 @@ void initNIProvPerfConfig(int argc, char **argv)
 			++iargs; if (iargs == argc) exitMissingArgument(argv, iargs - 1);
 			snprintf(niProvPerfConfig.caStore, sizeof(niProvPerfConfig.caStore), "%s", argv[iargs]);
 		}
+		else if (strcmp("-spTLSv1.2", argv[iargs]) == 0)
+		{
+			niProvPerfConfig.tlsProtocolFlags |= RSSL_ENC_TLSV1_2;
+		}
+		else if (strcmp("-spTLSv1.3", argv[iargs]) == 0)
+		{
+			niProvPerfConfig.tlsProtocolFlags |= RSSL_ENC_TLSV1_3;
+		}
+		else if (0 == strcmp("-cipher", argv[iargs]))
+		{
+			++iargs; if (iargs == argc) exitMissingArgument(argv, iargs - 1);
+			snprintf(niProvPerfConfig.cipher, sizeof(niProvPerfConfig.cipher), "%s", argv[iargs]);
+		}
+		else if (0 == strcmp("-cipherTLSv1.3", argv[iargs]))
+		{
+			++iargs; if (iargs == argc) exitMissingArgument(argv, iargs - 1);
+			snprintf(niProvPerfConfig.cipher_TLSV1_3, sizeof(niProvPerfConfig.cipher_TLSV1_3), "%s", argv[iargs]);
+		}
 		else
 		{
 			printf("Config Error: Unrecognized option: %s\n", argv[iargs]);
@@ -628,6 +648,10 @@ void exitWithUsage()
 			"  -reactor                         Use the VA Reactor instead of the ETA Channel for sending and receiving.\n"
 			" \n"
 			"  -castore                         File location of the certificate authority store.\n"
+			"  -spTLSv1.2                       Specifies that TLSv1.2 can be used for an OpenSSL-based encrypted connection\n"
+			"  -spTLSv1.3                       Specifies that TLSv1.3 can be used for an OpenSSL-based encrypted connection\n"
+			"  -cipher                          Optional TLS cipher suite string.\n"
+			"  -cipherTLSv1.3                   Optional TLS 1.3 cipher suite string.\n"
 			"\n"
 			"  -nanoTime                        Use nanosecond precision for latency information instead of microsecond.\n"
 			"  -preEnc                          Use Pre-Encoded updates\n"

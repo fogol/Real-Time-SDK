@@ -67,6 +67,7 @@ else()
         TunnelStream/rtr/tunnelStreamReturnCodes.h
         TunnelStream/rtr/tunnelSubstream.h
         Util/rtr/rsslReactorUtils.h
+        Util/rsslVAUtils.c
         Util/rsslRestClientImpl.c
         Util/rtr/rsslRestClientImpl.h
         Watchlist/rtr/rsslWatchlist.h

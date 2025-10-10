@@ -2,7 +2,7 @@
  *|            This source code is provided under the Apache 2.0 license
  *|  and is provided AS IS with no warranty or guarantee of fit for purpose.
  *|                See the project's LICENSE.md for details.
- *|           Copyright (C) 2020,2022-2024 LSEG. All rights reserved.
+ *|           Copyright (C) 2020,2022-2025 LSEG. All rights reserved.
  *|-----------------------------------------------------------------------------
  */
 
@@ -171,6 +171,8 @@ RSSL_THREAD_DECLARE(runNIProvChannelConnection, pArg)
 			if (niProvPerfConfig.tlsProtocolFlags != 0)
 				copts.encryptionOpts.encryptionProtocolFlags = niProvPerfConfig.tlsProtocolFlags;
 			copts.encryptionOpts.openSSLCAStore = niProvPerfConfig.caStore;
+			copts.encryptionOpts.cipherSuite = niProvPerfConfig.cipher;
+			copts.encryptionOpts.cipherSuite_TLSV1_3 = niProvPerfConfig.cipher_TLSV1_3;
 		}
 		copts.connectionInfo.unified.address = niProvPerfConfig.hostName;
 		copts.connectionInfo.unified.serviceName = niProvPerfConfig.portNo;
@@ -640,6 +642,8 @@ RSSL_THREAD_DECLARE(runNIProvReactorConnection, pArg)
 			if (niProvPerfConfig.tlsProtocolFlags != 0)
 				cInfo.rsslConnectOptions.encryptionOpts.encryptionProtocolFlags = niProvPerfConfig.tlsProtocolFlags;
 			cInfo.rsslConnectOptions.encryptionOpts.openSSLCAStore = niProvPerfConfig.caStore;
+			cInfo.rsslConnectOptions.encryptionOpts.cipherSuite = niProvPerfConfig.cipher;
+			cInfo.rsslConnectOptions.encryptionOpts.cipherSuite_TLSV1_3 = niProvPerfConfig.cipher_TLSV1_3;
 		}
 		cInfo.rsslConnectOptions.connectionInfo.unified.address = niProvPerfConfig.hostName;
 		cInfo.rsslConnectOptions.connectionInfo.unified.serviceName = niProvPerfConfig.portNo;

@@ -16,6 +16,7 @@ refinitiv::ema::access::EmaString AsciiValues[] = {
 	"Channel",
 	"ChannelSet",
 	"CipherSuite",
+	"CipherSuite_TLSV1_3",
 	"DefaultConsumer",
 	"DefaultDictionary",
 	"DefaultDirectory",

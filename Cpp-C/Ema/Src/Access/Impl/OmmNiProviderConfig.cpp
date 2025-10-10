@@ -2,7 +2,7 @@
  *|            This source code is provided under the Apache 2.0 license
  *|  and is provided AS IS with no warranty or guarantee of fit for purpose.
  *|                See the project's LICENSE.md for details.
- *|           Copyright (C) 2016-2020,2022-2024 LSEG. All rights reserved.
+ *|           Copyright (C) 2016-2020,2022-2025 LSEG. All rights reserved.
  *|-----------------------------------------------------------------------------
  */
 
@@ -209,6 +209,18 @@ OmmNiProviderConfig& OmmNiProviderConfig::proxyDomain(const EmaString& proxyDoma
 OmmNiProviderConfig& OmmNiProviderConfig::sslCAStore(const EmaString& sslCAStore)
 {
 	_pImpl->sslCAStore(sslCAStore);
+	return *this;
+}
+
+OmmNiProviderConfig& OmmNiProviderConfig::cipherSuite(const EmaString& cipherSuite)
+{
+	_pImpl->cipherSuite(cipherSuite);
+	return *this;
+}
+
+OmmNiProviderConfig& OmmNiProviderConfig::cipherSuite_TLSV1_3(const EmaString& cipherSuite)
+{
+	_pImpl->cipherSuite_TLSV1_3(cipherSuite);
 	return *this;
 }
 

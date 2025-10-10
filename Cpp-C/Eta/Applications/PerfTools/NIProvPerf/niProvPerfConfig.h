@@ -2,7 +2,7 @@
  *|            This source code is provided under the Apache 2.0 license
  *|  and is provided AS IS with no warranty or guarantee of fit for purpose.
  *|                See the project's LICENSE.md for details.
- *|           Copyright (C) 2015-2016,2019-2020,2022,2024 LSEG. All rights reserved.
+ *|  Copyright (C) 2015-2016,2019-2020,2022,2024-2025 LSEG. All rights reserved.
  *|-----------------------------------------------------------------------------
  */
 
@@ -55,6 +55,9 @@ typedef struct
 
 	char				caStore[255];				/* Certificate authority location */
 	RsslUInt32			tlsProtocolFlags;			/* Flagset of TLS protocols */
+
+	char				cipher[255];				/* TLS cipher suite string */
+	char				cipher_TLSV1_3[255];		/* TLS 1.3 cipher suite string */
 } NIProvPerfConfig;
 
 /* Contains the global application configuration */

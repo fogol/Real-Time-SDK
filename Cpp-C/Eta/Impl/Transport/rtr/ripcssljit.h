@@ -2,7 +2,7 @@
  *|            This source code is provided under the Apache 2.0 license
  *|  and is provided AS IS with no warranty or guarantee of fit for purpose.
  *|                See the project's LICENSE.md for details.
- *|           Copyright (C) 2018-2020,2022-2024 LSEG. All rights reserved.
+ *|           Copyright (C) 2018-2020,2022-2025 LSEG. All rights reserved.
  *|-----------------------------------------------------------------------------
  */
 
@@ -331,6 +331,7 @@ typedef struct
 	long (*get_verify_result)(OPENSSL_SSL*);	/* SSL_get_verify_result */
 	void (*set_shutdown)(OPENSSL_SSL*, int);	/* SSL_set_shutdown */
 	int (*set_cipher_list)(OPENSSL_SSL*, const char*);	/* SSL_set_cipher_list */
+	int (*set_ciphersuites)(OPENSSL_SSL*, const char*);	/* SSL_set_ciphersuites */
 	long (*ctrl)(OPENSSL_SSL*, int, long, void*);	/* SSL_ctrl */
 	long (*set_options)(OPENSSL_SSL*, long);		/* SSL_set_options */
 	void (*set_bio)(OPENSSL_SSL*, OPENSSL_BIO*, OPENSSL_BIO*);		/* SSL_set_bio */
@@ -355,6 +356,7 @@ typedef struct
 	OPENSSL_SSL_CTX* (*ctx_new)(const OPENSSL_SSL_METHOD*);									/* SSL_CTX_new */
 	void (*ctx_set_quiet_shutdown)(OPENSSL_SSL_CTX*, int);							/* SSL_CTX_set_quiet_shutdown */
 	int (*ctx_set_cipher_list)(OPENSSL_SSL_CTX*, const char*);						/* SSL_CTX_set_cipher_list */
+	int (*ctx_set_ciphersuites)(OPENSSL_SSL_CTX*, const char*);						/* SSL_CTX_set_ciphersuites */
 	int (*ctx_load_verify_location)(OPENSSL_SSL_CTX*, const char*, const char*); 	/* SSL_CTX_load_verify_locations */
 	int (*ctx_set_default_verify_paths)(OPENSSL_SSL_CTX*);							/* SSL_CTX_set_default_verify_paths */
 	void (*ctx_set_cert_store)(OPENSSL_SSL_CTX*, OPENSSL_X509_STORE*);				/* SSL_CTX_set_cert_store */

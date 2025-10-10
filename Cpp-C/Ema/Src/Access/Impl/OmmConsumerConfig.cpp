@@ -255,6 +255,18 @@ OmmConsumerConfig& OmmConsumerConfig::sslCAStore(const EmaString& sslCAStore)
 	return *this;
 }
 
+OmmConsumerConfig& OmmConsumerConfig::cipherSuite(const EmaString& cipherSuite)
+{
+	_pImpl->cipherSuite(cipherSuite);
+	return *this;
+}
+
+OmmConsumerConfig& OmmConsumerConfig::cipherSuite_TLSV1_3(const EmaString& cipherSuite)
+{
+	_pImpl->cipherSuite_TLSV1_3(cipherSuite);
+	return *this;
+}
+
 OmmConsumerConfig& OmmConsumerConfig::config(const Data& config)
 {
 	_pImpl->config(config);

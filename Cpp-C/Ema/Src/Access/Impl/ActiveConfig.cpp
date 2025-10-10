@@ -1060,6 +1060,9 @@ void SocketChannelConfig::clear()
 	serviceDiscoveryRetryCount = DEFAULT_SERVICE_DISCOVERY_RETRY_COUNT;
 	wsMaxMsgSize = DEFAULT_WS_MAXMSGSIZE;
 	wsProtocols = DEFAULT_WS_PROTOCLOS;
+
+	cipherSuite.clear();
+	cipherSuite_TLSV1_3.clear();
 }
 
 ChannelConfig::ChannelType SocketChannelConfig::getType() const
@@ -1122,6 +1125,7 @@ void SocketServerConfig::clear()
 	serverCert.clear();
 	serverPrivateKey.clear();
 	cipherSuite.clear();
+	cipherSuite_TLSV1_3.clear();
 	dhParams.clear();
 
 	maxFragmentSize = DEFAULT_MAX_FRAGMENT_SIZE;

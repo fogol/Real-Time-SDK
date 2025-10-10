@@ -2,7 +2,7 @@
  *|            This source code is provided under the Apache 2.0 license
  *|  and is provided AS IS with no warranty or guarantee of fit for purpose.
  *|                See the project's LICENSE.md for details.
- *|           Copyright (C) 2015-2020,2022-2024 LSEG. All rights reserved.
+ *|           Copyright (C) 2015-2020,2022-2025 LSEG. All rights reserved.
  *|-----------------------------------------------------------------------------
  */
 
@@ -85,6 +85,8 @@ static char proxyDomain[128];
 static RsslConnectionTypes connType = RSSL_CONN_TYPE_SOCKET;
 static RsslConnectionTypes encryptedConnType = RSSL_CONN_TYPE_INIT;
 static char sslCAStore[255];
+static char cipher[255];
+static char cipher_TLSV1_3[255];
 static RsslEncryptionProtocolTypes tlsProtocol = RSSL_ENC_NONE;
 static RsslUInt32 pingTimeout;
 static time_t nextReceivePingTime = 0;
@@ -163,6 +165,8 @@ void printUsageAndExit(char *appName)
 	printf("[-hsmAddr <Address>] [-hsmPort <Port>] [-hsmInterface <Interface>] [-hsmInterval <Seconds>] \n");
 	printf("\n -ec if an ENCRYPTED type is selected, specifies the encrypted protocol type.  Accepted types are SOCKET and HTTP(Windows only).\n");
 	printf(" -castore specifies the filename or directory of the OpenSSL CA store\n");
+	printf(" -cipher Optional OpenSSL formatted cipher string\n");
+	printf(" -cipherTLSv1.3 Optional OpenSSL formatted TLS 1.3 cipher string\n");
 	printf(" -spTLSv1.2 Specifies that TLSv1.2 can be used for an OpenSSL-based encrypted connection\n");
 	printf(" -spTLSv1.3 Specifies that TLSv1.3 can be used for an OpenSSL-based encrypted connection\n");
 	printf("\n -ph specifies the proxy host\n");
@@ -227,7 +231,8 @@ int main(int argc, char **argv)
 	snprintf(proxyPasswd, 128, "%s", "");
 	snprintf(proxyDomain, 128, "%s", "");
 	snprintf(sslCAStore, 255, "%s", "");
-	
+	snprintf(cipher, 255, "%s", "");
+	snprintf(cipher_TLSV1_3, 255, "%s", "");
 
 	setUsername((char *)"");
 
@@ -250,6 +255,11 @@ int main(int argc, char **argv)
 
 		while(i < argc)
 		{
+			if (0 == strcmp("-?", argv[i]))
+			{
+				printUsageAndExit(argv[0]);
+			}
+
 			if (strcmp("-libsslName", argv[i]) == 0)
 			{
 				i += 2; if (i > argc) printUsageAndExit(argv[0]);
@@ -400,6 +410,16 @@ int main(int argc, char **argv)
 			{
 				i += 2; if (i > argc) printUsageAndExit(argv[0]);
 				snprintf(sslCAStore, 255, "%s", argv[i - 1]);
+			}
+			else if (strcmp("-cipher", argv[i]) == 0)
+			{
+				i += 2; if (i > argc) printUsageAndExit(argv[0]);
+				snprintf(cipher, 255, "%s", argv[i - 1]);
+			}
+			else if (strcmp("-cipherTLSv1.3", argv[i]) == 0)
+			{
+				i += 2; if (i > argc) printUsageAndExit(argv[0]);
+				snprintf(cipher_TLSV1_3, 255, "%s", argv[i - 1]);
 			}
 			else if (strcmp("-spTLSv1.2", argv[i]) == 0)
 			{
@@ -930,6 +950,8 @@ static RsslChannel* connectToInfrastructure(RsslConnectionTypes connType,  RsslE
 	copts.proxyOpts.proxyDomain = proxyDomain;
 
 	copts.encryptionOpts.openSSLCAStore = sslCAStore;
+	copts.encryptionOpts.cipherSuite = cipher;
+	copts.encryptionOpts.cipherSuite_TLSV1_3 = cipher_TLSV1_3;
 	if (tlsProtocol != RSSL_ENC_NONE)
 		copts.encryptionOpts.encryptionProtocolFlags = tlsProtocol;
 

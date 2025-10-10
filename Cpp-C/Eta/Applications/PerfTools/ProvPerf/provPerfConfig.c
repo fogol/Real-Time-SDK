@@ -46,6 +46,8 @@ static void clearProvPerfConfig()
 	snprintf(provPerfConfig.serverKey, sizeof(provPerfConfig.serverKey), "%s", "");
 	snprintf(provPerfConfig.serverCert, sizeof(provPerfConfig.serverCert), "%s", "");
 	snprintf(provPerfConfig.cipherSuite, sizeof(provPerfConfig.cipherSuite), "%s", "");
+	snprintf(provPerfConfig.cipherSuite_TLSV1_3, sizeof(provPerfConfig.cipherSuite_TLSV1_3), "%s", "");
+	provPerfConfig.tlsProtocol = RSSL_ENC_NONE;
 
 	snprintf(provPerfConfig.protocolList, sizeof(provPerfConfig.protocolList), "%s", "");
 	provPerfConfig.guaranteedOutputTunnelBuffers = 15000;
@@ -351,6 +353,19 @@ void initProvPerfConfig(int argc, char **argv)
 			++iargs; if (iargs == argc) exitMissingArgument(argv, iargs - 1);
 			snprintf(provPerfConfig.cipherSuite, sizeof(provPerfConfig.cipherSuite), "%s", argv[iargs]);
 		}
+		else if (0 == strcmp("-cipherTLSv1.3", argv[iargs]))
+		{
+			++iargs; if (iargs == argc) exitMissingArgument(argv, iargs - 1);
+			snprintf(provPerfConfig.cipherSuite_TLSV1_3, sizeof(provPerfConfig.cipherSuite_TLSV1_3), "%s", argv[iargs]);
+		}
+		else if (0 == strcmp("-spTLSv1.2", argv[iargs]))
+		{
+			provPerfConfig.tlsProtocol |= RSSL_ENC_TLSV1_2;
+		}
+		else if (0 == strcmp("-spTLSv1.3", argv[iargs]))
+		{
+			provPerfConfig.tlsProtocol |= RSSL_ENC_TLSV1_3;
+		}
 		else if (0 == strcmp("-pl", argv[iargs]))
 		{
 			++iargs; if (iargs == argc) exitMissingArgument(argv, iargs - 1);
@@ -456,7 +471,9 @@ void printProvPerfConfig(FILE *file)
 			"           Display Stats: %s\n"
 			"             Private Key: %s\n"
 			"             Server Cert: %s\n"
+			"      TLS Protocol flags: %i\n"
 			"                  Cipher: %s\n"
+			"          TLS 1.3 Cipher: %s\n"
 			"        WS Protocol List: %s\n"
 			"   Output Tunnel Buffers: %u\n"
 			" Print Usage Tunnel Bufs: %s\n"
@@ -484,7 +501,9 @@ void printProvPerfConfig(FILE *file)
 			(provPerfConfig.displayStats ? "Yes" : "No"),
 			provPerfConfig.serverKey,
 			provPerfConfig.serverCert,
+			provPerfConfig.tlsProtocol,
 			provPerfConfig.cipherSuite,
+			provPerfConfig.cipherSuite_TLSV1_3,
 			provPerfConfig.protocolList,
 			provPerfConfig.guaranteedOutputTunnelBuffers,
 			(provPerfConfig.tunnelStreamBufsUsed ? "Yes" : "No"),
@@ -595,6 +614,9 @@ void exitWithUsage()
 			"  -keyfile                             Server private key for OpenSSL encryption.\n"
 			"  -cert                                Server certificate for openSSL encryption.\n"
 			"  -cipher                              Optional OpenSSL formatted cipher string.\n"
+			"  -cipherTLSv1.3                       Optional OpenSSL formatted TLS 1.3 cipher string.\n"
+			"  -spTLSv1.2                           Enable use of cryptographic protocol TLSv1.2 used with linux encrypted connections.\n"
+			"  -spTLSv1.3                           Enable use of cryptographic protocol TLSv1.3 used with linux encrypted connections.\n"
 			"\n"
 			"  -tunnelStreamOutputBufs <count>      Number of output tunnel buffers(configures guaranteedOutputBuffers in RsslReactorAcceptTunnelStreamOptions).\n"
 			"  -tunnelStreamBuffersUsed             Print stats of buffers used by tunnel stream. This setting is disabled by default.\n"

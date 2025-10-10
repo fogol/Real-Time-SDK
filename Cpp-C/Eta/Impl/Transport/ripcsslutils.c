@@ -469,6 +469,20 @@ RsslInt32 ripcInitializeSSL(char* libsslName, char* libcryptoName)
 		cryptoFuncs.RSA_set0_crt_params_11 = (int (*)(OPENSSL_11_rsa*, OPENSSL_BIGNUM*, OPENSSL_BIGNUM*, OPENSSL_BIGNUM*))RSSL_LI_DLSYM(cryptoHandle, "RSA_set0_crt_params");
 		if (dlErr = RSSL_LI_CHK_DLERROR(cryptoFuncs.RSA_set0_crt_params_11, dlErr))
 			return ripcSSLInitError();
+
+		/* OpenSSL 1.1.0 does not support TLS 1.3 */
+		if (openSSL_V1_1_0 == RSSL_FALSE)
+		{
+			RSSL_LI_RESET_DLERROR;
+			sslFuncs.ctx_set_ciphersuites = (int(*)(OPENSSL_SSL_CTX*, const char*))RSSL_LI_DLSYM(sslHandle, "SSL_CTX_set_ciphersuites");
+			if (dlErr = RSSL_LI_CHK_DLERROR(sslFuncs.ctx_set_ciphersuites, dlErr))
+				return ripcSSLInitError();
+
+			RSSL_LI_RESET_DLERROR;
+			sslFuncs.set_ciphersuites = (int(*)(OPENSSL_SSL*, const char*))RSSL_LI_DLSYM(sslHandle, "SSL_set_ciphersuites");
+			if (dlErr = RSSL_LI_CHK_DLERROR(sslFuncs.set_ciphersuites, dlErr))
+				return ripcSSLInitError();
+		}
 	}
 
 	RSSL_LI_RESET_DLERROR;
@@ -1303,6 +1317,7 @@ ripcSSLServer *ripcSSLNewServer(RsslServerSocketChannel* chnl, RsslError *error)
 	server->chnl = chnl;
 	server->verifyDepth = 9;
 	server->cipherSuite = chnl->cipherSuite;
+	server->cipherSuite_TLSV1_3 = chnl->cipherSuite_TLSV1_3;
 
 	return server;
 }
@@ -1390,6 +1405,7 @@ OPENSSL_SSL_CTX* ripcSSLSetupCTXClient(OPENSSL_SSL_CTX *ctx, RsslSocketChannel* 
 	RsslInt32 retVal = 0;
 	/* since we dont need to use certificates by default... */
  	RsslInt32 perm = RSSL_SSL_VERIFY_NONE;
+	char* cipherList = 0;
 
 	/* Turn off SSLv2 and SSLv3, since both are insecure.  See:
 		https://www.openssl.org/~bodo/ssl-poodle.pdf
@@ -1397,7 +1413,12 @@ OPENSSL_SSL_CTX* ripcSSLSetupCTXClient(OPENSSL_SSL_CTX *ctx, RsslSocketChannel* 
 
 	(*(sslFuncs.ctx_set_quiet_shutdown))(ctx, 1);
 
-	if ((retVal = (*(sslFuncs.ctx_set_cipher_list))(ctx, CIPHER_LIST)) != 1)
+	if (chnl->cipherSuite && *(chnl->cipherSuite))
+		cipherList = chnl->cipherSuite;
+	else
+		cipherList = CIPHER_LIST;
+
+	if ((retVal = (*(sslFuncs.ctx_set_cipher_list))(ctx, cipherList)) != 1)
 	{
 		/* populate error and return failure */
 		_rsslSetError(error, NULL, RSSL_RET_FAILURE, errno);
@@ -1405,6 +1426,22 @@ OPENSSL_SSL_CTX* ripcSSLSetupCTXClient(OPENSSL_SSL_CTX *ctx, RsslSocketChannel* 
 		ripcSSLErrors(error, (RsslInt32)strlen(error->text));
 		(*(sslFuncs.ctx_free))(ctx);
 		return NULL;
+	}
+
+	if (sslFuncs.ctx_set_ciphersuites)
+	{
+		if (chnl->cipherSuite_TLSV1_3 && *(chnl->cipherSuite_TLSV1_3))
+		{
+			if ((retVal = (*(sslFuncs.ctx_set_ciphersuites))(ctx, chnl->cipherSuite_TLSV1_3)) != 1)
+			{
+				/* populate error and return failure */
+				_rsslSetError(error, NULL, RSSL_RET_FAILURE, errno);
+				snprintf(error->text, MAX_RSSL_ERROR_TEXT, "<%s:%d> Error: 2001 ripcSSLSetupCTXClient() error setting up TLS 1.3 cipher list (no valid ciphers) (errno %d)", __FILE__, __LINE__, errno);
+				ripcSSLErrors(error, (RsslInt32)strlen(error->text));
+				(*(sslFuncs.ctx_free))(ctx);
+				return NULL;
+			}
+		}
 	}
 	
 	(*(sslFuncs.ctx_set_verify))(ctx, perm, NULL);
@@ -1603,7 +1640,6 @@ OPENSSL_SSL_CTX* ripcSSLSetupCTXServer(RsslServerSocketChannel* chnl, RsslError 
 		(*(sslFuncs.ctx_set_options))(ctx, opts);
 	}
 
-
 	/* if they pass in a key file, use that instead */
 	if (chnl->dhParams)
 	{
@@ -1649,7 +1685,6 @@ OPENSSL_SSL_CTX* ripcSSLSetupCTXServer(RsslServerSocketChannel* chnl, RsslError 
 
 			(*(cryptoFuncs.dh_free_11))(dh);
 		}
-
 	}
 	else // no key passed in, using default keys from ripcssldh.c file 
 	{
@@ -1698,7 +1733,7 @@ OPENSSL_SSL_CTX* ripcSSLSetupCTXServer(RsslServerSocketChannel* chnl, RsslError 
 		ecdh = (*(cryptoFuncs.EC_KEY_new_by_curve_name))(RSSL_10_NID_X9_62_prime256v1);    //  secp256r1 curve - referred as prime256v1
 		(*(sslFuncs.ctx_ctrl))(ctx, RSSL_SSL_CTRL_SET_TMP_ECDH, 0, ecdh);
 	}
-	
+
 
 	/* Turn off SSLv2 and SSLv3, since both are insecure.  See:
 	https://www.openssl.org/~bodo/ssl-poodle.pdf
@@ -1706,7 +1741,7 @@ OPENSSL_SSL_CTX* ripcSSLSetupCTXServer(RsslServerSocketChannel* chnl, RsslError 
 
 	(*(sslFuncs.ctx_set_quiet_shutdown))(ctx, 1);
 
-	if (chnl->cipherSuite && ((const char*)chnl->cipherSuite) > 0)
+	if (chnl->cipherSuite && *(chnl->cipherSuite))
 		cipherList = chnl->cipherSuite;
 	else
 		cipherList = CIPHER_LIST;
@@ -1719,6 +1754,22 @@ OPENSSL_SSL_CTX* ripcSSLSetupCTXServer(RsslServerSocketChannel* chnl, RsslError 
 		ripcSSLErrors(error, (RsslInt32)strlen(error->text));
 		(*(sslFuncs.ctx_free))(ctx);
 		return NULL;
+	}
+
+	if (sslFuncs.ctx_set_ciphersuites)
+	{
+		if (chnl->cipherSuite_TLSV1_3 && *(chnl->cipherSuite_TLSV1_3))
+		{
+			if ((retVal = (*(sslFuncs.ctx_set_ciphersuites))(ctx, chnl->cipherSuite_TLSV1_3)) != 1)
+			{
+				/* populate error and return failure */
+				_rsslSetError(error, NULL, RSSL_RET_FAILURE, errno);
+				snprintf(error->text, MAX_RSSL_ERROR_TEXT, "<%s:%d> Error: 2001 ripcSSLSetupCTXServer() error setting up TLS 1.3 cipher list (no valid ciphers) (errno %d)", __FILE__, __LINE__, errno);
+				ripcSSLErrors(error, (RsslInt32)strlen(error->text));
+				(*(sslFuncs.ctx_free))(ctx);
+				return NULL;
+			}
+		}
 	}
 
 	/* need to get CERTFILE from config */
@@ -1937,7 +1988,7 @@ RsslInt32 ripcSSLInit(void *session, ripcSessInProg *inPr, RsslError *error)
 			else
 			{
 				_rsslSetError(error, NULL, RSSL_RET_FAILURE, error->sysError );
-				snprintf(error->text, MAX_RSSL_ERROR_TEXT, "<%s:%d> Error: 2000 ripcSSLInit error on SSL_accept. The client may be attempting to connect with a non-encrypted connection. ", __FILE__, __LINE__);
+				snprintf(error->text, MAX_RSSL_ERROR_TEXT, "<%s:%d> Error: 2000 ripcSSLInit error on SSL_accept. The client may be attempting to connect with a non-encrypted connection or encrypted connection with unsupported TLS version/cipher suite. ", __FILE__, __LINE__);
 				ripcSSLErrors(error, (RsslInt32)strlen(error->text));
 				return -1;
 			}
@@ -2071,6 +2122,7 @@ void *ripcSSLConnectInt(ripcSSLSession *sess, RsslSocket fd, RsslInt32 *initComp
 	struct in_addr addr;
 	OPENSSL_X509_VERIFY_PARAM* params;
 	RsslSocketChannel* chnl = (RsslSocketChannel*)userSpecPtr;
+	char* cipherList = 0;
 
 	if (sess == NULL)
 		return 0;
@@ -2091,12 +2143,31 @@ void *ripcSSLConnectInt(ripcSSLSession *sess, RsslSocket fd, RsslInt32 *initComp
 
 	(*(sslFuncs.ssl_clear))(sess->connection);
 
-	if ((*(sslFuncs.set_cipher_list))(sess->connection, CIPHER_LIST) < 1)
+	if (chnl->cipherSuite && *(chnl->cipherSuite))
+		cipherList = chnl->cipherSuite;
+	else
+		cipherList = CIPHER_LIST;
+
+	if ((*(sslFuncs.set_cipher_list))(sess->connection, cipherList) < 1)
 	{
 		_rsslSetError(error, NULL, RSSL_RET_FAILURE, 0);
 		snprintf(error->text, MAX_RSSL_ERROR_TEXT, "<%s:%d>  Error: 2001 ripcSSLConnect error setting up cipher list (no valid ciphers) (errno %d)", __FILE__, __LINE__, errno);
 		ripcSSLErrors(error, (RsslInt32)strlen(error->text));
 		return 0;
+	}
+
+	if (sslFuncs.set_ciphersuites)
+	{
+		if (chnl->cipherSuite_TLSV1_3 && *(chnl->cipherSuite_TLSV1_3))
+		{
+			if ((retVal = (*(sslFuncs.set_ciphersuites))(sess->connection, chnl->cipherSuite_TLSV1_3)) != 1)
+			{
+				_rsslSetError(error, NULL, RSSL_RET_FAILURE, 0);
+				snprintf(error->text, MAX_RSSL_ERROR_TEXT, "<%s:%d>  Error: 2001 ripcSSLConnect error setting up TLS 1.3 cipher list (no valid ciphers) (errno %d)", __FILE__, __LINE__, errno);
+				ripcSSLErrors(error, (RsslInt32)strlen(error->text));
+				return 0;
+			}
+		}
 	}
 
 	/* Setup SNI extension.  Note that we're just going to pass in the hostName as is. */
@@ -2299,7 +2370,6 @@ void *ripcNewSSLSocket(void *server, RsslSocket fd, RsslInt32 *initComplete, voi
 		return 0;
 	}
 
-
 	(*(sslFuncs.ssl_clear))(newsess->connection);
 
 	if (srvr->cipherSuite == NULL)
@@ -2314,6 +2384,21 @@ void *ripcNewSSLSocket(void *server, RsslSocket fd, RsslInt32 *initComplete, voi
 		ripcSSLErrors(error, (RsslInt32)strlen(error->text));
 		ripcReleaseSSLSession((void*)newsess, error);
 		return 0;
+	}
+
+	if (sslFuncs.set_ciphersuites)
+	{
+		if (srvr->cipherSuite_TLSV1_3)
+		{
+			if ((*(sslFuncs.set_ciphersuites))(newsess->connection, srvr->cipherSuite_TLSV1_3) < 1)
+			{
+				_rsslSetError(error, NULL, RSSL_RET_FAILURE, 0);
+				snprintf(error->text, MAX_RSSL_ERROR_TEXT, "<%s:%d> Error: 2001 ripcSSLNewSocket error setting up TLS 1.3 cipher list (no valid ciphers) (errno %d)", __FILE__, __LINE__, errno);
+				ripcSSLErrors(error, (RsslInt32)strlen(error->text));
+				ripcReleaseSSLSession((void*)newsess, error);
+				return 0;
+			}
+		}
 	}
 
 	/* allows us to write part of a buffer and not be required to pass in the same address with the next write call */

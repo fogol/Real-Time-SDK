@@ -30,6 +30,7 @@ typedef struct {
 	char				serverCert[64];		/* Server certificate file location */
 	char				serverKey[64];		/* Server private key file location */
 	char				cipherSuite[64];	/* Server cipher suite */
+	char				cipherSuite_TLSV1_3[64];	/* Server TLS 1.3 cipher suite */
 
 	RsslCompTypes		compressionType;	/* Type of the compression */
 	RsslUInt32			compressionLevel;	/* The compression level. Currently only zlib supports */

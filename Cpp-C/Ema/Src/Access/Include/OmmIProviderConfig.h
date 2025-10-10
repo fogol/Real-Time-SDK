@@ -2,7 +2,7 @@
  *|            This source code is provided under the Apache 2.0 license
  *|  and is provided AS IS with no warranty or guarantee of fit for purpose.
  *|                See the project's LICENSE.md for details.
- *|           Copyright (C) 2016-2017,2019-2020,2022-2024 LSEG. All rights reserved.
+ *|           Copyright (C) 2016-2017,2019-2020,2022-2025 LSEG. All rights reserved.
  *|-----------------------------------------------------------------------------
  */
 
@@ -189,11 +189,17 @@ public :
 	*/
 	OmmIProviderConfig& serverPrivateKey(const EmaString& serverPrivateKey);
 
-	/** Optionally Specifies the cipher suites used by the provider.  This is an OpenSSL formatted string string.
+	/** Optionally Specifies the cipher suites used by the provider. This is an OpenSSL formatted string string.
 	@param[in] cipherSuite specifies the ciphers to be used by the provider
 	@return reference to this object
 	*/
 	OmmIProviderConfig& cipherSuite(const EmaString& cipherSuite);
+
+	/** Optionally Specifies TLS 1.3 cipher suites used by the provider. This is an OpenSSL formatted string string.
+	@param[in] cipherSuite specifies the ciphers to be used by the provider
+	@return reference to this object
+	*/
+	OmmIProviderConfig& cipherSuite_TLSV1_3(const EmaString& cipherSuite);
 
 	/** Specifies an optional DH Parameter file to be used with the provder.
 	@param[in] dhParams specifies the DH parameter file

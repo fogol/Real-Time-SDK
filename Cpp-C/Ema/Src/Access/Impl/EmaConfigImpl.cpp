@@ -1439,6 +1439,22 @@ void EmaConfigImpl::sslCAStore(const EmaString& sslCAStore)
 		_sslCAStoreSetViaFunctionCall = "";
 }
 
+void EmaConfigImpl::cipherSuite(const EmaString& cipherSuite)
+{
+	if (cipherSuite.length())
+		_cipherSuiteViaFunctionCall = cipherSuite;
+	else
+		_cipherSuiteViaFunctionCall = "";
+}
+
+void EmaConfigImpl::cipherSuite_TLSV1_3(const EmaString& cipherSuite)
+{
+	if (cipherSuite.length())
+		_cipherSuite_TLSV1_3ViaFunctionCall = cipherSuite;
+	else
+		_cipherSuite_TLSV1_3ViaFunctionCall = "";
+}
+
 void EmaConfigImpl::channelType(RsslConnectionTypes channelType)
 {
 	_channelTypeViaFunctionCall = channelType;
@@ -1768,6 +1784,11 @@ void EmaConfigServerImpl::serverPrivateKey(const EmaString& serverPrivateKey)
 void EmaConfigServerImpl::cipherSuite(const EmaString& cipherSuite)
 {
 	_cipherSuite = cipherSuite;
+}
+
+void EmaConfigServerImpl::cipherSuite_TLSV1_3(const EmaString& cipherSuite)
+{
+	_cipherSuite_TLSV1_3 = cipherSuite;
 }
 
 void EmaConfigServerImpl::dhParams(const EmaString& dhParams)
