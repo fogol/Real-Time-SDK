@@ -16,7 +16,7 @@ const UInt32 DEFAULT_IOCTL_INTERVAL = 0;
 const time_t DEFAULT_IOCTL_TIME = 0;
 const UInt32 DEFAULT_FALLBACK_INTERVAL = 0;
 const UInt32 DEFAULT_FALLBACK_TIME = 0;
-const bool DEFAULT_IOCTL_ENABLE_PH = true;
+const bool DEFAULT_IOCTL_ENABLE_PH = false;
 const EmaString DEFAULT_IOCTL_CHANNEL_NAME;
 const EmaString DEFAULT_IOCTL_WSB_GROUPE;
 const UInt32 DEFAULT_IOCTL_DETECTION_TIME_INTERVAL = 0;
@@ -25,7 +25,7 @@ const bool DEFAULE_IOCTL_FALLBCK_WITHIN_WSB_GROUPE = false;
 
 UInt32 ioctlInterval = DEFAULT_IOCTL_INTERVAL;
 time_t ioctlTime = DEFAULT_IOCTL_TIME;
-UInt32 fallBackInterval = DEFAULT_FALLBACK_INTERVAL;
+UInt32 fallbackInterval = DEFAULT_FALLBACK_INTERVAL;
 time_t fallBackTime = DEFAULT_FALLBACK_TIME;
 bool ioctlEnablePH = DEFAULT_IOCTL_ENABLE_PH;
 EmaString ioctlChannelName = DEFAULT_IOCTL_CHANNEL_NAME;
@@ -82,18 +82,26 @@ bool isPHInfoChanged(const PreferredHostInfo& phInfo)
 		(ioctlFallBackWithinWSBGroup = phInfo.getPHFallBackWithInWSBGroup());
 }
 
-void printIOCtlData()
+void printIOCtlData(int ioctlInterval, int current)
 {
-	cout << "   Ioctl call to update PreferredHostOptions." << endl;
-	cout << "   Time interval: " << ioctlInterval << endl;
-	cout << "   Remaining time: " << ioctlTime - time(NULL) << endl;
+	int timeLeft = ioctlInterval - current;
+	if (timeLeft > 0)
+	{
+		cout << "   Ioctl call to update PreferredHostOptions." << endl;
+		cout << "   Time interval: " << ioctlInterval << endl;
+		cout << "   Remaining time: " << timeLeft << endl;
+	}
 }
 
-void printDirectFallbackData()
+void printFallbackPreferredHostData(int fallbackInterval, int current)
 {
-	cout << "   Direct Fallback." << endl;
-	cout << "   Time interval: " << fallBackInterval << endl;
-	cout << "   Remaining time: "<< fallBackTime - time(NULL) << endl;
+	int timeLeft = fallbackInterval - current;
+	if (timeLeft > 0)
+	{
+		cout << "   Fallback to preferred host:" << endl;
+		cout << "   Time interval: " << fallbackInterval << endl;
+		cout << "   Remaining time: " << timeLeft << endl;
+	}
 }
 
 int main( int argc, char* argv[] )
@@ -110,7 +118,7 @@ int main( int argc, char* argv[] )
 		else if (strcmp(argv[i], "-fallBackInterval") == 0)
 		{
 			i++;
-			fallBackInterval = atoi(argv[i]);
+			fallbackInterval = atoi(argv[i]);
 		}
 		else if (strcmp(argv[i], "-ioctlEnablePH") == 0)
 		{
@@ -190,28 +198,28 @@ int main( int argc, char* argv[] )
 		OmmConsumer consumer( OmmConsumerConfig().username( "user" ).consumerName("Consumer_9"));
 		consumer.registerClient(ReqMsg().serviceName("DIRECT_FEED").name("IBM.N"), client);
 
-		bool printChannelInfo = true;
 		bool isModifyIOCtlDone = false;
-		bool isFallbackDone = false;
+		long startTimeFallback = time(NULL);
+		long startTimeIoctl = time(NULL);
+		int printInterval = 1;
 
-		if (ioctlInterval)
-			ioctlTime = time(NULL) + (time_t)ioctlInterval;
-		if(fallBackInterval)
-			fallBackTime = time(NULL) + (time_t)fallBackInterval;
+		consumer.getChannelInformation(channelInfo);
+		cout << "\nInitial channel information(consumer): " << channelInfo << endl;
 
 		for (int i = 1; i < 60; i++)
 		{
-			if (ioctlInterval >=2 && i % (ioctlInterval/2) == 0 && printChannelInfo)
+			if (i % printInterval == 0 && (isModifyIOCtlDone || ioctlInterval <= 0))
 			{
-				printChannelInfo = false;
 				consumer.getChannelInformation(channelInfo);
-				cout<< channelInfo  << endl;
+				if (channelInfo.getChannelState() != ChannelInformation::ChannelState::InactiveEnum)
+					cout<< channelInfo  << endl;
 			}
 
-			if (ioctlInterval > 0 && !isModifyIOCtlDone)
-				printIOCtlData();
+			long currentTime = time(NULL);
+			int periodFallback = (int)(currentTime - startTimeFallback);
+			int periodIoctl = (int)(currentTime - startTimeIoctl);
 
-			if (ioctlInterval && i % ioctlInterval == 0 && !isModifyIOCtlDone )
+			if (ioctlInterval > 0 && periodIoctl >= ioctlInterval && !isModifyIOCtlDone)
 			{
 				if (isPHInfoChanged(channelInfo.getPreferredHostInfo()))
 				{
@@ -226,13 +234,20 @@ int main( int argc, char* argv[] )
 				isModifyIOCtlDone = true;
 			}
 
-			if (fallBackInterval > 0 && !isFallbackDone)
-				printDirectFallbackData();
-
-			if (fallBackInterval && i % fallBackInterval == 0 && !isFallbackDone )
-			{
-				isFallbackDone = true;
+			if (fallbackInterval > 0 && periodFallback >= fallbackInterval) {
 				consumer.fallbackPreferredHost();
+				cout << "FallbackPreferredHost() is called!" << endl;
+				startTimeFallback = time(NULL);
+			}
+
+			if (i % printInterval == 0) {
+				if (ioctlInterval > 0 && !isModifyIOCtlDone) {
+					printIOCtlData(ioctlInterval, periodIoctl);
+				}
+
+				if (fallbackInterval > 0) {
+					printFallbackPreferredHostData(fallbackInterval, periodFallback);
+				}
 			}
 
 			sleep(1000);
