@@ -1178,9 +1178,8 @@ void OmmBaseImpl::readConfig(EmaConfigImpl* pConfigImpl)
 
 		pConfigImpl->get<OmmLoggerClient::Severity>( loggerNodeName + "LoggerSeverity", _activeConfig.loggerConfig.minLoggerSeverity );
 
-		UInt64 idilo( 0 );
-		if ( pConfigImpl->get< UInt64 >( loggerNodeName + "IncludeDateInLoggerOutput", idilo ) )
-			_activeConfig.loggerConfig.includeDateInLoggerOutput = idilo == 1 ? true : false ;
+		if ( pConfigImpl->get< UInt64 >( loggerNodeName + "IncludeDateInLoggerOutput", tmp ) )
+			_activeConfig.loggerConfig.includeDateInLoggerOutput = tmp == 1 ? true : false ;
 
 		if (pConfigImpl->get< UInt64 >(loggerNodeName + "MaxLogFileSize", tmp))
 			_activeConfig.loggerConfig.maxFileSize = tmp <= maxUInt32 ? (UInt32)tmp : maxUInt32;

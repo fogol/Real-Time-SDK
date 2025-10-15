@@ -717,6 +717,7 @@ TEST_F(EmaConfigTest, testLoadingCfgFromProgrammaticConfigHttp)
 		innerMap.addKeyAscii("Logger_1", MapEntry::AddEnum,
 			ElementList()
 			.addEnum("LoggerType", 0)
+			.addUInt("IncludeDateInLoggerOutput", 1)
 			.addAscii("FileName", "logFile")
 			.addUInt("NumberOfLogFiles", 42)
 			.addUInt("MaxLogFileSize", 84000)
@@ -805,7 +806,8 @@ TEST_F(EmaConfigTest, testLoadingCfgFromProgrammaticConfigHttp)
 		EXPECT_TRUE( static_cast<SocketChannelConfig* >( activeConfig.configChannelSet[0] )->objectName == "MyHttpObject" ) << "EncryptedChannelConfig::ObjectName , \"MyHttpObject\"";
 		EXPECT_TRUE( static_cast<SocketChannelConfig* >( activeConfig.configChannelSet[0] )->tcpNodelay == 0) << "SocketChannelConfig::tcpNodelay , 0";
 		EXPECT_TRUE( static_cast<SocketChannelConfig* >( activeConfig.configChannelSet[0] )->initializationTimeout == 96) << "SocketChannelConfig::initializationTimeout , 96";
-		EXPECT_TRUE( activeConfig.loggerConfig.loggerType == OmmLoggerClient::FileEnum) << "loggerType = OmmLoggerClient::FileEnum";
+		EXPECT_TRUE( activeConfig.loggerConfig.loggerType == OmmLoggerClient::FileEnum ) << "loggerType = OmmLoggerClient::FileEnum";
+		EXPECT_TRUE( activeConfig.loggerConfig.includeDateInLoggerOutput ) << "includeDateInLoggerOutput is true";
 		EXPECT_TRUE( activeConfig.loggerConfig.loggerFileName == "logFile" ) << "loggerFileName = \"logFile\"";
 		EXPECT_TRUE( activeConfig.loggerConfig.minLoggerSeverity == OmmLoggerClient::ErrorEnum) << "minLoggerSeverity = OmmLoggerClient::ErrorEnum";
 		EXPECT_TRUE( activeConfig.loggerConfig.maxFileSize == 84000 ) << "maxFileSize = 84000";
@@ -923,6 +925,7 @@ TEST_F(EmaConfigTest, testLoadingCfgFromProgrammaticConfigWS)
 		innerMap.addKeyAscii("Logger_1", MapEntry::AddEnum,
 			ElementList()
 			.addEnum("LoggerType", 0)
+			.addUInt("IncludeDateInLoggerOutput", 1)
 			.addAscii("FileName", "logFile")
 			.addUInt("NumberOfLogFiles", 42)
 			.addUInt("MaxLogFileSize", 84000)
@@ -1020,6 +1023,7 @@ TEST_F(EmaConfigTest, testLoadingCfgFromProgrammaticConfigWS)
 		EXPECT_TRUE(static_cast<SocketChannelConfig*>(activeConfig.configChannelSet[0])->wsMaxMsgSize == 100500) << "SocketChannelConfig::wsMaxMsgSize , 100500";
 		EXPECT_TRUE(static_cast<SocketChannelConfig*>(activeConfig.configChannelSet[0])->wsProtocols == "rssl.json.v2, rssl.rwf, tr_json2") << "SocketChannelConfig::wsProtocols , \"rssl.json.v2, rssl.rwf, tr_json2\"";
 		EXPECT_TRUE(activeConfig.loggerConfig.loggerType == OmmLoggerClient::FileEnum) << "loggerType = OmmLoggerClient::FileEnum";
+		EXPECT_TRUE(activeConfig.loggerConfig.includeDateInLoggerOutput) << "includeDateInLoggerOutput is true";
 		EXPECT_TRUE(activeConfig.loggerConfig.loggerFileName == "logFile") << "loggerFileName = \"logFile\"";
 		EXPECT_TRUE(activeConfig.loggerConfig.minLoggerSeverity == OmmLoggerClient::ErrorEnum) << "minLoggerSeverity = OmmLoggerClient::ErrorEnum";
 		EXPECT_TRUE(activeConfig.loggerConfig.maxFileNumber == 42) << "maxFileNumber = 42";
@@ -1135,6 +1139,7 @@ TEST_F(EmaConfigTest, testLoadingCfgFromProgrammaticConfigWSEncrypted)
 		innerMap.addKeyAscii("Logger_1", MapEntry::AddEnum,
 			ElementList()
 			.addEnum("LoggerType", 0)
+			.addUInt("IncludeDateInLoggerOutput", 1)
 			.addAscii("FileName", "logFile")
 			.addUInt("NumberOfLogFiles", 42)
 			.addUInt("MaxLogFileSize", 84000)
@@ -1233,6 +1238,7 @@ TEST_F(EmaConfigTest, testLoadingCfgFromProgrammaticConfigWSEncrypted)
 		EXPECT_TRUE(static_cast<SocketChannelConfig*>(activeConfig.configChannelSet[0])->wsMaxMsgSize == 100500) << "SocketChannelConfig::wsMaxMsgSize , 100500";
 		EXPECT_TRUE(static_cast<SocketChannelConfig*>(activeConfig.configChannelSet[0])->wsProtocols == "rssl.json.v2, rssl.rwf, tr_json2") << "SocketChannelConfig::wsProtocols , \"rssl.json.v2, rssl.rwf, tr_json2\"";
 		EXPECT_TRUE(activeConfig.loggerConfig.loggerType == OmmLoggerClient::FileEnum) << "loggerType = OmmLoggerClient::FileEnum";
+		EXPECT_TRUE(activeConfig.loggerConfig.includeDateInLoggerOutput) << "includeDateInLoggerOutput is true";
 		EXPECT_TRUE(activeConfig.loggerConfig.loggerFileName == "logFile") << "loggerFileName = \"logFile\"";
 		EXPECT_TRUE(activeConfig.loggerConfig.minLoggerSeverity == OmmLoggerClient::ErrorEnum) << "minLoggerSeverity = OmmLoggerClient::ErrorEnum";
 		EXPECT_TRUE(activeConfig.loggerConfig.maxFileNumber == 42) << "maxFileNumber = 42";
@@ -1351,6 +1357,7 @@ TEST_F(EmaConfigTest, testLoadingCfgFromProgrammaticConfig)
 		innerMap.addKeyAscii("Logger_1", MapEntry::AddEnum,
 			ElementList()
 			.addEnum("LoggerType", 0)
+			.addUInt("IncludeDateInLoggerOutput", 1)
 			.addAscii("FileName", "logFile")
 			.addUInt("NumberOfLogFiles", 42)
 			.addUInt("MaxLogFileSize", 84000)
@@ -1443,6 +1450,7 @@ TEST_F(EmaConfigTest, testLoadingCfgFromProgrammaticConfig)
 		EXPECT_TRUE(static_cast<SocketChannelConfig* >(activeConfig.configChannelSet[0])->tcpNodelay == 0) << "SocketChannelConfig::tcpNodelay , 0";
 		EXPECT_TRUE(static_cast<SocketChannelConfig* >(activeConfig.configChannelSet[0])->initializationTimeout == 56) << "SocketChannelConfig::initializationTimeout , 56";
 		EXPECT_TRUE(activeConfig.loggerConfig.loggerType == OmmLoggerClient::FileEnum) << "loggerType = OmmLoggerClient::FileEnum";
+		EXPECT_TRUE(activeConfig.loggerConfig.includeDateInLoggerOutput) << "includeDateInLoggerOutput is true";
 		EXPECT_TRUE(activeConfig.loggerConfig.loggerFileName == "logFile" ) << "loggerFileName = \"logFile\"";
 		EXPECT_TRUE(activeConfig.loggerConfig.minLoggerSeverity == OmmLoggerClient::ErrorEnum) << "minLoggerSeverity = OmmLoggerClient::ErrorEnum";
 		EXPECT_TRUE(activeConfig.loggerConfig.maxFileNumber == 42) << "maxFileNumber = 42";
@@ -2121,6 +2129,7 @@ TEST_F(EmaConfigTest, testOverridingFromInterface)
 			innerMap.addKeyAscii("Logger_1", MapEntry::AddEnum,
 				ElementList()
 				.addEnum("LoggerType", 0)
+				.addUInt("IncludeDateInLoggerOutput", 1)
 				.addAscii("FileName", "logFile")
 				.addUInt("NumberOfLogFiles", 42)
 				.addUInt("MaxLogFileSize", 84000)
@@ -2282,6 +2291,7 @@ TEST_F(EmaConfigTest, testMergingConfigBetweenFileAndProgrammaticConfig)
 		innerMap.addKeyAscii("Logger_2", MapEntry::AddEnum,
 			ElementList()
 			.addEnum("LoggerType", 0)
+			.addUInt("IncludeDateInLoggerOutput", 1)
 			.addAscii("FileName", "ConfigDB2_logFile")
 			.addUInt("NumberOfLogFiles", 42)
 			.addUInt("MaxLogFileSize", 84000)
@@ -2381,6 +2391,7 @@ TEST_F(EmaConfigTest, testMergingConfigBetweenFileAndProgrammaticConfig)
 		EXPECT_TRUE( static_cast<SocketChannelConfig* >( activeConfig.configChannelSet[1] )->initializationTimeout == 77) << "SocketChannelConfig::initializationTimeout , 77";
 		EXPECT_TRUE( static_cast<SocketChannelConfig* >( activeConfig.configChannelSet[1] )->enableSessionMgnt == 0) << "SocketChannelConfig::enableSessionMgnt , 0";
 		EXPECT_TRUE( activeConfig.loggerConfig.loggerType == OmmLoggerClient::FileEnum) << "loggerType = OmmLoggerClient::FileEnum";
+		EXPECT_TRUE( activeConfig.loggerConfig.includeDateInLoggerOutput) << "includeDateInLoggerOutput is true";
 		EXPECT_TRUE( activeConfig.loggerConfig.loggerFileName == "ConfigDB2_logFile" ) << "loggerFileName = \"ConfigDB2_logFile\"";
 		EXPECT_TRUE( activeConfig.loggerConfig.minLoggerSeverity == OmmLoggerClient::NoLogMsgEnum) << "minLoggerSeverity = OmmLoggerClient::NoLogMsgEnum";
 		EXPECT_TRUE(activeConfig.loggerConfig.maxFileNumber == 42) << "maxFileNumber = 42";
@@ -2603,6 +2614,7 @@ TEST_F(EmaConfigTest, testProgCfgChannelAfterChannelSet)
 		innerMap.addKeyAscii("Logger_1", MapEntry::AddEnum,
 			ElementList()
 			.addEnum("LoggerType", 0)
+			.addUInt("IncludeDateInLoggerOutput", 1)
 			.addAscii("FileName", "logFile")
 			.addUInt("NumberOfLogFiles", 42)
 			.addUInt("MaxLogFileSize", 84000)
@@ -2723,6 +2735,7 @@ TEST_F(EmaConfigTest, testProgCfgChannelSetAfterChannel)
 		innerMap.addKeyAscii("Logger_1", MapEntry::AddEnum,
 			ElementList()
 			.addEnum("LoggerType", 0)
+			.addUInt("IncludeDateInLoggerOutput", 1)
 			.addAscii("FileName", "logFile")
 			.addUInt("NumberOfLogFiles", 42)
 			.addUInt("MaxLogFileSize", 84000)
@@ -2883,6 +2896,7 @@ TEST_F(EmaConfigTest, testLoadChannelSetBwteenFileProgrammaticForNiProv)
 			innerMap.addKeyAscii("Logger_1", MapEntry::AddEnum,
 				ElementList()
 				.addEnum("LoggerType", 0)
+				.addUInt("IncludeDateInLoggerOutput", 1)
 				.addAscii("FileName", "logFile")
 				.addUInt("NumberOfLogFiles", 42)
 				.addUInt("MaxLogFileSize", 84000)
@@ -3080,6 +3094,7 @@ TEST_F(EmaConfigTest, testMergCfgBetweenFunctionCallAndFileAndProgrammatic)
 			innerMap.addKeyAscii("Logger_1", MapEntry::AddEnum,
 				ElementList()
 				.addEnum("LoggerType", 0)
+				.addUInt("IncludeDateInLoggerOutput", 1)
 				.addAscii("FileName", "logFile")
 				.addUInt("NumberOfLogFiles", 42)
 				.addUInt("MaxLogFileSize", 84000)
@@ -3230,6 +3245,7 @@ TEST_F(EmaConfigTest, testMergCfgBetweenFunctionCallAndFileAndProgrammaticNiProv
 		innerMap.addKeyAscii("Logger_1", MapEntry::AddEnum,
 			ElementList()
 			.addEnum("LoggerType", 0)
+			.addUInt("IncludeDateInLoggerOutput", 1)
 			.addAscii("FileName", "logFile")
 			.addUInt("NumberOfLogFiles", 42)
 			.addUInt("MaxLogFileSize", 84000)
@@ -3406,6 +3422,7 @@ TEST_F(EmaConfigTest, testLoadingCfgFromProgrammaticConfigForIProv)
 			innerMap.addKeyAscii("Logger_2", MapEntry::AddEnum,
 				ElementList()
 				.addEnum("LoggerType", 1)
+				.addUInt("IncludeDateInLoggerOutput", 1)
 				.addAscii("FileName", "logFile")
 				.addUInt("NumberOfLogFiles", 42)
 				.addUInt("MaxLogFileSize", 84000)
@@ -3413,6 +3430,7 @@ TEST_F(EmaConfigTest, testLoadingCfgFromProgrammaticConfigForIProv)
 				.addKeyAscii("Logger_1", MapEntry::AddEnum,
 					ElementList()
 					.addEnum("LoggerType", 0)
+					.addUInt("IncludeDateInLoggerOutput", 1)
 					.addAscii("FileName", "logFile")
 					.addUInt("NumberOfLogFiles", 42)
 					.addUInt("MaxLogFileSize", 84000)
@@ -3628,6 +3646,7 @@ TEST_F(EmaConfigTest, testLoadingCfgFromProgrammaticConfigForIProv)
 			EXPECT_TRUE(static_cast<SocketServerConfig*>(activeConfig.pServerConfig)->initializationTimeout == 66) << "SocketServerConfig::initializationTimeout , 66";
 			EXPECT_TRUE(static_cast<SocketServerConfig*>(activeConfig.pServerConfig)->serverSharedSocket == 0) << "SocketServerConfig::serverSharedSocket , 0";
 			EXPECT_TRUE(activeConfig.loggerConfig.loggerType == OmmLoggerClient::FileEnum) << "loggerType = OmmLoggerClient::FileEnum";
+			EXPECT_TRUE(activeConfig.loggerConfig.includeDateInLoggerOutput) << "includeDateInLoggerOutput is true";
 			EXPECT_TRUE(activeConfig.loggerConfig.loggerFileName == "logFile") << "loggerFileName = \"logFile\"";
 			EXPECT_TRUE(activeConfig.loggerConfig.minLoggerSeverity == OmmLoggerClient::ErrorEnum) << "minLoggerSeverity = OmmLoggerClient::ErrorEnum";
 			EXPECT_TRUE(activeConfig.loggerConfig.maxFileNumber == 42) << "maxFileNumber = 42";
@@ -3918,6 +3937,7 @@ TEST_F(EmaConfigTest, testLoadingCfgFromProgrammaticConfigForNiProv)
 			innerMap.addKeyAscii("Logger_2", MapEntry::AddEnum,
 				ElementList()
 				.addEnum("LoggerType", 1)
+				.addUInt("IncludeDateInLoggerOutput", 1)
 				.addAscii("FileName", "logFile")
 				.addUInt("NumberOfLogFiles", 42)
 				.addUInt("MaxLogFileSize", 84000)
@@ -3925,6 +3945,7 @@ TEST_F(EmaConfigTest, testLoadingCfgFromProgrammaticConfigForNiProv)
 				.addKeyAscii("Logger_1", MapEntry::AddEnum,
 					ElementList()
 					.addEnum("LoggerType", 0)
+					.addUInt("IncludeDateInLoggerOutput", 1)
 					.addUInt("NumberOfLogFiles", 42)
 					.addUInt("MaxLogFileSize", 84000)
 					.addAscii("FileName", "logFile")
@@ -4095,6 +4116,7 @@ TEST_F(EmaConfigTest, testLoadingCfgFromProgrammaticConfigForNiProv)
 			EXPECT_TRUE(((SocketChannelConfig*)activeConfig.configChannelSet[0])->serviceName == "8001") << "SocketChannelConfig::hostName , \"8001\"";
 			EXPECT_TRUE(((SocketChannelConfig*)activeConfig.configChannelSet[0])->tcpNodelay == 0) << "SocketChannelConfig::tcpNodelay , 0";
 			EXPECT_TRUE(activeConfig.loggerConfig.loggerType == OmmLoggerClient::FileEnum) << "loggerType = OmmLoggerClient::FileEnum";
+			EXPECT_TRUE(activeConfig.loggerConfig.includeDateInLoggerOutput) << "includeDateInLoggerOutput is true";
 			EXPECT_TRUE(activeConfig.loggerConfig.loggerFileName == "logFile") << "loggerFileName = \"logFile\"";
 			EXPECT_TRUE(activeConfig.loggerConfig.minLoggerSeverity == OmmLoggerClient::ErrorEnum) << "minLoggerSeverity = OmmLoggerClient::ErrorEnum";
 			EXPECT_TRUE(activeConfig.loggerConfig.maxFileNumber == 42) << "maxFileNumber = 42";
@@ -4304,6 +4326,7 @@ TEST_F(EmaConfigTest, testMergingCfgBetweenFileAndProgrammaticConfigForIProv)
 			innerMap.addKeyAscii("Logger_2", MapEntry::AddEnum,
 				ElementList()
 				.addEnum("LoggerType", 0)
+				.addUInt("IncludeDateInLoggerOutput", 1)
 				.addAscii("FileName", "ConfigDB2_logFile")
 				.addUInt("NumberOfLogFiles", 42)
 				.addUInt("MaxLogFileSize", 84000)
@@ -4460,6 +4483,7 @@ TEST_F(EmaConfigTest, testMergingCfgBetweenFileAndProgrammaticConfigForIProv)
 			EXPECT_TRUE(static_cast<SocketServerConfig*>(activeConfig.pServerConfig)->tcpNodelay == 0) << "SocketServerConfig::tcpNodelay , 0";
 			EXPECT_TRUE(static_cast<SocketServerConfig*>(activeConfig.pServerConfig)->initializationTimeout == 77) << "SocketServerConfig::initializationTimeout , 77";
 			EXPECT_TRUE(activeConfig.loggerConfig.loggerType == OmmLoggerClient::FileEnum) << "loggerType = OmmLoggerClient::FileEnum";
+			EXPECT_TRUE(activeConfig.loggerConfig.includeDateInLoggerOutput) << "includeDateInLoggerOutput is true";
 			EXPECT_TRUE(activeConfig.loggerConfig.loggerFileName == "ConfigDB2_logFile") << "loggerFileName = \"ConfigDB2_logFile\"";
 			EXPECT_TRUE(activeConfig.loggerConfig.minLoggerSeverity == OmmLoggerClient::NoLogMsgEnum) << "minLoggerSeverity = OmmLoggerClient::NoLogMsgEnum";
 			EXPECT_TRUE(activeConfig.loggerConfig.maxFileNumber == 42) << "maxFileNumber = 42";
@@ -4647,6 +4671,7 @@ TEST_F(EmaConfigTest, testMergingCfgBetweenFileAndProgrammaticConfigNiProv)
 			innerMap.addKeyAscii("Logger_2", MapEntry::AddEnum,
 				ElementList()
 				.addEnum("LoggerType", 0)
+				.addUInt("IncludeDateInLoggerOutput", 1)
 				.addAscii("FileName", "ConfigDB2_logFile")
 				.addUInt("NumberOfLogFiles", 42)
 				.addUInt("MaxLogFileSize", 84000)
@@ -4773,6 +4798,7 @@ TEST_F(EmaConfigTest, testMergingCfgBetweenFileAndProgrammaticConfigNiProv)
 			EXPECT_TRUE(((SocketChannelConfig*)activeConfig.configChannelSet[0])->serviceName == "8001") << "SocketChannelConfig::hostName , \"8001\"";
 			EXPECT_TRUE(((SocketChannelConfig*)activeConfig.configChannelSet[0])->tcpNodelay == 1) << "SocketChannelConfig::tcpNodelay , 1";
 			EXPECT_TRUE(activeConfig.loggerConfig.loggerType == OmmLoggerClient::FileEnum) << "loggerType = OmmLoggerClient::FileEnum";
+			EXPECT_TRUE(activeConfig.loggerConfig.includeDateInLoggerOutput) << "includeDateInLoggerOutput is true";
 			EXPECT_TRUE(activeConfig.loggerConfig.loggerFileName == "ConfigDB2_logFile") << "loggerFileName = \"ConfigDB2_logFile\"";
 			EXPECT_TRUE(activeConfig.loggerConfig.minLoggerSeverity == OmmLoggerClient::NoLogMsgEnum) << "minLoggerSeverity = OmmLoggerClient::NoLogMsgEnum";
 			EXPECT_TRUE(activeConfig.loggerConfig.maxFileNumber == 42) << "maxFileNumber = 42";
@@ -5410,6 +5436,7 @@ TEST_F(EmaConfigTest, testServerSharedSocketProgrammaticConfigForIProv)
 			innerMap.addKeyAscii("Logger_2", MapEntry::AddEnum,
 				ElementList()
 				.addEnum("LoggerType", 1)
+				.addUInt("IncludeDateInLoggerOutput", 1)
 				.addAscii("FileName", "logFile")
 				.addUInt("NumberOfLogFiles", 42)
 				.addUInt("MaxLogFileSize", 84000)
@@ -5417,6 +5444,7 @@ TEST_F(EmaConfigTest, testServerSharedSocketProgrammaticConfigForIProv)
 				.addKeyAscii("Logger_1", MapEntry::AddEnum,
 					ElementList()
 					.addEnum("LoggerType", 0)
+					.addUInt("IncludeDateInLoggerOutput", 1)
 					.addUInt("NumberOfLogFiles", 42)
 					.addUInt("MaxLogFileSize", 84000)
 					.addAscii("FileName", "logFile")
@@ -5556,6 +5584,7 @@ TEST_F(EmaConfigTest, testLoadFilterValueOverflowProgrammaticConfigForIProv)
 			innerMap.addKeyAscii("Logger_2", MapEntry::AddEnum,
 				ElementList()
 				.addEnum("LoggerType", 1)
+				.addUInt("IncludeDateInLoggerOutput", 1)
 				.addAscii("FileName", "logFile")
 				.addUInt("NumberOfLogFiles", 42)
 				.addUInt("MaxLogFileSize", 84000)
@@ -5563,6 +5592,7 @@ TEST_F(EmaConfigTest, testLoadFilterValueOverflowProgrammaticConfigForIProv)
 				.addKeyAscii("Logger_1", MapEntry::AddEnum,
 					ElementList()
 					.addEnum("LoggerType", 0)
+					.addUInt("IncludeDateInLoggerOutput", 1)
 					.addAscii("FileName", "logFile")
 					.addUInt("NumberOfLogFiles", 42)
 					.addUInt("MaxLogFileSize", 84000)

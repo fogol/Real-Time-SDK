@@ -3765,6 +3765,11 @@ void ProgrammaticConfigure::retrieveLogger( const Map& map, const EmaString& log
 													UInt64 tmp = entry.getUInt();
 													loggerConfig.maxFileSize = tmp <= MAX_UNSIGNED_INT32 ? (UInt32)tmp : MAX_UNSIGNED_INT32;
 												}
+												else if ( entry.getName() == "IncludeDateInLoggerOutput" )
+												{
+													UInt64 tmp = entry.getUInt();
+													loggerConfig.includeDateInLoggerOutput = tmp ? true : false;
+												}
 												break;
 
 											case DataType::AsciiEnum:
