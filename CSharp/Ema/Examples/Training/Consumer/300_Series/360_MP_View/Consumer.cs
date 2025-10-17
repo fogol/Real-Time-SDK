@@ -109,9 +109,11 @@ public class Consumer
 			
             OmmArray array = new()
             {
+                // Set a fixed size for each array entry to minimize bandwidth, since we know their sizes
                 FixedWidth = 2
             };
 
+            // Set the array entries
             array.AddInt(22)
 				.AddInt(25)
 				.Complete();

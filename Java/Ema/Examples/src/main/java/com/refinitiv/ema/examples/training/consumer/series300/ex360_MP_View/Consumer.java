@@ -130,7 +130,10 @@ public class Consumer
 			ElementList view = EmaFactory.createElementList();
 			OmmArray array = EmaFactory.createOmmArray();
 			
+			// Set a fixed size for each array entry to minimize bandwidth, since we know their sizes
 			array.fixedWidth(2);
+			
+			// Set the array entries
 			array.add(EmaFactory.createOmmArrayEntry().intValue(22));
 			array.add(EmaFactory.createOmmArrayEntry().intValue(25));
 
