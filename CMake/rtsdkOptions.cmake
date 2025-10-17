@@ -108,3 +108,7 @@ option(BUILD_EMA_DOXYGEN "Build Ema doxygen" OFF)
 
 option(BUILD_ETA_DOXYGEN "Build Eta doxygen" OFF)
 
+option(BUILD_SANITIZERS "Enable sanitizer flags" OFF)
+
+option(BUILD_CODE_COVERAGE "Enable code coverage flags" OFF)
+

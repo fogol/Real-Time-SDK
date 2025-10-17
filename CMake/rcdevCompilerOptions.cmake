@@ -96,7 +96,7 @@ if( UNIX )
         set(_compilerBitFlags "-m32")
     endif()
 
-    if( DEFINED BUILD_SANITIZERS )
+    if( BUILD_SANITIZERS )
         set ( CMAKE_SANITIZER_FLAGS "-fsanitize=address,undefined,leak -fno-sanitize=alignment" )
     endif()
 
@@ -108,7 +108,7 @@ if( UNIX )
         set ( CMAKE_FLAGS_CLANG "-fno-omit-frame-pointer -Wno-format -Wno-format-security -Wno-parentheses -Wno-empty-body -Wno-unused-value -Wno-comment -Wno-logical-op-parentheses -Wno-dangling-else -Wno-constant-logical-operand -Wno-macro-redefined  -Wno-pointer-sign -Wno-constant-conversion -Wno-switch -Wno-enum-conversion -Wno-sizeof-pointer-memaccess -Wno-null-dereference -Wno-fortify-source -Wno-undefined-bool-conversion" CACHE STRING ""  FORCE )
     endif()
 
-    if( DEFINED BUILD_CODE_COVERAGE )
+    if( BUILD_CODE_COVERAGE )
         set ( CMAKE_CODE_COVERAGE_FLAGS "-fprofile-arcs -ftest-coverage -O0 -g" )
     endif()
 
