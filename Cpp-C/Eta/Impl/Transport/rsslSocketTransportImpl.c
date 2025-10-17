@@ -7654,6 +7654,7 @@ RsslRet rsslSocketBind(rsslServerImpl* rsslSrvrImpl, RsslBindOptions *opts, Rssl
 	{
 		_rsslSetError(error, NULL, RSSL_RET_BUFFER_NO_BUFFERS,  0);
 		snprintf(error->text, MAX_RSSL_ERROR_TEXT, "<%s:%d> Error: 0005 Unable to create buffer pool.\n", __FILE__, __LINE__);
+		relRsslServerSocketChannel(rsslServerSocketChannel);
 		return RSSL_RET_FAILURE;
 	}
 	else
@@ -7670,6 +7671,7 @@ RsslRet rsslSocketBind(rsslServerImpl* rsslSrvrImpl, RsslBindOptions *opts, Rssl
 			snprintf(error->text, MAX_RSSL_ERROR_TEXT,
 				"<%s:%d> Error: 0012 OpenSSL Libraries have not been loaded.\n",
 				__FILE__, __LINE__);
+			relRsslServerSocketChannel(rsslServerSocketChannel);
 			return RSSL_RET_FAILURE;
 		}
 
@@ -7679,6 +7681,7 @@ RsslRet rsslSocketBind(rsslServerImpl* rsslSrvrImpl, RsslBindOptions *opts, Rssl
 			snprintf(error->text, MAX_RSSL_ERROR_TEXT,
 				"<%s:%d> Error: 0012 No valid TLS encryption protocol set.\n",
 				__FILE__, __LINE__);
+			relRsslServerSocketChannel(rsslServerSocketChannel);
 			return RSSL_RET_FAILURE;
 		}
 
@@ -7691,6 +7694,7 @@ RsslRet rsslSocketBind(rsslServerImpl* rsslSrvrImpl, RsslBindOptions *opts, Rssl
 			snprintf(error->text, MAX_RSSL_ERROR_TEXT,
 				"<%s:%d> Error: 0012 OpenSSL does not support the specified TLS version.\n",
 				__FILE__, __LINE__);
+			relRsslServerSocketChannel(rsslServerSocketChannel);
 			return RSSL_RET_FAILURE;
 		}
 
@@ -7704,6 +7708,7 @@ RsslRet rsslSocketBind(rsslServerImpl* rsslSrvrImpl, RsslBindOptions *opts, Rssl
 				snprintf(error->text, MAX_RIPC_ERROR_TEXT, "<%s:%d> Error: 1001 Failed to allocate or copy the encryption cipherSuite. System errno: (%d)\n",
 					__FILE__, __LINE__, errno);
 				transFuncs[rsslServerSocketChannel->connType].shutdownSrvrError(rsslSrvrImpl);
+				relRsslServerSocketChannel(rsslServerSocketChannel);
 				return RSSL_RET_FAILURE;
 			}
 		}
@@ -7718,6 +7723,7 @@ RsslRet rsslSocketBind(rsslServerImpl* rsslSrvrImpl, RsslBindOptions *opts, Rssl
 				snprintf(error->text, MAX_RIPC_ERROR_TEXT, "<%s:%d> Error: 1001 Failed to allocate or copy the encryption TLS 1.3 cipherSuite. System errno: (%d)\n",
 					__FILE__, __LINE__, errno);
 				transFuncs[rsslServerSocketChannel->connType].shutdownSrvrError(rsslSrvrImpl);
+				relRsslServerSocketChannel(rsslServerSocketChannel);
 				return RSSL_RET_FAILURE;
 			}
 		}
@@ -7732,6 +7738,7 @@ RsslRet rsslSocketBind(rsslServerImpl* rsslSrvrImpl, RsslBindOptions *opts, Rssl
 				snprintf(error->text, MAX_RIPC_ERROR_TEXT, "<%s:%d> Error: 1001 Failed to allocate or copy the encryption dhParams. System errno: (%d)\n",
 					__FILE__, __LINE__, errno);
 				transFuncs[rsslServerSocketChannel->connType].shutdownSrvrError(rsslSrvrImpl);
+				relRsslServerSocketChannel(rsslServerSocketChannel);
 				return RSSL_RET_FAILURE;
 			}
 		}
@@ -7746,6 +7753,7 @@ RsslRet rsslSocketBind(rsslServerImpl* rsslSrvrImpl, RsslBindOptions *opts, Rssl
 				snprintf(error->text, MAX_RIPC_ERROR_TEXT, "<%s:%d> Error: 1001 Failed to allocate or copy the encryption dhParams. System errno: (%d)\n",
 					__FILE__, __LINE__, errno);
 				transFuncs[rsslServerSocketChannel->connType].shutdownSrvrError(rsslSrvrImpl);
+				relRsslServerSocketChannel(rsslServerSocketChannel);
 				return RSSL_RET_FAILURE;
 			}
 		}
@@ -7760,6 +7768,7 @@ RsslRet rsslSocketBind(rsslServerImpl* rsslSrvrImpl, RsslBindOptions *opts, Rssl
 				snprintf(error->text, MAX_RIPC_ERROR_TEXT, "<%s:%d> Error: 1001 Failed to allocate or copy the encryption dhParams. System errno: (%d)\n",
 					__FILE__, __LINE__, errno);
 				transFuncs[rsslServerSocketChannel->connType].shutdownSrvrError(rsslSrvrImpl);
+				relRsslServerSocketChannel(rsslServerSocketChannel);
 				return RSSL_RET_FAILURE;
 			}
 		}
@@ -7774,6 +7783,7 @@ RsslRet rsslSocketBind(rsslServerImpl* rsslSrvrImpl, RsslBindOptions *opts, Rssl
 		snprintf(error->text, MAX_RIPC_ERROR_TEXT, "<%s:%d> Error: 1001 Failed to allocate or copy serverName. System errno: (%d)\n",
 			__FILE__, __LINE__, errno);
 		transFuncs[rsslServerSocketChannel->connType].shutdownSrvrError(rsslSrvrImpl);
+		relRsslServerSocketChannel(rsslServerSocketChannel);
 		return RSSL_RET_FAILURE;
 	}
 
@@ -7793,6 +7803,7 @@ RsslRet rsslSocketBind(rsslServerImpl* rsslSrvrImpl, RsslBindOptions *opts, Rssl
 					__FILE__, __LINE__, errno);
 			if (transFuncs[rsslServerSocketChannel->connType].shutdownSrvrError)
 				transFuncs[rsslServerSocketChannel->connType].shutdownSrvrError(rsslSrvrImpl);
+			relRsslServerSocketChannel(rsslServerSocketChannel);
 			return RSSL_RET_FAILURE;
 		}
 
@@ -7804,6 +7815,7 @@ RsslRet rsslSocketBind(rsslServerImpl* rsslSrvrImpl, RsslBindOptions *opts, Rssl
 
 	if ((retCode = (transFuncs[connType].bindSrvr(rsslSrvrImpl, error))) < 0)
 	{
+		relRsslServerSocketChannel(rsslServerSocketChannel);
 		return RSSL_RET_FAILURE;
 	}
 
@@ -7816,6 +7828,7 @@ RsslRet rsslSocketBind(rsslServerImpl* rsslSrvrImpl, RsslBindOptions *opts, Rssl
 				"<%s:%d> Cannot enable ssl. Secure Sockets layer library not initialized. ",
 				__FILE__, __LINE__);
 			sock_close(rsslServerSocketChannel->stream);
+			relRsslServerSocketChannel(rsslServerSocketChannel);
 			return RSSL_RET_FAILURE;
 		}
 		else
@@ -7827,6 +7840,7 @@ RsslRet rsslSocketBind(rsslServerImpl* rsslSrvrImpl, RsslBindOptions *opts, Rssl
 			{
 				_rsslSetError(error, NULL, RSSL_RET_FAILURE, errno);
 				sock_close(rsslServerSocketChannel->stream);
+				relRsslServerSocketChannel(rsslServerSocketChannel);
 				return RSSL_RET_FAILURE;
 			}
 		}
@@ -7859,6 +7873,7 @@ RsslRet rsslSocketBind(rsslServerImpl* rsslSrvrImpl, RsslBindOptions *opts, Rssl
 				snprintf(error->text, MAX_RSSL_ERROR_TEXT, "<%s:%d> Error: 1001 Failed to initialize shared buffer pool.\n",
 					__FILE__, __LINE__);
 				transFuncs[rsslServerSocketChannel->connType].shutdownSrvrError(rsslSrvrImpl);
+				relRsslServerSocketChannel(rsslServerSocketChannel);
 				return RSSL_RET_FAILURE;
 			}
 		}
@@ -7918,7 +7933,8 @@ RsslRet rsslSocketBind(rsslServerImpl* rsslSrvrImpl, RsslBindOptions *opts, Rssl
 				__FILE__, __LINE__, errno);
 
 			transFuncs[rsslServerSocketChannel->connType].shutdownSrvrError(rsslSrvrImpl);
-			
+			relRsslServerSocketChannel(rsslServerSocketChannel);
+
 			return RSSL_RET_FAILURE;
 		}
 	}

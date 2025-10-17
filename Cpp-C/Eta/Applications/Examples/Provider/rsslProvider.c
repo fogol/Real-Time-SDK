@@ -324,6 +324,12 @@ int main(int argc, char **argv)
 	if (rsslInitializeEx(&initOpts, &error) != RSSL_RET_SUCCESS)
 	{
 		printf("rsslInitialize(): failed <%s>\n",error.text);
+
+		/* free memory for dictionary */
+		freeDictionary();
+
+		rsslJsonUninitialize();
+
 		/* WINDOWS: wait for user to enter something before exiting  */
 #ifdef _WIN32
 		printf("\nPress Enter or Return key to exit application:");
@@ -340,6 +346,14 @@ int main(int argc, char **argv)
 	if ((rsslSrvr = bindRsslServer(portNo, &error)) == NULL)
 	{
 		printf("Unable to bind RSSL server: <%s>\n",error.text);
+
+		/* free memory for dictionary */
+		freeDictionary();
+
+		rsslJsonUninitialize();
+
+		rsslUninitialize();
+
 		/* WINDOWS: wait for user to enter something before exiting  */
 #ifdef _WIN32
 		printf("\nPress Enter or Return key to exit application:");
