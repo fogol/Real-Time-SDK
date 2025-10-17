@@ -1559,6 +1559,39 @@ void LoginCallbackClient::processChannelEvent( RsslReactorChannelEvent* pEvent )
 		}
 	}
 	break;
+	case RSSL_RC_CET_PREFERRED_HOST_NO_FALLBACK:
+	{
+		RsslStatusMsg rsslStatusMsg;
+		char tempBuffer[1000];
+		RsslBuffer temp;
+		temp.data = tempBuffer;
+		temp.length = 1000;
+
+		_loginInfo.loginRefreshMsg.populate(rsslStatusMsg, temp);
+
+		rsslStatusMsg.state.dataState = RSSL_DATA_OK;
+		rsslStatusMsg.state.streamState = RSSL_STREAM_OPEN;
+		rsslStatusMsg.state.code = OmmState::StatusCode::SocketPHNoFallback;
+		rsslStatusMsg.state.text.data = (char*)"Preferred host no fallback";
+		rsslStatusMsg.state.text.length = 26;
+		rsslStatusMsg.flags |= RSSL_STMF_HAS_STATE;
+
+		StaticDecoder::setRsslData(&_statusMsg, (RsslMsg*)&rsslStatusMsg,
+			RSSL_RWF_MAJOR_VERSION,
+			RSSL_RWF_MINOR_VERSION,
+			0);
+
+		for (UInt32 idx = 0; idx < _loginItems.size(); ++idx)
+		{
+			_ommBaseImpl.msgDispatched();
+			Item* item = _loginItems[idx];
+
+			item->setEventChannel(pEvent->pReactorChannel);
+			item->onAllMsg(_statusMsg);
+			item->onStatusMsg(_statusMsg);
+		}
+	}
+	break;
 	case RSSL_RC_CET_PREFERRED_HOST_STARTING_FALLBACK:
 	{
 		RsslStatusMsg rsslStatusMsg;

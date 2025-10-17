@@ -505,15 +505,19 @@ class SessionDirectory<T>
 							{
 								singleItem._serviceName = _serviceName;
 						
-								/* The item state is changed to normal item stream */
-								singleItem.state(SingleItem.ItemStates.NORMAL);
-								singleItem.rsslSubmit(singleItem._requestMsg, false);
+								if(singleItem.state() != SingleItem.ItemStates.RECOVERING_BY_WATCHLIST)
+								{
+									singleItem.rsslSubmit(singleItem._requestMsg, false);
+								}
 								
 								/* Removes from the recovery queue */
 								singleItemIt.remove();
 								
 								/* Adds to the active queue */
 								_itemNameMap.get(itemName).add(singleItem);
+								
+								/* The item state is changed to normal item stream */
+								singleItem.state(SingleItem.ItemStates.NORMAL);
 							}
 							else
 							{

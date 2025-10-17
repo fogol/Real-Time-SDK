@@ -2719,9 +2719,9 @@ void preferredHost_ChannelList_FallbackTimer(PreferredHostTestParameters paramet
 		ASSERT_TRUE(pEvent = wtfGetEvent());
 	}
 
-	// Get PREFERRED_HOST_COMPLETE
+	// Get PREFERRED_HOST_NO_FALLBACK
 	ASSERT_TRUE(pEvent->base.type == WTF_DE_CHNL);
-	ASSERT_TRUE(pEvent->channelEvent.channelEventType == RSSL_RC_CET_PREFERRED_HOST_COMPLETE);
+	ASSERT_TRUE(pEvent->channelEvent.channelEventType == RSSL_RC_CET_PREFERRED_HOST_NO_FALLBACK);
 
 	// Close the provider channel.
 	wtfCloseChannel(WTF_TC_PROVIDER, 2);
@@ -7400,11 +7400,11 @@ void preferredHost_WSBLogin_FallbackTimer(PreferredHostTestParameters parameters
 		wtfDispatch(WTF_TC_CONSUMER, 500);
 	}
 
-	// Consumer gets PREFERRED_HOST_COMPLETE
+	// Consumer gets RSSL_RC_CET_PREFERRED_HOST_NO_FALLBACK
 	if (pEvent != NULL)
 	{
 		ASSERT_TRUE(pEvent->base.type == WTF_DE_CHNL);
-		ASSERT_TRUE(pEvent->channelEvent.channelEventType == RSSL_RC_CET_PREFERRED_HOST_COMPLETE);
+		ASSERT_TRUE(pEvent->channelEvent.channelEventType == RSSL_RC_CET_PREFERRED_HOST_NO_FALLBACK);
 	}
 
 	/* Provider receives request. */

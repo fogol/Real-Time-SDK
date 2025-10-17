@@ -180,6 +180,9 @@ public interface OmmState extends Data
 
 		/** Preferred host switchover started */
 		public static final int PREFERRED_HOST_START_FALLBACK = 202;
+		
+		/** Preferred host no fallback */
+		public static final int PREFERRED_HOST_NO_FALLBACK 	= 203;
 
 		/** @deprecated Not Used */
 	    @Deprecated

@@ -471,6 +471,7 @@ static RsslReactorCallbackRet channelEventCallback(RsslReactor* pReactor,
 			break;
 		case RSSL_RC_CET_PREFERRED_HOST_COMPLETE:
 		case RSSL_RC_CET_PREFERRED_HOST_STARTING_FALLBACK:
+		case RSSL_RC_CET_PREFERRED_HOST_NO_FALLBACK:
 			break;
 		default:
 		  EXPECT_TRUE(0) << "unhandled channel event" << std::endl;

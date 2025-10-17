@@ -150,11 +150,9 @@ static RsslUInt32 prefHostDetectionTimeInterval = 0U;
 
 static RsslBool prefHostPrintDetails = RSSL_TRUE;
 
-// API QA
 static RsslInt32 reconnectAttemptLimit = -1;
 static RsslInt32 reconnectMinDelay = 500;
 static RsslInt32 reconnectMaxDelay = 6000;
-// END API QA
 
 static void displayCache(ChannelCommand *pCommand);
 static void displayCacheDomain(ChannelCommand *pCommand, RsslUInt8 domainType, RsslBool privateStreams, RsslInt32 itemCount, ItemRequest items[]);
@@ -263,12 +261,10 @@ void printUsageAndExit(char *appName)
 			"\n -ioctlConnectListIndex <integer value> specifies the preferred host as an index in the connection list, starting at 0"
 			"\n -ioctlDetectionTimeInterval <value in seconds> specifies time interval to switch over to a preferred host or WSB group. 0 indicates that the detection time interval is disabled"
 			"\n -ioctlDetectionTimeSchedule <Cron time> specifies Cron time format to switch over to a preferred host or WSB group. detectionTimeInterval is used instead if this member is set to empty"
-// API QA
 			"\n"
 			"\n -reconnectAttemptLimit <integer value> specifies the maximum number of times the RsllReactor will attempt to reconnect a channel. If set to -1, there is no limit"
 			"\n -reconnectMinDelay <milliseconds> specifies the minimum time the RsslReactor will wait before attempting to reconnect"
 			"\n -reconnectMaxDelay <milliseconds> specifies the maximum time the RsslReactor will wait before attempting to reconnect"
-// END API QA
 			"\n"
 		, appName, appName);
 
@@ -1479,7 +1475,6 @@ void parseCommandLine(int argc, char **argv)
 				setIoctlPreferredHostOptValue = RSSL_TRUE;
 				preferredHostConfig.setIoctlDetectionTimeSchedule = RSSL_TRUE;
 			}
-// API QA
 			else if (strcmp("-reconnectAttemptLimit", argv[i]) == 0)
 			{
 				i += 2; if (i > argc) printUsageAndExit(argv[0]);
@@ -1495,7 +1490,6 @@ void parseCommandLine(int argc, char **argv)
 				i += 2; if (i > argc) printUsageAndExit(argv[0]);
 				reconnectMaxDelay = atoi(argv[i - 1]);
 			}
-// END API QA
 			else
 			{
 				printf("Error: Unrecognized option: %s\n", argv[i]);
@@ -2052,6 +2046,12 @@ RsslReactorCallbackRet channelEventCallback(RsslReactor *pReactor, RsslReactorCh
 			printf("%s Received PREFERRED_HOST_COMPLETE for Channel fd="SOCKET_PRINT_TYPE".\n", timeBuf, pReactorChannel->socketId);
 			return RSSL_RC_CRET_SUCCESS;
 		}
+		case RSSL_RC_CET_PREFERRED_HOST_NO_FALLBACK:
+		{
+			/* The preferred host operation has determined that no fallback will be performed on this channel */
+			printf("%s Received PREFERRED_HOST_NO_FALLBACK for Channel fd="SOCKET_PRINT_TYPE".\n", timeBuf, pReactorChannel->socketId);
+			return RSSL_RC_CRET_SUCCESS;
+		}
 		default:
 		{
 			printf("%s Unknown connection event! (%d)\n", timeBuf, pConnEvent->channelEventType);
@@ -2460,15 +2460,9 @@ int main(int argc, char **argv)
 		pInfo->initializationTimeout = 30;
 		pOpts->reactorConnectionList = pInfo;
 		pOpts->connectionCount = 1;
-// API QA
 		pOpts->reconnectAttemptLimit = reconnectAttemptLimit;
 		pOpts->reconnectMaxDelay = reconnectMaxDelay;
 		pOpts->reconnectMinDelay = reconnectMinDelay;
-
-		//pOpts->reconnectAttemptLimit = -1;
-		//pOpts->reconnectMinDelay = 500;
-		//pOpts->reconnectMaxDelay = 6000;
-// END API QA
 
 		if (serviceDiscoveryLocation.length != 0)
 		{

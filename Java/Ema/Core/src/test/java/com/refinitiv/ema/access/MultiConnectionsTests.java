@@ -13556,7 +13556,7 @@ public class MultiConnectionsTests {
 			statusMsg = (StatusMsg)message;
 			assertEquals(1, statusMsg.streamId());
 			assertEquals(DomainTypes.LOGIN, statusMsg.domainType());
-			assertEquals("Open / Ok / None / 'preferred host starting fallback'", statusMsg.state().toString());
+			assertEquals("Open / Ok / PreferredHostStartingFallback / 'preferred host starting fallback'", statusMsg.state().toString());
 			channelInfo = consumerClient.popChannelInfo();
 			assertEquals("Channel_12", channelInfo.channelName());
 			assertEquals("Connection_24", channelInfo.sessionChannelName());
@@ -13613,7 +13613,7 @@ public class MultiConnectionsTests {
             statusMsg = (StatusMsg)message;
             assertEquals(1, statusMsg.streamId());
             assertEquals(DomainTypes.LOGIN, statusMsg.domainType());
-            assertEquals("Open / Suspect / None / 'preferred host complete'", statusMsg.state().toString());
+            assertEquals("Open / Suspect / PreferredHostComplete / 'preferred host complete'", statusMsg.state().toString());
             channelInfo = consumerClient.popChannelInfo();
             assertEquals("Channel_7", channelInfo.channelName());
             assertEquals("Connection_24", channelInfo.sessionChannelName());
@@ -13961,7 +13961,7 @@ public class MultiConnectionsTests {
 			statusMsg = (StatusMsg)message;
 			assertEquals(1, statusMsg.streamId());
 			assertEquals(DomainTypes.LOGIN, statusMsg.domainType());
-			assertEquals("Open / Ok / None / 'preferred host starting fallback'", statusMsg.state().toString());
+			assertEquals("Open / Ok / PreferredHostStartingFallback / 'preferred host starting fallback'", statusMsg.state().toString());
 			channelInfo = consumerClient.popChannelInfo();
 			assertEquals("Channel_8", channelInfo.channelName());
 			assertEquals("Connection_25", channelInfo.sessionChannelName());
@@ -14008,7 +14008,7 @@ public class MultiConnectionsTests {
 			statusMsg = (StatusMsg)message;
 			assertEquals(1, statusMsg.streamId());
 			assertEquals(DomainTypes.LOGIN, statusMsg.domainType());
-			assertEquals("Open / Suspect / None / 'preferred host complete'", statusMsg.state().toString());
+			assertEquals("Open / Suspect / PreferredHostComplete / 'preferred host complete'", statusMsg.state().toString());
 			channelInfo = consumerClient.popChannelInfo();
 			assertEquals("Channel_3", channelInfo.channelName());
 			assertEquals("Connection_25", channelInfo.sessionChannelName());
@@ -16332,7 +16332,7 @@ public class MultiConnectionsTests {
                 {
                     StatusMsg msg = (StatusMsg)message;
                     OmmState state = msg.state();
-                    if (state.statusText().contains("preferred host starting fallback")) { foundPHFallback = true; }
+                    if (state.statusText().contains("preferred host no fallback")) { foundPHFallback = true; }
                 }
                 ChannelInformation ci = consumerClient.popChannelInfo();
                 assertFalse("Channel_7".equals(ci.channelName()) || "Channel_8".equals(ci.channelName())); // we cannot ge events from these channels since we stay on G0!
@@ -16968,21 +16968,15 @@ public class MultiConnectionsTests {
 
             Thread.sleep(20000);
 
-            assertEquals(2, consumerClient.queueSize());
+            assertEquals(1, consumerClient.queueSize());
 
             message = consumerClient.popMessage();
             ci = consumerClient.popChannelInfo();
 
             assertTrue(message instanceof StatusMsg);
             assertEquals("Channel_6", ci.channelName());
-            assertTrue(((StatusMsg)message).state().statusText().toString().contains("preferred host starting fallback"));
+            assertTrue(((StatusMsg)message).state().statusText().toString().contains("preferred host no fallback"));
 
-            message = consumerClient.popMessage();
-            ci = consumerClient.popChannelInfo();
-
-            assertTrue(message instanceof StatusMsg);
-            assertEquals("Channel_6", ci.channelName());
-            assertTrue(((StatusMsg)message).state().statusText().toString().contains("preferred host complete"));
 
             ommprovider_3.uninitialize();
             ommprovider_6.uninitialize();

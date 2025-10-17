@@ -24,7 +24,7 @@ class OmmStateImpl extends DataImpl implements OmmState
 	private final static String NONE_STRING = "None";
 	private final static String NOTFOUND_STRING = "NotFound";
 	private final static String TIMEOUT_STRING = "Timeout";
-	private final static String NOTAUTHORIZED_STRING = "NotAuthorized";
+	private final static String NOTAUTHORIZED_STRING = "Not entitled";
 	private final static String INVALIDARGUMENT_STRING = "InvalidArgument";
 	private final static String USAGEERROR_STRING = "UsageError";
 	private final static String PREEMPTED_STRING = "Preempted";
@@ -52,6 +52,9 @@ class OmmStateImpl extends DataImpl implements OmmState
 	private final static String DACSUSERACCESSTOAPPDENIED_STRING = "DacsUserAccessToAppDenied";
 	private final static String GAPFILL_STRING = "GapFill";
 	private final static String APPAUTHORIZATIONFAILED_STRING = "AppAuthorizationFailed";
+	private final static String PREFERRED_HOST_STARTING_FALLBACK_STRING = "PreferredHostStartingFallback";
+	private final static String PREFERRED_HOST_COMPLETE_STRING = "PreferredHostComplete";
+	private final static String PREFERRED_HOST_NO_FALLBACK_STRING = "PreferredHostNoFallback";
 	
 	private final static String DEFAULTSS_STRING = "Unknown StreamState value ";
 	private final static String DEFAULTDS_STRING = "Unknown DataState value ";
@@ -168,6 +171,12 @@ class OmmStateImpl extends DataImpl implements OmmState
 				return GAPFILL_STRING;
 			case StatusCode.APP_AUTHORIZATION_FAILED :
 				return APPAUTHORIZATIONFAILED_STRING;
+			case StatusCode.PREFERRED_HOST_START_FALLBACK:
+				return PREFERRED_HOST_STARTING_FALLBACK_STRING;
+			case StatusCode.PREFERRED_HOST_COMPLETE:
+				return PREFERRED_HOST_COMPLETE_STRING;
+			case StatusCode.PREFERRED_HOST_NO_FALLBACK:
+				return PREFERRED_HOST_NO_FALLBACK_STRING;
 			default :
 				return DEFAULTSC_STRING + statusCode();
 		}
@@ -212,7 +221,7 @@ class OmmStateImpl extends DataImpl implements OmmState
 			.append(" / ")
 			.append(com.refinitiv.eta.codec.DataStates.info(_rsslState.dataState()))
 			.append(" / ")
-			.append(com.refinitiv.eta.codec.StateCodes.info(_rsslState.code()))
+			.append(statusCodeAsString())
 			.append(" / '")
 			.append(statusText())
 			.append("'");

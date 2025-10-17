@@ -18,6 +18,7 @@ const EmaString channelReconnecting("session channel down reconnecting");
 const EmaString channelDown("session channel down");
 const EmaString phStartingFallback("Preferred host starting fallback");
 const EmaString phFallbackComplete("Preferred host complete");
+const EmaString phNoFallback("Preferred host no fallback");
 
 size_t ConsumerRoutingSession::UInt16rHasher::operator()(const UInt16& value) const
 {
@@ -712,6 +713,17 @@ void ConsumerRoutingSession::processChannelEvent(ConsumerRoutingSessionChannel* 
 
 			// This means that preferred host has ended, so set inPreferredHost to false.
 			pSessionChannel->inPreferredHost = false;
+			break;
+		case RSSL_RC_CET_PREFERRED_HOST_NO_FALLBACK:
+			// This can only happen on a channel that's in a good state, so it's always OPEN/OK
+
+			statusMsg.state.streamState = RSSL_STREAM_OPEN;
+			statusMsg.state.dataState = RSSL_DATA_OK;
+
+			statusMsg.state.text.data = (char*)phNoFallback.c_str();
+			statusMsg.state.text.length = phNoFallback.length();
+
+			loginClient.processStatusMsg((RsslMsg*)&statusMsg, pSessionChannel->pReactorChannel, NULL);
 			break;
 		case RSSL_RC_CET_PREFERRED_HOST_STARTING_FALLBACK:
 			// This can only happen on a channel that's in a good state, so it's always OPEN/OK

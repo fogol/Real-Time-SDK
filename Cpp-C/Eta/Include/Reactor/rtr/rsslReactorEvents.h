@@ -38,7 +38,8 @@ typedef enum
 	RSSL_RC_CET_CHANNEL_DOWN_RECONNECTING = 6,
 	RSSL_RC_CET_CHANNEL_OPENED	= 7,		/*!< Channel was opened by the application and can be used (occurs when watchlist is enabled and only appears in the channelOpenCallback). */
 	RSSL_RC_CET_PREFERRED_HOST_COMPLETE = 8,	/*!< The preferred host operation is complete and the connections are up. Or Channel is already connected to the preferred host/WSB group. */
-	RSSL_RC_CET_PREFERRED_HOST_STARTING_FALLBACK = 9	/*!< The preferred host operation has been started on this channel. */
+	RSSL_RC_CET_PREFERRED_HOST_STARTING_FALLBACK = 9,	/*!< The preferred host operation has been started on this channel. */
+	RSSL_RC_CET_PREFERRED_HOST_NO_FALLBACK = 10	/*!< The preferred host operation has determined that no fallback will be performed on this channel. */
 
 } RsslReactorChannelEventType;
 

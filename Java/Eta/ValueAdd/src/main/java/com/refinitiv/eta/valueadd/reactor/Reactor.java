@@ -6741,6 +6741,9 @@ public class Reactor
 			
 			sendAndHandleChannelEventCallback("Reactor.processWorkerEvent", ReactorChannelEventTypes.PREFERRED_HOST_COMPLETE, reactorChannel, reactorChannel.getEDPErrorInfo());
 			break;
+		case PREFERRED_HOST_NO_FALLBACK:
+			sendAndHandleChannelEventCallback("Reactor.processWorkerEvent", ReactorChannelEventTypes.PREFERRED_HOST_NO_FALLBACK, reactorChannel, reactorChannel.getEDPErrorInfo());
+			break;
 		case PREFERRED_HOST_CHANNEL_CLOSE_ACK:
 			if (reactorChannel.warmStandByHandlerImpl != null &&
 				reactorChannel != reactorChannel.warmStandByHandlerImpl.startingReactorChannel())

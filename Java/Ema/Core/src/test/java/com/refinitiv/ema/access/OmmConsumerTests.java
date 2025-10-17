@@ -3840,7 +3840,7 @@ public class OmmConsumerTests extends TestCase
 			System.out.println("consumerClient.queueSize() " + consumerClient.queueSize() );
 			
 			/* There must not be any message as it falls back to the same WSB channel */
-			assertTrue(consumerClient.queueSize() >= 2);
+			assertTrue(consumerClient.queueSize() >= 1);
 			
 			// Checks for PH START and COMPLETE events
 			message = consumerClient.popMessage();
@@ -3850,18 +3850,7 @@ public class OmmConsumerTests extends TestCase
 			
 			assertEquals(1, statusMsg.streamId());
 			assertEquals(DomainTypes.LOGIN, statusMsg.domainType());
-			assertEquals("Open / Ok / None / 'preferred host starting fallback'", statusMsg.state().toString());
-			assertTrue(statusMsg.hasMsgKey());
-			assertEquals(DataTypes.NO_DATA, statusMsg.payload().dataType());
-			
-			message = consumerClient.popMessage();
-			
-			/* Checks login refresh message */
-			statusMsg = (StatusMsg)message;
-			
-			assertEquals(1, statusMsg.streamId());
-			assertEquals(DomainTypes.LOGIN, statusMsg.domainType());
-			assertEquals("Open / Ok / None / 'preferred host complete'", statusMsg.state().toString());
+			assertEquals("Open / Ok / PreferredHostNoFallback / 'preferred host no fallback'", statusMsg.state().toString());
 			assertTrue(statusMsg.hasMsgKey());
 			assertEquals(DataTypes.NO_DATA, statusMsg.payload().dataType());
 			
@@ -4771,7 +4760,7 @@ public class OmmConsumerTests extends TestCase
 			StatusMsg statusMsg = (StatusMsg)message;
 			assertEquals(1, statusMsg.streamId());
 			assertEquals(DomainTypes.LOGIN, statusMsg.domainType());
-			assertEquals("Open / Ok / None / 'preferred host starting fallback'", statusMsg.state().toString());
+			assertEquals("Open / Ok / PreferredHostStartingFallback / 'preferred host starting fallback'", statusMsg.state().toString());
 			assertTrue(statusMsg.hasMsgKey());
 			assertEquals(DataTypes.NO_DATA, statusMsg.payload().dataType());
 			assertEquals(DataTypes.NO_DATA, statusMsg.attrib().dataType());
@@ -4783,7 +4772,7 @@ public class OmmConsumerTests extends TestCase
 			statusMsg = (StatusMsg)message;
 			assertEquals(1, statusMsg.streamId());
 			assertEquals(DomainTypes.LOGIN, statusMsg.domainType());
-			assertEquals("Open / Ok / None / 'preferred host complete'", statusMsg.state().toString());
+			assertEquals("Open / Ok / PreferredHostComplete / 'preferred host complete'", statusMsg.state().toString());
 			assertTrue(statusMsg.hasMsgKey());
 			assertEquals(DataTypes.NO_DATA, statusMsg.payload().dataType());
 			assertEquals(DataTypes.NO_DATA, statusMsg.attrib().dataType());
@@ -5013,7 +5002,7 @@ public class OmmConsumerTests extends TestCase
 			statusMsg = (StatusMsg)message;
 			assertEquals(1, statusMsg.streamId());
 			assertEquals(DomainTypes.LOGIN, statusMsg.domainType());
-			assertEquals("Open / Ok / None / 'preferred host starting fallback'", statusMsg.state().toString());
+			assertEquals("Open / Ok / PreferredHostStartingFallback / 'preferred host starting fallback'", statusMsg.state().toString());
 			assertTrue(statusMsg.hasMsgKey());
 			assertEquals(DataTypes.NO_DATA, statusMsg.payload().dataType());
 			assertEquals(DataTypes.NO_DATA, statusMsg.attrib().dataType());
@@ -5025,7 +5014,7 @@ public class OmmConsumerTests extends TestCase
 			statusMsg = (StatusMsg)message;
 			assertEquals(1, statusMsg.streamId());
 			assertEquals(DomainTypes.LOGIN, statusMsg.domainType());
-			assertEquals("Open / Ok / None / 'preferred host complete'", statusMsg.state().toString());
+			assertEquals("Open / Ok / PreferredHostComplete / 'preferred host complete'", statusMsg.state().toString());
 			assertTrue(statusMsg.hasMsgKey());
 			assertEquals(DataTypes.NO_DATA, statusMsg.payload().dataType());
 			assertEquals(DataTypes.NO_DATA, statusMsg.attrib().dataType());
@@ -5392,7 +5381,7 @@ public class OmmConsumerTests extends TestCase
 			statusMsg = (StatusMsg)message;
 			assertEquals(1, statusMsg.streamId());
 			assertEquals(DomainTypes.LOGIN, statusMsg.domainType());
-			assertEquals("Open / Ok / None / 'preferred host starting fallback'", statusMsg.state().toString());
+			assertEquals("Open / Ok / PreferredHostStartingFallback / 'preferred host starting fallback'", statusMsg.state().toString());
 			assertTrue(statusMsg.hasMsgKey());
 			assertEquals(DataTypes.NO_DATA, statusMsg.payload().dataType());
 			assertEquals(DataTypes.NO_DATA, statusMsg.attrib().dataType());
@@ -5404,7 +5393,7 @@ public class OmmConsumerTests extends TestCase
 			statusMsg = (StatusMsg)message;
 			assertEquals(1, statusMsg.streamId());
 			assertEquals(DomainTypes.LOGIN, statusMsg.domainType());
-			assertEquals("Open / Ok / None / 'preferred host complete'", statusMsg.state().toString());
+			assertEquals("Open / Ok / PreferredHostComplete / 'preferred host complete'", statusMsg.state().toString());
 			assertTrue(statusMsg.hasMsgKey());
 			assertEquals(DataTypes.NO_DATA, statusMsg.payload().dataType());
 			assertEquals(DataTypes.NO_DATA, statusMsg.attrib().dataType());
@@ -5659,7 +5648,7 @@ public class OmmConsumerTests extends TestCase
 			statusMsg = (StatusMsg)message;
 			assertEquals(1, statusMsg.streamId());
 			assertEquals(DomainTypes.LOGIN, statusMsg.domainType());
-			assertEquals("Open / Ok / None / 'preferred host starting fallback'", statusMsg.state().toString());
+			assertEquals("Open / Ok / PreferredHostStartingFallback / 'preferred host starting fallback'", statusMsg.state().toString());
 			assertTrue(statusMsg.hasMsgKey());
 			assertEquals(DataTypes.NO_DATA, statusMsg.payload().dataType());
 			assertEquals(DataTypes.NO_DATA, statusMsg.attrib().dataType());
@@ -5731,7 +5720,7 @@ public class OmmConsumerTests extends TestCase
 			statusMsg = (StatusMsg)message;
 			assertEquals(1, statusMsg.streamId());
 			assertEquals(DomainTypes.LOGIN, statusMsg.domainType());
-			assertEquals("Open / Suspect / None / 'preferred host complete'", statusMsg.state().toString());
+			assertEquals("Open / Suspect / PreferredHostComplete / 'preferred host complete'", statusMsg.state().toString());
 			assertTrue(statusMsg.hasMsgKey());
 			assertEquals(DataTypes.NO_DATA, statusMsg.payload().dataType());
 			assertEquals(DataTypes.NO_DATA, statusMsg.attrib().dataType());
@@ -5812,19 +5801,7 @@ public class OmmConsumerTests extends TestCase
 			statusMsg = (StatusMsg)message;
 			assertEquals(1, statusMsg.streamId());
 			assertEquals(DomainTypes.LOGIN, statusMsg.domainType());
-			assertEquals("Open / Ok / None / 'preferred host starting fallback'", statusMsg.state().toString());
-			assertTrue(statusMsg.hasMsgKey());
-			assertEquals(DataTypes.NO_DATA, statusMsg.payload().dataType());
-			assertEquals(DataTypes.NO_DATA, statusMsg.attrib().dataType());
-			channelInfo = consumerClient.popChannelInfo();
-			assertEquals("Channel_7", channelInfo.channelName());
-			assertEquals(ChannelInformation.ChannelState.ACTIVE, channelInfo.channelState());
-			
-			message = consumerClient.popMessage();
-			statusMsg = (StatusMsg)message;
-			assertEquals(1, statusMsg.streamId());
-			assertEquals(DomainTypes.LOGIN, statusMsg.domainType());
-			assertEquals("Open / Ok / None / 'preferred host complete'", statusMsg.state().toString());
+			assertEquals("Open / Ok / PreferredHostNoFallback / 'preferred host no fallback'", statusMsg.state().toString());
 			assertTrue(statusMsg.hasMsgKey());
 			assertEquals(DataTypes.NO_DATA, statusMsg.payload().dataType());
 			assertEquals(DataTypes.NO_DATA, statusMsg.attrib().dataType());
@@ -5997,7 +5974,7 @@ public class OmmConsumerTests extends TestCase
 			StatusMsg statusMsg = (StatusMsg)message;
 			assertEquals(1, statusMsg.streamId());
 			assertEquals(DomainTypes.LOGIN, statusMsg.domainType());
-			assertEquals("Open / Ok / None / 'preferred host starting fallback'", statusMsg.state().toString());
+			assertEquals("Open / Ok / PreferredHostStartingFallback / 'preferred host starting fallback'", statusMsg.state().toString());
 			assertTrue(statusMsg.hasMsgKey());
 			assertEquals(DataTypes.NO_DATA, statusMsg.payload().dataType());
 			assertEquals(DataTypes.NO_DATA, statusMsg.attrib().dataType());
@@ -6081,7 +6058,7 @@ public class OmmConsumerTests extends TestCase
 			statusMsg = (StatusMsg)message;
 			assertEquals(1, statusMsg.streamId());
 			assertEquals(DomainTypes.LOGIN, statusMsg.domainType());
-			assertEquals("Open / Suspect / None / 'preferred host complete'", statusMsg.state().toString());
+			assertEquals("Open / Suspect / PreferredHostComplete / 'preferred host complete'", statusMsg.state().toString());
 			assertTrue(statusMsg.hasMsgKey());
 			assertEquals(DataTypes.NO_DATA, statusMsg.payload().dataType());
 			assertEquals(DataTypes.NO_DATA, statusMsg.attrib().dataType());
@@ -6324,7 +6301,7 @@ public class OmmConsumerTests extends TestCase
 			
 			assertEquals(1, statusMsg.streamId());
 			assertEquals(DomainTypes.LOGIN, statusMsg.domainType());
-			assertEquals("Open / Ok / None / 'preferred host starting fallback'", statusMsg.state().toString());
+			assertEquals("Open / Ok / PreferredHostStartingFallback / 'preferred host starting fallback'", statusMsg.state().toString());
 			assertTrue(statusMsg.hasMsgKey());
 			assertEquals(DataTypes.NO_DATA, statusMsg.payload().dataType());
 			channelInfo = consumerClient.popChannelInfo();
@@ -6337,7 +6314,7 @@ public class OmmConsumerTests extends TestCase
 			
 			assertEquals(1, statusMsg.streamId());
 			assertEquals(DomainTypes.LOGIN, statusMsg.domainType());
-			assertEquals("Open / Ok / None / 'preferred host complete'", statusMsg.state().toString());
+			assertEquals("Open / Ok / PreferredHostComplete / 'preferred host complete'", statusMsg.state().toString());
 			assertTrue(statusMsg.hasMsgKey());
 			assertEquals(DataTypes.NO_DATA, statusMsg.payload().dataType());
 			channelInfo = consumerClient.popChannelInfo();
@@ -6359,7 +6336,7 @@ public class OmmConsumerTests extends TestCase
 			statusMsg = (StatusMsg)message;
 			assertEquals(1, statusMsg.streamId());
 			assertEquals(DomainTypes.LOGIN, statusMsg.domainType());
-			assertEquals("Open / Ok / None / 'preferred host starting fallback'", statusMsg.state().toString());
+			assertEquals("Open / Ok / PreferredHostStartingFallback / 'preferred host starting fallback'", statusMsg.state().toString());
 			assertTrue(statusMsg.hasMsgKey());
 			assertEquals(DataTypes.NO_DATA, statusMsg.payload().dataType());
 			assertEquals(DataTypes.NO_DATA, statusMsg.attrib().dataType());
@@ -6424,7 +6401,7 @@ public class OmmConsumerTests extends TestCase
 			
 			assertEquals(1, statusMsg.streamId());
 			assertEquals(DomainTypes.LOGIN, statusMsg.domainType());
-			assertEquals("Open / Suspect / None / 'preferred host complete'", statusMsg.state().toString());
+			assertEquals("Open / Suspect / PreferredHostComplete / 'preferred host complete'", statusMsg.state().toString());
 			assertTrue(statusMsg.hasMsgKey());
 			assertEquals(DataTypes.NO_DATA, statusMsg.payload().dataType());
 			channelInfo = consumerClient.popChannelInfo();
@@ -6492,20 +6469,7 @@ public class OmmConsumerTests extends TestCase
 			
 			assertEquals(1, statusMsg.streamId());
 			assertEquals(DomainTypes.LOGIN, statusMsg.domainType());
-			assertEquals("Open / Ok / None / 'preferred host starting fallback'", statusMsg.state().toString());
-			assertTrue(statusMsg.hasMsgKey());
-			assertEquals(DataTypes.NO_DATA, statusMsg.payload().dataType());
-			channelInfo = consumerClient.popChannelInfo();
-			assertEquals("Channel_7", channelInfo.channelName());
-			assertEquals(ChannelInformation.ChannelState.ACTIVE, channelInfo.channelState());
-			assertEquals("WarmStandbyChannel_2", channelInfo.preferredHostInfo().getWsbChannelName());
-			
-			message = consumerClient.popMessage();
-			statusMsg = (StatusMsg)message;
-			
-			assertEquals(1, statusMsg.streamId());
-			assertEquals(DomainTypes.LOGIN, statusMsg.domainType());
-			assertEquals("Open / Ok / None / 'preferred host complete'", statusMsg.state().toString());
+			assertEquals("Open / Ok / PreferredHostNoFallback / 'preferred host no fallback'", statusMsg.state().toString());
 			assertTrue(statusMsg.hasMsgKey());
 			assertEquals(DataTypes.NO_DATA, statusMsg.payload().dataType());
 			channelInfo = consumerClient.popChannelInfo();
@@ -6690,6 +6654,7 @@ public class OmmConsumerTests extends TestCase
 
 			int preferredHostStartedEventCount = 0;
 			int preferredHostCompletedEventCount = 0;
+			int preferredHostNoFallback = 0;
 
 			int count = consumerClient.queueSize();
 			for (int i = 0; i < count; i++)
@@ -6701,11 +6666,17 @@ public class OmmConsumerTests extends TestCase
 					OmmState state = statusMsg.state();
 					if (state.statusText().contains("preferred host complete")) preferredHostCompletedEventCount++;
 					if (state.statusText().contains("preferred host starting fallback")) preferredHostStartedEventCount++;
+					if (state.statusText().contains("preferred host no fallback")) preferredHostNoFallback++;
 				}
 			}
+			
+			System.out.println("preferredHostStartedEventCount: " + preferredHostStartedEventCount);
+			System.out.println("preferredHostCompletedEventCount: " + preferredHostCompletedEventCount);
+			System.out.println("preferredHostNoFallback: " + preferredHostNoFallback);
 
-			assertTrue(preferredHostStartedEventCount > 2);
-			assertTrue(preferredHostCompletedEventCount > 2);
+			assertTrue(preferredHostStartedEventCount >= 1);
+			assertTrue(preferredHostCompletedEventCount >= 1);
+			assertTrue(preferredHostNoFallback >= 2);
 
 			for (int i = 0; i < consumerClient.channelInfoSize(); i++) consumerClient.popChannelInfo();
 
@@ -6875,7 +6846,7 @@ public class OmmConsumerTests extends TestCase
 			
 			assertEquals(1, statusMsg.streamId());
 			assertEquals(DomainTypes.LOGIN, statusMsg.domainType());
-			assertEquals("Open / Ok / None / 'preferred host starting fallback'", statusMsg.state().toString());
+			assertEquals("Open / Ok / PreferredHostStartingFallback / 'preferred host starting fallback'", statusMsg.state().toString());
 			assertTrue(statusMsg.hasMsgKey());
 			assertEquals(DataTypes.NO_DATA, statusMsg.payload().dataType());
 			channelInfo = consumerClient.popChannelInfo();
@@ -6883,18 +6854,22 @@ public class OmmConsumerTests extends TestCase
 			assertEquals(ChannelInformation.ChannelState.ACTIVE, channelInfo.channelState());
 			assertEquals("Channel_2", channelInfo.preferredHostInfo().getChannelName());
 			
+			
 			message = consumerClient.popMessage();
+			
+			/* Checks login status messages */
 			statusMsg = (StatusMsg)message;
 			
 			assertEquals(1, statusMsg.streamId());
 			assertEquals(DomainTypes.LOGIN, statusMsg.domainType());
-			assertEquals("Open / Ok / None / 'preferred host complete'", statusMsg.state().toString());
+			assertEquals("Open / Ok / PreferredHostComplete / 'preferred host complete'", statusMsg.state().toString());
 			assertTrue(statusMsg.hasMsgKey());
 			assertEquals(DataTypes.NO_DATA, statusMsg.payload().dataType());
 			channelInfo = consumerClient.popChannelInfo();
 			assertEquals("Channel_1", channelInfo.channelName());
 			assertEquals(ChannelInformation.ChannelState.ACTIVE, channelInfo.channelState());
 			assertEquals("Channel_2", channelInfo.preferredHostInfo().getChannelName());
+			
 			
 			System.out.println("Bring up the preferred channel.");
 			
@@ -6910,7 +6885,7 @@ public class OmmConsumerTests extends TestCase
 			statusMsg = (StatusMsg)message;
 			assertEquals(1, statusMsg.streamId());
 			assertEquals(DomainTypes.LOGIN, statusMsg.domainType());
-			assertEquals("Open / Ok / None / 'preferred host starting fallback'", statusMsg.state().toString());
+			assertEquals("Open / Ok / PreferredHostStartingFallback / 'preferred host starting fallback'", statusMsg.state().toString());
 			assertTrue(statusMsg.hasMsgKey());
 			assertEquals(DataTypes.NO_DATA, statusMsg.payload().dataType());
 			assertEquals(DataTypes.NO_DATA, statusMsg.attrib().dataType());
@@ -6952,7 +6927,7 @@ public class OmmConsumerTests extends TestCase
 			
 			assertEquals(1, statusMsg.streamId());
 			assertEquals(DomainTypes.LOGIN, statusMsg.domainType());
-			assertEquals("Open / Suspect / None / 'preferred host complete'", statusMsg.state().toString());
+			assertEquals("Open / Suspect / PreferredHostComplete / 'preferred host complete'", statusMsg.state().toString());
 			assertTrue(statusMsg.hasMsgKey());
 			assertEquals(DataTypes.NO_DATA, statusMsg.payload().dataType());
 			channelInfo = consumerClient.popChannelInfo();
@@ -7021,20 +6996,7 @@ public class OmmConsumerTests extends TestCase
 			
 			assertEquals(1, statusMsg.streamId());
 			assertEquals(DomainTypes.LOGIN, statusMsg.domainType());
-			assertEquals("Open / Ok / None / 'preferred host starting fallback'", statusMsg.state().toString());
-			assertTrue(statusMsg.hasMsgKey());
-			assertEquals(DataTypes.NO_DATA, statusMsg.payload().dataType());
-			channelInfo = consumerClient.popChannelInfo();
-			assertEquals("Channel_2", channelInfo.channelName());
-			assertEquals(ChannelInformation.ChannelState.ACTIVE, channelInfo.channelState());
-			assertEquals("Channel_2", channelInfo.preferredHostInfo().getChannelName());
-			
-			message = consumerClient.popMessage();
-			statusMsg = (StatusMsg)message;
-			
-			assertEquals(1, statusMsg.streamId());
-			assertEquals(DomainTypes.LOGIN, statusMsg.domainType());
-			assertEquals("Open / Ok / None / 'preferred host complete'", statusMsg.state().toString());
+			assertEquals("Open / Ok / PreferredHostNoFallback / 'preferred host no fallback'", statusMsg.state().toString());
 			assertTrue(statusMsg.hasMsgKey());
 			assertEquals(DataTypes.NO_DATA, statusMsg.payload().dataType());
 			channelInfo = consumerClient.popChannelInfo();
@@ -7139,7 +7101,7 @@ public class OmmConsumerTests extends TestCase
 			
 			assertEquals(1, statusMsg.streamId());
 			assertEquals(DomainTypes.LOGIN, statusMsg.domainType());
-			assertEquals("Open / Ok / None / 'preferred host starting fallback'", statusMsg.state().toString());
+			assertEquals("Open / Ok / PreferredHostNoFallback / 'preferred host no fallback'", statusMsg.state().toString());
 			assertTrue(statusMsg.hasMsgKey());
 			assertEquals(DataTypes.NO_DATA, statusMsg.payload().dataType());
 			channelInfo = consumerClient.popChannelInfo();
@@ -7148,19 +7110,6 @@ public class OmmConsumerTests extends TestCase
 			assertEquals("Channel_1", channelInfo.preferredHostInfo().getChannelName());
 			assertEquals("WarmStandbyChannel_1", channelInfo.preferredHostInfo().getWsbChannelName());
 			
-			message = consumerClient.popMessage();
-			statusMsg = (StatusMsg)message;
-			
-			assertEquals(1, statusMsg.streamId());
-			assertEquals(DomainTypes.LOGIN, statusMsg.domainType());
-			assertEquals("Open / Ok / None / 'preferred host complete'", statusMsg.state().toString());
-			assertTrue(statusMsg.hasMsgKey());
-			assertEquals(DataTypes.NO_DATA, statusMsg.payload().dataType());
-			channelInfo = consumerClient.popChannelInfo();
-			assertEquals("Channel_3", channelInfo.channelName());
-			assertEquals(ChannelInformation.ChannelState.ACTIVE, channelInfo.channelState());
-			assertEquals("Channel_1", channelInfo.preferredHostInfo().getChannelName());
-			assertEquals("WarmStandbyChannel_1", channelInfo.preferredHostInfo().getWsbChannelName());
 			
 			System.out.println("\nBring down the WSB-G0 to connect with Channel_1");
 			ommprovider_3.uninitialize(); ommprovider_3 = null;
@@ -7231,7 +7180,7 @@ public class OmmConsumerTests extends TestCase
 			
 			assertEquals(1, statusMsg.streamId());
 			assertEquals(DomainTypes.LOGIN, statusMsg.domainType());
-			assertEquals("Open / Ok / None / 'preferred host starting fallback'", statusMsg.state().toString());
+			assertEquals("Open / Ok / PreferredHostStartingFallback / 'preferred host starting fallback'", statusMsg.state().toString());
 			assertTrue(statusMsg.hasMsgKey());
 			assertEquals(DataTypes.NO_DATA, statusMsg.payload().dataType());
 			channelInfo = consumerClient.popChannelInfo();
@@ -7241,11 +7190,13 @@ public class OmmConsumerTests extends TestCase
 			assertEquals("WarmStandbyChannel_1", channelInfo.preferredHostInfo().getWsbChannelName());
 			
 			message = consumerClient.popMessage();
+			
+			/* Checks login status messages */
 			statusMsg = (StatusMsg)message;
 			
 			assertEquals(1, statusMsg.streamId());
 			assertEquals(DomainTypes.LOGIN, statusMsg.domainType());
-			assertEquals("Open / Ok / None / 'preferred host complete'", statusMsg.state().toString());
+			assertEquals("Open / Ok / PreferredHostComplete / 'preferred host complete'", statusMsg.state().toString());
 			assertTrue(statusMsg.hasMsgKey());
 			assertEquals(DataTypes.NO_DATA, statusMsg.payload().dataType());
 			channelInfo = consumerClient.popChannelInfo();
@@ -7253,6 +7204,8 @@ public class OmmConsumerTests extends TestCase
 			assertEquals(ChannelInformation.ChannelState.ACTIVE, channelInfo.channelState());
 			assertEquals("Channel_1", channelInfo.preferredHostInfo().getChannelName());
 			assertEquals("WarmStandbyChannel_1", channelInfo.preferredHostInfo().getWsbChannelName());
+			
+			
 			
 			System.out.println("\nBring up the WSB-G0 again");
 			ommprovider_3 = EmaFactory.createOmmProvider(config.port("19003").providerName("Provider_9"), providerClient_3);
@@ -7267,7 +7220,7 @@ public class OmmConsumerTests extends TestCase
 			
 			assertEquals(1, statusMsg.streamId());
 			assertEquals(DomainTypes.LOGIN, statusMsg.domainType());
-			assertEquals("Open / Ok / None / 'preferred host starting fallback'", statusMsg.state().toString());
+			assertEquals("Open / Ok / PreferredHostStartingFallback / 'preferred host starting fallback'", statusMsg.state().toString());
 			assertTrue(statusMsg.hasMsgKey());
 			assertEquals(DataTypes.NO_DATA, statusMsg.payload().dataType());
 			channelInfo = consumerClient.popChannelInfo();
@@ -7305,7 +7258,7 @@ public class OmmConsumerTests extends TestCase
 			
 			assertEquals(1, statusMsg.streamId());
 			assertEquals(DomainTypes.LOGIN, statusMsg.domainType());
-			assertEquals("Open / Suspect / None / 'preferred host complete'", statusMsg.state().toString());
+			assertEquals("Open / Suspect / PreferredHostComplete / 'preferred host complete'", statusMsg.state().toString());
 			assertTrue(statusMsg.hasMsgKey());
 			assertEquals(DataTypes.NO_DATA, statusMsg.payload().dataType());
 			channelInfo = consumerClient.popChannelInfo();
@@ -7353,7 +7306,7 @@ public class OmmConsumerTests extends TestCase
 			statusMsg = (StatusMsg)message;
 			assertEquals(1, statusMsg.streamId());
 			assertEquals(DomainTypes.LOGIN, statusMsg.domainType());
-			assertEquals("Open / Ok / None / 'preferred host starting fallback'", statusMsg.state().toString());
+			assertEquals("Open / Ok / PreferredHostNoFallback / 'preferred host no fallback'", statusMsg.state().toString());
 			assertTrue(statusMsg.hasMsgKey());
 			assertEquals(DataTypes.NO_DATA, statusMsg.payload().dataType());
 			assertEquals(DataTypes.NO_DATA, statusMsg.attrib().dataType());
@@ -7363,21 +7316,7 @@ public class OmmConsumerTests extends TestCase
 			assertEquals("Channel_1", channelInfo.preferredHostInfo().getChannelName());
 			assertEquals("WarmStandbyChannel_1", channelInfo.preferredHostInfo().getWsbChannelName());
 			
-			message = consumerClient.popMessage();
-			statusMsg = (StatusMsg)message;
-			
-			assertEquals(1, statusMsg.streamId());
-			assertEquals(DomainTypes.LOGIN, statusMsg.domainType());
-			assertEquals("Open / Ok / None / 'preferred host complete'", statusMsg.state().toString());
-			assertTrue(statusMsg.hasMsgKey());
-			assertEquals(DataTypes.NO_DATA, statusMsg.payload().dataType());
-			channelInfo = consumerClient.popChannelInfo();
-			assertEquals("Channel_6", channelInfo.channelName());
-			assertEquals(ChannelInformation.ChannelState.ACTIVE, channelInfo.channelState());
-			assertEquals("Channel_1", channelInfo.preferredHostInfo().getChannelName());
-			assertEquals("WarmStandbyChannel_1", channelInfo.preferredHostInfo().getWsbChannelName());
-			
-			System.out.println("\nBrind down the standby server of WSB-GO to connect with Channel_1");
+			System.out.println("\nBring down the standby server of WSB-GO to connect with Channel_1");
 			ommprovider_6.uninitialize(); ommprovider_6 = null;
 			
 			Thread.sleep(10000);
@@ -7447,7 +7386,7 @@ public class OmmConsumerTests extends TestCase
 			
 			assertEquals(1, statusMsg.streamId());
 			assertEquals(DomainTypes.LOGIN, statusMsg.domainType());
-			assertEquals("Open / Ok / None / 'preferred host starting fallback'", statusMsg.state().toString());
+			assertEquals("Open / Ok / PreferredHostStartingFallback / 'preferred host starting fallback'", statusMsg.state().toString());
 			assertTrue(statusMsg.hasMsgKey());
 			assertEquals(DataTypes.NO_DATA, statusMsg.payload().dataType());
 			channelInfo = consumerClient.popChannelInfo();
@@ -7461,7 +7400,7 @@ public class OmmConsumerTests extends TestCase
 			
 			assertEquals(1, statusMsg.streamId());
 			assertEquals(DomainTypes.LOGIN, statusMsg.domainType());
-			assertEquals("Open / Ok / None / 'preferred host complete'", statusMsg.state().toString());
+			assertEquals("Open / Ok / PreferredHostComplete / 'preferred host complete'", statusMsg.state().toString());
 			assertTrue(statusMsg.hasMsgKey());
 			assertEquals(DataTypes.NO_DATA, statusMsg.payload().dataType());
 			channelInfo = consumerClient.popChannelInfo();
@@ -7484,7 +7423,7 @@ public class OmmConsumerTests extends TestCase
 			
 			assertEquals(1, statusMsg.streamId());
 			assertEquals(DomainTypes.LOGIN, statusMsg.domainType());
-			assertEquals("Open / Ok / None / 'preferred host starting fallback'", statusMsg.state().toString());
+			assertEquals("Open / Ok / PreferredHostStartingFallback / 'preferred host starting fallback'", statusMsg.state().toString());
 			assertTrue(statusMsg.hasMsgKey());
 			assertEquals(DataTypes.NO_DATA, statusMsg.payload().dataType());
 			channelInfo = consumerClient.popChannelInfo();
@@ -7522,7 +7461,7 @@ public class OmmConsumerTests extends TestCase
 			
 			assertEquals(1, statusMsg.streamId());
 			assertEquals(DomainTypes.LOGIN, statusMsg.domainType());
-			assertEquals("Open / Suspect / None / 'preferred host complete'", statusMsg.state().toString());
+			assertEquals("Open / Suspect / PreferredHostComplete / 'preferred host complete'", statusMsg.state().toString());
 			assertTrue(statusMsg.hasMsgKey());
 			assertEquals(DataTypes.NO_DATA, statusMsg.payload().dataType());
 			channelInfo = consumerClient.popChannelInfo();
@@ -7575,21 +7514,7 @@ public class OmmConsumerTests extends TestCase
 			
 			assertEquals(1, statusMsg.streamId());
 			assertEquals(DomainTypes.LOGIN, statusMsg.domainType());
-			assertEquals("Open / Ok / None / 'preferred host starting fallback'", statusMsg.state().toString());
-			assertTrue(statusMsg.hasMsgKey());
-			assertEquals(DataTypes.NO_DATA, statusMsg.payload().dataType());
-			channelInfo = consumerClient.popChannelInfo();
-			assertEquals("Channel_3", channelInfo.channelName());
-			assertEquals(ChannelInformation.ChannelState.ACTIVE, channelInfo.channelState());
-			assertEquals("Channel_1", channelInfo.preferredHostInfo().getChannelName());
-			assertEquals("WarmStandbyChannel_1", channelInfo.preferredHostInfo().getWsbChannelName());
-			
-			message = consumerClient.popMessage();
-			statusMsg = (StatusMsg)message;
-			
-			assertEquals(1, statusMsg.streamId());
-			assertEquals(DomainTypes.LOGIN, statusMsg.domainType());
-			assertEquals("Open / Ok / None / 'preferred host complete'", statusMsg.state().toString());
+			assertEquals("Open / Ok / PreferredHostNoFallback / 'preferred host no fallback'", statusMsg.state().toString());
 			assertTrue(statusMsg.hasMsgKey());
 			assertEquals(DataTypes.NO_DATA, statusMsg.payload().dataType());
 			channelInfo = consumerClient.popChannelInfo();
@@ -7668,7 +7593,7 @@ public class OmmConsumerTests extends TestCase
 			
 			assertEquals(1, statusMsg.streamId());
 			assertEquals(DomainTypes.LOGIN, statusMsg.domainType());
-			assertEquals("Open / Ok / None / 'preferred host starting fallback'", statusMsg.state().toString());
+			assertEquals("Open / Ok / PreferredHostStartingFallback / 'preferred host starting fallback'", statusMsg.state().toString());
 			assertTrue(statusMsg.hasMsgKey());
 			assertEquals(DataTypes.NO_DATA, statusMsg.payload().dataType());
 			channelInfo = consumerClient.popChannelInfo();
@@ -7682,7 +7607,7 @@ public class OmmConsumerTests extends TestCase
 			
 			assertEquals(1, statusMsg.streamId());
 			assertEquals(DomainTypes.LOGIN, statusMsg.domainType());
-			assertEquals("Open / Ok / None / 'preferred host complete'", statusMsg.state().toString());
+			assertEquals("Open / Ok / PreferredHostComplete / 'preferred host complete'", statusMsg.state().toString());
 			assertTrue(statusMsg.hasMsgKey());
 			assertEquals(DataTypes.NO_DATA, statusMsg.payload().dataType());
 			channelInfo = consumerClient.popChannelInfo();
@@ -7704,7 +7629,7 @@ public class OmmConsumerTests extends TestCase
 			
 			assertEquals(1, statusMsg.streamId());
 			assertEquals(DomainTypes.LOGIN, statusMsg.domainType());
-			assertEquals("Open / Ok / None / 'preferred host starting fallback'", statusMsg.state().toString());
+			assertEquals("Open / Ok / PreferredHostStartingFallback / 'preferred host starting fallback'", statusMsg.state().toString());
 			assertTrue(statusMsg.hasMsgKey());
 			assertEquals(DataTypes.NO_DATA, statusMsg.payload().dataType());
 			channelInfo = consumerClient.popChannelInfo();
@@ -7742,7 +7667,7 @@ public class OmmConsumerTests extends TestCase
 			
 			assertEquals(1, statusMsg.streamId());
 			assertEquals(DomainTypes.LOGIN, statusMsg.domainType());
-			assertEquals("Open / Suspect / None / 'preferred host complete'", statusMsg.state().toString());
+			assertEquals("Open / Suspect / PreferredHostComplete / 'preferred host complete'", statusMsg.state().toString());
 			assertTrue(statusMsg.hasMsgKey());
 			assertEquals(DataTypes.NO_DATA, statusMsg.payload().dataType());
 			channelInfo = consumerClient.popChannelInfo();

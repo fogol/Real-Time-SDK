@@ -2,7 +2,7 @@
  *|            This source code is provided under the Apache 2.0 license
  *|  and is provided AS IS with no warranty or guarantee of fit for purpose.
  *|                See the project's LICENSE.md for details.
- *|           Copyright (C) 2019-2022,2024-2025 LSEG. All rights reserved.    --
+ *|           Copyright (C) 2020-2025 LSEG. All rights reserved.
  *|-----------------------------------------------------------------------------
  */
 
@@ -75,6 +75,8 @@ class ConsumerCmdLineParser implements CommandLineParser
 	private String restProxyPasswd;
 	private String restProxyDomain;
 	private String restProxyKrb5ConfigFile;
+	private long updateTypeFilter = -1;
+	private long negativeUpdateTypeFilter = -1;
 
 	// Preferred host options
 	private boolean enablePH = false;
@@ -418,6 +420,16 @@ class ConsumerCmdLineParser implements CommandLineParser
 				else if ("-spTLSv1.3".equals(args[argsCount]))
 				{
 					spTLSv13enable = true;
+					++argsCount;
+				}
+				else if ("-updateTypeFilter".equals(args[argsCount]))
+				{
+					updateTypeFilter = Integer.parseInt(args[++argsCount]);
+					++argsCount;
+				}
+				else if ("-negativeUpdateTypeFilter".equals(args[argsCount]))
+				{
+					negativeUpdateTypeFilter = Integer.parseInt(args[++argsCount]);
 					++argsCount;
 				}
 				// Preferred host options
@@ -803,6 +815,10 @@ class ConsumerCmdLineParser implements CommandLineParser
 		return restProxyKrb5ConfigFile;
 	}
 
+	long updateTypeFilter() { return updateTypeFilter; }
+
+	long negativeUpdateTypeFilter() { return negativeUpdateTypeFilter; }
+
 	boolean enablePH()
 	{
 		return enablePH;
@@ -893,14 +909,14 @@ class ConsumerCmdLineParser implements CommandLineParser
 						   "\n -pl protocol list (defaults to rssl.rwf, tr_json2, rssl.json.v2)\n" +
 						   "\n -uname changes the username used when logging into the provider(required for V1 password credential logins)\n" +
 						   "\n -passwd changes the password used when logging into the provider(required for V1 password credential logins)\n" +
-						   "\n -clientId specifies a unique ID for application making the request to RDP token service, also known as AppKey generated using an AppGenerator for V1 password credentials. For V2 client credentials, this is the service account.(required for V1 password credential and V2 client credential logins)\n" +
+						   "\n -clientId specifies a unique ID for application making the request to LDP token service, also known as AppKey generated using an AppGenerator for V1 password credentials. For V2 client credentials, this is the service account.(required for V1 password credential and V2 client credential logins)\n" +
 						   "\n -clientSecret specifies the associated secret with the client id(required for V2 client credential logins)." +
 						   "\n -sessionMgnt enables the session management in the Reactor\n" +
 						   "\n -jwk Specifies the file containing the JWK encoded private key for V2 JWT logins.\n" +
 						   "\n -takeExclusiveSignOnControl <true/false> the exclusive sign on control to force sign-out for the same credentials. This is only used with V1 password credential logins(optional for V1 password credential logins).\n" +
 						   "\n -tokenURLV1 specifies the URL for the V1 token generator(optional)." +
 						   "\n -tokenURLV2 specifies the URL for the V2 token generator(optional)." +
-						   "\n -serviceDiscoveryURL specifies the RDP Service Discovery URL to override the default value.\n" +
+						   "\n -serviceDiscoveryURL specifies the LDP Service Discovery URL to override the default value.\n" +
 						   "\n -location specifies location/region when dogin service discovery.\n" +
 						   "\n -view specifies each request using a basic dynamic view\n" +
 						   "\n -restProxyHost specifies the REST proxy host name. Used for REST requests only for service discovery and authentication.\n" +
@@ -938,7 +954,9 @@ class ConsumerCmdLineParser implements CommandLineParser
 						   "\n -rtt Enables rtt support by a consumer. If provider makes distribution of RTT messages, consumer will return back them. In another case, consumer will ignore them." +
 						   "\n -sendJsonConvError enable send json conversion error to provider " +
 						   "\n -spTLSv1.2 specifies for an encrypted connection to be able to use TLS 1.2, default is 1.2 and 1.3 enabled" + 
-						   "\n -spTLSv1.3 specifies for an encrypted connection to be able to use TLS 1.3, default is 1.2 and 1.3 enabled\n" +
+						   "\n -spTLSv1.3 specifies for an encrypted connection to be able to use TLS 1.3, default is 1.2 and 1.3 enabled" +
+				           "\n -updateTypeFilter specifies the UpdateTypeFilter that will be set for the Login Request message" +
+				           "\n -negativeUpdateTypeFilter specifies the NegativeUpdateTypeFilter that will be set for the Login Request message" +
 							"\n Options for Preferred host (optional):" +
 							"\n -enablePH enables Preferred host feature. By default, all the connections will set as a connection list in ReactorConnectOptions" +
 							"\n -preferredHostIndex <index> specifies the preferred host as the index in the connection list. Default is 0" +

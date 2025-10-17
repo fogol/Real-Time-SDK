@@ -146,16 +146,17 @@ class Worker implements Runnable
                 while (_timerEventQueue.hasNext())
                 {
                     WorkerEvent event = (WorkerEvent)_timerEventQueue.next();
+                    
+                 	/* This PH timer event is already canceled when a timer is installed */
+                	if(event._isCanceled)
+                	{
+                		_timerEventQueue.remove(event);
+                        event.returnToPool();
+                		continue;
+                	}
+                    
                     if (System.nanoTime() >= event.timeout())
-                    {
-                    	/* This PH timer event is already canceled when a timer is installed */
-                    	if(event._isCanceled)
-                    	{
-                    		_timerEventQueue.remove(event);
-                            event.returnToPool();
-                    		continue;
-                    	}
-                    	
+                    {  	
                         if (event.eventType() == WorkerEventTypes.TOKEN_MGNT)
                         {
                         	ReactorTokenSession tokenSession = event._tokenSession;

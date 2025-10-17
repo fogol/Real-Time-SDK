@@ -2131,7 +2131,24 @@ RsslReactorCallbackRet ChannelCallbackClient::processCallback( RsslReactor* pRss
 		else
 		{
 		_ommBaseImpl.getLoginCallbackClient().processChannelEvent(pEvent);
-		}	
+		}
+		break;
+	case RSSL_RC_CET_PREFERRED_HOST_NO_FALLBACK:
+		if (OmmLoggerClient::SuccessEnum >= _ommBaseImpl.getActiveConfig().loggerConfig.minLoggerSeverity)
+		{
+			EmaString temp("Received Channel preferred host no fallback due to already being on preferred channel ");
+			temp.append(pChannelConfig->name);
+			_ommBaseImpl.getOmmLoggerClient().log(_clientName, OmmLoggerClient::SuccessEnum, temp.trimWhitespace());
+		}
+
+		if (pChannel->getConsumerRoutingChannel() != NULL)
+		{
+			pChannel->getConsumerRoutingChannel()->pRoutingSession->processChannelEvent(pChannel->getConsumerRoutingChannel(), pEvent);
+		}
+		else
+		{
+			_ommBaseImpl.getLoginCallbackClient().processChannelEvent(pEvent);
+		}
 
 		break;
 	case RSSL_RC_CET_PREFERRED_HOST_STARTING_FALLBACK:

@@ -2578,23 +2578,12 @@ public class ReactorChannel extends VaNode
 	                );
 	            }
 	            
-	            // Send PREFERRED_HOST_START_FALLBACK event to Reactor event queue
-	            sendEventToReactorQueue(reactorChannel, WorkerEventTypes.PREFERRED_HOST_START_FALLBACK, ReactorReturnCodes.SUCCESS, "ReactorChannel.switchToPreferredHost", null);
-	            
-	            // Send PREFERRED_HOST_COMPLETE event to Reactor event queue
-	            sendEventToReactorQueue(reactorChannel, WorkerEventTypes.PREFERRED_HOST_COMPLETE, ReactorReturnCodes.SUCCESS, "ReactorChannel.switchToPreferredHost", null);
-	            
 	    		return ReactorReturnCodes.SUCCESS;
 	    	}
 	    	
 	    	break;
     	}
 
-        // Send PREFERRED_HOST_START_FALLBACK event to Reactor event queue
-        sendEventToReactorQueue(reactorChannel,
-                WorkerEventTypes.PREFERRED_HOST_START_FALLBACK,
-                ReactorReturnCodes.SUCCESS,
-                "ReactorChannel.switchToPreferredHost", null);
 
         if (warmStandByHandlerImpl != null)
     	{
@@ -2627,8 +2616,9 @@ public class ReactorChannel extends VaNode
 		                                reactorChannel.hashCode()
 		                        );
 		                    }
-		                    // Send PREFERRED_HOST_COMPLETE event to Reactor event queue
-		                    sendEventToReactorQueue(reactorChannel, WorkerEventTypes.PREFERRED_HOST_COMPLETE, ReactorReturnCodes.SUCCESS, "ReactorChannel.switchToPreferredHost", null);
+		                    
+		                    // Send PREFERRED_HOST_NO_FALLBACK event to Reactor event queue
+		                    sendEventToReactorQueue(reactorChannel, WorkerEventTypes.PREFERRED_HOST_NO_FALLBACK, ReactorReturnCodes.SUCCESS, "ReactorChannel.switchToPreferredHost", null);
 		                    return ReactorReturnCodes.SUCCESS;
 		    			}
 		    			
@@ -2649,11 +2639,15 @@ public class ReactorChannel extends VaNode
 			        			}
 			        		}
 			        		
+			                // Send PREFERRED_HOST_START_FALLBACK event to Reactor event queue
+			                sendEventToReactorQueue(reactorChannel, WorkerEventTypes.PREFERRED_HOST_START_FALLBACK, ReactorReturnCodes.SUCCESS, "ReactorChannel.switchToPreferredHost", null);
+			        		
 			        		// In the case where we are currently in WSB, We will attempt to connect to the preferred WSB group
                             warmStandByHandlerImpl.startingReactorChannel()._switchingToPreferredWSBGroup = true;
 
 			            	// Set info
-			       			ReactorWarmStandbyGroupImpl wsbGroup = (ReactorWarmStandbyGroupImpl)warmStandByHandlerImpl.warmStandbyGroupList().get(warmStandByHandlerImpl.startingReactorChannel()._preferredHostOptions.warmStandbyGroupListIndex());
+			       			ReactorWarmStandbyGroupImpl wsbGroup = (ReactorWarmStandbyGroupImpl)warmStandByHandlerImpl.warmStandbyGroupList().get(warmStandByHandlerImpl.startingReactorChannel()
+			       					._preferredHostOptions.warmStandbyGroupListIndex());
 
                              // Set these into temporary objects, which will replace the real ones if our connection succeeds
 			       			reactorChannel._phTempReactorConnectInfo = wsbGroup.startingActiveServer().reactorConnectInfo();
@@ -2683,6 +2677,10 @@ public class ReactorChannel extends VaNode
 			        					Channel channel = warmStandByHandlerImpl.startingReactorChannel()._channel;
 			        					if (channel != null && channel.state() == ChannelState.ACTIVE)
 			        					{
+			        						
+			    			                // Send PREFERRED_HOST_START_FALLBACK event to Reactor event queue
+			    			                sendEventToReactorQueue(reactorChannel, WorkerEventTypes.PREFERRED_HOST_START_FALLBACK, ReactorReturnCodes.SUCCESS, "ReactorChannel.switchToPreferredHost", null);
+			        						
 			    							ReactorWarmStandbyEvent reactorWarmStandbyEvent = _reactor.reactorWarmStandbyEventPool
 			    									.getEvent(reactorChannel._errorInfoEDP);
 			    							reactorWarmStandbyEvent.eventType = ReactorWarmStandbyEventTypes.PREFERRED_HOST_FALLBACK_IN_GROUP;
@@ -2694,8 +2692,8 @@ public class ReactorChannel extends VaNode
 			        				}
 			        			}
 			
-			                    // Send preferred host switchover complete event to Reactor event queue
-			                    sendEventToReactorQueue(reactorChannel, WorkerEventTypes.PREFERRED_HOST_COMPLETE, ReactorReturnCodes.SUCCESS, "ReactorChannel.switchToPreferredHost", null);
+			                    // Send PREFERRED_HOST_START_FALLBACK event to Reactor event queue
+			                    sendEventToReactorQueue(reactorChannel, WorkerEventTypes.PREFERRED_HOST_NO_FALLBACK, ReactorReturnCodes.SUCCESS, "ReactorChannel.switchToPreferredHost", null);
 			
 			                    // We need to skip additional fallback processing because we will not fall back to other groups when fallBackWithInWSBGroup is true
 								return ReactorReturnCodes.SUCCESS;
@@ -2718,6 +2716,10 @@ public class ReactorChannel extends VaNode
 	        					Channel channel = warmStandByHandlerImpl.startingReactorChannel()._channel;
 	        					if (channel != null && channel.state() == ChannelState.ACTIVE)
 	        					{
+	        						
+	        						 // Send PREFERRED_HOST_START_FALLBACK event to Reactor event queue
+	    			                sendEventToReactorQueue(reactorChannel, WorkerEventTypes.PREFERRED_HOST_START_FALLBACK, ReactorReturnCodes.SUCCESS, "ReactorChannel.switchToPreferredHost", null);
+	        						
 	    							ReactorWarmStandbyEvent reactorWarmStandbyEvent = _reactor.reactorWarmStandbyEventPool
 	    									.getEvent(reactorChannel._errorInfoEDP);
 	    							reactorWarmStandbyEvent.eventType = ReactorWarmStandbyEventTypes.PREFERRED_HOST_FALLBACK_IN_GROUP;
@@ -2729,8 +2731,8 @@ public class ReactorChannel extends VaNode
 	        				}
 	        			}
 	
-	                    // Send preferred host switchover complete event to Reactor event queue
-	                    sendEventToReactorQueue(reactorChannel, WorkerEventTypes.PREFERRED_HOST_COMPLETE, ReactorReturnCodes.SUCCESS, "ReactorChannel.switchToPreferredHost", null);
+	                    // Send PREFERRED_HOST_START_FALLBACK event to Reactor event queue
+	                    sendEventToReactorQueue(reactorChannel, WorkerEventTypes.PREFERRED_HOST_NO_FALLBACK, ReactorReturnCodes.SUCCESS, "ReactorChannel.switchToPreferredHost", null);
 	
 	                    // We need to skip additional fallback processing because we will not fall back to other groups when fallBackWithInWSBGroup is true
 						return ReactorReturnCodes.SUCCESS;
@@ -2749,6 +2751,9 @@ public class ReactorChannel extends VaNode
     	        	break;
     			}
     		}
+    		
+    		// Send PREFERRED_HOST_START_FALLBACK event to Reactor event queue
+            sendEventToReactorQueue(reactorChannel, WorkerEventTypes.PREFERRED_HOST_START_FALLBACK, ReactorReturnCodes.SUCCESS, "ReactorChannel.switchToPreferredHost", null);
     		
     		// In the case where we are currently in WSB, We will attempt to connect to the preferred WSB group
             warmStandByHandlerImpl.startingReactorChannel()._switchingToPreferredWSBGroup = true;
@@ -2783,10 +2788,15 @@ public class ReactorChannel extends VaNode
                             reactorChannel.hashCode()
                     );
                 }
-                // Send PREFERRED_HOST_COMPLETE event to Reactor event queue
-                sendEventToReactorQueue(reactorChannel, WorkerEventTypes.PREFERRED_HOST_COMPLETE, ReactorReturnCodes.SUCCESS, "ReactorChannel.switchToPreferredHost", null);
+                
+                // Send PREFERRED_HOST_START_FALLBACK event to Reactor event queue
+                sendEventToReactorQueue(reactorChannel, WorkerEventTypes.PREFERRED_HOST_NO_FALLBACK, ReactorReturnCodes.SUCCESS, "ReactorChannel.switchToPreferredHost", null);
+                
                 return ReactorReturnCodes.SUCCESS;
         	}
+        	
+       		// Send PREFERRED_HOST_START_FALLBACK event to Reactor event queue
+            sendEventToReactorQueue(reactorChannel, WorkerEventTypes.PREFERRED_HOST_START_FALLBACK, ReactorReturnCodes.SUCCESS, "ReactorChannel.switchToPreferredHost", null);
 
         	// We will connect to the preferred host, and when channel is up, disconnect from current connection if still connected
         	reactorChannel._switchingToPreferredHost = true;

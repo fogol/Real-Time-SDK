@@ -947,6 +947,17 @@ public class wsbConsumer implements ConsumerCallback,
 				}
 
 				break;
+			case ReactorChannelEventTypes.PREFERRED_HOST_NO_FALLBACK:
+				System.out.println("Received ReactorChannel PREFERRED_HOST_NO_FALLBACK event.");
+				if (event.errorInfo() != null && event.errorInfo().error().text() != null)
+					System.out.println("    Error text: " + event.errorInfo().error().text() + "\n");
+
+				if (reactorChannel.info(reactorChannelInfo, reactorErrorInfo) == ReactorReturnCodes.SUCCESS)
+				{
+					printPreferredHostInfo(reactorChannelInfo.preferredHostInfo());
+				}
+
+				break;
 			default:
 			{
 				System.out.println("Unknown channel event!\n");

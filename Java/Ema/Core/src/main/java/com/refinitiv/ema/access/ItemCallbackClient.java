@@ -3149,6 +3149,9 @@ class SingleItem<T> extends Item<T>
 		
 		/* This is used to indicate that this item is removed so it is not recovered */
 		public final static int REMOVED = 4;
+		
+		/* This indicates that this item is being recovered by watchlist when the requested service is operational. */
+		public final static int RECOVERING_BY_WATCHLIST = 5;
 	}
 
 	SingleItem() {}
@@ -3704,7 +3707,7 @@ class SingleItem<T> extends Item<T>
 				_itemClosedDirHash = null;
 			}
 			
-			boolean returnToPool = !(state() == SingleItem.ItemStates.RECOVERING || state() == SingleItem.ItemStates.RECOVERING_NO_MATHCING);
+			boolean returnToPool = !(state() == SingleItem.ItemStates.RECOVERING || state() == SingleItem.ItemStates.RECOVERING_NO_MATHCING || state() == SingleItem.ItemStates.RECOVERING_BY_WATCHLIST);
 			
 			_baseImpl.itemCallbackClient().removeFromMap(this, returnToPool);
 			

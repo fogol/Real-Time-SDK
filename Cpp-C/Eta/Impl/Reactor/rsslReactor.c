@@ -229,6 +229,20 @@ static RsslRet _reactorSendPreferredHostComplete(RsslReactorImpl* pReactorImpl, 
 	return RSSL_RET_SUCCESS;
 }
 
+static RsslRet _reactorSendPreferredHostNoFallback(RsslReactorImpl* pReactorImpl, RsslReactorChannelImpl* pReactorChannel, RsslErrorInfo* pError)
+{
+	RsslReactorChannelEventImpl* pEvent = (RsslReactorChannelEventImpl*)rsslReactorEventQueueGetFromPool(&pReactorChannel->eventQueue);
+
+	rsslClearReactorChannelEventImpl(pEvent);
+	pEvent->channelEvent.channelEventType = RSSL_RC_CET_PREFERRED_HOST_NO_FALLBACK;
+
+	pEvent->channelEvent.pReactorChannel = (RsslReactorChannel*)pReactorChannel;
+	if (!RSSL_ERROR_INFO_CHECK(rsslReactorEventQueuePut(&pReactorChannel->eventQueue, (RsslReactorEventImpl*)pEvent) == RSSL_RET_SUCCESS, RSSL_RET_FAILURE, pError))
+		return RSSL_RET_FAILURE;
+
+	return RSSL_RET_SUCCESS;
+}
+
 /* Send JSON message directly to network without using the JSON converter functionality */
 static RsslRet _reactorSendJSONMessage(RsslReactorImpl *pReactorImpl, RsslReactorChannelImpl *pReactorChannel, RsslBuffer *pBuffer, RsslErrorInfo *pError)
 {
@@ -5945,6 +5959,7 @@ static RsslRet _reactorDispatchEventFromQueue(RsslReactorImpl *pReactorImpl, Rss
 						}
 						case RSSL_RC_CET_PREFERRED_HOST_COMPLETE:
 						case RSSL_RC_CET_PREFERRED_HOST_STARTING_FALLBACK:
+						case RSSL_RC_CET_PREFERRED_HOST_NO_FALLBACK:
 						{
 							// Both preferred host complete and starting_fallback events have the same handling here.
 							RsslReactorChannel* pCallbackChannel = (RsslReactorChannel*)pReactorChannel;
@@ -6045,6 +6060,7 @@ static RsslRet _reactorDispatchEventFromQueue(RsslReactorImpl *pReactorImpl, Rss
 						case RSSL_RC_CET_CHANNEL_DOWN:
 						case RSSL_RC_CET_PREFERRED_HOST_COMPLETE:
 						case RSSL_RC_CET_PREFERRED_HOST_STARTING_FALLBACK:
+						case RSSL_RC_CET_PREFERRED_HOST_NO_FALLBACK:
 						case RSSL_RCIMPL_CET_PREFERRED_HOST_RECONNECT_COMPLETE:
 							break;
 						case RSSL_RCIMPL_CET_DISPATCH_WL:
@@ -16396,7 +16412,7 @@ RSSL_VA_API RsslRet rsslReactorFallbackToPreferredHost(RsslReactorChannel* pReac
 			RsslReactorChannelEventImpl* pEvent = NULL;
 			rsslSetErrorInfo(&pReactorChannelImpl->channelWorkerCerr, RSSL_EIC_SUCCESS, RSSL_RET_SUCCESS, __FILE__, __LINE__,
 				"Channel is already connected to the Preferred Host.");
-			if (ret = _reactorSendPreferredHostComplete(pReactorImpl, pReactorChannelImpl, &pReactorChannelImpl->channelWorkerCerr) != RSSL_RET_SUCCESS)
+			if (ret = _reactorSendPreferredHostNoFallback(pReactorImpl, pReactorChannelImpl, &pReactorChannelImpl->channelWorkerCerr) != RSSL_RET_SUCCESS)
 			{
 				return (reactorUnlockInterface(pReactorImpl), ret);
 			}
@@ -16417,7 +16433,7 @@ RSSL_VA_API RsslRet rsslReactorFallbackToPreferredHost(RsslReactorChannel* pReac
 		/* The current pReactorChannel is preferred */
 		/* Do not fallback to this channel */
 		RsslReactorChannelEventImpl* pEvent = NULL;
-		if (ret = _reactorSendPreferredHostComplete(pReactorImpl, pReactorChannelImpl, pError) != RSSL_RET_SUCCESS)
+		if (ret = _reactorSendPreferredHostNoFallback(pReactorImpl, pReactorChannelImpl, pError) != RSSL_RET_SUCCESS)
 		{
 			return (reactorUnlockInterface(pReactorImpl), ret);
 		}

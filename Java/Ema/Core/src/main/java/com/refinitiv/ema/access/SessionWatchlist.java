@@ -562,8 +562,18 @@ class SessionWatchlist<T>
 							
 							if(handleConnectionRecovering || sessionChannelInfo.phOperationInProgress())
 							{
-								/* Sets the state that the item is being recovered */
-								singleItem.state(SingleItem.ItemStates.RECOVERING);
+								if(sessionChannelInfo.phOperationInProgress())
+								{
+								
+									/* Sets the state that the item is being recovered by watchlist when the requested service is operational */
+									singleItem.state(SingleItem.ItemStates.RECOVERING_BY_WATCHLIST);
+								}
+								else
+								{
+									/* Sets the state that the item is being recovered */
+									singleItem.state(SingleItem.ItemStates.RECOVERING);
+								}
+								
 								
 								/* Waiting to recover this item with the same channel */
 								singleItem._retrytosameChannel = true;

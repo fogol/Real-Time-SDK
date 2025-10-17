@@ -124,6 +124,7 @@ public :
 		AppAuthorizationFailedEnum		= 35,	/*!< Application Authorization Failed */
 		SocketPHComplete				= 201,	/*!< Socket preferred host complete>*/
 		SocketPHStartingFallback		= 202,	/*!< Socket preferred host starting fallback>*/
+		SocketPHNoFallback				= 203,	/*!< Socket preferred host no fallback>*/
 		InvalidFormedMsgEnum			= 256,  /*!< DEPRECATED: Not Used */
 		ChannelUnavailableEnum			= 257, /*!< DEPRECATED: Not Used */
 		ServiceUnavailableEnum			= 258, /*!< DEPRECATED: Not Used */

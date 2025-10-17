@@ -72,7 +72,9 @@ enum WorkerEventTypes
     PREFERRED_HOST_CHANNEL_CLOSE_ACK,
     
     // send from Worker to Reactor
-    PREFERRED_HOST_SUBMIT_MSG_RECOVERY_QUEUE;
+    PREFERRED_HOST_SUBMIT_MSG_RECOVERY_QUEUE,
+	
+	PREFERRED_HOST_NO_FALLBACK;
     
     /* Returns a String representation of the specified WorkerEventTypes type. */
     static String toString(WorkerEventTypes type)

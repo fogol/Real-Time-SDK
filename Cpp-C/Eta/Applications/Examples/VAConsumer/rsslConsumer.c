@@ -2066,6 +2066,12 @@ RsslReactorCallbackRet channelEventCallback(RsslReactor *pReactor, RsslReactorCh
 			printf("%s Received PREFERRED_HOST_COMPLETE for Channel fd="SOCKET_PRINT_TYPE".\n", timeBuf, pReactorChannel->socketId);
 			return RSSL_RC_CRET_SUCCESS;
 		}
+		case RSSL_RC_CET_PREFERRED_HOST_NO_FALLBACK:
+		{
+			/* The preferred host operation has determined that no fallback will be performed on this channel */
+			printf("%s Received PREFERRED_HOST_NO_FALLBACK for Channel fd="SOCKET_PRINT_TYPE".\n", timeBuf, pReactorChannel->socketId);
+			return RSSL_RC_CRET_SUCCESS;
+		}
 		default:
 		{
 			printf("%s Unknown connection event! (%d)\n", timeBuf, pConnEvent->channelEventType);

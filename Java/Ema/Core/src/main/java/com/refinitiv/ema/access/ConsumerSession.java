@@ -2128,7 +2128,7 @@ class ConsumerSession<T> implements DirectoryServiceClient<T>
 			_rsslState.streamState(StreamState.OPEN);
 			_rsslState.dataState(_currentRsslDataState);
 
-			_rsslState.code(StateCodes.NONE);
+			_rsslState.code(OmmState.StatusCode.PREFERRED_HOST_START_FALLBACK);
 			_rsslState.text().data("preferred host starting fallback");
 			_rsslStatusMsg.state(_rsslState);
 			_rsslStatusMsg.applyHasState();
@@ -2155,8 +2155,34 @@ class ConsumerSession<T> implements DirectoryServiceClient<T>
 			_rsslState.streamState(StreamState.OPEN);
 			_rsslState.dataState(_currentRsslDataState);
 
-			_rsslState.code(StateCodes.NONE);
+			_rsslState.code(OmmState.StatusCode.PREFERRED_HOST_COMPLETE);
 			_rsslState.text().data("preferred host complete");
+			_rsslStatusMsg.state(_rsslState);
+			_rsslStatusMsg.applyHasState();
+
+			_statusMsgImpl.decode(_rsslStatusMsg, event.reactorChannel().majorVersion(), event.reactorChannel().minorVersion(), null);
+
+			for (int idx = 0; idx < loginItemList.size(); ++idx)
+			{
+				_eventImpl._item = loginItemList.get(idx);
+				_eventImpl._channel = event.reactorChannel();
+
+				((OmmConsumerClient)_eventImpl._item.client()).onAllMsg(_statusMsgImpl, _eventImpl);
+				((OmmConsumerClient) _eventImpl._item.client()).onStatusMsg(_statusMsgImpl, _eventImpl);
+			}
+			break;
+		case ReactorChannelEventTypes.PREFERRED_HOST_NO_FALLBACK:
+			
+			if (loginItemList == null)
+				return;
+
+			populateStatusMsg();
+
+			_rsslState.streamState(StreamState.OPEN);
+			_rsslState.dataState(_currentRsslDataState);
+
+			_rsslState.code(OmmState.StatusCode.PREFERRED_HOST_NO_FALLBACK);
+			_rsslState.text().data("preferred no fallback");
 			_rsslStatusMsg.state(_rsslState);
 			_rsslStatusMsg.applyHasState();
 

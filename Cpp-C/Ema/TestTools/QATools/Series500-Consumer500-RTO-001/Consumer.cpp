@@ -6,6 +6,7 @@
 ///*|-----------------------------------------------------------------------------
 
 #include "Consumer.h"
+#include <cstring>
 
 using namespace refinitiv::ema::access;
 using namespace std;

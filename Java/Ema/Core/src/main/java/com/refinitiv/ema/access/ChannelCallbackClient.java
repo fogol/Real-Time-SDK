@@ -872,6 +872,30 @@ class ChannelCallbackClient<T> implements ReactorChannelEventCallback
 
 				return ReactorCallbackReturnCodes.SUCCESS;
 			}
+			case ReactorChannelEventTypes.PREFERRED_HOST_NO_FALLBACK:
+			{
+				if (_baseImpl.loggerClient().isInfoEnabled())
+				{
+					StringBuilder temp = _baseImpl.strBuilder();
+					temp.append("Received PreferredHostNoFallback event due to already being on preferred channel ");
+					temp.append(channelConfig.name).append(OmmLoggerClient.CR)
+							.append("Instance Name ").append(_baseImpl.instanceName());
+					_baseImpl.loggerClient().info(_baseImpl.formatLogMessage(ChannelCallbackClient.CLIENT_NAME, temp.toString(), Severity.INFO));
+				}
+
+				_baseImpl.processChannelEvent(event);
+
+				if (sessionChannelInfo != null)
+				{
+					sessionChannelInfo.consumerSession().processChannelEvent(sessionChannelInfo, event);
+				}
+				else
+				{
+					_baseImpl.loginCallbackClient().processChannelEvent(event);
+				}
+
+				return ReactorCallbackReturnCodes.SUCCESS;
+			}
             default:
             {
             	if (_baseImpl.loggerClient().isErrorEnabled())

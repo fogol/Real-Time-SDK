@@ -207,7 +207,7 @@ public class StateCodes
     public static final int APP_AUTHORIZATION_FAILED = 35;
 
     /* Max reserved value */
-    static final int MAX_RESERVED = 127;
+    static final int MAX_RESERVED = 255;
 
     /**
      * Provide string representation for a state code.

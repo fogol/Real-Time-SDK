@@ -4090,10 +4090,10 @@ RsslRet _reactorWorkerHandlePreferredHostTimeout(RsslReactorChannelImpl* pReacto
 			}
 			else
 			{
-				// Send the complete event and re-calculate the next time.
+				// Send the no fallback event and re-calculate the next time.
 				RsslReactorChannelEventImpl* pEvent = (RsslReactorChannelEventImpl*)rsslReactorEventQueueGetFromPool(&pReactorChannel->eventQueue);
 				rsslClearReactorChannelEventImpl(pEvent);
-				pEvent->channelEvent.channelEventType = RSSL_RC_CET_PREFERRED_HOST_COMPLETE;
+				pEvent->channelEvent.channelEventType = RSSL_RC_CET_PREFERRED_HOST_NO_FALLBACK;
 				pEvent->channelEvent.pReactorChannel = (RsslReactorChannel*)pReactorChannel;
 				pEvent->channelEvent.pError = &pReactorChannel->channelWorkerCerr;
 

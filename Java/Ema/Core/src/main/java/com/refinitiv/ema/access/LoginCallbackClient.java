@@ -1212,6 +1212,15 @@ class LoginCallbackClient<T> extends CallbackClient<T> implements RDMLoginMsgCal
 			prepareAndSendStatusMsg(event, state);
 
 			break;
+		case ReactorChannelEventTypes.PREFERRED_HOST_NO_FALLBACK:
+			state.streamState(StreamState.OPEN);
+			state.dataState(_currentRsslDataState);
+			state.code(OmmState.StatusCode.PREFERRED_HOST_NO_FALLBACK);
+			state.text().data("preferred host no fallback");
+
+			prepareAndSendStatusMsg(event, state);
+
+			break;
 		default:
 			break;
 		}

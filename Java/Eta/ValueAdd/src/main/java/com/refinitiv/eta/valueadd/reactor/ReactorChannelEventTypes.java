@@ -45,7 +45,9 @@ public class ReactorChannelEventTypes
     /** The current attempt to switch the active channel to the preferred host or preferred group channel has begun,
      * the actual switchover can be successful or unsuccessful. */
     public static final int PREFERRED_HOST_STARTING_FALLBACK = 9;
-
+    
+    /** The preferred host operation has determined that no fallback will be performed on this channel. */
+    public static final int PREFERRED_HOST_NO_FALLBACK = 10; 
 
     /**
      * Returns a String representation of the specified ReactorChannelEventTypes

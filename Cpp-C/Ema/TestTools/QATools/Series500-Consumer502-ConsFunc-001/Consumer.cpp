@@ -188,8 +188,9 @@ int main( int argc, char* argv[] )
 		PreferredHostOptions phOptions;
 		ChannelInformation channelInfo;
 		OmmConsumer consumer( OmmConsumerConfig().username( "user" ).consumerName("Consumer_9"), client);
-		consumer.registerClient(ReqMsg().serviceName("DIRECT_FEED").name("IBM.N"), client);
-
+		consumer.registerClient( ReqMsg().serviceName( "DIRECT_FEED" ).name( "TRI.N" ), client );
+		consumer.registerClient( ReqMsg().serviceName( "DIRECT_FEED1" ).name( "IBM.N" ), client );
+		
 		bool printChannelInfo = true;
 		bool isModifyIOCtlDone = false;
 		bool isFallbackDone = false;
