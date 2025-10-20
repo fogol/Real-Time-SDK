@@ -676,21 +676,23 @@ namespace LSEG.Eta.Codec
                 {
                     if (!_dataString.Equals(""))
                     {
-                        hashCode = _dataString[0] + 31;
+                        hashCode = _dataString[0] ^ 31;
                         int multiplier = 1;
                         for (int i = 1; i < _dataString.Length; ++i)
                         {
                             multiplier *= 31;
-                            hashCode += (_dataString[i] + 30) * multiplier;
+                            hashCode ^= (_dataString[i] ^ 30) * multiplier;
                         }
                     }
                     else
                     {
-                        hashCode = _data.Contents[_position] + 31;
+                        hashCode = _data.Contents[_position] ^ 31;
                     }
                 }
                 else
                 {
+                    if (_data == null || _data.Contents == null) return 0;
+
                     byte[] tmpByte = _data.Contents;
                     hashCode = tmpByte[_position] ^ 31;
                     int multiplier = 1;
