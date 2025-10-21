@@ -17,8 +17,11 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
+import com.refinitiv.ema.JUnitConfigVariables;
 import com.refinitiv.ema.access.Map;
 import com.refinitiv.ema.rdm.DataDictionary;
 import com.refinitiv.ema.rdm.EmaRdm;
@@ -44,7 +47,7 @@ public class ProviderTestClient extends TimerTask implements OmmProviderClient {
 	private Timer _timer;
 	private ElementList _refreshAttributes;
 	
-	private ArrayDeque<Msg> _messageQueue = new ArrayDeque<Msg>();
+	private ArrayBlockingQueue<Msg> _messageQueue = new ArrayBlockingQueue<Msg>(200);
 	
 	private ReentrantLock _accessLock = new java.util.concurrent.locks.ReentrantLock();
 	
@@ -70,6 +73,10 @@ public class ProviderTestClient extends TimerTask implements OmmProviderClient {
 
 	public String name = "";
 
+	public long poll_timeout = JUnitConfigVariables.MSGQUEUE_POLL_TIMEOUT_MS;
+
+	public TimeUnit poll_time_unit = TimeUnit.MILLISECONDS;
+
 	public ProviderTestClient(ProviderTestOptions testOptions)
 	{
 		_providerTestOptions = testOptions;
@@ -89,42 +96,38 @@ public class ProviderTestClient extends TimerTask implements OmmProviderClient {
 	
 	public int queueSize()
 	{
-		_accessLock.lock();
-		try
-		{
-			return _messageQueue.size();
-		}
-		finally
-		{
-			_accessLock.unlock();
-		}
+		return _messageQueue.size();
 	}
 	
 	public Msg popMessage()
 	{
-		_accessLock.lock();
 		try
 		{
-			return _messageQueue.removeFirst();
+			return _messageQueue.poll(poll_timeout, poll_time_unit);
 		}
-		finally
+		catch (Exception e)
 		{
-			_accessLock.unlock();
+			assertTrue(false);
+			return null;
+		}
+	}
+
+	public Msg popMessage(long timeout)
+	{
+		try
+		{
+			return _messageQueue.poll(timeout, poll_time_unit);
+		}
+		catch (Exception e)
+		{
+			assertTrue(false);
+			return null;
 		}
 	}
 	
 	public void clearQueue() 
 	{
-		_accessLock.lock();
-		try
-		{
-			_messageQueue.clear();
-		}
-		finally
-		{
-			_accessLock.unlock();
-		}
-		
+		_messageQueue.clear();
 	}
 
 	@Override

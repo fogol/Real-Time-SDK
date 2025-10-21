@@ -12,18 +12,23 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
+import com.refinitiv.ema.JUnitConfigVariables;
 import com.refinitiv.ema.access.*;
 import com.refinitiv.ema.rdm.EmaRdm;
 
+import static org.junit.Assert.assertTrue;
+
 public class ConsumerTestClient implements OmmConsumerClient
 {
-	private ArrayDeque<Msg> _messageQueue = new ArrayDeque<Msg>();
+	private ArrayBlockingQueue<Msg> _messageQueue = new ArrayBlockingQueue<Msg>(200);
 	
-	private ArrayDeque<ChannelInformation> _channelInfoQueue = new ArrayDeque<>();
+	private ArrayBlockingQueue<ChannelInformation> _channelInfoQueue = new ArrayBlockingQueue<>(200);
 	
-	private ArrayDeque<List<ChannelInformation>> _sessionChannelInfoQueue = new ArrayDeque<>();
+	private ArrayBlockingQueue<List<ChannelInformation>> _sessionChannelInfoQueue = new ArrayBlockingQueue<>(200);
 	
 	private ReentrantLock _userLock = new java.util.concurrent.locks.ReentrantLock();
 	
@@ -49,45 +54,45 @@ public class ConsumerTestClient implements OmmConsumerClient
 	{
 		_consumer = consumer;
 	}
+
+	public long poll_timeout = JUnitConfigVariables.MSGQUEUE_POLL_TIMEOUT_MS;
+
+	public TimeUnit poll_time_unit = TimeUnit.MILLISECONDS;
 	
 	public int queueSize()
 	{
-		_userLock.lock();
-		try
-		{
-			return _messageQueue.size();
-		}
-		finally
-		{
-			_userLock.unlock();
-		}
+		return _messageQueue.size();
 	}
 	
 	public Msg popMessage()
 	{
-		_userLock.lock();
 		try
 		{
-			return _messageQueue.removeFirst();
+			return _messageQueue.poll(poll_timeout, poll_time_unit);
 		}
-		finally
+		catch (Exception e)
 		{
-			_userLock.unlock();
+			assertTrue(false);
+			return null;
+		}
+	}
+
+	public Msg popMessage(long timeoutMs)
+	{
+		try
+		{
+			return _messageQueue.poll(timeoutMs, poll_time_unit);
+		}
+		catch (Exception e)
+		{
+			assertTrue(false);
+			return null;
 		}
 	}
 	
 	public void clearQueue() 
 	{
-		_userLock.lock();
-		try
-		{
-			_messageQueue.clear();
-		}
-		finally
-		{
-			_userLock.unlock();
-		}
-		
+		_messageQueue.clear();
 	}
 	
 	public int channelInfoSize()
@@ -108,7 +113,7 @@ public class ConsumerTestClient implements OmmConsumerClient
 		_userLock.lock();
 		try
 		{
-			return _channelInfoQueue.removeFirst();
+			return _channelInfoQueue.poll();
 		}
 		finally
 		{
@@ -134,7 +139,7 @@ public class ConsumerTestClient implements OmmConsumerClient
 		_userLock.lock();
 		try
 		{
-			return _sessionChannelInfoQueue.removeFirst();
+			return _sessionChannelInfoQueue.poll();
 		}
 		finally
 		{

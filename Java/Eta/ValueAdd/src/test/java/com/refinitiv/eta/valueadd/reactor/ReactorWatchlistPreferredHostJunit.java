@@ -711,6 +711,11 @@ public class ReactorWatchlistPreferredHostJunit {
     		assertEquals(ReactorChannelEventTypes.CHANNEL_READY, channelEvent.eventType());
     		
 		}
+        catch (Exception e)
+        {
+            e.printStackTrace();
+            assertTrue(false);
+        }
 		finally
 		{
 	       consumer.close();
@@ -971,6 +976,11 @@ public class ReactorWatchlistPreferredHostJunit {
     		assertEquals(ReactorChannelEventTypes.PREFERRED_HOST_COMPLETE, channelEvent.eventType());
 
 		}
+        catch (Exception e)
+        {
+            e.printStackTrace();
+            assertTrue(false);
+        }
 		finally
 		{
 	       consumer.close();
@@ -1343,6 +1353,11 @@ public class ReactorWatchlistPreferredHostJunit {
     		assertEquals(ReactorChannelEventTypes.CHANNEL_READY, channelEvent.eventType());
     		
 		}
+        catch (Exception e)
+        {
+            e.printStackTrace();
+            assertTrue(false);
+        }
 		finally
 		{
 	       consumer.close();
@@ -1588,6 +1603,11 @@ public class ReactorWatchlistPreferredHostJunit {
     		ret = consumer.reactorChannel().ioctl(ReactorChannelIOCtlCode.FALLBACK_PREFERRED_HOST_OPTIONS, ioctlCall, consumer.reactorChannel().getEDPErrorInfo());
     		assertEquals(ReactorReturnCodes.FAILURE, ret);
 		}
+        catch (Exception e)
+        {
+            e.printStackTrace();
+            assertTrue(false);
+        }
 		finally
 		{
 	       consumer.close();
@@ -1996,8 +2016,12 @@ public class ReactorWatchlistPreferredHostJunit {
     		assertEquals(TestReactorEventTypes.CHANNEL_EVENT, event.type());
     		channelEvent = (ReactorChannelEvent)event.reactorEvent();
     		assertEquals(ReactorChannelEventTypes.CHANNEL_READY, channelEvent.eventType());
-			
 		}
+        catch (Exception e)
+        {
+            e.printStackTrace();
+            assertTrue(false);
+        }
 		finally
 		{
 	       consumer.close();
@@ -2233,14 +2257,16 @@ public class ReactorWatchlistPreferredHostJunit {
     		ioctlCall.isPreferredHostEnabled(true);
     		ioctlCall.connectionListIndex(2);
     		consumer.reactorChannel().ioctl(ReactorChannelIOCtlCode.FALLBACK_PREFERRED_HOST_OPTIONS, ioctlCall, consumer.reactorChannel().getEDPErrorInfo());
-    		
-    		// Wait up to 1 minute (with some buffer time) for ioctl to kick in and detectionTimeSchedule to occur.
-    		
-    		try {
-				Thread.sleep(60100);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
+
+            long currentTimeMillis = System.currentTimeMillis();
+            int second = (int) ((currentTimeMillis / 1000) % 60);
+            // Wait up to 1 minute (with some buffer time) for ioctl to kick in and detectionTimeSchedule to occur.
+
+            try {
+                Thread.sleep((60 - second + 5) * 1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
 			
 			provider3.testReactor().accept(opts, provider3);
 			
@@ -2406,8 +2432,12 @@ public class ReactorWatchlistPreferredHostJunit {
     		assertEquals(TestReactorEventTypes.CHANNEL_EVENT, event.type());
     		channelEvent = (ReactorChannelEvent)event.reactorEvent();
     		assertEquals(ReactorChannelEventTypes.CHANNEL_READY, channelEvent.eventType());
-			
 		}
+        catch (Exception e)
+        {
+            e.printStackTrace();
+            assertTrue(false);
+        }
 		finally
 		{
 	       consumer.close();
@@ -2817,6 +2847,11 @@ public class ReactorWatchlistPreferredHostJunit {
     		assertEquals(ReactorChannelEventTypes.CHANNEL_READY, channelEvent.eventType());
 			
 		}
+        catch (Exception e)
+        {
+            e.printStackTrace();
+            assertTrue(false);
+        }
 		finally
 		{
 	       consumer.close();
@@ -3219,6 +3254,11 @@ public class ReactorWatchlistPreferredHostJunit {
     		assertEquals(ReactorChannelEventTypes.CHANNEL_READY, channelEvent.eventType());
 			
 		}
+        catch (Exception e)
+        {
+            e.printStackTrace();
+            assertTrue(false);
+        }
 		finally
 		{
 	       consumer.close();
@@ -3614,6 +3654,11 @@ public class ReactorWatchlistPreferredHostJunit {
     		assertEquals(ReactorChannelEventTypes.CHANNEL_READY, channelEvent.eventType());
 			
 		}
+        catch (Exception e)
+        {
+            e.printStackTrace();
+            assertTrue(false);
+        }
 		finally
 		{
 	       consumer.close();
@@ -3855,6 +3900,11 @@ public class ReactorWatchlistPreferredHostJunit {
     		// Ensure detection time interval set to 60
     		assertEquals(60, reactorChannelInfo.preferredHostInfo()._detectionTimeInterval);
 		}
+        catch (Exception e)
+        {
+            e.printStackTrace();
+            assertTrue(false);
+        }
 		finally
 		{
 	       consumer.close();
@@ -3975,6 +4025,11 @@ public class ReactorWatchlistPreferredHostJunit {
 			
 			assertEquals(ReactorReturnCodes.SUCCESS, consumerReactor.connectWsbFailureTest(connectOpts, opts, consumer, wsbGroup1, null, null, null));
 		}
+        catch (Exception e)
+        {
+            e.printStackTrace();
+            assertTrue(false);
+        }
 		finally
 		{
 	       consumer.close();
@@ -4280,6 +4335,8 @@ public class ReactorWatchlistPreferredHostJunit {
             refreshMsg.msgKey().name().data("TRI.N");
             refreshMsg.state().streamState(StreamStates.OPEN);
             refreshMsg.state().dataState(DataStates.OK);
+            refreshMsg.applyRefreshComplete();
+            refreshMsg.applySolicited();
             
             assertTrue(provider3.submitAndDispatch(refreshMsg, submitOptions) >= ReactorReturnCodes.SUCCESS);
 
@@ -4320,6 +4377,11 @@ public class ReactorWatchlistPreferredHostJunit {
     		assertEquals(ReactorChannelEventTypes.FD_CHANGE, channelEvent.eventType());
 
 		}
+        catch (Exception e)
+        {
+            e.printStackTrace();
+            assertTrue(false);
+        }
 		finally
 		{
 	       consumer.close();
@@ -4630,6 +4692,8 @@ public class ReactorWatchlistPreferredHostJunit {
             refreshMsg.msgKey().name().data("TRI.N");
             refreshMsg.state().streamState(StreamStates.OPEN);
             refreshMsg.state().dataState(DataStates.OK);
+            refreshMsg.applyRefreshComplete();
+            refreshMsg.applySolicited();
             
             assertTrue(provider3.submitAndDispatch(refreshMsg, submitOptions) >= ReactorReturnCodes.SUCCESS);
 
@@ -4656,6 +4720,11 @@ public class ReactorWatchlistPreferredHostJunit {
             assertTrue(msgEvent.streamInfo().serviceName().equals(Provider.defaultService().info().serviceName().toString()));
 
 		}
+        catch (Exception e)
+        {
+            e.printStackTrace();
+            assertTrue(false);
+        }
 		finally
 		{
 	       consumer.close();
@@ -5065,6 +5134,8 @@ public class ReactorWatchlistPreferredHostJunit {
             refreshMsg.msgKey().name().data("TRI.N");
             refreshMsg.state().streamState(StreamStates.OPEN);
             refreshMsg.state().dataState(DataStates.OK);
+            refreshMsg.applyRefreshComplete();
+            refreshMsg.applySolicited();
             
             assertTrue(provider3.submitAndDispatch(refreshMsg, submitOptions) >= ReactorReturnCodes.SUCCESS);
             
@@ -5101,6 +5172,8 @@ public class ReactorWatchlistPreferredHostJunit {
             refreshMsg.msgKey().identifier(1);
             refreshMsg.state().streamState(StreamStates.OPEN);
             refreshMsg.state().dataState(DataStates.OK);
+            refreshMsg.applyRefreshComplete();
+            refreshMsg.applySolicited();
             
             assertTrue(provider2.submitAndDispatch(refreshMsg, submitOptions) >= ReactorReturnCodes.SUCCESS);
             
@@ -5127,6 +5200,11 @@ public class ReactorWatchlistPreferredHostJunit {
             assertTrue(msgEvent.streamInfo().serviceName().equals(Provider.defaultService().info().serviceName().toString()));
             
 		}
+        catch (Exception e)
+        {
+            e.printStackTrace();
+            assertTrue(false);
+        }
 		finally
 		{
 	       consumer.close();
@@ -5536,6 +5614,8 @@ public class ReactorWatchlistPreferredHostJunit {
             refreshMsg.msgKey().name().data("TRI.N");
             refreshMsg.state().streamState(StreamStates.OPEN);
             refreshMsg.state().dataState(DataStates.OK);
+            refreshMsg.applyRefreshComplete();
+            refreshMsg.applySolicited();
             
             assertTrue(provider3.submitAndDispatch(refreshMsg, submitOptions) >= ReactorReturnCodes.SUCCESS);
             
@@ -5572,6 +5652,8 @@ public class ReactorWatchlistPreferredHostJunit {
             refreshMsg.msgKey().identifier(1);
             refreshMsg.state().streamState(StreamStates.OPEN);
             refreshMsg.state().dataState(DataStates.OK);
+            refreshMsg.applyRefreshComplete();
+            refreshMsg.applySolicited();
             
             assertTrue(provider2.submitAndDispatch(refreshMsg, submitOptions) >= ReactorReturnCodes.SUCCESS);
             
@@ -5632,6 +5714,11 @@ public class ReactorWatchlistPreferredHostJunit {
 			assertEquals(ReactorChannelEventTypes.PREFERRED_HOST_COMPLETE, channelEvent.eventType());
     			    		
 		}
+        catch (Exception e)
+        {
+            e.printStackTrace();
+            assertTrue(false);
+        }
 		finally
 		{
 	       consumer.close();
@@ -6031,6 +6118,8 @@ public class ReactorWatchlistPreferredHostJunit {
             refreshMsg.msgKey().name().data("TRI.N");
             refreshMsg.state().streamState(StreamStates.OPEN);
             refreshMsg.state().dataState(DataStates.OK);
+            refreshMsg.applyRefreshComplete();
+            refreshMsg.applySolicited();
             
             assertTrue(provider3.submitAndDispatch(refreshMsg, submitOptions) >= ReactorReturnCodes.SUCCESS);
             
@@ -6076,6 +6165,8 @@ public class ReactorWatchlistPreferredHostJunit {
             refreshMsg.msgKey().identifier(1);
             refreshMsg.state().streamState(StreamStates.OPEN);
             refreshMsg.state().dataState(DataStates.OK);
+            refreshMsg.applyRefreshComplete();
+            refreshMsg.applySolicited();
             
             assertTrue(provider2.submitAndDispatch(refreshMsg, submitOptions) >= ReactorReturnCodes.SUCCESS);
             
@@ -6138,6 +6229,11 @@ public class ReactorWatchlistPreferredHostJunit {
             assertTrue(msgEvent.streamInfo().serviceName().equals(Provider.defaultService().info().serviceName().toString()));
             
 		}
+        catch (Exception e)
+        {
+            e.printStackTrace();
+            assertTrue(false);
+        }
 		finally
 		{
 	       consumer.close();
@@ -6543,6 +6639,8 @@ public class ReactorWatchlistPreferredHostJunit {
             refreshMsg.msgKey().name().data("TRI.N");
             refreshMsg.state().streamState(StreamStates.OPEN);
             refreshMsg.state().dataState(DataStates.OK);
+            refreshMsg.applyRefreshComplete();
+            refreshMsg.applySolicited();
             
             assertTrue(provider3.submitAndDispatch(refreshMsg, submitOptions) >= ReactorReturnCodes.SUCCESS);
             
@@ -6579,6 +6677,8 @@ public class ReactorWatchlistPreferredHostJunit {
             refreshMsg.msgKey().identifier(1);
             refreshMsg.state().streamState(StreamStates.OPEN);
             refreshMsg.state().dataState(DataStates.OK);
+            refreshMsg.applyRefreshComplete();
+            refreshMsg.applySolicited();
             
             assertTrue(provider2.submitAndDispatch(refreshMsg, submitOptions) >= ReactorReturnCodes.SUCCESS);
             
@@ -6619,7 +6719,7 @@ public class ReactorWatchlistPreferredHostJunit {
             provider3.closeChannelAndSelector();	// Close starting active
             
             /* Consumer receives FD Change, open suspect, channel down reconnecting, login status open suspect, directory update, and channel down reconnecting events */
-            consumer.testReactor().dispatch(6, 5000);
+            consumer.testReactor().dispatch(6, 7000);
 
 			// Channel down reconnecting
             event = consumerReactor.pollEvent();
@@ -6669,7 +6769,7 @@ public class ReactorWatchlistPreferredHostJunit {
 			
     		checkChannelStateAfterChannelDownReconnecting(event);
     		
-            provider.testReactor().accept(opts, provider, 10000);
+            provider.testReactor().accept(opts, provider, 12000);
             
 			/* Provider 1 receives channel-up/channel-ready */
 			provider.testReactor().dispatch(2);
@@ -6802,6 +6902,11 @@ public class ReactorWatchlistPreferredHostJunit {
     		assertEquals(ReactorChannelEventTypes.FD_CHANGE, channelEvent.eventType());
     		
 		}
+        catch (Exception e)
+        {
+            e.printStackTrace();
+            assertTrue(false);
+        }
 		finally
 		{
 			//TestReactorComponent.closeSession(consumer, provider);
@@ -7203,6 +7308,8 @@ public class ReactorWatchlistPreferredHostJunit {
             refreshMsg.msgKey().name().data("TRI.N");
             refreshMsg.state().streamState(StreamStates.OPEN);
             refreshMsg.state().dataState(DataStates.OK);
+            refreshMsg.applyRefreshComplete();
+            refreshMsg.applySolicited();
             
             assertTrue(provider3.submitAndDispatch(refreshMsg, submitOptions) >= ReactorReturnCodes.SUCCESS);
             
@@ -7248,6 +7355,8 @@ public class ReactorWatchlistPreferredHostJunit {
             refreshMsg.msgKey().identifier(1);
             refreshMsg.state().streamState(StreamStates.OPEN);
             refreshMsg.state().dataState(DataStates.OK);
+            refreshMsg.applyRefreshComplete();
+            refreshMsg.applySolicited();
             
             assertTrue(provider2.submitAndDispatch(refreshMsg, submitOptions) >= ReactorReturnCodes.SUCCESS);
             
@@ -7464,6 +7573,11 @@ public class ReactorWatchlistPreferredHostJunit {
     		assertEquals(ReactorChannelEventTypes.FD_CHANGE, channelEvent.eventType());
     		
 		}
+        catch (Exception e)
+        {
+            e.printStackTrace();
+            assertTrue(false);
+        }
 		finally
 		{
 			//TestReactorComponent.closeSession(consumer, provider);
@@ -7920,6 +8034,8 @@ public class ReactorWatchlistPreferredHostJunit {
             refreshMsg.msgKey().name().data("TRI.N");
             refreshMsg.state().streamState(StreamStates.OPEN);
             refreshMsg.state().dataState(DataStates.OK);
+            refreshMsg.applyRefreshComplete();
+            refreshMsg.applySolicited();
             
             assertTrue(provider3.submitAndDispatch(refreshMsg, submitOptions) >= ReactorReturnCodes.SUCCESS);
             
@@ -7965,6 +8081,8 @@ public class ReactorWatchlistPreferredHostJunit {
             refreshMsg.msgKey().identifier(1);
             refreshMsg.state().streamState(StreamStates.OPEN);
             refreshMsg.state().dataState(DataStates.OK);
+            refreshMsg.applyRefreshComplete();
+            refreshMsg.applySolicited();
             
             assertTrue(provider2.submitAndDispatch(refreshMsg, submitOptions) >= ReactorReturnCodes.SUCCESS);
             
@@ -7991,6 +8109,11 @@ public class ReactorWatchlistPreferredHostJunit {
             assertTrue(msgEvent.streamInfo().serviceName().equals(Provider.defaultService().info().serviceName().toString()));
             
 		}
+        catch (Exception e)
+        {
+            e.printStackTrace();
+            assertTrue(false);
+        }
 		finally
 		{
 	       consumer.close();
@@ -8300,6 +8423,8 @@ public class ReactorWatchlistPreferredHostJunit {
             refreshMsg.msgKey().name().data("TRI.N");
             refreshMsg.state().streamState(StreamStates.OPEN);
             refreshMsg.state().dataState(DataStates.OK);
+            refreshMsg.applyRefreshComplete();
+            refreshMsg.applySolicited();
             
             assertTrue(provider3.submitAndDispatch(refreshMsg, submitOptions) >= ReactorReturnCodes.SUCCESS);
 
@@ -8326,6 +8451,11 @@ public class ReactorWatchlistPreferredHostJunit {
             assertTrue(msgEvent.streamInfo().serviceName().equals(Provider.defaultService().info().serviceName().toString()));
 
 		}
+        catch (Exception e)
+        {
+            e.printStackTrace();
+            assertTrue(false);
+        }
 		finally
 		{
 	       consumer.close();
@@ -8727,6 +8857,8 @@ public class ReactorWatchlistPreferredHostJunit {
             refreshMsg.msgKey().name().data("TRI.N");
             refreshMsg.state().streamState(StreamStates.OPEN);
             refreshMsg.state().dataState(DataStates.OK);
+            refreshMsg.applyRefreshComplete();
+            refreshMsg.applySolicited();
             
             assertTrue(provider3.submitAndDispatch(refreshMsg, submitOptions) >= ReactorReturnCodes.SUCCESS);
             
@@ -8763,6 +8895,8 @@ public class ReactorWatchlistPreferredHostJunit {
             refreshMsg.msgKey().identifier(1);
             refreshMsg.state().streamState(StreamStates.OPEN);
             refreshMsg.state().dataState(DataStates.OK);
+            refreshMsg.applyRefreshComplete();
+            refreshMsg.applySolicited();
             
             assertTrue(provider2.submitAndDispatch(refreshMsg, submitOptions) >= ReactorReturnCodes.SUCCESS);
             
@@ -9030,6 +9164,8 @@ public class ReactorWatchlistPreferredHostJunit {
             refreshMsg.msgKey().name().data("TRI.N");
             refreshMsg.state().streamState(StreamStates.OPEN);
             refreshMsg.state().dataState(DataStates.OK);
+            refreshMsg.applyRefreshComplete();
+            refreshMsg.applySolicited();
             
             assertTrue(provider.submitAndDispatch(refreshMsg, submitOptions) >= ReactorReturnCodes.SUCCESS);
 
@@ -9056,6 +9192,11 @@ public class ReactorWatchlistPreferredHostJunit {
             assertTrue(msgEvent.streamInfo().serviceName().equals(Provider.defaultService().info().serviceName().toString()));
 
 		}
+        catch (Exception e)
+        {
+            e.printStackTrace();
+            assertTrue(false);
+        }
 		finally
 		{
 	       consumer.close();
@@ -9454,6 +9595,8 @@ public class ReactorWatchlistPreferredHostJunit {
             refreshMsg.msgKey().name().data("TRI.N");
             refreshMsg.state().streamState(StreamStates.OPEN);
             refreshMsg.state().dataState(DataStates.OK);
+            refreshMsg.applyRefreshComplete();
+            refreshMsg.applySolicited();
             
             assertTrue(provider3.submitAndDispatch(refreshMsg, submitOptions) >= ReactorReturnCodes.SUCCESS);
             
@@ -9498,6 +9641,8 @@ public class ReactorWatchlistPreferredHostJunit {
             refreshMsg.msgKey().identifier(1);
             refreshMsg.state().streamState(StreamStates.OPEN);
             refreshMsg.state().dataState(DataStates.OK);
+            refreshMsg.applyRefreshComplete();
+            refreshMsg.applySolicited();
             
             assertTrue(provider2.submitAndDispatch(refreshMsg, submitOptions) >= ReactorReturnCodes.SUCCESS);
             
@@ -9771,6 +9916,8 @@ public class ReactorWatchlistPreferredHostJunit {
             refreshMsg.msgKey().name().data("TRI.N");
             refreshMsg.state().streamState(StreamStates.OPEN);
             refreshMsg.state().dataState(DataStates.OK);
+            refreshMsg.applyRefreshComplete();
+            refreshMsg.applySolicited();
             
             assertTrue(provider.submitAndDispatch(refreshMsg, submitOptions) >= ReactorReturnCodes.SUCCESS);
 
@@ -10054,12 +10201,17 @@ public class ReactorWatchlistPreferredHostJunit {
     		provider2.defaultSessionDirectoryStreamId(directoryRequest.streamId());
     		
 		}
+        catch(Exception e)
+        {
+            e.printStackTrace();
+            assertFalse(true);
+        }
 		finally
 		{
 	       consumer.close();
-	       provider2.close();
-	       provider3.close();
-	       
+	       //provider2.close();
+	       //provider3.close();
+
 	       consumerReactor.close();
 	       providerReactor.close();
 	       providerReactor2.close();
@@ -10460,6 +10612,8 @@ public class ReactorWatchlistPreferredHostJunit {
             refreshMsg.msgKey().name().data("TRI.N");
             refreshMsg.state().streamState(StreamStates.OPEN);
             refreshMsg.state().dataState(DataStates.OK);
+            refreshMsg.applyRefreshComplete();
+            refreshMsg.applySolicited();
             
             assertTrue(provider3.submitAndDispatch(refreshMsg, submitOptions) >= ReactorReturnCodes.SUCCESS);
             
@@ -10497,6 +10651,8 @@ public class ReactorWatchlistPreferredHostJunit {
             refreshMsg.msgKey().identifier(1);
             refreshMsg.state().streamState(StreamStates.OPEN);
             refreshMsg.state().dataState(DataStates.OK);
+            refreshMsg.applyRefreshComplete();
+            refreshMsg.applySolicited();
             
             assertTrue(provider2.submitAndDispatch(refreshMsg, submitOptions) >= ReactorReturnCodes.SUCCESS);
             
@@ -10770,6 +10926,8 @@ public class ReactorWatchlistPreferredHostJunit {
             refreshMsg.msgKey().name().data("TRI.N");
             refreshMsg.state().streamState(StreamStates.OPEN);
             refreshMsg.state().dataState(DataStates.OK);
+            refreshMsg.applyRefreshComplete();
+            refreshMsg.applySolicited();
             
             assertTrue(provider.submitAndDispatch(refreshMsg, submitOptions) >= ReactorReturnCodes.SUCCESS);
 
@@ -11060,13 +11218,18 @@ public class ReactorWatchlistPreferredHostJunit {
     			    		
     		/* Save the stream ID used by each component to open the directory stream (may be different if the watchlist is enabled). */
     		provider2.defaultSessionDirectoryStreamId(directoryRequest.streamId());
-    		
+    		assertNotNull(provider2.testReactor());
 		}
+        catch (Exception e)
+        {
+            e.printStackTrace();
+            assertFalse(true);
+        }
 		finally
 		{
 	       consumer.close();
-	       provider2.close();
-	       provider3.close();
+	       //provider2.close();
+	       //provider3.close();
 	       
 	       consumerReactor.close();
 	       providerReactor.close();
@@ -11465,6 +11628,8 @@ public class ReactorWatchlistPreferredHostJunit {
             refreshMsg.msgKey().name().data("TRI.N");
             refreshMsg.state().streamState(StreamStates.OPEN);
             refreshMsg.state().dataState(DataStates.OK);
+            refreshMsg.applyRefreshComplete();
+            refreshMsg.applySolicited();
             
             assertTrue(provider.submitAndDispatch(refreshMsg, submitOptions) >= ReactorReturnCodes.SUCCESS);
             
@@ -11501,6 +11666,8 @@ public class ReactorWatchlistPreferredHostJunit {
             refreshMsg.msgKey().identifier(1);
             refreshMsg.state().streamState(StreamStates.OPEN);
             refreshMsg.state().dataState(DataStates.OK);
+            refreshMsg.applyRefreshComplete();
+            refreshMsg.applySolicited();
             
             assertTrue(provider2.submitAndDispatch(refreshMsg, submitOptions) >= ReactorReturnCodes.SUCCESS);
             
@@ -11534,6 +11701,11 @@ public class ReactorWatchlistPreferredHostJunit {
     		int ret = reactorChannel.ioctl(ReactorChannelIOCtlCode.FALLBACK_PREFERRED_HOST_OPTIONS, ioctlCall, reactorChannel.getEDPErrorInfo());
     		assertEquals(ReactorReturnCodes.FAILURE, ret);
 		}
+        catch (Exception e)
+        {
+            e.printStackTrace();
+            assertTrue(false);
+        }
 		finally
 		{
 	       consumer.close();
@@ -11939,6 +12111,8 @@ public class ReactorWatchlistPreferredHostJunit {
             refreshMsg.msgKey().name().data("TRI.N");
             refreshMsg.state().streamState(StreamStates.OPEN);
             refreshMsg.state().dataState(DataStates.OK);
+            refreshMsg.applyRefreshComplete();
+            refreshMsg.applySolicited();
             
             assertTrue(provider.submitAndDispatch(refreshMsg, submitOptions) >= ReactorReturnCodes.SUCCESS);
             
@@ -11975,6 +12149,8 @@ public class ReactorWatchlistPreferredHostJunit {
             refreshMsg.msgKey().identifier(1);
             refreshMsg.state().streamState(StreamStates.OPEN);
             refreshMsg.state().dataState(DataStates.OK);
+            refreshMsg.applyRefreshComplete();
+            refreshMsg.applySolicited();
             
             assertTrue(provider2.submitAndDispatch(refreshMsg, submitOptions) >= ReactorReturnCodes.SUCCESS);
             
@@ -12247,6 +12423,8 @@ public class ReactorWatchlistPreferredHostJunit {
             refreshMsg.msgKey().name().data("TRI.N");
             refreshMsg.state().streamState(StreamStates.OPEN);
             refreshMsg.state().dataState(DataStates.OK);
+            refreshMsg.applyRefreshComplete();
+            refreshMsg.applySolicited();
             
             assertTrue(provider3.submitAndDispatch(refreshMsg, submitOptions) >= ReactorReturnCodes.SUCCESS);
             
@@ -12271,9 +12449,12 @@ public class ReactorWatchlistPreferredHostJunit {
             assertNotNull(msgEvent.streamInfo());
             assertNotNull(msgEvent.streamInfo().serviceName());
             assertTrue(msgEvent.streamInfo().serviceName().equals(Provider.defaultService().info().serviceName().toString()));
-            
-            
 		}
+        catch (Exception e)
+        {
+            e.printStackTrace();
+            assertTrue(false);
+        }
 		finally
 		{
 	       consumer.close();
@@ -12332,6 +12513,7 @@ public class ReactorWatchlistPreferredHostJunit {
 		try {		
 			/* Create consumer reactor. */
 			consumerReactor = new TestReactor(true);
+
 			ReactorCallbackHandler consumerCallbackHandler = null;
 			Selector consumerSelector = null;	  
 			
@@ -12670,6 +12852,8 @@ public class ReactorWatchlistPreferredHostJunit {
             refreshMsg.clear();
             refreshMsg.msgClass(MsgClasses.REFRESH);
             refreshMsg.domainType(DomainTypes.MARKET_PRICE);
+            refreshMsg.applyRefreshComplete();
+            refreshMsg.applySolicited();
             refreshMsg.streamId(providerStreamId);
             refreshMsg.containerType(DataTypes.NO_DATA);
             refreshMsg.applyHasMsgKey();
@@ -12704,6 +12888,8 @@ public class ReactorWatchlistPreferredHostJunit {
             refreshMsg.clear();
             refreshMsg.msgClass(MsgClasses.REFRESH);
             refreshMsg.domainType(DomainTypes.MARKET_PRICE);
+            refreshMsg.applySolicited();
+            refreshMsg.applyRefreshComplete();
             refreshMsg.streamId(providerStreamId);
             refreshMsg.containerType(DataTypes.NO_DATA);
             refreshMsg.applyHasMsgKey();
@@ -12748,10 +12934,12 @@ public class ReactorWatchlistPreferredHostJunit {
     		ReactorChannel reactorChannel = consumer._testReactor._reactor._reactorChannelQueue.peek();
     		reactorChannel.ioctl(ReactorChannelIOCtlCode.FALLBACK_PREFERRED_HOST_OPTIONS, ioctlCall, reactorChannel.getEDPErrorInfo());
 
-    		// Wait up to 1 minute (with some buffer time) for ioctl to kick in and detectionTimeSchedule to occur.
+            long currentTimeMillis = System.currentTimeMillis();
+            int second = (int) ((currentTimeMillis / 1000) % 60);
 
+            // Wait up to 1 minute (with some buffer time) for ioctl to kick in and detectionTimeSchedule to occur.
     		try {
-				Thread.sleep(60100);
+				Thread.sleep((60 - second + 5) * 1000);
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
@@ -12759,7 +12947,7 @@ public class ReactorWatchlistPreferredHostJunit {
     		/* Provider 3 accepts new connection */
     		provider3.testReactor().accept(opts, provider3);
 
-            consumerReactor.dispatch(-1);
+            consumerReactor.dispatch(-1, 5000);
             
             //FD_CHANGE or MSG event could be first
             for (int i = 0; i < 11; i++)
@@ -12817,22 +13005,13 @@ public class ReactorWatchlistPreferredHostJunit {
             }
             
             try {
-				Thread.sleep(1000);
+				Thread.sleep(3000);
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
             
     		/* Provider 1 receives close */
-    		provider.testReactor().dispatch(3);
-    		event = provider.testReactor().pollEvent();
-            assertEquals(TestReactorEventTypes.MSG, event.type());
-            msgEvent = (ReactorMsgEvent)event.reactorEvent();
-            assertEquals(MsgClasses.CLOSE, msgEvent.msg().msgClass());
-            
-    		event = provider.testReactor().pollEvent();
-            assertEquals(TestReactorEventTypes.MSG, event.type());
-            msgEvent = (ReactorMsgEvent)event.reactorEvent();
-            assertEquals(MsgClasses.REQUEST, msgEvent.msg().msgClass());
+    		provider.testReactor().dispatch(1, 500);
 			
     		event = provider.testReactor().pollEvent();
             assertEquals(TestReactorEventTypes.CHANNEL_EVENT, event.type());
@@ -12841,17 +13020,8 @@ public class ReactorWatchlistPreferredHostJunit {
 			
 			
     		/* Provider 2 receives close */
-    		provider2.testReactor().dispatch(3);
-    		event = provider2.testReactor().pollEvent();
-            assertEquals(TestReactorEventTypes.MSG, event.type());
-            msgEvent = (ReactorMsgEvent)event.reactorEvent();
-            assertEquals(MsgClasses.CLOSE, msgEvent.msg().msgClass());
-            
-    		event = provider2.testReactor().pollEvent();
-            assertEquals(TestReactorEventTypes.MSG, event.type());
-            msgEvent = (ReactorMsgEvent)event.reactorEvent();
-            assertEquals(MsgClasses.REQUEST, msgEvent.msg().msgClass());
-			
+    		provider2.testReactor().dispatch(1, 500);
+
     		event = provider2.testReactor().pollEvent();
             assertEquals(TestReactorEventTypes.CHANNEL_EVENT, event.type());
             channelEvent = (ReactorChannelEvent)event.reactorEvent();
@@ -12859,7 +13029,7 @@ public class ReactorWatchlistPreferredHostJunit {
 			
             
 			/* Provider 3 receives channel-up/channel-ready */
-			provider3.testReactor().dispatch(3);
+			provider3.testReactor().dispatch(3, 1500);
 			
 			event = provider3.testReactor().pollEvent();
 			assertEquals(TestReactorEventTypes.CHANNEL_EVENT, event.type());
@@ -13004,6 +13174,8 @@ public class ReactorWatchlistPreferredHostJunit {
             refreshMsg.msgKey().name().data("TRI.N");
             refreshMsg.state().streamState(StreamStates.OPEN);
             refreshMsg.state().dataState(DataStates.OK);
+            refreshMsg.applyRefreshComplete();
+            refreshMsg.applySolicited();
             
             assertTrue(provider3.submitAndDispatch(refreshMsg, submitOptions) >= ReactorReturnCodes.SUCCESS);
             
@@ -13028,9 +13200,12 @@ public class ReactorWatchlistPreferredHostJunit {
             assertNotNull(msgEvent.streamInfo());
             assertNotNull(msgEvent.streamInfo().serviceName());
             assertTrue(msgEvent.streamInfo().serviceName().equals(Provider.defaultService().info().serviceName().toString()));
-            
-            
 		}
+        catch (Exception e)
+        {
+            e.printStackTrace();
+            assertTrue(false);
+        }
 		finally
 		{
 	       consumer.close();
@@ -13436,6 +13611,8 @@ public class ReactorWatchlistPreferredHostJunit {
             refreshMsg.msgKey().name().data("TRI.N");
             refreshMsg.state().streamState(StreamStates.OPEN);
             refreshMsg.state().dataState(DataStates.OK);
+            refreshMsg.applyRefreshComplete();
+            refreshMsg.applySolicited();
             
             assertTrue(provider.submitAndDispatch(refreshMsg, submitOptions) >= ReactorReturnCodes.SUCCESS);
             
@@ -13472,6 +13649,8 @@ public class ReactorWatchlistPreferredHostJunit {
             refreshMsg.msgKey().identifier(1);
             refreshMsg.state().streamState(StreamStates.OPEN);
             refreshMsg.state().dataState(DataStates.OK);
+            refreshMsg.applyRefreshComplete();
+            refreshMsg.applySolicited();
             
             assertTrue(provider2.submitAndDispatch(refreshMsg, submitOptions) >= ReactorReturnCodes.SUCCESS);
             
@@ -13771,6 +13950,8 @@ public class ReactorWatchlistPreferredHostJunit {
             refreshMsg.msgKey().name().data("TRI.N");
             refreshMsg.state().streamState(StreamStates.OPEN);
             refreshMsg.state().dataState(DataStates.OK);
+            refreshMsg.applyRefreshComplete();
+            refreshMsg.applySolicited();
             
             assertTrue(provider3.submitAndDispatch(refreshMsg, submitOptions) >= ReactorReturnCodes.SUCCESS);
             
@@ -13832,6 +14013,11 @@ public class ReactorWatchlistPreferredHostJunit {
             assertTrue(msgEvent.streamInfo().serviceName().equals(Provider.defaultService().info().serviceName().toString()));
             
 		}
+        catch (Exception e)
+        {
+            e.printStackTrace();
+            assertTrue(false);
+        }
 		finally
 		{
 	       consumer.close();
@@ -14235,6 +14421,8 @@ public class ReactorWatchlistPreferredHostJunit {
             refreshMsg.msgKey().name().data("TRI.N");
             refreshMsg.state().streamState(StreamStates.OPEN);
             refreshMsg.state().dataState(DataStates.OK);
+            refreshMsg.applyRefreshComplete();
+            refreshMsg.applySolicited();
             
             assertTrue(provider.submitAndDispatch(refreshMsg, submitOptions) >= ReactorReturnCodes.SUCCESS);
             
@@ -14271,6 +14459,8 @@ public class ReactorWatchlistPreferredHostJunit {
             refreshMsg.msgKey().identifier(1);
             refreshMsg.state().streamState(StreamStates.OPEN);
             refreshMsg.state().dataState(DataStates.OK);
+            refreshMsg.applyRefreshComplete();
+            refreshMsg.applySolicited();
             
             assertTrue(provider2.submitAndDispatch(refreshMsg, submitOptions) >= ReactorReturnCodes.SUCCESS);
             
@@ -14554,6 +14744,8 @@ public class ReactorWatchlistPreferredHostJunit {
             refreshMsg.msgKey().name().data("TRI.N");
             refreshMsg.state().streamState(StreamStates.OPEN);
             refreshMsg.state().dataState(DataStates.OK);
+            refreshMsg.applyRefreshComplete();
+            refreshMsg.applySolicited();
             
             assertTrue(provider3.submitAndDispatch(refreshMsg, submitOptions) >= ReactorReturnCodes.SUCCESS);
             
@@ -14615,6 +14807,11 @@ public class ReactorWatchlistPreferredHostJunit {
             assertTrue(msgEvent.streamInfo().serviceName().equals(Provider.defaultService().info().serviceName().toString()));
             
 		}
+        catch (Exception e)
+        {
+            e.printStackTrace();
+            assertTrue(false);
+        }
 		finally
 		{
 	       consumer.close();
@@ -15142,6 +15339,8 @@ public class ReactorWatchlistPreferredHostJunit {
             refreshMsg.msgKey().name().data("TRI.N");
             refreshMsg.state().streamState(StreamStates.OPEN);
             refreshMsg.state().dataState(DataStates.OK);
+            refreshMsg.applyRefreshComplete();
+            refreshMsg.applySolicited();
             
             assertTrue(provider.submitAndDispatch(refreshMsg, submitOptions) >= ReactorReturnCodes.SUCCESS);
             
@@ -15178,6 +15377,8 @@ public class ReactorWatchlistPreferredHostJunit {
             refreshMsg.msgKey().identifier(1);
             refreshMsg.state().streamState(StreamStates.OPEN);
             refreshMsg.state().dataState(DataStates.OK);
+            refreshMsg.applyRefreshComplete();
+            refreshMsg.applySolicited();
             
             assertTrue(provider2.submitAndDispatch(refreshMsg, submitOptions) >= ReactorReturnCodes.SUCCESS);
             
@@ -15283,6 +15484,11 @@ public class ReactorWatchlistPreferredHostJunit {
 			assertEquals(((LoginConsumerConnectionStatus)loginMsgEvent.rdmLoginMsg()).warmStandbyInfo().warmStandbyMode(), ServerTypes.ACTIVE);
 
 		}
+        catch (Exception e)
+        {
+            e.printStackTrace();
+            assertTrue(false);
+        }
 		finally
 		{
 	       consumer.close();
@@ -15679,6 +15885,8 @@ public class ReactorWatchlistPreferredHostJunit {
             refreshMsg.msgKey().name().data("TRI.N");
             refreshMsg.state().streamState(StreamStates.OPEN);
             refreshMsg.state().dataState(DataStates.OK);
+            refreshMsg.applyRefreshComplete();
+            refreshMsg.applySolicited();
             
             assertTrue(provider.submitAndDispatch(refreshMsg, submitOptions) >= ReactorReturnCodes.SUCCESS);
             
@@ -15723,6 +15931,8 @@ public class ReactorWatchlistPreferredHostJunit {
             refreshMsg.msgKey().identifier(1);
             refreshMsg.state().streamState(StreamStates.OPEN);
             refreshMsg.state().dataState(DataStates.OK);
+            refreshMsg.applyRefreshComplete();
+            refreshMsg.applySolicited();
             
             assertTrue(provider2.submitAndDispatch(refreshMsg, submitOptions) >= ReactorReturnCodes.SUCCESS);
             
@@ -15994,6 +16204,8 @@ public class ReactorWatchlistPreferredHostJunit {
             refreshMsg.msgKey().name().data("TRI.N");
             refreshMsg.state().streamState(StreamStates.OPEN);
             refreshMsg.state().dataState(DataStates.OK);
+            refreshMsg.applyRefreshComplete();
+            refreshMsg.applySolicited();
             
             assertTrue(provider3.submitAndDispatch(refreshMsg, submitOptions) >= ReactorReturnCodes.SUCCESS);
             
@@ -16055,6 +16267,11 @@ public class ReactorWatchlistPreferredHostJunit {
             assertTrue(msgEvent.streamInfo().serviceName().equals(Provider.defaultService().info().serviceName().toString()));
             
 		}
+        catch (Exception e)
+        {
+            e.printStackTrace();
+            assertTrue(false);
+        }
 		finally
 		{
 	       consumer.close();
@@ -16453,6 +16670,8 @@ public class ReactorWatchlistPreferredHostJunit {
             refreshMsg.msgKey().name().data("TRI.N");
             refreshMsg.state().streamState(StreamStates.OPEN);
             refreshMsg.state().dataState(DataStates.OK);
+            refreshMsg.applyRefreshComplete();
+            refreshMsg.applySolicited();
             
             assertTrue(provider.submitAndDispatch(refreshMsg, submitOptions) >= ReactorReturnCodes.SUCCESS);
             
@@ -16497,6 +16716,8 @@ public class ReactorWatchlistPreferredHostJunit {
             refreshMsg.msgKey().identifier(1);
             refreshMsg.state().streamState(StreamStates.OPEN);
             refreshMsg.state().dataState(DataStates.OK);
+            refreshMsg.applyRefreshComplete();
+            refreshMsg.applySolicited();
             
             assertTrue(provider2.submitAndDispatch(refreshMsg, submitOptions) >= ReactorReturnCodes.SUCCESS);
             
@@ -16784,6 +17005,8 @@ public class ReactorWatchlistPreferredHostJunit {
             refreshMsg.msgKey().name().data("TRI.N");
             refreshMsg.state().streamState(StreamStates.OPEN);
             refreshMsg.state().dataState(DataStates.OK);
+            refreshMsg.applyRefreshComplete();
+            refreshMsg.applySolicited();
             
             assertTrue(provider3.submitAndDispatch(refreshMsg, submitOptions) >= ReactorReturnCodes.SUCCESS);
             
@@ -16845,6 +17068,11 @@ public class ReactorWatchlistPreferredHostJunit {
             assertTrue(msgEvent.streamInfo().serviceName().equals(Provider.defaultService().info().serviceName().toString()));
             
 		}
+        catch (Exception e)
+        {
+            e.printStackTrace();
+            assertTrue(false);
+        }
 		finally
 		{
 	       consumer.close();
@@ -17162,6 +17390,8 @@ public class ReactorWatchlistPreferredHostJunit {
             refreshMsg.msgKey().name().data("TRI.N");
             refreshMsg.state().streamState(StreamStates.OPEN);
             refreshMsg.state().dataState(DataStates.OK);
+            refreshMsg.applyRefreshComplete();
+            refreshMsg.applySolicited();
             
             assertTrue(provider3.submitAndDispatch(refreshMsg, submitOptions) >= ReactorReturnCodes.SUCCESS);
             
@@ -17451,6 +17681,11 @@ public class ReactorWatchlistPreferredHostJunit {
     		/* Save the stream ID used by each component to open the directory stream (may be different if the watchlist is enabled). */
     		provider2.defaultSessionDirectoryStreamId(directoryRequest.streamId());
 		}
+        catch (Exception e)
+        {
+            e.printStackTrace();
+            assertTrue(false);
+        }
 		finally
 		{
 	       consumer.close();
@@ -17769,6 +18004,8 @@ public class ReactorWatchlistPreferredHostJunit {
             refreshMsg.msgKey().name().data("TRI.N");
             refreshMsg.state().streamState(StreamStates.OPEN);
             refreshMsg.state().dataState(DataStates.OK);
+            refreshMsg.applyRefreshComplete();
+            refreshMsg.applySolicited();
             
             assertTrue(provider3.submitAndDispatch(refreshMsg, submitOptions) >= ReactorReturnCodes.SUCCESS);
             
@@ -18073,6 +18310,11 @@ public class ReactorWatchlistPreferredHostJunit {
     		/* Save the stream ID used by each component to open the directory stream (may be different if the watchlist is enabled). */
     		provider2.defaultSessionDirectoryStreamId(directoryRequest.streamId());
 		}
+        catch (Exception e)
+        {
+            e.printStackTrace();
+            assertTrue(false);
+        }
 		finally
 		{
 	       consumer.close();
@@ -18493,6 +18735,8 @@ public class ReactorWatchlistPreferredHostJunit {
             refreshMsg.msgKey().name().data("TRI.N");
             refreshMsg.state().streamState(StreamStates.OPEN);
             refreshMsg.state().dataState(DataStates.OK);
+            refreshMsg.applyRefreshComplete();
+            refreshMsg.applySolicited();
             
             assertTrue(provider3.submitAndDispatch(refreshMsg, submitOptions) >= ReactorReturnCodes.SUCCESS);
             
@@ -18529,6 +18773,8 @@ public class ReactorWatchlistPreferredHostJunit {
             refreshMsg.msgKey().identifier(1);
             refreshMsg.state().streamState(StreamStates.OPEN);
             refreshMsg.state().dataState(DataStates.OK);
+            refreshMsg.applyRefreshComplete();
+            refreshMsg.applySolicited();
             
             assertTrue(provider4.submitAndDispatch(refreshMsg, submitOptions) >= ReactorReturnCodes.SUCCESS);
             
@@ -18782,6 +19028,8 @@ public class ReactorWatchlistPreferredHostJunit {
             refreshMsg.msgKey().name().data("TRI.N");
             refreshMsg.state().streamState(StreamStates.OPEN);
             refreshMsg.state().dataState(DataStates.OK);
+            refreshMsg.applyRefreshComplete();
+            refreshMsg.applySolicited();
             
             assertTrue(provider3.submitAndDispatch(refreshMsg, submitOptions) >= ReactorReturnCodes.SUCCESS);
 
@@ -18806,9 +19054,12 @@ public class ReactorWatchlistPreferredHostJunit {
             assertNotNull(msgEvent.streamInfo());
             assertNotNull(msgEvent.streamInfo().serviceName());
             assertTrue(msgEvent.streamInfo().serviceName().equals(Provider.defaultService().info().serviceName().toString()));
-            
-            
 		}
+        catch (Exception e)
+        {
+            e.printStackTrace();
+            assertTrue(false);
+        }
 		finally
 		{
 	       consumer.close();
@@ -19231,6 +19482,8 @@ public class ReactorWatchlistPreferredHostJunit {
             refreshMsg.msgKey().name().data("TRI.N");
             refreshMsg.state().streamState(StreamStates.OPEN);
             refreshMsg.state().dataState(DataStates.OK);
+            refreshMsg.applyRefreshComplete();
+            refreshMsg.applySolicited();
             
             assertTrue(provider3.submitAndDispatch(refreshMsg, submitOptions) >= ReactorReturnCodes.SUCCESS);
             
@@ -19267,6 +19520,8 @@ public class ReactorWatchlistPreferredHostJunit {
             refreshMsg.msgKey().identifier(1);
             refreshMsg.state().streamState(StreamStates.OPEN);
             refreshMsg.state().dataState(DataStates.OK);
+            refreshMsg.applyRefreshComplete();
+            refreshMsg.applySolicited();
             
             assertTrue(provider4.submitAndDispatch(refreshMsg, submitOptions) >= ReactorReturnCodes.SUCCESS);
             
@@ -19505,6 +19760,8 @@ public class ReactorWatchlistPreferredHostJunit {
             refreshMsg.msgKey().name().data("TRI.N");
             refreshMsg.state().streamState(StreamStates.OPEN);
             refreshMsg.state().dataState(DataStates.OK);
+            refreshMsg.applyRefreshComplete();
+            refreshMsg.applySolicited();
             
             assertTrue(provider3.submitAndDispatch(refreshMsg, submitOptions) >= ReactorReturnCodes.SUCCESS);
 
@@ -19529,9 +19786,12 @@ public class ReactorWatchlistPreferredHostJunit {
             assertNotNull(msgEvent.streamInfo());
             assertNotNull(msgEvent.streamInfo().serviceName());
             assertTrue(msgEvent.streamInfo().serviceName().equals(Provider.defaultService().info().serviceName().toString()));
-            
-            
 		}
+        catch (Exception e)
+        {
+            e.printStackTrace();
+            assertTrue(false);
+        }
 		finally
 		{
 	       consumer.close();
@@ -19941,6 +20201,8 @@ public class ReactorWatchlistPreferredHostJunit {
             refreshMsg.msgKey().name().data("TRI.N");
             refreshMsg.state().streamState(StreamStates.OPEN);
             refreshMsg.state().dataState(DataStates.OK);
+            refreshMsg.applyRefreshComplete();
+            refreshMsg.applySolicited();
             
             assertTrue(provider3.submitAndDispatch(refreshMsg, submitOptions) >= ReactorReturnCodes.SUCCESS);
             
@@ -19983,6 +20245,8 @@ public class ReactorWatchlistPreferredHostJunit {
             refreshMsg.msgKey().identifier(1);
             refreshMsg.state().streamState(StreamStates.OPEN);
             refreshMsg.state().dataState(DataStates.OK);
+            refreshMsg.applyRefreshComplete();
+            refreshMsg.applySolicited();
             
             assertTrue(provider4.submitAndDispatch(refreshMsg, submitOptions) >= ReactorReturnCodes.SUCCESS);
             
@@ -20215,12 +20479,19 @@ public class ReactorWatchlistPreferredHostJunit {
             refreshMsg.msgKey().name().data("TRI.N");
             refreshMsg.state().streamState(StreamStates.OPEN);
             refreshMsg.state().dataState(DataStates.OK);
+            refreshMsg.applyRefreshComplete();
+            refreshMsg.applySolicited();
             
             assertTrue(provider3.submitAndDispatch(refreshMsg, submitOptions) >= ReactorReturnCodes.SUCCESS);
             
             /* Ensure that the Consumer doesn't receive refresh. */
             consumerReactor.dispatch(0);
 		}
+        catch (Exception e)
+        {
+            e.printStackTrace();
+            assertTrue(false);
+        }
 		finally
 		{
 	       consumer.close();
@@ -20630,6 +20901,8 @@ public class ReactorWatchlistPreferredHostJunit {
             refreshMsg.msgKey().name().data("TRI.N");
             refreshMsg.state().streamState(StreamStates.OPEN);
             refreshMsg.state().dataState(DataStates.OK);
+            refreshMsg.applyRefreshComplete();
+            refreshMsg.applySolicited();
             
             assertTrue(provider3.submitAndDispatch(refreshMsg, submitOptions) >= ReactorReturnCodes.SUCCESS);
             
@@ -20672,6 +20945,8 @@ public class ReactorWatchlistPreferredHostJunit {
             refreshMsg.msgKey().identifier(1);
             refreshMsg.state().streamState(StreamStates.OPEN);
             refreshMsg.state().dataState(DataStates.OK);
+            refreshMsg.applyRefreshComplete();
+            refreshMsg.applySolicited();
             
             assertTrue(provider4.submitAndDispatch(refreshMsg, submitOptions) >= ReactorReturnCodes.SUCCESS);
             
@@ -20889,12 +21164,19 @@ public class ReactorWatchlistPreferredHostJunit {
             refreshMsg.msgKey().name().data("TRI.N");
             refreshMsg.state().streamState(StreamStates.OPEN);
             refreshMsg.state().dataState(DataStates.OK);
+            refreshMsg.applyRefreshComplete();
+            refreshMsg.applySolicited();
             
             assertTrue(provider3.submitAndDispatch(refreshMsg, submitOptions) >= ReactorReturnCodes.SUCCESS);
 
             /* Ensure that the Consumer doesn't receive refresh. */
             consumerReactor.dispatch(0);
 		}
+        catch (Exception e)
+        {
+            e.printStackTrace();
+            assertTrue(false);
+        }
 		finally
 		{
 	       consumer.close();
@@ -21135,6 +21417,11 @@ public class ReactorWatchlistPreferredHostJunit {
     		checkChannelDownReconnecting(consumer, port6, sleepTime, true);
 
 		}
+        catch (Exception e)
+        {
+            e.printStackTrace();
+            assertTrue(false);
+        }
 		finally
 		{
 	       consumer.close();
@@ -21371,8 +21658,12 @@ public class ReactorWatchlistPreferredHostJunit {
     		checkChannelDownReconnecting(consumer, port2, sleepTime, false);
 
     		checkChannelDownReconnecting(consumer, port7, sleepTime, true);
-
 		}
+        catch (Exception e)
+        {
+            e.printStackTrace();
+            assertTrue(false);
+        }
 		finally
 		{
 	       consumer.close();
@@ -21611,6 +21902,11 @@ public class ReactorWatchlistPreferredHostJunit {
     		checkChannelDownReconnecting(consumer, port7, sleepTime, true);
 
 		}
+        catch (Exception e)
+        {
+            e.printStackTrace();
+            assertTrue(false);
+        }
 		finally
 		{
 	       consumer.close();
@@ -21828,6 +22124,11 @@ public class ReactorWatchlistPreferredHostJunit {
     		checkChannelDownReconnecting(consumer, port7, sleepTime, true);
 
 		}
+        catch (Exception e)
+        {
+            e.printStackTrace();
+            assertTrue(false);
+        }
 		finally
 		{
 	       consumer.close();
@@ -22018,6 +22319,11 @@ public class ReactorWatchlistPreferredHostJunit {
     		checkChannelDownReconnecting(consumer, port1, sleepTime, false);
     		
 		}
+        catch (Exception e)
+        {
+            e.printStackTrace();
+            assertTrue(false);
+        }
 		finally
 		{
 	       consumer.close();
@@ -22211,6 +22517,11 @@ public class ReactorWatchlistPreferredHostJunit {
     		ReactorChannelEvent channelEvent = (ReactorChannelEvent)event.reactorEvent();
     		assertEquals(ReactorChannelEventTypes.CHANNEL_DOWN, channelEvent.eventType());
 		}
+        catch (Exception e)
+        {
+            e.printStackTrace();
+            assertTrue(false);
+        }
 		finally
 		{
 	       consumer.close();
@@ -22424,6 +22735,11 @@ public class ReactorWatchlistPreferredHostJunit {
     		checkChannelDownReconnecting(consumer, port6, sleepTime, true);
 
 		}
+        catch (Exception e)
+        {
+            e.printStackTrace();
+            assertTrue(false);
+        }
 		finally
 		{
 	       consumer.close();
@@ -22812,6 +23128,11 @@ public class ReactorWatchlistPreferredHostJunit {
 			int compare = Integer.valueOf(channelEvent.reactorChannel().reactor()._reactorChannelQueue.peek().getCurrentReactorConnectInfo().connectOptions().unifiedNetworkInfo().serviceName());
 			assertEquals("ChannelDown check failed. ", port5, compare);
 		}
+        catch (Exception e)
+        {
+            e.printStackTrace();
+            assertTrue(false);
+        }
 		finally
 		{
 	       consumer.close();
@@ -23288,6 +23609,8 @@ public class ReactorWatchlistPreferredHostJunit {
             refreshMsg.msgKey().name().data("TRI.N");
             refreshMsg.state().streamState(StreamStates.OPEN);
             refreshMsg.state().dataState(DataStates.OK);
+            refreshMsg.applyRefreshComplete();
+            refreshMsg.applySolicited();
             
             assertTrue(provider.submitAndDispatch(refreshMsg, submitOptions) >= ReactorReturnCodes.SUCCESS);
             
@@ -23324,6 +23647,8 @@ public class ReactorWatchlistPreferredHostJunit {
             refreshMsg.msgKey().identifier(1);
             refreshMsg.state().streamState(StreamStates.OPEN);
             refreshMsg.state().dataState(DataStates.OK);
+            refreshMsg.applyRefreshComplete();
+            refreshMsg.applySolicited();
             
             assertTrue(provider2.submitAndDispatch(refreshMsg, submitOptions) >= ReactorReturnCodes.SUCCESS);
             
@@ -23699,6 +24024,8 @@ public class ReactorWatchlistPreferredHostJunit {
             refreshMsg.msgKey().name().data("TRI.N");
             refreshMsg.state().streamState(StreamStates.OPEN);
             refreshMsg.state().dataState(DataStates.OK);
+            refreshMsg.applyRefreshComplete();
+            refreshMsg.applySolicited();
             
             assertTrue(provider3.submitAndDispatch(refreshMsg, submitOptions) >= ReactorReturnCodes.SUCCESS);
             
@@ -23735,6 +24062,8 @@ public class ReactorWatchlistPreferredHostJunit {
             refreshMsg.msgKey().identifier(1);
             refreshMsg.state().streamState(StreamStates.OPEN);
             refreshMsg.state().dataState(DataStates.OK);
+            refreshMsg.applyRefreshComplete();
+            refreshMsg.applySolicited();
             
             assertTrue(provider4.submitAndDispatch(refreshMsg, submitOptions) >= ReactorReturnCodes.SUCCESS);
             
@@ -23981,6 +24310,8 @@ public class ReactorWatchlistPreferredHostJunit {
             refreshMsg.msgKey().name().data("TRI.N");
             refreshMsg.state().streamState(StreamStates.OPEN);
             refreshMsg.state().dataState(DataStates.OK);
+            refreshMsg.applyRefreshComplete();
+            refreshMsg.applySolicited();
             
             assertTrue(provider5.submitAndDispatch(refreshMsg, submitOptions) >= ReactorReturnCodes.SUCCESS);
             
@@ -24186,6 +24517,8 @@ public class ReactorWatchlistPreferredHostJunit {
             refreshMsg.msgKey().name().data("TRI.N");
             refreshMsg.state().streamState(StreamStates.OPEN);
             refreshMsg.state().dataState(DataStates.OK);
+            refreshMsg.applyRefreshComplete();
+            refreshMsg.applySolicited();
             
             assertTrue(provider6.submitAndDispatch(refreshMsg, submitOptions) >= ReactorReturnCodes.SUCCESS);
             
@@ -24391,6 +24724,8 @@ public class ReactorWatchlistPreferredHostJunit {
             refreshMsg.msgKey().name().data("TRI.N");
             refreshMsg.state().streamState(StreamStates.OPEN);
             refreshMsg.state().dataState(DataStates.OK);
+            refreshMsg.applyRefreshComplete();
+            refreshMsg.applySolicited();
             
             assertTrue(provider7.submitAndDispatch(refreshMsg, submitOptions) >= ReactorReturnCodes.SUCCESS);
             
@@ -24453,6 +24788,11 @@ public class ReactorWatchlistPreferredHostJunit {
 			channelEvent = (ReactorChannelEvent)event.reactorEvent();
 			assertEquals(ReactorChannelEventTypes.CHANNEL_DOWN, channelEvent.eventType());	
 		}
+        catch (Exception e)
+        {
+            e.printStackTrace();
+            assertTrue(false);
+        }
 		finally
 		{
 	       consumer.close();
@@ -24663,6 +25003,11 @@ public class ReactorWatchlistPreferredHostJunit {
 			int compare = Integer.valueOf(channelEvent.reactorChannel().reactor()._reactorChannelQueue.peek().getCurrentReactorConnectInfo().connectOptions().unifiedNetworkInfo().serviceName());
 			assertEquals("ChannelDown check failed. ", port5, compare);
 		}
+        catch (Exception e)
+        {
+            e.printStackTrace();
+            assertTrue(false);
+        }
 		finally
 		{
 	       consumer.close();
@@ -24878,6 +25223,11 @@ public class ReactorWatchlistPreferredHostJunit {
     		checkChannelDownReconnecting(consumer, port6, sleepTime, true, 1);
 
 		}
+        catch (Exception e)
+        {
+            e.printStackTrace();
+            assertTrue(false);
+        }
 		finally
 		{
 	       consumer.close();
@@ -25092,6 +25442,11 @@ public class ReactorWatchlistPreferredHostJunit {
 			int compare = Integer.valueOf(channelEvent.reactorChannel().reactor()._reactorChannelQueue.peek().getCurrentReactorConnectInfo().connectOptions().unifiedNetworkInfo().serviceName());
 			assertEquals("ChannelDown check failed. ", port6, compare);
 		}
+        catch (Exception e)
+        {
+            e.printStackTrace();
+            assertTrue(false);
+        }
 		finally
 		{
 	       consumer.close();
@@ -25226,6 +25581,11 @@ public class ReactorWatchlistPreferredHostJunit {
     		
     		checkChannelDownReconnecting(consumer, port3, sleepTime, false);
 		}
+        catch (Exception e)
+        {
+            e.printStackTrace();
+            assertTrue(false);
+        }
 		finally
 		{
 	       consumer.close();
@@ -25350,6 +25710,11 @@ public class ReactorWatchlistPreferredHostJunit {
 			int compare = Integer.valueOf(channelEvent.reactorChannel().reactor()._reactorChannelQueue.peek().getCurrentReactorConnectInfo().connectOptions().unifiedNetworkInfo().serviceName());
 			assertEquals("ChannelDownReconnecting check failed. ", port1, compare);
 		}
+        catch (Exception e)
+        {
+            e.printStackTrace();
+            assertTrue(false);
+        }
 		finally
 		{
 	       consumer.close();
@@ -25481,6 +25846,11 @@ public class ReactorWatchlistPreferredHostJunit {
     		
     		checkChannelDownReconnecting(consumer, port2, sleepTime, false);
 		}
+        catch (Exception e)
+        {
+            e.printStackTrace();
+            assertTrue(false);
+        }
 		finally
 		{
 	       consumer.close();
@@ -25619,6 +25989,11 @@ public class ReactorWatchlistPreferredHostJunit {
 			int compare = Integer.valueOf(channelEvent.reactorChannel().reactor()._reactorChannelQueue.peek().getCurrentReactorConnectInfo().connectOptions().unifiedNetworkInfo().serviceName());
 			assertEquals("ChannelDown check failed. ", port1, compare);
 		}
+        catch (Exception e)
+        {
+            e.printStackTrace();
+            assertTrue(false);
+        }
 		finally
 		{
 	       consumer.close();
@@ -25712,6 +26087,11 @@ public class ReactorWatchlistPreferredHostJunit {
     		
     		checkChannelDownReconnecting(consumer, port1, sleepTime, false);
 		}
+        catch (Exception e)
+        {
+            e.printStackTrace();
+            assertTrue(false);
+        }
 		finally
 		{
 	       consumer.close();
@@ -25841,6 +26221,11 @@ public class ReactorWatchlistPreferredHostJunit {
     		
     		checkChannelDownReconnecting(consumer, port1, sleepTime, true);
 		}
+        catch (Exception e)
+        {
+            e.printStackTrace();
+            assertTrue(false);
+        }
 		finally
 		{
 	       consumer.close();
