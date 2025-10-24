@@ -14,6 +14,7 @@ using LSEG.Eta.ValueAdd.Reactor;
 using LSEG.Eta.Codec;
 using LSEG.Eta.ValueAdd.Rdm;
 using LSEG.Eta.Transports;
+using System;
 
 namespace LSEG.Ema.Access
 {
@@ -417,6 +418,33 @@ namespace LSEG.Ema.Access
                     {
                         baseImpl.RegisterSocket(reactorChannel.Socket!);
 
+                        if (baseImpl.LoggerClient.IsInfoEnabled)
+                        {
+                            StringBuilder strBuilder = baseImpl.GetStrBuilder();
+                            strBuilder.AppendLine($"Received ChannelUp event on channel {channelInfo?.ChannelConfig.Name}")
+                                .Append($"\tInstance Name {baseImpl.InstanceName}");
+
+                            m_ReactorChannelInfo.Clear();
+                            reactorChannel.Info(m_ReactorChannelInfo, out _);
+
+                            if (m_ReactorChannelInfo.ChannelInfo.ComponentInfoList != null)
+                            {
+                                int count = m_ReactorChannelInfo.ChannelInfo.ComponentInfoList.Count;
+                                if (count > 0)
+                                {
+                                    strBuilder.AppendLine().Append("\tComponent Version ");
+                                    for (int i = 0; i < count; i++)
+                                    {
+                                        strBuilder.Append(m_ReactorChannelInfo.ChannelInfo.ComponentInfoList[i].ComponentVersion.ToString());
+                                        if (i < count - 1)
+                                            strBuilder.Append(", ");
+                                    }
+                                }
+                            }
+
+                            baseImpl.LoggerClient.Info(CLIENT_NAME, strBuilder.ToString());
+                        }
+
                         if (sessionChannelInfo != null)
                         {
                             sessionChannelInfo.ReactorChannel = reactorChannel;
@@ -436,32 +464,7 @@ namespace LSEG.Ema.Access
                         else
                         {
                             baseImpl.SetOmmImplState(OmmBaseImpl<T>.OmmImplState.CHANNEL_UP);
-                        }
-
-                        m_ReactorChannelInfo.Clear();
-
-                        SetRsslReactorChannel(reactorChannel, m_ReactorChannelInfo, out _);
-
-                        if (baseImpl.LoggerClient.IsInfoEnabled && m_ReactorChannelInfo.ChannelInfo.ComponentInfoList != null)
-                        {
-                            int count = m_ReactorChannelInfo.ChannelInfo.ComponentInfoList.Count;
-
-                            StringBuilder strBuilder = baseImpl.GetStrBuilder();
-                            strBuilder.AppendLine($"Received ChannelUp event on channel {channelInfo?.ChannelConfig.Name}")
-                                .Append($"\tInstance Name {baseImpl.InstanceName}");
-
-                            if (count > 0)
-                            {
-                                strBuilder.AppendLine().Append("\tComponent Version ");
-                                for (int i = 0; i < count; i++)
-                                {
-                                    strBuilder.Append(m_ReactorChannelInfo.ChannelInfo.ComponentInfoList[i].ComponentVersion.ToString());
-                                    if (i < count - 1)
-                                        strBuilder.Append(", ");
-                                }
-                            }
-
-                            baseImpl.LoggerClient.Info(CLIENT_NAME, strBuilder.ToString());
+                            SetRsslReactorChannel(reactorChannel);
                         }
 
                         if (channelInfo != null && channelInfo.ChannelConfig.HighWaterMark > 0)
@@ -817,14 +820,11 @@ namespace LSEG.Ema.Access
             return null;
         }
 
-        private void SetRsslReactorChannel(ReactorChannel reactorChannel, ReactorChannelInfo reactorChannlInfo,
-            out ReactorErrorInfo? reactorErrorInfo)
+        private void SetRsslReactorChannel(ReactorChannel reactorChannel)
         {
-            reactorErrorInfo = null;
             for (int index = channelList.Count - 1; index >= 0; index--)
             {
                 channelList[index].ReactorChannel = reactorChannel;
-                channelList[index].ReactorChannel?.Info(reactorChannlInfo, out reactorErrorInfo);
             }
         }
 
