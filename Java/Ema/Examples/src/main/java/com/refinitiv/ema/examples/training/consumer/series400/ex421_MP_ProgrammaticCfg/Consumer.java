@@ -156,6 +156,8 @@ public class Consumer
 		innerElementList.add(EmaFactory.createElementEntry().intValue( "ReconnectMinDelay", 2000 ));
 		innerElementList.add(EmaFactory.createElementEntry().intValue( "ReconnectMaxDelay", 6000 ));
 		innerElementList.add(EmaFactory.createElementEntry().intValue( "XmlTraceToStdout", 0 ));
+		innerElementList.add(EmaFactory.createElementEntry().intValue( "XmlTraceWrite", 1 ));
+        innerElementList.add(EmaFactory.createElementEntry().intValue( "XmlTraceRead", 1 ));
 		innerElementList.add(EmaFactory.createElementEntry().intValue( "MsgKeyInUpdates", 1 ));
 
 		innerMap.add(EmaFactory.createMapEntry().keyAscii( "Consumer_1", MapEntry.MapAction.ADD, innerElementList));

@@ -122,6 +122,8 @@ public class IProvider
 		innerElementList.add( EmaFactory.createElementEntry().intValue( "MaxDispatchCountUserThread", 500 ));
 		innerElementList.add( EmaFactory.createElementEntry().intValue( "RefreshFirstRequired", 1 ));
 		innerElementList.add( EmaFactory.createElementEntry().intValue( "XmlTraceToStdout", 0 ));
+		innerElementList.add( EmaFactory.createElementEntry().intValue( "XmlTraceWrite", 1 ));
+        innerElementList.add( EmaFactory.createElementEntry().intValue( "XmlTraceRead", 1 ));
 
 		innerMap.add( EmaFactory.createMapEntry().keyAscii( "Provider_1", MapEntry.MapAction.ADD, innerElementList));
 		innerElementList.clear();

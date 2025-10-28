@@ -35,6 +35,8 @@ public class NiProvider {
 		innerElementList.add( EmaFactory.createElementEntry().ascii( "Channel", "Channel_10" ));
 		innerElementList.add( EmaFactory.createElementEntry().ascii( "Directory", "Directory_1" ));
 		innerElementList.add( EmaFactory.createElementEntry().intValue( "XmlTraceToStdout", 0 ));
+        innerElementList.add( EmaFactory.createElementEntry().intValue( "XmlTraceWrite", 1 ));
+        innerElementList.add( EmaFactory.createElementEntry().intValue( "XmlTraceRead", 1 ));
 		innerElementList.add( EmaFactory.createElementEntry().intValue( "RefreshFirstRequired", 1 ));
 
 		innerMap.add( EmaFactory.createMapEntry().keyAscii( "Provider_1", MapEntry.MapAction.ADD, innerElementList));
