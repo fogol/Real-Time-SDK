@@ -1791,7 +1791,7 @@ public class ArrayTests
 				TestUtilities.checkResult( ae3.state().dataState() == OmmState.DataState.SUSPECT, "OmmArrayEntry.state().dataState()" );
 				TestUtilities.checkResult( ae3.state().statusCode() == OmmState.StatusCode.USAGE_ERROR, "OmmArrayEntry.state().statusCode()" );
 				TestUtilities.checkResult( ae3.state().statusText().equals( "Usage Error"), "OmmArrayEntry.state().statusText()" );
-				TestUtilities.checkResult( ae3.state().toString().equals( "Closed / Suspect / Usage error / 'Usage Error'"), "OmmArrayEntry.state().toString()" );
+				TestUtilities.checkResult( ae3.state().toString().equals( "Closed / Suspect / UsageError / 'Usage Error'"), "OmmArrayEntry.state().toString()" );
 	       
 				TestUtilities.checkResult( !arIter.hasNext(), "OmmArray with three State - fourth next()" );
 
@@ -1835,7 +1835,7 @@ public class ArrayTests
 					TestUtilities.checkResult( ae3.state().dataState() == OmmState.DataState.SUSPECT, "OmmArrayEntry.state().dataState()" );
 					TestUtilities.checkResult( ae3.state().statusCode() == OmmState.StatusCode.USAGE_ERROR, "OmmArrayEntry.state().statusCode()" );
 					TestUtilities.checkResult( ae3.state().statusText().equals( "Usage Error"), "OmmArrayEntry.state().statusText()" );
-					TestUtilities.checkResult( ae3.state().toString().equals( "Closed / Suspect / Usage error / 'Usage Error'"), "OmmArrayEntry.state().toString()" );
+					TestUtilities.checkResult( ae3.state().toString().equals( "Closed / Suspect / UsageError / 'Usage Error'"), "OmmArrayEntry.state().toString()" );
 	       
 					TestUtilities.checkResult( !arIter.hasNext(), "OmmArray with three State - fourth next()" );
 				}

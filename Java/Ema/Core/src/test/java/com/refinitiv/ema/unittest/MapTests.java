@@ -993,14 +993,14 @@ public class MapTests extends TestCase
 			TestUtilities.checkResult( mapEntryA.load().dataType() == DataTypes.NO_DATA, "Get load and check data type of the first map entry");
 			TestUtilities.checkResult( mapEntryA.hasPermissionData() == false, "Check wheter the first map entry has permission data");
 			MapEntry mapEntryB = mapIt.next();
-			TestUtilities.checkResult( mapEntryB.key().state().toString().equals("Non-streaming / Suspect / Already open / 'Text for key2'") , "Check the key value of the second map entry");
+			TestUtilities.checkResult( mapEntryB.key().state().toString().equals("Non-streaming / Suspect / AlreadyOpen / 'Text for key2'") , "Check the key value of the second map entry");
 			TestUtilities.checkResult( mapEntryB.action() == MapEntry.MapAction.UPDATE, "Check the action of the second map entry");
 			TestUtilities.checkResult( mapEntryB.loadType() == DataTypes.NO_DATA, "Check the load type of the second map entry");
 			TestUtilities.checkResult( mapEntryB.load().dataType() == DataTypes.NO_DATA, "Get load and check data type of the second map entry");
 			TestUtilities.checkResult( mapEntryB.hasPermissionData(), "Check wheter the second map entry has permission data");
 			TestUtilities.checkResult( mapEntryB.permissionData().equals(permissionData) == true, "Compare the permission data of the second map entry");
 			MapEntry mapEntryC = mapIt.next();
-			TestUtilities.checkResult( mapEntryC.key().state().toString().equals("Closed / Suspect / Invalid argument / 'Text for key3'"), "Check the key value of the third map entry");
+			TestUtilities.checkResult( mapEntryC.key().state().toString().equals("Closed / Suspect / InvalidArgument / 'Text for key3'"), "Check the key value of the third map entry");
 			TestUtilities.checkResult( mapEntryC.action() == MapEntry.MapAction.DELETE, "Check the action of the third map entry");
 			TestUtilities.checkResult( mapEntryC.loadType() == DataTypes.NO_DATA, "Check the load type of the third map entry");
 			TestUtilities.checkResult( mapEntryB.load().dataType() == DataTypes.NO_DATA, "Get load and check data type of the second map entry");

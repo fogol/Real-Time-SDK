@@ -3201,7 +3201,7 @@ public class PrimitiveDataJunit
         assertEquals(CodecReturnCodes.INVALID_ARGUMENT, thisState.dataState(-1));
         assertEquals(CodecReturnCodes.INVALID_ARGUMENT, thisState.streamState(-1));
         assertEquals(CodecReturnCodes.INVALID_ARGUMENT, thisState.text(null));
-        assertEquals(CodecReturnCodes.INVALID_ARGUMENT, thisState.code(128));
+        assertEquals(CodecReturnCodes.INVALID_ARGUMENT, thisState.code(StateCodes.MAX_RESERVED + 1));
         assertEquals(CodecReturnCodes.INVALID_ARGUMENT, thisState.dataState(8));
         assertEquals(CodecReturnCodes.INVALID_ARGUMENT, thisState.streamState(32));
         assertEquals(CodecReturnCodes.SUCCESS, thisState.code(StateCodes.UNABLE_TO_REQUEST_AS_BATCH));
