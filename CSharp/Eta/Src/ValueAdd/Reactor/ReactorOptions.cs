@@ -76,7 +76,7 @@ namespace LSEG.Eta.ValueAdd.Reactor
         /// </summary>
         /// <seealso cref="XmlTracing"/>
         /// <seealso cref="XmlTraceToFile"/>
-        public bool XmlTracePing { get; set; } = true;
+        public bool XmlTracePing { get; set; } = false;
 
         /// <summary>
         /// Gets or sets an output stream for logging REST request and response. Defaults to standard output.
@@ -115,7 +115,7 @@ namespace LSEG.Eta.ValueAdd.Reactor
             XmlTraceToMultipleFiles = false;
             XmlTraceWrite = true;
             XmlTraceRead = true;
-            XmlTracePing = true;
+            XmlTracePing = false;
 
             m_TokenServiceUrl = "https://api.refinitiv.com/auth/oauth2/v2/token";
             m_ServiceDiscoveryUrl = "https://api.refinitiv.com/streaming/pricing/v1/";
