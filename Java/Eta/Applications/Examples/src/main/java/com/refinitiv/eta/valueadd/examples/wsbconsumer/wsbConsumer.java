@@ -2,7 +2,7 @@
  *|            This source code is provided under the Apache 2.0 license
  *|  and is provided AS IS with no warranty or guarantee of fit for purpose.
  *|                See the project's LICENSE.md for details.
- *|           Copyright (C) 2022-2025 LSEG. All rights reserved.
+ *|           Copyright (C) 2019-2025 LSEG. All rights reserved.
  *|-----------------------------------------------------------------------------
  */
 
@@ -320,6 +320,8 @@ public class wsbConsumer implements ConsumerCallback,
 	private StringBuilder stringBuilder;
 	private final ReactorChannelInfo reactorChannelInfo = ReactorFactory.createReactorChannelInfo();
 	private final ReactorErrorInfo reactorErrorInfo = ReactorFactory.createReactorErrorInfo();
+	
+	private static final String defaultTraceOutputFile = "wsbConsumer";
 
 	public wsbConsumer()
 	{
@@ -375,6 +377,12 @@ public class wsbConsumer implements ConsumerCallback,
 		if (watchlistConsumerConfig.enableXmlTracing())
 		{
 			reactorOptions.enableXmlTracing();
+			reactorOptions.enableXmlTraceRead();
+			reactorOptions.enableXmlTraceWrite();
+			reactorOptions.enableXmlTraceToFile();
+			reactorOptions.setXmlTraceFileName(defaultTraceOutputFile);
+			reactorOptions.enableXmlTraceToMultipleFiles();
+			reactorOptions.setXmlTraceMaxFileSize(100000000);
 		}
 		
 		// Set the Token Generator URL locations, if specified

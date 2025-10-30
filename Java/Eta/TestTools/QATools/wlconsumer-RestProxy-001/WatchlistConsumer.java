@@ -247,6 +247,8 @@ public class WatchlistConsumer implements ConsumerCallback, ReactorServiceEndpoi
 
 	private final Map<ReactorChannel, Integer> socketFdValueMap = new HashMap<>();
 
+	private static final String defaultTraceOutputFile = "WatchlistConsumer";
+	
 	public WatchlistConsumer()
 	{
 		error = TransportFactory.createError();
@@ -301,6 +303,12 @@ public class WatchlistConsumer implements ConsumerCallback, ReactorServiceEndpoi
 		if (watchlistConsumerConfig.enableXmlTracing())
 		{
 			reactorOptions.enableXmlTracing();
+			reactorOptions.enableXmlTraceRead();
+			reactorOptions.enableXmlTraceWrite();
+			reactorOptions.enableXmlTraceToFile();
+			reactorOptions.setXmlTraceFileName(defaultTraceOutputFile);
+			reactorOptions.enableXmlTraceToMultipleFiles();
+			reactorOptions.setXmlTraceMaxFileSize(100000000);
 		}
 		
 		// Set the Token Generator URL locations, if specified

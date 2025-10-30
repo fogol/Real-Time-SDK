@@ -198,6 +198,8 @@ public class NIProvider implements NIProviderCallback, RDMDictionaryMsgCallback
     private ReactorSubmitOptions submitOptions = ReactorFactory.createReactorSubmitOptions();
 
     private NIProviderDictionaryHandler dictionaryHandler;
+    
+    private static final String defaultTraceOutputFile = "NIVAProvider";
 
     public NIProvider()
     {
@@ -269,6 +271,12 @@ public class NIProvider implements NIProviderCallback, RDMDictionaryMsgCallback
         if (commandLineParser.enableXmlTracing())
         {
         	reactorOptions.enableXmlTracing();
+			reactorOptions.enableXmlTraceRead();
+			reactorOptions.enableXmlTraceWrite();
+			reactorOptions.enableXmlTraceToFile();
+			reactorOptions.setXmlTraceFileName(defaultTraceOutputFile);
+			reactorOptions.enableXmlTraceToMultipleFiles();
+			reactorOptions.setXmlTraceMaxFileSize(100000000);
         }
 
 		// create reactor

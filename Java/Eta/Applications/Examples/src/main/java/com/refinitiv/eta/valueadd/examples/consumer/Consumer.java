@@ -2,7 +2,7 @@
  *|            This source code is provided under the Apache 2.0 license
  *|  and is provided AS IS with no warranty or guarantee of fit for purpose.
  *|                See the project's LICENSE.md for details.
- *|           Copyright (C) 2020-2025 LSEG. All rights reserved.
+ *|           Copyright (C) 2019-2025 LSEG. All rights reserved.
  *|-----------------------------------------------------------------------------
  */
 
@@ -317,6 +317,8 @@ public class Consumer implements ConsumerCallback, ReactorAuthTokenEventCallback
 	private StringBuilder stringBuilder;
 	private final ReactorChannelInfo reactorChannelInfo = ReactorFactory.createReactorChannelInfo();
 	private final ReactorErrorInfo reactorErrorInfo = ReactorFactory.createReactorErrorInfo();
+	
+	private static final String defaultTraceOutputFile = "VAConsumer";
 
 	public Consumer()
 	{
@@ -391,6 +393,12 @@ public class Consumer implements ConsumerCallback, ReactorAuthTokenEventCallback
 		if (consumerCmdLineParser.enableXmlTracing())
 		{
 			reactorOptions.enableXmlTracing();
+			reactorOptions.enableXmlTraceRead();
+			reactorOptions.enableXmlTraceWrite();
+			reactorOptions.enableXmlTraceToFile();
+			reactorOptions.setXmlTraceFileName(defaultTraceOutputFile);
+			reactorOptions.enableXmlTraceToMultipleFiles();
+			reactorOptions.setXmlTraceMaxFileSize(100000000);
 		}
 
 		ioctlInterval = consumerCmdLineParser.ioctlInterval();

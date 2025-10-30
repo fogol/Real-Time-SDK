@@ -251,6 +251,9 @@ public class WatchlistConsumer implements ConsumerCallback, ReactorServiceEndpoi
 	private final CloseMsg closeMsg = (CloseMsg)CodecFactory.createMsg();
 	private final ItemRequest itemRequest;
 	Buffer payload;
+	
+	private static final String defaultTraceOutputFile = "WatchlistConsumer";
+	
 	//APIQA:  add a variable to count updates received
 	private long updatesReceived;
 	//END APIQA
@@ -311,6 +314,12 @@ public class WatchlistConsumer implements ConsumerCallback, ReactorServiceEndpoi
 		if (watchlistConsumerConfig.enableXmlTracing())
 		{
 			reactorOptions.enableXmlTracing();
+			reactorOptions.enableXmlTraceRead();
+			reactorOptions.enableXmlTraceWrite();
+			reactorOptions.enableXmlTraceToFile();
+			reactorOptions.setXmlTraceFileName(defaultTraceOutputFile);
+			reactorOptions.enableXmlTraceToMultipleFiles();
+			reactorOptions.setXmlTraceMaxFileSize(100000000);
 		}
 		
 		// Set the Token Generator URL locations, if specified

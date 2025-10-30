@@ -2,7 +2,7 @@
  *|            This source code is provided under the Apache 2.0 license
  *|  and is provided AS IS with no warranty or guarantee of fit for purpose.
  *|                See the project's LICENSE.md for details.
- *|           Copyright (C) 2020-2025 LSEG. All rights reserved.
+ *|           Copyright (C) 2019-2025 LSEG. All rights reserved.
  *|-----------------------------------------------------------------------------
  */
 
@@ -246,6 +246,8 @@ public class WatchlistConsumer implements ConsumerCallback, ReactorServiceEndpoi
 	Buffer payload;
 
 	private final Map<ReactorChannel, Integer> socketFdValueMap = new HashMap<>();
+	
+	private static final String defaultTraceOutputFile = "WatchlistConsumer";
 
 	public WatchlistConsumer()
 	{
@@ -301,6 +303,12 @@ public class WatchlistConsumer implements ConsumerCallback, ReactorServiceEndpoi
 		if (watchlistConsumerConfig.enableXmlTracing())
 		{
 			reactorOptions.enableXmlTracing();
+			reactorOptions.enableXmlTraceRead();
+			reactorOptions.enableXmlTraceWrite();
+			reactorOptions.enableXmlTraceToFile();
+			reactorOptions.setXmlTraceFileName(defaultTraceOutputFile);
+			reactorOptions.enableXmlTraceToMultipleFiles();
+			reactorOptions.setXmlTraceMaxFileSize(100000000);
 		}
 		
 		// Set the Token Generator URL locations, if specified

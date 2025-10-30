@@ -319,6 +319,8 @@ public class Consumer implements ConsumerCallback, ReactorAuthTokenEventCallback
 	private final ReactorChannelInfo reactorChannelInfo = ReactorFactory.createReactorChannelInfo();
 	private final ReactorErrorInfo reactorErrorInfo = ReactorFactory.createReactorErrorInfo();
 
+	private static final String defaultTraceOutputFile = "VAConsumer";
+	
 	public Consumer()
 	{
 		dictionary = CodecFactory.createDataDictionary();
@@ -392,6 +394,12 @@ public class Consumer implements ConsumerCallback, ReactorAuthTokenEventCallback
 		if (consumerCmdLineParser.enableXmlTracing())
 		{
 			reactorOptions.enableXmlTracing();
+			reactorOptions.enableXmlTraceRead();
+			reactorOptions.enableXmlTraceWrite();
+			reactorOptions.enableXmlTraceToFile();
+			reactorOptions.setXmlTraceFileName(defaultTraceOutputFile);
+			reactorOptions.enableXmlTraceToMultipleFiles();
+			reactorOptions.setXmlTraceMaxFileSize(100000000);
 		}
 
 		ioctlInterval = consumerCmdLineParser.ioctlInterval();

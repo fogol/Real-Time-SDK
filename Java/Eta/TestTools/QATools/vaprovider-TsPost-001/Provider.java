@@ -166,6 +166,8 @@ public class Provider implements ProviderCallback, TunnelStreamListenerCallback,
     private static final int defaultServiceId = 1;
 
     boolean _finalStatusEvent;
+	
+	private static final String defaultTraceOutputFile = "VAProvider";
 
     public Provider()
     {
@@ -266,6 +268,12 @@ public class Provider implements ProviderCallback, TunnelStreamListenerCallback,
         if (providerCmdLineParser.enableXmlTracing())
         {
             reactorOptions.enableXmlTracing();
+			reactorOptions.enableXmlTraceRead();
+			reactorOptions.enableXmlTraceWrite();
+			reactorOptions.enableXmlTraceToFile();
+			reactorOptions.setXmlTraceFileName(defaultTraceOutputFile);
+			reactorOptions.enableXmlTraceToMultipleFiles();
+			reactorOptions.setXmlTraceMaxFileSize(100000000);
         }
 
         // open selector
