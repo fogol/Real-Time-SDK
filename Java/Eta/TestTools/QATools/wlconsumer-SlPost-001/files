@@ -1,0 +1,6 @@
+# file,location
+,Applications/Examples
+WatchlistConsumerConfig.java,Applications/Examples/src/main/java/com/refinitiv/eta/valueadd/examples/watchlistconsumer
+WatchlistConsumer.java,Applications/Examples/src/main/java/com/refinitiv/eta/valueadd/examples/watchlistconsumer
+ChannelInfo.java,Applications/Examples/src/main/java/com/refinitiv/eta/valueadd/examples/watchlistconsumer
+PostHandler.java,Applications/Examples/src/main/java/com/refinitiv/eta/valueadd/examples/watchlistconsumer

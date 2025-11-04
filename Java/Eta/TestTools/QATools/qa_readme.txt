@@ -19,6 +19,11 @@ consumer-Item-001: Alters consumer to decode Date/Time/DateTime and print using 
 
 consumer-HttpReconnect-001:  Alters consumer which calls chnl.channel().reconnectClient(error) when receive login response.
 
+consumer-SlPost-001:  Alters consumer to adds support of posting on the Symbol List domain.
+	-slpost: specifies that the application should attempt to post messages for specified Symbol List name on the login stream (i.e., off-stream).
+
+	Example: ./gradlew Eta:Applications:Examples:runConsumer --args="-sl _ETA_ITEM_LIST -slpost _ETA_ITEM_LIST -x"
+
 consumer-Ws-001: Alters Consumer to test compression, user can pass option -compressionType to either 'ZLib' or 'LZ4'.
 consumer-Ws-002: Alters Consumer to test compression Zlib -testCompressionZlib.
 					  This app also shows bytesRead and bytesWritten for compressed and uncompressed stats
@@ -47,6 +52,8 @@ vaprovider-ProvFunc-001: Adds command line arguments to turn set open window to 
 
 vaprovider-ProvFunc-002: Market price refresh/updates were altered to send out negative FIDs 
 
+vaprovider-SlPost-001: Adds support of posting on the Symbol List domain
+
 vaprovider-Ws-001: Alters VAProvider to test compression, user can pass option -compressionType to either 'ZLib' or 'LZ4' and option -compressionLevel to 0-9.
 vaprovider-Ws-002: Alters VAProvider to test sending a big one dictionary message without multi-part it into many parts, user can pass option -testCompressionZlib, -compressionLevel to 0-9, , -maxFragmentSize (i.e 65536).
 
@@ -54,6 +61,9 @@ Module:  Provider
 ---------------------------
 
 provider-Item-001:    Alters Provider which send TEMPORARY_REJECT on every 5th item request from consumer. Expand OPEN_LIMIT to 50000.
+
+provider-SlPost-001:  Adds support of posting on the Symbol List domain
+
 provider-Ws-001:      Alters Provider to test compression, user can pass option -compressionType to either 'ZLib' or 'LZ4' and option -compressionLevel to 0-9.
 provider-Ws-002:      Alters Provider to test sending a big one dictionary message without multi-part it into many parts, 
 					  And option to test compression Zlib, identify compressionLevel and maxMsgSize for websocket connection, user can pass option -testCompressionZlib, -compressionLevel to 0-9, -maxFragmentSize (i.e 65536).
@@ -98,6 +108,11 @@ vaconsumer-ChnlStats-005: Alters VAConsumer to create 5 connections with 1 react
 in order to test ReactorChannelStatistic and sessionMgnt for 5 connections same username and password share AccessToken, this behavior introduced in Java version 1.5.1.
 And testing reactor options to identify tokenServiceUrl, serviceDiscoveryUrl.
 The new configuration parameters introduce in version 1.4.0 for reactor to test 'restRequestTimeout', 'tokenReissueRatio', 'reissueTokenAttemptLimit' and 'reissueTokenAttemptInterval'.
+
+vaconsumer-SlPost-001:  Alters VAConsumer to adds support of posting on the Symbol List domain.
+	-slpost: specifies that the application should attempt to post messages for specified Symbol List name on the login stream (i.e., off-stream).
+
+	Example: ./gradlew Eta:Applications:Examples:runVAConsumer --args="-c localhost:14002 DIRECT_FEED sl:_ETA_ITEM_LIST -slpost _ETA_ITEM_LIST -x"
 
 vaconsumer-Ws-001: Alters VAConsumer to test compression, user can pass option -compressionType to either 'ZLib' or 'LZ4'.
 
@@ -185,6 +200,12 @@ wlconsumer-RestProxy-001 Alters WLConsumer to have separate service discovery, c
     "-proxySDPort" proxy service discovery port number
     "-ph" channel proxy host name
     "-pp" channel proxy port number
+
+wlconsumer-SlPost-001:  Alters WLConsumer to adds support of posting on the Symbol List domain.
+    Command Line Arguments:
+    "-slpost" specifies that the application should attempt to post messages for specified Symbol List name on the login stream (i.e., off-stream)
+
+    Example: ./gradlew Eta:Applications:Examples:runWatchlistConsumer --args="-sl _ETA_ITEM_LIST -slpost _ETA_ITEM_LIST -x"
 
 etajconsperf-Rto-001
     Performance tool with ability to connect to RTO. Requests one item by default; this item is the 1st one in the list specified in 350k.xml
