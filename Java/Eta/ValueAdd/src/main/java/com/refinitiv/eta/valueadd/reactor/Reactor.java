@@ -5263,19 +5263,6 @@ public class Reactor
 							errorInfo) == ReactorReturnCodes.FAILURE)
 						return ReactorReturnCodes.FAILURE;
 				}
-			} else
-			{
-				_closeMsg.msgClass(MsgClasses.CLOSE);
-				_closeMsg.streamId(_msg.streamId());
-				_closeMsg.domainType(_msg.domainType());
-				ReactorSubmitOptions submitOptions = ReactorFactory.createReactorSubmitOptions();
-				retval = submitChannel(reactorChannel, _closeMsg, submitOptions, errorInfo);
-				if (retval != CodecReturnCodes.SUCCESS)
-				{
-					populateErrorInfo(errorInfo, retval, "Reactor.submit",
-							"Submit of CloseMsg failed: <" + TransportReturnCodes.toString(retval) + ">");
-					return ReactorReturnCodes.FAILURE;
-				}
 			}
 		}
 

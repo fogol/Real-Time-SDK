@@ -6355,40 +6355,8 @@ public class ReactorWatchlistJUnitNew
 
            consumerReactor.dispatch(0);
 
-           /* Provider gets CloseMsgs for the unwanted updates. */
-           providerReactor.dispatch(4);
-
-           event = providerReactor.pollEvent();
-           assertEquals(TestReactorEventTypes.MSG, event.type());
-           msgEvent = (ReactorMsgEvent)event.reactorEvent();
-           assertEquals(MsgClasses.CLOSE, msgEvent.msg().msgClass());
-           receivedCloseMsg = (CloseMsg)msgEvent.msg();
-           assertEquals(DomainTypes.MARKET_PRICE, receivedCloseMsg.domainType());
-           assertEquals(itemStreamId1, receivedCloseMsg.streamId());
-
-           event = providerReactor.pollEvent();
-           assertEquals(TestReactorEventTypes.MSG, event.type());
-           msgEvent = (ReactorMsgEvent)event.reactorEvent();
-           assertEquals(MsgClasses.CLOSE, msgEvent.msg().msgClass());
-           receivedCloseMsg = (CloseMsg)msgEvent.msg();
-           assertEquals(DomainTypes.MARKET_PRICE, receivedCloseMsg.domainType());
-           assertEquals(itemStreamId2, receivedCloseMsg.streamId());
-
-           event = providerReactor.pollEvent();
-           assertEquals(TestReactorEventTypes.MSG, event.type());
-           msgEvent = (ReactorMsgEvent)event.reactorEvent();
-           assertEquals(MsgClasses.CLOSE, msgEvent.msg().msgClass());
-           receivedCloseMsg = (CloseMsg)msgEvent.msg();
-           assertEquals(DomainTypes.MARKET_PRICE, receivedCloseMsg.domainType());
-           assertEquals(itemStreamId3, receivedCloseMsg.streamId());
-
-           event = providerReactor.pollEvent();
-           assertEquals(TestReactorEventTypes.MSG, event.type());
-           msgEvent = (ReactorMsgEvent)event.reactorEvent();
-           assertEquals(MsgClasses.CLOSE, msgEvent.msg().msgClass());
-           receivedCloseMsg = (CloseMsg)msgEvent.msg();
-           assertEquals(DomainTypes.MARKET_PRICE, receivedCloseMsg.domainType());
-           assertEquals(itemStreamId4, receivedCloseMsg.streamId());
+           /* Provider doesn't get CloseMsgs for the unwanted updates. */
+           providerReactor.dispatch(0);
 
            /* Disconnect provider. */
            provider.closeChannel();
@@ -21172,15 +21140,8 @@ public class ReactorWatchlistJUnitNew
             /* Consumer does not receive it. */
             consumerReactor.dispatch(0);
 
-            /* Provider receives close for the update. */
-            providerReactor.dispatch(1);
-            event = providerReactor.pollEvent();
-            assertEquals(TestReactorEventTypes.MSG, event.type());
-            msgEvent = (ReactorMsgEvent)event.reactorEvent();
-            assertEquals(MsgClasses.CLOSE, msgEvent.msg().msgClass());
-            receivedCloseMsg = (CloseMsg)msgEvent.msg();
-            assertEquals(providerStreamId, receivedCloseMsg.streamId());
-            assertEquals(DomainTypes.MARKET_PRICE, receivedCloseMsg.domainType());
+            /* Provider doesn't receive close for the update. */
+            providerReactor.dispatch(0);
 
             /* Disconnect provider. */
             provider.closeChannel();
@@ -21399,15 +21360,8 @@ public class ReactorWatchlistJUnitNew
             /* Consumer does not receive it since the item is closed. */
             consumerReactor.dispatch(0);
 
-            /* Provider receives close for the update. */
-            providerReactor.dispatch(1);
-            event = providerReactor.pollEvent();
-            assertEquals(TestReactorEventTypes.MSG, event.type());
-            msgEvent = (ReactorMsgEvent)event.reactorEvent();
-            assertEquals(MsgClasses.CLOSE, msgEvent.msg().msgClass());
-            receivedCloseMsg = (CloseMsg)msgEvent.msg();
-            assertEquals(providerStreamId, receivedCloseMsg.streamId());
-            assertEquals(DomainTypes.MARKET_PRICE, receivedCloseMsg.domainType());
+            /* Provider does not receive close for the update. */
+            providerReactor.dispatch(0);
 
             /* Consumer closes login stream. */
             closeMsg.clear();

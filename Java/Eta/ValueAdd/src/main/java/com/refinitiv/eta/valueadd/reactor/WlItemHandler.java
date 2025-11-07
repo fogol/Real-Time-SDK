@@ -9,14 +9,7 @@
 package com.refinitiv.eta.valueadd.reactor;
 
 import java.nio.ByteBuffer;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.LinkedList;
-import java.util.Map;
+import java.util.*;
 
 import com.refinitiv.eta.codec.AckMsg;
 import com.refinitiv.eta.codec.AckMsgFlags;
@@ -113,9 +106,11 @@ class WlItemHandler implements WlHandler
     
     // List of StatusMsgs to send when dispatch is called
     LinkedHashMap<WlInteger, StatusMsg> _statusMsgDispatchList = new LinkedHashMap<>();
-    
+
+    // TODO: Since Java 21 support, replace LinkedList and HashSet pair with LinkedHashSet
     // List of streams with pending messages to send
     LinkedList<WlStream> _pendingSendMsgList = new LinkedList<>();
+    Set<WlStream> _pendingSendMsgSet = new HashSet<>();
     
     // List of user requests to re-submit upon dispatch that had request timeout
     LinkedList<WlRequest> _requestTimeoutList = new LinkedList<>();
@@ -424,12 +419,12 @@ class WlItemHandler implements WlHandler
                     wlService.numOutstandingRequests(wlService.numOutstandingRequests() + 1);
                 }
 
-                ret = wlStream.sendMsgOutOfLoop(streamRequestMsg, submitOptions, _errorInfo);
+                ret = wlStream.sendMsgOutOfLoop(streamRequestMsg, submitOptions, errorInfo);
                 wlStream.refreshState(streamRequestMsg.checkHasView() ? WlStream.RefreshStates.REFRESH_VIEW_PENDING : WlStream.RefreshStates.REFRESH_PENDING );
             }
             else // if not sendNow, add stream to pending send message list if not already there
             {
-                if (!_pendingSendMsgList.contains(wlStream))
+                if (_pendingSendMsgSet.add(wlStream))
                 {
                     _pendingSendMsgList.add(wlStream);
 
@@ -441,7 +436,7 @@ class WlItemHandler implements WlHandler
                 }
                 else // stream is pending, if this request has no pause flag set while the pending stream has it set, remove pause flag from pending stream
                 {
-                    RequestMsg pendingRequestMsg = _pendingSendMsgList.get(_pendingSendMsgList.indexOf(wlStream)).requestMsg();
+                    RequestMsg pendingRequestMsg = wlStream.requestMsg();
                     if (pendingRequestMsg.checkPause() && !requestMsg.checkPause())
                     {
                         pendingRequestMsg.flags(pendingRequestMsg.flags() & ~RequestMsgFlags.PAUSE);
@@ -563,7 +558,7 @@ class WlItemHandler implements WlHandler
         if (sendNow)
         {
             // send now
-            ret = wlStream.sendMsgOutOfLoop(_tempItemAggregationRequest, submitOptions, _errorInfo);
+            ret = wlStream.sendMsgOutOfLoop(_tempItemAggregationRequest, submitOptions, errorInfo);
             wlStream.refreshState( _tempItemAggregationRequest.checkHasView() ? WlStream.RefreshStates.REFRESH_VIEW_PENDING :
                     WlStream.RefreshStates.REFRESH_PENDING);
         }
@@ -628,6 +623,7 @@ class WlItemHandler implements WlHandler
             if (!sendNow)
             {
                 _pendingSendMsgList.add(wlStream);
+                _pendingSendMsgSet.add(wlStream);
             }
         }
         else
@@ -1192,7 +1188,7 @@ class WlItemHandler implements WlHandler
 	            		{
 	            			if(wlRequest._reissue_hasViewChange) wlRequest.stream()._pendingViewChange = true;
 	            			
-	            			ret = wlRequest.stream().sendMsgOutOfLoop(streamRequestMsg, submitOptions, _errorInfo);
+	            			ret = wlRequest.stream().sendMsgOutOfLoop(streamRequestMsg, submitOptions, errorInfo);
 	              			
 	            			// Check if we repooled already, making the view null and already destroyed
 	            			if (!repooled && oldView != null &&  wlRequest._reissue_hasViewChange)
@@ -1990,6 +1986,7 @@ class WlItemHandler implements WlHandler
 
     	
     	_pendingSendMsgList.remove(wlStream);
+        _pendingSendMsgSet.remove(wlStream);
     	_streamList.remove(wlStream);
 
     	if (wlStream.wlService() != null)
@@ -2122,7 +2119,7 @@ class WlItemHandler implements WlHandler
             WlRequest waitingRequest = wlService.waitingRequestList().poll();
             _submitOptions.serviceName(waitingRequest.streamInfo().serviceName());
             _submitOptions.requestMsgOptions().userSpecObj(waitingRequest.streamInfo().userSpecObject());
-            ret = handleRequest(waitingRequest, waitingRequest.requestMsg(), _submitOptions, true, _errorInfo);
+            ret = handleRequest(waitingRequest, waitingRequest.requestMsg(), _submitOptions, true, errorInfo);
         }
 
         _currentFanoutStream = null;
@@ -2561,11 +2558,13 @@ class WlItemHandler implements WlHandler
         int loopCount = _pendingSendMsgList.size();
         while((wlStream = _pendingSendMsgList.poll()) != null)
         {
-            if ((ret = wlStream.sendMsgOnLoop(wlStream.requestMsg(), _submitOptions, _errorInfo)) < ReactorReturnCodes.SUCCESS)
+            _pendingSendMsgSet.remove(wlStream);
+            if ((ret = wlStream.sendMsgOnLoop(wlStream.requestMsg(), _submitOptions, errorInfo)) < ReactorReturnCodes.SUCCESS)
             {
             	/* No buffers means that the request was re-queued, so we can end the loop here */
             	if(ret == ReactorReturnCodes.NO_BUFFERS)
             	{
+                    errorInfo.clear();
             		return ReactorReturnCodes.SUCCESS;
             	}
             	else
@@ -2758,6 +2757,7 @@ class WlItemHandler implements WlHandler
         int loopCount = _pendingSendMsgList.size();
         while((wlStream = _pendingSendMsgList.poll()) != null)
         {
+            _pendingSendMsgSet.remove(wlStream);
         	if ((ret = wlStream.sendMsgOnLoop(wlStream.requestMsg(), _submitOptions, _errorInfo)) < ReactorReturnCodes.SUCCESS)
             {
             	/* No buffers means that the request was re-queued, so we can end the loop here */
@@ -3243,8 +3243,10 @@ class WlItemHandler implements WlHandler
     	//if retVal is no buffer when calling stream.sentMsg(), will add the unsent request into _pendingSendMsgList
     	if (wlStream != null)
     	{
-    		if (!_pendingSendMsgList.contains(wlStream))
-    			_pendingSendMsgList.addFirst(wlStream);
+            if (_pendingSendMsgSet.add(wlStream))
+            {
+                _pendingSendMsgList.addFirst(wlStream);
+            }
     	}
     	//if the msg passed to stream.sentMsg() call is a request msg which has _pendingViewChange as true and 
     	//has _pendingViewRefresh as true, eta should not send this request out, 
@@ -3343,6 +3345,7 @@ class WlItemHandler implements WlHandler
 		_pendingRequestByNameTable.clear();
         _statusMsgDispatchList.clear();
         _pendingSendMsgList.clear();
+        _pendingSendMsgSet.clear();
         _userStreamIdListToRecover.clear();
         _currentFanoutStream = null;
         _hasPendingViewRequest = false;

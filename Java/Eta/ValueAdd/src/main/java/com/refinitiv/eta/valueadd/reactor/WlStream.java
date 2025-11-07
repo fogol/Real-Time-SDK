@@ -391,7 +391,10 @@ class WlStream extends VaNode
     	int ret = sendMsg(msg, submitOptions, errorInfo);
     	
     	if(ret == ReactorReturnCodes.NO_BUFFERS)
-    		return ReactorReturnCodes.SUCCESS;
+        {
+            errorInfo.clear();
+            ret = ReactorReturnCodes.SUCCESS;
+        }
     	return ret;
     }
     
@@ -562,7 +565,7 @@ class WlStream extends VaNode
 	                	}                        
 	                }
 	            } 
-	            else if (ret == ReactorReturnCodes.NO_BUFFERS && msg.msgClass() != MsgClasses.POST)
+	            else if (msg.msgClass() != MsgClasses.POST)
 	            {
 	            	  if (msg.msgClass() == MsgClasses.REQUEST)
 	            	  {
@@ -570,7 +573,7 @@ class WlStream extends VaNode
 								requestMsg((RequestMsg)msg);
 		            		handler().addPendingRequest(this);
 	            	  }
-	                 return ReactorReturnCodes.NO_BUFFERS;
+	                 return ret;
 	            }
             }
             else // close message
