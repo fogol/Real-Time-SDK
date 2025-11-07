@@ -54,6 +54,7 @@ import com.refinitiv.eta.rdm.ElementNames;
 import com.refinitiv.eta.rdm.InstrumentNameTypes;
 import com.refinitiv.eta.rdm.SymbolList;
 import com.refinitiv.eta.rdm.ViewTypes;
+import com.refinitiv.eta.transport.Channel;
 import com.refinitiv.eta.transport.ChannelState;
 import com.refinitiv.eta.valueadd.domainrep.rdm.MsgBase;
 import com.refinitiv.eta.valueadd.domainrep.rdm.dictionary.DictionaryMsg;
@@ -2554,32 +2555,47 @@ class WlItemHandler implements WlHandler
         
         // call sendMsg on all streams in pending stream send list
         
-        WlStream wlStream;
+        WlStream wlStream = null;
         int loopCount = _pendingSendMsgList.size();
         while((wlStream = _pendingSendMsgList.poll()) != null)
         {
-            _pendingSendMsgSet.remove(wlStream);
-            if ((ret = wlStream.sendMsgOnLoop(wlStream.requestMsg(), _submitOptions, errorInfo)) < ReactorReturnCodes.SUCCESS)
-            {
-            	/* No buffers means that the request was re-queued, so we can end the loop here */
-            	if(ret == ReactorReturnCodes.NO_BUFFERS)
-            	{
-                    errorInfo.clear();
-            		return ReactorReturnCodes.SUCCESS;
-            	}
-            	else
-            	{
-            		return ret;
-            	}
-            }
-            else
-            {
-            	loopCount--;
-            	if(loopCount == 0)
-            	{
-            		return ReactorReturnCodes.SUCCESS;
-            	}
-            }
+        	_pendingSendMsgSet.remove(wlStream);
+        	/* Checks the ensure that the channel is up before submitting the message */
+        	if(wlStream.isChannelUp())
+        	{
+	            if ((ret = wlStream.sendMsgOnLoop(wlStream.requestMsg(), _submitOptions, _errorInfo)) < ReactorReturnCodes.SUCCESS)
+	            {
+	            	/* No buffers means that the request was re-queued, so we can end the loop here */
+	            	if(ret == ReactorReturnCodes.NO_BUFFERS)
+	            	{
+	            		// trigger dispatch method to recover the remaining messages when there is no stream in the timeout list to recover the items and ETA Channel is ACTIVE.
+	            		if(isETAChannelActive() && _watchlist._streamTimeoutInfoList.isEmpty())
+	            		{
+	            			_watchlist.reactor().sendWatchlistDispatchNowEvent(_watchlist.reactorChannel());
+	            		}
+	            		return ReactorReturnCodes.SUCCESS;
+	            	}
+	            	else
+	            	{
+	            		return ret;
+	            	}
+	            }
+	            else
+	            {
+	            	loopCount--;
+	            	if(loopCount == 0)
+	            	{
+	            		return ReactorReturnCodes.SUCCESS;
+	            	}
+	            }
+        	}
+        	else
+        	{
+        		/* The ETA Channel is down at this point so break the loop to recover the Channel*/
+        		_pendingSendMsgList.clear();
+        		_pendingSendMsgSet.clear();
+        		return ReactorReturnCodes.SUCCESS;
+        	}
         }
         
         return ret;
@@ -2712,6 +2728,18 @@ class WlItemHandler implements WlHandler
 		_streamList.clear();
     }
     
+    private boolean isETAChannelActive()
+    {
+    	Channel channel = _watchlist.reactorChannel().channel();
+    	
+    	if(channel != null && channel.state() == ChannelState.ACTIVE)
+    	{
+    		return true;
+    	}
+    	
+    	return false;
+    }
+    
     /* Handles service added event. */
     int serviceAdded(WlService wlService)
     {
@@ -2757,27 +2785,43 @@ class WlItemHandler implements WlHandler
         int loopCount = _pendingSendMsgList.size();
         while((wlStream = _pendingSendMsgList.poll()) != null)
         {
-            _pendingSendMsgSet.remove(wlStream);
-        	if ((ret = wlStream.sendMsgOnLoop(wlStream.requestMsg(), _submitOptions, _errorInfo)) < ReactorReturnCodes.SUCCESS)
-            {
-            	/* No buffers means that the request was re-queued, so we can end the loop here */
-            	if(ret == ReactorReturnCodes.NO_BUFFERS)
-            	{
-            		return ReactorReturnCodes.SUCCESS;
-            	}
-            	else
-            	{
-            		return ret;
-            	}
-            }
-            else
-            {
-            	loopCount--;
-            	if(loopCount == 0)
-            	{
-            		return ReactorReturnCodes.SUCCESS;
-            	}
-            }
+        	_pendingSendMsgSet.remove(wlStream);
+        	/* Checks the ensure that the channel is up before submitting the message */
+        	if(wlStream.isChannelUp())
+        	{
+	        	if ((ret = wlStream.sendMsgOnLoop(wlStream.requestMsg(), _submitOptions, _errorInfo)) < ReactorReturnCodes.SUCCESS)
+	            {
+	            	/* No buffers means that the request was re-queued, so we can end the loop here */
+	            	if(ret == ReactorReturnCodes.NO_BUFFERS)
+	            	{
+	            		// trigger dispatch method to recover the remaining messages when there is no stream in the timeout list to recover the items and ETA Channel is ACTIVE.
+	            		if(isETAChannelActive() && _watchlist._streamTimeoutInfoList.isEmpty())
+	            		{
+	            			_watchlist.reactor().sendWatchlistDispatchNowEvent(_watchlist.reactorChannel());
+	            		}
+	            		return ReactorReturnCodes.SUCCESS;
+	            	}
+	            	else
+	            	{
+	            		return ret;
+	            	}
+	            }
+	            else
+	            {
+	            	loopCount--;
+	            	if(loopCount == 0)
+	            	{
+	            		return ReactorReturnCodes.SUCCESS;
+	            	}
+	            }
+        	}
+        	else
+        	{
+        		/* The ETA Channel is down at this point so break the loop to recover the Channel*/
+        		_pendingSendMsgList.clear();
+        		_pendingSendMsgSet.clear();
+        		return ReactorReturnCodes.SUCCESS;
+        	}
         }
         
         _userStreamIdListToRecover.clear();

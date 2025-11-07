@@ -911,6 +911,13 @@ class WlStream extends VaNode
                     return ret2;
             }
         } while (ret == ReactorReturnCodes.NO_BUFFERS || ret == TransportReturnCodes.WRITE_FLUSH_FAILED);
+        
+        
+        /* Clears the errorInfo as this method successfully submitted the close message */
+        if(ret == ReactorReturnCodes.SUCCESS)
+        {
+        	errorInfo.clear();
+        }
       
         return ret;
     }
