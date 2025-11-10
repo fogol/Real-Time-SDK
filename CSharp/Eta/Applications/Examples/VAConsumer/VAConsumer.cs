@@ -1217,19 +1217,7 @@ namespace LSEG.Eta.ValueAdd.Consumer
             chnlInfo.ConsumerRole.InitDefaultRDMLoginRequest();
             chnlInfo.ConsumerRole.InitDefaultRDMDirectoryRequest();
 
-            // use command line login user name if specified
-            if (!string.IsNullOrEmpty(m_ConsumerCmdLineParser.UserName))
-            {
-                LoginRequest loginRequest = chnlInfo.ConsumerRole.RdmLoginRequest!;
-                loginRequest.UserName.Data(m_ConsumerCmdLineParser.UserName);
-            }
-            if (m_ConsumerCmdLineParser.Passwd != null)
-            {
-                LoginRequest loginRequest = chnlInfo.ConsumerRole.RdmLoginRequest!;
-                loginRequest.Password.Data(m_ConsumerCmdLineParser.Passwd);
-                loginRequest.HasPassword = true;
-            }
-            if(!string.IsNullOrEmpty(m_ConsumerCmdLineParser.ClientId))
+            if (!string.IsNullOrEmpty(m_ConsumerCmdLineParser.ClientId))
             {
                 oAuthCredential.ClientId.Data(m_ConsumerCmdLineParser.ClientId);
 
@@ -1269,44 +1257,55 @@ namespace LSEG.Eta.ValueAdd.Consumer
             oAuthCredential.UserSpecObj = oAuthCredential;
             chnlInfo.ConsumerRole.ReactorOAuthCredential = oAuthCredential;
 
-            // use command line authentication token and extended authentication information if specified
-            if (!string.IsNullOrEmpty(m_ConsumerCmdLineParser.AuthenticationToken))
+            LoginRequest? loginRequest = chnlInfo.ConsumerRole.RdmLoginRequest;
+            if (loginRequest != null)
             {
-                LoginRequest loginRequest = chnlInfo.ConsumerRole.RdmLoginRequest!;
-                loginRequest.UserNameType = Login.UserIdTypes.AUTHN_TOKEN;
-                loginRequest.UserName.Data(m_ConsumerCmdLineParser.AuthenticationToken);
-
-                if (!string.IsNullOrEmpty(m_ConsumerCmdLineParser.AuthenticationExtended))
+                // use command line login user name if specified
+                if (!string.IsNullOrEmpty(m_ConsumerCmdLineParser.UserName))
                 {
-                    loginRequest.HasAuthenticationExtended = true;
-                    loginRequest.AuthenticationExtended.Data(m_ConsumerCmdLineParser.AuthenticationExtended);
+                    loginRequest.UserName.Data(m_ConsumerCmdLineParser.UserName);
                 }
-            }
+                if (m_ConsumerCmdLineParser.Passwd != null)
+                {
+                    loginRequest.Password.Data(m_ConsumerCmdLineParser.Passwd);
+                    loginRequest.HasPassword = true;
+                }
 
-            // use command line application id if specified
-            if (!string.IsNullOrEmpty(m_ConsumerCmdLineParser.ApplicationId))
-            {
-                LoginRequest loginRequest = chnlInfo.ConsumerRole.RdmLoginRequest!;
-                loginRequest.LoginAttrib.ApplicationId.Data(m_ConsumerCmdLineParser.ApplicationId);
-            }
+                // use command line authentication token and extended authentication information if specified
+                if (!string.IsNullOrEmpty(m_ConsumerCmdLineParser.AuthenticationToken))
+                {
+                    loginRequest.UserNameType = Login.UserIdTypes.AUTHN_TOKEN;
+                    loginRequest.UserName.Data(m_ConsumerCmdLineParser.AuthenticationToken);
 
-            if (m_ConsumerCmdLineParser.UpdateTypeFilter != 0)
-            {
-                LoginRequest loginRequest = chnlInfo.ConsumerRole.RdmLoginRequest;
-                loginRequest.HasUpdateTypeFilter = true;
-                loginRequest.UpdateTypeFilter = m_ConsumerCmdLineParser.UpdateTypeFilter;
-            }
+                    if (!string.IsNullOrEmpty(m_ConsumerCmdLineParser.AuthenticationExtended))
+                    {
+                        loginRequest.HasAuthenticationExtended = true;
+                        loginRequest.AuthenticationExtended.Data(m_ConsumerCmdLineParser.AuthenticationExtended);
+                    }
+                }
 
-            if (m_ConsumerCmdLineParser.NegativeUpdateTypeFilter != 0)
-            {
-                LoginRequest loginRequest = chnlInfo.ConsumerRole.RdmLoginRequest;
-                loginRequest.HasNegativeUpdateTypeFilter = true;
-                loginRequest.NegativeUpdateTypeFilter = m_ConsumerCmdLineParser.NegativeUpdateTypeFilter;
-            }
+                // use command line application id if specified
+                if (!string.IsNullOrEmpty(m_ConsumerCmdLineParser.ApplicationId))
+                {
+                    loginRequest.LoginAttrib.ApplicationId.Data(m_ConsumerCmdLineParser.ApplicationId);
+                }
 
-            if (m_ConsumerCmdLineParser.EnableRtt)
-            {
-                chnlInfo.ConsumerRole.RdmLoginRequest!.LoginAttrib.HasSupportRoundTripLatencyMonitoring = true;
+                if (m_ConsumerCmdLineParser.UpdateTypeFilter != 0)
+                {
+                    loginRequest.HasUpdateTypeFilter = true;
+                    loginRequest.UpdateTypeFilter = m_ConsumerCmdLineParser.UpdateTypeFilter;
+                }
+
+                if (m_ConsumerCmdLineParser.NegativeUpdateTypeFilter != 0)
+                {
+                    loginRequest.HasNegativeUpdateTypeFilter = true;
+                    loginRequest.NegativeUpdateTypeFilter = m_ConsumerCmdLineParser.NegativeUpdateTypeFilter;
+                }
+
+                if (m_ConsumerCmdLineParser.EnableRtt)
+                {
+                    loginRequest.LoginAttrib.HasSupportRoundTripLatencyMonitoring = true;
+                }
             }
 
             // if unable to load from file, enable consumer to download dictionary
