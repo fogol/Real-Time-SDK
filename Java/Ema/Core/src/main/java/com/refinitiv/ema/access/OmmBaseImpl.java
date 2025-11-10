@@ -249,6 +249,7 @@ abstract class OmmBaseImpl<T> implements OmmCommonImpl, Runnable, TimeoutClient,
 			ReactorFactory.setWorkerEventPoolLimit(activeConfig.globalConfig.workerEventPoolLimit);
 			ReactorFactory.setTunnelStreamMsgEventPoolLimit(activeConfig.globalConfig.tunnelStreamMsgEventPoolLimit);
 			ReactorFactory.setTunnelStreamStatusEventPoolLimit(activeConfig.globalConfig.tunnelStreamStatusEventPoolLimit);
+			ReactorFactory.setWatchlistPoolLimit(activeConfig.globalConfig.watchlistPoolLimit);
 			ReactorFactory.setWatchlistObjectsPoolLimit(activeConfig.globalConfig.watchlistObjectsPoolLimit);
 
 			ReactorFactory.setSocketProtocolPoolLimit(activeConfig.globalConfig.socketProtocolPoolLimit);
@@ -1160,6 +1161,10 @@ abstract class OmmBaseImpl<T> implements OmmCommonImpl, Runnable, TimeoutClient,
 			{
 				_activeConfig.globalConfig.jsonConverterPoolsSize =
 						getJsonConverterPoolsSize(ce, _activeConfig, strBuilder(), _loggerClient);
+			}
+			if( (ce = globalConfigAttributes.getPrimitiveValue(ConfigManager.WatchlistPoolLimit)) != null)
+			{
+				_activeConfig.globalConfig.watchlistPoolLimit = ce.intValue();
 			}
 			if( (ce = globalConfigAttributes.getPrimitiveValue(ConfigManager.WatchlistObjectsPoolLimit)) != null)
 			{

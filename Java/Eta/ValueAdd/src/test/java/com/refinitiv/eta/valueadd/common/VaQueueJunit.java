@@ -2,7 +2,7 @@
  *|            This source code is provided under the Apache 2.0 license
  *|  and is provided AS IS with no warranty or guarantee of fit for purpose.
  *|                See the project's LICENSE.md for details.
- *|           Copyright (C) 2020,2024 LSEG. All rights reserved.
+ *|           Copyright (C) 2020,2024-2025 LSEG. All rights reserved.
  *|-----------------------------------------------------------------------------
  */
 
@@ -301,5 +301,49 @@ public class VaQueueJunit
         assertEquals(true, queue.remove(obj3));
         assertEquals(0, queue.size());
         assertEquals(null, queue.poll());
+    }
+
+    @Test
+    public void limitedQueueAddAboveLimitAndSetLimitTest()
+    {
+        LimitedVaQueue queue = new LimitedVaQueue();
+        queue.setLimit(10);
+
+        for (int i = 0; i < 25; i++) queue.add(new TestObject(i));
+
+        assertEquals(10, queue.size());
+
+        queue.setLimit(25);
+        assertEquals(10, queue.size());
+
+        VaNode node = queue.peek();
+        for (int i = 0; i < 10; i++)
+        {
+            assertNotNull(node);
+            assertEquals(i, ((TestObject)node).id());
+            node = node.next();
+        }
+        assertNull(node);
+
+        queue.setLimit(7);
+        assertEquals(7, queue.size());
+        for (int i = 0; i < 7; i++)
+        {
+            node = queue.poll();
+            assertNotNull(node);
+        }
+        assertNull(node.next());
+
+        for (int i = 0; i < 5; i++) queue.add(new TestObject(i));
+        assertEquals(5, queue.size());
+
+        queue.setLimit(2);
+        assertEquals(2, queue.size());
+        for (int i = 0; i < 2; i++)
+        {
+            node = queue.poll();
+            assertNotNull(node);
+        }
+        assertNull(node.next());
     }
 }

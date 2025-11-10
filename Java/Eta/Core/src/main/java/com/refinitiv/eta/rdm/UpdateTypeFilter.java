@@ -88,6 +88,8 @@ public class UpdateTypeFilter {
     {
         StringBuilder resBuilder = new StringBuilder();
 
+        if (value == 0) return "None";
+
         for (int i = 0; i < TYPE_FILTER_ENTRIES.length; i++) {
             if ((value & TYPE_FILTER_ENTRIES[i]) > 0) {
                 resBuilder.append(TYPE_FILTER_VAL_TO_NAME.get(TYPE_FILTER_ENTRIES[i]));

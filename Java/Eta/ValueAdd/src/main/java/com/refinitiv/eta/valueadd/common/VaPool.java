@@ -2,7 +2,7 @@
  *|            This source code is provided under the Apache 2.0 license
  *|  and is provided AS IS with no warranty or guarantee of fit for purpose.
  *|                See the project's LICENSE.md for details.
- *|           Copyright (C) 2020,2022,2024 LSEG. All rights reserved.
+ *|           Copyright (C) 2020,2022,2024-2025 LSEG. All rights reserved.
  *|-----------------------------------------------------------------------------
  */
 
@@ -13,7 +13,7 @@ package com.refinitiv.eta.valueadd.common;
  */
 public class VaPool
 {
-    private VaQueue _queue;
+    ValueAddQueue _queue;
     
     private boolean _debug;
     
@@ -29,14 +29,32 @@ public class VaPool
      * Creates a pool. useConcurrent can be used to make this pool thread safe.
      * 
      * @param useConcurrent if true, the pool is backed by a
-     *            {@link VaConcurrentQueue}.
+     *            {@link ConcurrentVaQueue}.
      */
     public VaPool(boolean useConcurrent)
     {
         if (useConcurrent)
-            _queue = new VaConcurrentQueue();
+            _queue = new ConcurrentVaQueue(new VaQueue());
         else
             _queue = new VaQueue();
+    }
+
+    public VaPool(ValueAddQueue queue, boolean useConcurrent)
+    {
+        if (useConcurrent)
+            _queue = new ConcurrentVaQueue(queue);
+        else
+            _queue = queue;
+    }
+
+    public VaPool(ValueAddQueue queue, boolean useConcurrent, boolean debug)
+    {
+        if (useConcurrent)
+            _queue = new ConcurrentVaQueue(queue);
+        else
+            _queue = new VaQueue();
+
+        _debug = debug;
     }
 
     /**
@@ -49,7 +67,7 @@ public class VaPool
     public VaPool(boolean useConcurrent, boolean debug)
     {
         if (useConcurrent)
-            _queue = new VaConcurrentQueue();
+            _queue = new ConcurrentVaQueue();
         else
             _queue = new VaQueue();
         
@@ -63,8 +81,7 @@ public class VaPool
      */
     public void add(VaNode node)
     {
-        if (_debug)
-            _queue.verifyQueue();
+        if (_debug && (_queue instanceof VaQueue))  ((VaQueue)_queue).verifyQueue();
         
         if (node.inPool())
             return; // already in pool.
@@ -75,8 +92,7 @@ public class VaPool
         node.inPool(true);
         _queue.add(node);
 
-        if (_debug)
-            _queue.verifyQueue();
+        if (_debug && (_queue instanceof VaQueue))  ((VaQueue)_queue).verifyQueue();
     }
 
     /**
@@ -97,16 +113,14 @@ public class VaPool
      */
     public VaNode poll()
     {
-        if (_debug)
-            _queue.verifyQueue();
+        if (_debug && (_queue instanceof VaQueue))  ((VaQueue)_queue).verifyQueue();
 
         VaNode node = _queue.poll();
 
         if (node != null)
             node.inPool(false);
-        
-        if (_debug)
-            _queue.verifyQueue();
+
+        if (_debug && (_queue instanceof VaQueue))  ((VaQueue)_queue).verifyQueue();
 
         return node;
     }

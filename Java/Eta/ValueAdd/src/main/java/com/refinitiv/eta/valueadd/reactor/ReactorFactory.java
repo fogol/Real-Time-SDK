@@ -30,7 +30,7 @@ public class ReactorFactory
     static LimitedVaPool _tunnelStreamMsgEventPool = new LimitedVaPool(true);
     static LimitedVaPool _tunnelStreamStatusEventPool = new LimitedVaPool(true);
     static LimitedVaPool _workerEventPool = new LimitedVaPool(true);
-    static VaPool _watchlistPool = new VaPool(true);
+    static LimitedVaPool _watchlistPool = new LimitedVaPool(true);
     static VaPool _postTimeoutInfoPool = new VaPool(true);
     static LimitedVaPool _itemAggregationKeyPool = new LimitedVaPool(true);
     static LimitedVaPool _wlStreamPool = new LimitedVaPool(true);
@@ -85,6 +85,15 @@ public class ReactorFactory
      */
     public static void setTunnelStreamMsgEventPoolLimit(int tunnelStreamMsgEventPoolLimit) {
         ReactorFactory._tunnelStreamMsgEventPool.setLimit(tunnelStreamMsgEventPoolLimit > 0 ? tunnelStreamMsgEventPoolLimit : DEFAULT_POOL_LIMIT);
+    }
+
+    /**
+     * Sets maximum number of Watchlist objects in the pool, if value is negative then amount of events is unlimited
+     * @param watchlistPoolLimit value to set
+     */
+    public static void setWatchlistPoolLimit(int watchlistPoolLimit)
+    {
+        ReactorFactory._watchlistPool.setLimit(watchlistPoolLimit > 0 ? watchlistPoolLimit : DEFAULT_POOL_LIMIT);
     }
 
     /**

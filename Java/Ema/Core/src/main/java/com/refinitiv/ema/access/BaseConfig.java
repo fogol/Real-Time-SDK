@@ -2,7 +2,7 @@
  *|            This source code is provided under the Apache 2.0 license
  *|  and is provided AS IS with no warranty or guarantee of fit for purpose.
  *|                See the project's LICENSE.md for details.
- *|           Copyright (C) 2020-2021,2023-2024 LSEG. All rights reserved.
+ *|           Copyright (C) 2020-2021,2023-2025 LSEG. All rights reserved.
  *|-----------------------------------------------------------------------------
  */
 
@@ -11,6 +11,7 @@ package com.refinitiv.ema.access;
 abstract class BaseConfig
 {
 	final static int DEFAULT_ITEM_COUNT_HINT					= 100000;
+	final static int DEFAULT_CLIENT_SESSION_COUNT_HINT			= 10;
 	final static int DEFAULT_SERVICE_COUNT_HINT				    = 513;
 	final static int DEFAULT_REQUEST_TIMEOUT					= 15000;
 	final static int DEFAULT_MAX_DISPATCH_COUNT_API_THREAD		= 100;
@@ -24,10 +25,12 @@ abstract class BaseConfig
 	final static boolean DEFAULT_CLOSE_CHANNEL_FROM_FAILURE		= true;
 	final static boolean DEFAULT_SEND_JSON_CONV_ERROR			= false;
 
+
 	BaseConfig()
 	{
 		itemCountHint = DEFAULT_ITEM_COUNT_HINT;
 		serviceCountHint = DEFAULT_SERVICE_COUNT_HINT;
+		clientSessionCountHint = DEFAULT_CLIENT_SESSION_COUNT_HINT;
 		requestTimeout = DEFAULT_REQUEST_TIMEOUT;
 		dispatchTimeoutApiThread = DEFAULT_DISPATCH_TIMEOUT_API_THREAD;
 		maxDispatchCountApiThread = DEFAULT_MAX_DISPATCH_COUNT_API_THREAD;
@@ -55,6 +58,7 @@ abstract class BaseConfig
 	{
 		itemCountHint = DEFAULT_ITEM_COUNT_HINT;
 		serviceCountHint = DEFAULT_SERVICE_COUNT_HINT;
+		clientSessionCountHint = DEFAULT_CLIENT_SESSION_COUNT_HINT;
 		requestTimeout = DEFAULT_REQUEST_TIMEOUT;
 		dispatchTimeoutApiThread = DEFAULT_DISPATCH_TIMEOUT_API_THREAD;
 		maxDispatchCountApiThread = DEFAULT_MAX_DISPATCH_COUNT_API_THREAD;
@@ -117,7 +121,10 @@ abstract class BaseConfig
 	String					configuredName;
 	String      			instanceName;
 	int						itemCountHint;
+	int						itemInfoPoolLimit;
 	int		    			serviceCountHint;
+	int						clientSessionCountHint;
+	int						clientSessionPoolLimit;
 	int						requestTimeout;
 	int						dispatchTimeoutApiThread;
 	int						maxDispatchCountApiThread;

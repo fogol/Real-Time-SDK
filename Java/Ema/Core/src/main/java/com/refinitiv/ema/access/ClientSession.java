@@ -2,7 +2,7 @@
  *|            This source code is provided under the Apache 2.0 license
  *|  and is provided AS IS with no warranty or guarantee of fit for purpose.
  *|                See the project's LICENSE.md for details.
- *|           Copyright (C) 2020-2021,2024 LSEG. All rights reserved.
+ *|           Copyright (C) 2020-2021,2024-2025 LSEG. All rights reserved.
  *|-----------------------------------------------------------------------------
  */
 
@@ -253,6 +253,24 @@ class ClientSession extends VaNode
         _isLogin = false;
         _removingInCloseAll = false;
     }
+
+	void setOmmServerBaseImpl(OmmServerBaseImpl server)
+	{
+		if (server == _ommServerBaseImpl) return;
+
+		_ommServerBaseImpl = server;
+
+		if (_itemInfoByStreamIdMap == null || _itemInfoByStreamIdMap.size() < _ommServerBaseImpl.activeConfig().itemCountHint)
+			_itemInfoByStreamIdMap = new HashMap<LongObject, ItemInfo>(_ommServerBaseImpl.activeConfig().itemCountHint);
+
+		_serviceGroupIdToItemInfoMap.clear();
+
+		if (!_ommServerBaseImpl.activeConfig().acceptMessageSameKeyButDiffStream
+				&& (_itemInfoByItemInfoSet == null || _itemInfoByItemInfoSet.size() < _ommServerBaseImpl.activeConfig().itemCountHint))
+		{
+			_itemInfoByItemInfoSet = new HashSet<ItemInfo>(_ommServerBaseImpl.activeConfig().itemCountHint);
+		}
+	}
 	
 	@Override
     public void returnToPool()

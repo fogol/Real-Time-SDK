@@ -8,6 +8,7 @@
 		<TunnelStreamMsgEventPoolLimit value="2500"/>
 		<TunnelStreamStatusEventPoolLimit value="3000"/>
 		<WatchlistObjectsPoolLimit value="50000"/>
+		<WatchlistPoolLimit value="12"/>
 		<SocketProtocolPoolLimit value="42"/>
 	</GlobalConfig>
 	
@@ -301,6 +302,9 @@
 			<AcceptMessageWithoutQosInRange value="0"/>
 			<RefreshFirstRequired value="1"/>
 			<ItemCountHint value="500000"/>
+			<ItemInfoPoolLimit value="12000" />
+			<ClientSessionCountHint value="10" />
+			<ClientSessionPoolLimit value="15" />
 			<EnumTypeFragmentSize value="2500"/>
 			<FieldDictionaryFragmentSize value="1500"/>
 			<ServiceCountHint value="655"/>

@@ -21,6 +21,7 @@ class GlobalConfig
 	int tunnelStreamMsgEventPoolLimit;
 	int tunnelStreamStatusEventPoolLimit;
 	int jsonConverterPoolsSize;
+	int watchlistPoolLimit;
 	int watchlistObjectsPoolLimit;
 	int socketProtocolPoolLimit;
 
@@ -33,6 +34,7 @@ class GlobalConfig
 		tunnelStreamMsgEventPoolLimit = DEFAULT_EVENT_POOL_LIMIT;
 		tunnelStreamStatusEventPoolLimit = DEFAULT_EVENT_POOL_LIMIT;
 		jsonConverterPoolsSize = JSON_CONVERTER_DEFAULT_POOLS_SIZE;
+		watchlistPoolLimit = DEFAULT_WATCHLIST_OBJECTS_POOL_LIMIT;
 		watchlistObjectsPoolLimit = DEFAULT_WATCHLIST_OBJECTS_POOL_LIMIT;
 		socketProtocolPoolLimit = DEFAULT_SOCKET_PROTOCOL_POOL_LIMIT;
 	}
@@ -45,6 +47,7 @@ class GlobalConfig
 		tunnelStreamMsgEventPoolLimit = DEFAULT_EVENT_POOL_LIMIT;
 		tunnelStreamStatusEventPoolLimit = DEFAULT_EVENT_POOL_LIMIT;
 		jsonConverterPoolsSize = JSON_CONVERTER_DEFAULT_POOLS_SIZE;
+		watchlistPoolLimit = DEFAULT_WATCHLIST_OBJECTS_POOL_LIMIT;
 		watchlistObjectsPoolLimit = DEFAULT_WATCHLIST_OBJECTS_POOL_LIMIT;
 		socketProtocolPoolLimit = DEFAULT_SOCKET_PROTOCOL_POOL_LIMIT;
 	}

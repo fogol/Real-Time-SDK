@@ -725,6 +725,24 @@
                             </xs:complexType>
                           </xs:element>
 
+                          <xs:element name="ClientSessionCountHint" minOccurs="0" maxOccurs="1">
+                            <xs:complexType>
+                              <xs:attribute name="value" type="xs:unsignedLong" use="required" />
+                            </xs:complexType>
+                          </xs:element>
+
+                          <xs:element name="ClientSessionPoolLimit" minOccurs="0" maxOccurs="1">
+                            <xs:complexType>
+                              <xs:attribute name="value" type="xs:unsignedLong" use="required" />
+                            </xs:complexType>
+                          </xs:element>
+
+                          <xs:element name="ItemInfoPoolLimit" minOccurs="0" maxOccurs="1">
+                            <xs:complexType>
+                              <xs:attribute name="value" type="xs:unsignedLong" use="required" />
+                            </xs:complexType>
+                          </xs:element>
+
                           <xs:element name="JsonExpandedEnumFields" minOccurs="0" maxOccurs="1">
                             <xs:complexType>
                               <xs:attribute name="value" type="xs:unsignedLong" use="required" />
@@ -1864,6 +1882,12 @@
               </xs:element>
 
               <xs:element name="JsonConverterPoolsSize" minOccurs="0" maxOccurs="1">
+                <xs:complexType>
+                  <xs:attribute name="value" type="xs:int" use="required" />
+                </xs:complexType>
+              </xs:element>
+
+              <xs:element name="WatchlistPoolLimit" minOccurs="0" maxOccurs="1">
                 <xs:complexType>
                   <xs:attribute name="value" type="xs:int" use="required" />
                 </xs:complexType>

@@ -107,6 +107,8 @@ public class EmaFileConfigJunitTests extends TestCase
 		TestUtilities.checkResult("TunnelStreamStatusEventPoolLimit value == 3000", intValue == 3000);
 		intValue = testConfig.xmlConfig().getGlobalConfig().getPrimitiveValue(ConfigManager.WatchlistObjectsPoolLimit).intValue();
 		TestUtilities.checkResult("WatchlistObjectsPoolLimit value == 50000", intValue == 50000);
+		intValue = testConfig.xmlConfig().getGlobalConfig().getPrimitiveValue(ConfigManager.WatchlistPoolLimit).intValue();
+		TestUtilities.checkResult("WatchlistPoolLimit value == 12", intValue == 12);
 		intValue = testConfig.xmlConfig().getGlobalConfig().getPrimitiveValue(ConfigManager.SocketProtocolPoolLimit).intValue();
 		TestUtilities.checkResult("SocketProtocolPoolLimit value == 42", intValue == 42);
 
@@ -1225,7 +1227,7 @@ public class EmaFileConfigJunitTests extends TestCase
 		}
 	}
 	
-	public void testLoadChannelSetBwteenFileProgrammatic()
+	public void testLoadChannelSetBetweenFileProgrammatic()
 	{
 		TestUtilities.printTestHead("testLoadChannelSetBetweenFileProgrammatic","Test reading Channel and ChannelSet when both parameters are configured programmatcally and from file");
 
@@ -3668,6 +3670,7 @@ public void testLoadCfgFromProgrammaticConfigForIProv()
 			innerElementList.add(EmaFactory.createElementEntry().intValue("WorkerEventPoolLimit", 1000));
 			innerElementList.add(EmaFactory.createElementEntry().intValue("TunnelStreamMsgEventPoolLimit", 2500));
 			innerElementList.add(EmaFactory.createElementEntry().intValue("TunnelStreamStatusEventPoolLimit", 3000));
+			innerElementList.add(EmaFactory.createElementEntry().intValue("WatchlistPoolLimit", 12));
 			outermostMap.add(EmaFactory.createMapEntry().keyAscii( "GlobalConfig", MapEntry.MapAction.ADD, innerElementList ));
 			innerElementList.clear();
 			
@@ -3676,6 +3679,9 @@ public void testLoadCfgFromProgrammaticConfigForIProv()
 			innerElementList.add(EmaFactory.createElementEntry().ascii("Server", "Server_1"));
 			innerElementList.add(EmaFactory.createElementEntry().ascii("Directory", "Directory_1"));
 			innerElementList.add(EmaFactory.createElementEntry().intValue("ItemCountHint", 5000));
+			innerElementList.add(EmaFactory.createElementEntry().intValue("ItemInfoPoolLimit", 10000));
+			innerElementList.add(EmaFactory.createElementEntry().intValue("ClientSessionCountHint", 10));
+			innerElementList.add(EmaFactory.createElementEntry().intValue("ClientSessionPoolLimit", 20));
 			innerElementList.add(EmaFactory.createElementEntry().intValue("ServiceCountHint", 2000));
 			innerElementList.add(EmaFactory.createElementEntry().intValue("AcceptDirMessageWithoutMinFilters", 1));
 			innerElementList.add(EmaFactory.createElementEntry().intValue("AcceptMessageSameKeyButDiffStream", 1));
@@ -3931,6 +3937,12 @@ public void testLoadCfgFromProgrammaticConfigForIProv()
 			
 			intLongValue = JUnitTestConnect.activeConfigGetIntLongValue(prov, JUnitTestConnect.ConfigGroupTypeProvider, JUnitTestConnect.ItemCountHint);
 			TestUtilities.checkResult("ItemCountHint value == 5000", intLongValue == 5000 );
+			intLongValue = JUnitTestConnect.activeConfigGetIntLongValue(prov, JUnitTestConnect.ConfigGroupTypeProvider, JUnitTestConnect.ItemInfoPoolLimit);
+			TestUtilities.checkResult("ItemInfoPoolLimit value == 10000", intLongValue == 10000 );
+			intLongValue = JUnitTestConnect.activeConfigGetIntLongValue(prov, JUnitTestConnect.ConfigGroupTypeProvider, JUnitTestConnect.ClientSessionCountHint);
+			TestUtilities.checkResult("ClientSessionCountHint value == 10", intLongValue == 10 );
+			intLongValue = JUnitTestConnect.activeConfigGetIntLongValue(prov, JUnitTestConnect.ConfigGroupTypeProvider, JUnitTestConnect.ClientSessionPoolLimit);
+			TestUtilities.checkResult("ClientSessionPoolLimit value == 20", intLongValue == 20 );
 			intLongValue = JUnitTestConnect.activeConfigGetIntLongValue(prov, JUnitTestConnect.ConfigGroupTypeProvider, JUnitTestConnect.ServiceCountHint);
 			TestUtilities.checkResult("ServiceCountHint value == 2000", intLongValue == 2000 );
 			intLongValue = JUnitTestConnect.activeConfigGetIntLongValue(prov, JUnitTestConnect.ConfigGroupTypeProvider, JUnitTestConnect.RequestTimeout);
@@ -3971,6 +3983,8 @@ public void testLoadCfgFromProgrammaticConfigForIProv()
 			TestUtilities.checkResult("TunnelStreamMsgEventPoolLimit == 2500", value == 2500);
 			value = prov.activeConfig().globalConfig.tunnelStreamStatusEventPoolLimit;
 			TestUtilities.checkResult("TunnelStreamStatusEventPoolLimit == 3000", value == 3000);
+			value = prov.activeConfig().globalConfig.watchlistPoolLimit;
+			TestUtilities.checkResult("WatchlistPoolLimit == 12", value == 12);
 			
 			// Check Server configuration:
 			// Check Server_1 configuration.
@@ -4422,7 +4436,6 @@ public void testLoadCfgFromProgrammaticConfigForIProvEncrypted()
 		}
 	}
 }
-
 
 
 public void testLoadCfgFromProgrammaticConfigForNiProv()

@@ -140,6 +140,11 @@ class ConfigManager
 	public static final int UpdateTypeFilter = 64;
 	public static final int NegativeUpdateTypeFilter = 65;
 
+	public static final int ClientSessionCountHint = 61;
+
+	public static final int ItemInfoPoolLimit = 62;
+	public static final int ClientSessionPoolLimit = 63;
+
 	// Channel: Global
 	public static final int ChannelGroup = 100;
 	public static final int ChannelList = 101;
@@ -305,6 +310,7 @@ class ConfigManager
 	public static final int TunnelStreamMsgEventPoolLimit = 1104;
 	public static final int TunnelStreamStatusEventPoolLimit = 1105;
 	public static final int WatchlistObjectsPoolLimit = 1106;
+	public static final int WatchlistPoolLimit = 1107;
 	public static final int SocketProtocolPoolLimit = 1108;
 
 	// WarmStandby
@@ -578,6 +584,9 @@ class ConfigManager
 		IProviderTagDict.add( "DictionaryRequestTimeOut",DictionaryRequestTimeOut );
 		IProviderTagDict.add( "DispatchTimeoutApiThread",DispatchTimeoutApiThread );
 		IProviderTagDict.add( "ItemCountHint",ItemCountHint );
+		IProviderTagDict.add( "ItemInfoPoolLimit",ItemInfoPoolLimit );
+		IProviderTagDict.add( "ClientSessionCountHint",ClientSessionCountHint );
+		IProviderTagDict.add( "ClientSessionPoolLimit",ClientSessionPoolLimit );
 		IProviderTagDict.add( "MaxDispatchCountApiThread",MaxDispatchCountApiThread );
 		IProviderTagDict.add( "MaxDispatchCountUserThread",MaxDispatchCountUserThread );
 		IProviderTagDict.add( "PostAckTimeout",PostAckTimeout );
@@ -640,6 +649,7 @@ class ConfigManager
 		GlobalConfigDict.add( "TunnelStreamMsgEventPoolLimit", TunnelStreamMsgEventPoolLimit);
 		GlobalConfigDict.add( "TunnelStreamStatusEventPoolLimit", TunnelStreamStatusEventPoolLimit );
 		GlobalConfigDict.add("JsonConverterPoolsSize", JsonConverterPoolsSize);
+		GlobalConfigDict.add( "WatchlistPoolLimit", WatchlistPoolLimit );
 		GlobalConfigDict.add( "WatchlistObjectsPoolLimit", WatchlistObjectsPoolLimit );
 		GlobalConfigDict.add( "SocketProtocolPoolLimit", SocketProtocolPoolLimit );
 
@@ -834,8 +844,10 @@ class ConfigManager
 	};
 
 	public static String Int64Values[] = {
+		"ClientSessionPoolLimit",
 		"DictionaryID",
 		"DispatchTimeoutApiThread",
+		"ItemInfoPoolLimit",
 		"ReconnectAttemptLimit",
 		"ReconnectMaxDelay",
 		"ReconnectMinDelay",
@@ -848,6 +860,7 @@ class ConfigManager
 		"ServiceDiscoveryRetryCount",
 		"TunnelStreamMsgEventPoolLimit",
 		"TunnelStreamStatusEventPoolLimit",
+		"WatchlistPoolLimit",
 		"WatchlistObjectsPoolLimit",
 		"SocketProtocolPoolLimit"
 	};
@@ -861,6 +874,7 @@ class ConfigManager
 		"AcceptMessageWithoutAcceptingRequests",
 		"AcceptMessageWithoutBeingLogin",
 		"AcceptMessageWithoutQosInRange",
+		"ClientSessionCountHint",
 		"CompressionThreshold",
 		"ConnectionPingTimeout",
 		"ConnectionMinPingTimeout",

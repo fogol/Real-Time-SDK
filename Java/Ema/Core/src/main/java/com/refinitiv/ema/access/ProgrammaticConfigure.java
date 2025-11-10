@@ -702,6 +702,7 @@ class ProgrammaticConfigure
 		ElementEntry tunnelStreamStatusEventPoolLimit = getIntElementEntry(globalConfigEntry, "TunnelStreamStatusEventPoolLimit");
 		ElementEntry jsonConverterPoolsSize = getIntElementEntry(globalConfigEntry, "JsonConverterPoolsSize");
 		ElementEntry watchlistObjectsPoolLimit = getIntElementEntry(globalConfigEntry, "WatchlistObjectsPoolLimit");
+		ElementEntry watchlistPoolLimit = getIntElementEntry(globalConfigEntry, "WatchlistPoolLimit");
 		ElementEntry socketProtocolPoolLimit = getIntElementEntry(globalConfigEntry, "SocketProtocolPoolLimit");
 
 		if (reactorMsgEventPoolLimit != null) {
@@ -722,8 +723,15 @@ class ProgrammaticConfigure
 		if (jsonConverterPoolsSize != null) {
 			config.jsonConverterPoolsSize = getJsonConverterPoolsSize(jsonConverterPoolsSize.intValue());
 		}
+		if (watchlistPoolLimit != null) {
+			config.watchlistPoolLimit = getWatchlistObjectsPoolsSize(watchlistPoolLimit.intValue(),
+					"WatchlistPoolsSize value should be equal or greater than -1.",
+					"WatchlistPoolsSize value should not be greater than ");
+		}
 		if (watchlistObjectsPoolLimit != null) {
-			config.watchlistObjectsPoolLimit = getWatchlistObjectsPoolsSize(watchlistObjectsPoolLimit.intValue());
+			config.watchlistObjectsPoolLimit = getWatchlistObjectsPoolsSize(watchlistObjectsPoolLimit.intValue(),
+					"WatchlistObjectsPoolsSize value should be equal or greater than -1.",
+					"WatchlistObjectsPoolsSize value should not be greater than ");
 		}
 		if (socketProtocolPoolLimit != null) {
 			config.socketProtocolPoolLimit = getSocketProtocolPoolsSize(socketProtocolPoolLimit.intValue());
@@ -1183,6 +1191,21 @@ class ProgrammaticConfigure
 										{
 											if (eentry.intValue() >= 0)
 												activeConfig.itemCountHint = convertToInt(eentry.intValue());
+										}
+										else if ( eentry.name().equals("ItemInfoPoolLimit") )
+										{
+											if (eentry.intValue() >= 0)
+												activeConfig.itemInfoPoolLimit = convertToInt(eentry.intValue());
+										}
+										else if ( eentry.name().equals("ClientSessionCountHint") )
+										{
+											if (eentry.intValue() >= 0)
+												activeConfig.clientSessionCountHint = convertToInt(eentry.intValue());
+										}
+										else if ( eentry.name().equals("ClientSessionPoolLimit") )
+										{
+											if (eentry.intValue() >= 0)
+												activeConfig.clientSessionPoolLimit = convertToInt(eentry.intValue());
 										}
 										else if ( eentry.name().equals("ServiceCountHint") )
 										{
@@ -4044,11 +4067,13 @@ class ProgrammaticConfigure
 		return (int) jsonConverterPoolsSize;
 	}
 
-	private int getWatchlistObjectsPoolsSize(long watchlistObjectsPoolsSize)
+	private int getWatchlistObjectsPoolsSize(long watchlistObjectsPoolsSize,
+											 String negativeErrorMsg,
+											 String overflowErrorMsg)
 	{
 		if (watchlistObjectsPoolsSize < -1)
 		{
-			_emaConfigErrList.append( "WatchlistObjectsPoolsSize value should be equal or greater than -1.")
+			_emaConfigErrList.append(negativeErrorMsg)
 					.append( " It will be set to default value: -1 (no limit).")
 					.create(Severity.WARNING);
 			return GlobalConfig.DEFAULT_WATCHLIST_OBJECTS_POOL_LIMIT;
@@ -4056,7 +4081,7 @@ class ProgrammaticConfigure
 
 		if (watchlistObjectsPoolsSize > Integer.MAX_VALUE)
 		{
-			_emaConfigErrList.append("WatchlistObjectsPoolsSize value should not be greater than ")
+			_emaConfigErrList.append(overflowErrorMsg)
 					.append(Integer.MAX_VALUE)
 					.append(". It will be set to ")
 					.append(Integer.MAX_VALUE)

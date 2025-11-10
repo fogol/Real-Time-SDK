@@ -42,7 +42,10 @@ public class JUnitTestConnect
 	public static final int XmlTraceWrite  = ConfigManager.XmlTraceWrite;
 	public static final int XmlTraceRead  = ConfigManager.XmlTraceRead;
 	public static final int XmlTracePing  = ConfigManager.XmlTracePing;
-	public static final int ItemCountHint  = ConfigManager.ItemCountHint ;
+	public static final int ItemCountHint  = ConfigManager.ItemCountHint;
+	public static final int ItemInfoPoolLimit  = ConfigManager.ItemInfoPoolLimit;
+	public static final int ClientSessionCountHint  = ConfigManager.ClientSessionCountHint;
+	public static final int ClientSessionPoolLimit  = ConfigManager.ClientSessionPoolLimit;
 	public static final int DispatchTimeoutApiThread  = ConfigManager.DispatchTimeoutApiThread; 
 	public static final int MaxDispatchCountApiThread  = ConfigManager.MaxDispatchCountApiThread; 
 	public static final int MaxDispatchCountUserThread  = ConfigManager.MaxDispatchCountUserThread; 
@@ -1739,7 +1742,13 @@ public class JUnitTestConnect
 		{
 			if (configParam == ItemCountHint)
 				return activeConfig.itemCountHint;
-			if (configParam == ServiceCountHint)
+			else if (configParam == ItemInfoPoolLimit)
+				return activeConfig.itemInfoPoolLimit;
+			else if (configParam == ClientSessionCountHint)
+				return activeConfig.clientSessionCountHint;
+			else if (configParam == ClientSessionPoolLimit)
+				return activeConfig.clientSessionPoolLimit;
+			else if (configParam == ServiceCountHint)
 				return activeConfig.serviceCountHint;
 			else if (configParam == RequestTimeout)
 				return activeConfig.requestTimeout;

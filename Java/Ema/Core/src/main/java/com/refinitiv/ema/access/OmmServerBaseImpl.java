@@ -116,6 +116,7 @@ abstract class OmmServerBaseImpl implements OmmCommonImpl, Runnable, TimeoutClie
 	protected boolean _eventTimeout;
 	protected ConcurrentLinkedQueue<TimeoutEvent> _timeoutEventQueue = new ConcurrentLinkedQueue<TimeoutEvent>();
 	protected EmaObjectManager _objManager = new EmaObjectManager();
+	protected ServerPool _serverPool = new ServerPool();
 	
 	protected ReactorSubmitOptions _rsslSubmitOptions = ReactorFactory.createReactorSubmitOptions();
 	
@@ -186,7 +187,6 @@ abstract class OmmServerBaseImpl implements OmmCommonImpl, Runnable, TimeoutClie
 			
 			GlobalPool.lock();
 			GlobalPool.initialize();
-			ServerPool.initialize(this,10, _activeServerConfig.itemCountHint);
 			GlobalPool.unlock();
 			
 			_userLock.lock();
@@ -196,6 +196,13 @@ abstract class OmmServerBaseImpl implements OmmCommonImpl, Runnable, TimeoutClie
 			readConfiguration(config);
 			
 			readCustomConfig(config);
+
+			_serverPool.initialize(this,
+					_activeServerConfig.clientSessionCountHint,
+					_activeServerConfig.itemCountHint,
+					_activeServerConfig.clientSessionPoolLimit,
+					_activeServerConfig.itemInfoPoolLimit
+			);
 			
 			config.errorTracker().log(this, _loggerClient);
 			
@@ -639,6 +646,27 @@ abstract class OmmServerBaseImpl implements OmmCommonImpl, Runnable, TimeoutClie
 				value = ce.intLongValue();
 				if (value >= 0)
 					_activeServerConfig.itemCountHint = value;
+			}
+
+			if ((ce = attributes.getPrimitiveValue(ConfigManager.ItemInfoPoolLimit)) != null)
+			{
+				value = ce.intValue();
+				if (value >= 0)
+					_activeServerConfig.itemInfoPoolLimit = value;
+			}
+
+            if ((ce = attributes.getPrimitiveValue(ConfigManager.ClientSessionCountHint)) != null)
+            {
+                value = ce.intLongValue();
+                if (value >= 0)
+                    _activeServerConfig.clientSessionCountHint = value;
+            }
+
+			if ((ce = attributes.getPrimitiveValue(ConfigManager.ClientSessionPoolLimit)) != null)
+			{
+				value = ce.intValue();
+				if (value >= 0)
+					_activeServerConfig.clientSessionPoolLimit = value;
 			}
 
 			if ((ce = attributes.getPrimitiveValue(ConfigManager.ServiceCountHint)) != null)
@@ -1270,7 +1298,7 @@ abstract class OmmServerBaseImpl implements OmmCommonImpl, Runnable, TimeoutClie
 							if (key.isAcceptable()) 
 							{
 								reactorAcceptOptions.clear();
-								ClientSession clientSession = ServerPool.getClientSession(this);
+								ClientSession clientSession = _serverPool.getClientSession(this);
 								reactorAcceptOptions.acceptOptions().userSpecObject(clientSession);
 								reactorAcceptOptions.acceptOptions().nakMount(false);
 								reactorAcceptOptions.initTimeout(_activeServerConfig.serverConfig.initializationTimeout);

@@ -14,8 +14,6 @@ package com.refinitiv.eta.valueadd.common;
  */
 public class LimitedVaPool extends VaPool
 {
-	private int limit = -1;
-
 	/**
 	 * Creates a pool. This pool is not thread safe. This pool is not limited by default.
 	 * 
@@ -23,6 +21,7 @@ public class LimitedVaPool extends VaPool
 	 */
 	public LimitedVaPool()
 	{
+		super(new LimitedVaQueue(), false);
 	}
 
 	/**
@@ -32,7 +31,7 @@ public class LimitedVaPool extends VaPool
 	 */
 	public LimitedVaPool(boolean useConcurrent)
 	{
-		super(useConcurrent);
+		super(new LimitedVaQueue(), useConcurrent);
 	}
 
 	/**
@@ -43,23 +42,7 @@ public class LimitedVaPool extends VaPool
 	 */
 	public LimitedVaPool(boolean useConcurrent, boolean debug)
 	{
-		super(useConcurrent, debug);
-	}
-
-	@Override
-	/**
-	 * Adds a node to the pool. If pool limit is set and current pool size exceeds
-	 * the limit, the node will not be added to the pool.
-	 * 
-	 * @param node the node to add
-	 * @see VaPool
-	 */
-	public void add(VaNode node)
-	{
-		if(checkPoolLimit(limit))
-		{
-			super.add(node);
-		}
+		super(new LimitedVaQueue(), useConcurrent, debug);
 	}
 
 	/**
@@ -69,11 +52,6 @@ public class LimitedVaPool extends VaPool
 	 */
 	public void setLimit(int limit)
 	{
-		this.limit = limit;
-	}
-
-	private boolean checkPoolLimit(int limit)
-	{
-		return limit < 0 || size() < limit;
+		_queue.setLimit(limit);
 	}
 }
