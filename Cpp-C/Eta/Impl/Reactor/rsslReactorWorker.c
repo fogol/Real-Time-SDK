@@ -701,10 +701,21 @@ RsslRet _reactorWorkerProcessReconnect(RsslReactorChannelImpl* pReactorChannel, 
 		/* Here we prepare to switch over the preferred host's Rssl channel */
 		if (pReactorChannel->pWarmStandByHandlerImpl != NULL)
 		{
-			// In the warm standby case, get the starting server for the new preferred host wsb group.
-			// The preferred host switch should only happen on starting active channels, not the secondary connections.
-			pReactorConnectInfoImpl = &pReactorChannel->pWarmStandByHandlerImpl->warmStandbyGroupList[pReactorChannel->preferredHostOptions.warmStandbyGroupListIndex].startingActiveServer.reactorConnectInfoImpl;
-			prevConnectInfo = pReactorChannel->currentConnectionOpts;
+			RsslReactorWarmStandbyGroupImpl* pWarmStandByGroupImpl = &pReactorChannel->pWarmStandByHandlerImpl->warmStandbyGroupList[pReactorChannel->pWarmStandByHandlerImpl->currentWSyGroupIndex];
+
+			/* Fallbacks the the staring server of the current group when the PHFallBackWithInWSBGroup option is set the RSSL_TRUE for the login based WSB mode. */
+			if (pWarmStandByGroupImpl->warmStandbyMode == RSSL_RWSB_MODE_LOGIN_BASED && pReactorChannel->preferredHostOptions.fallBackWithInWSBGroup == RSSL_TRUE)
+			{
+				pReactorConnectInfoImpl = &pWarmStandByGroupImpl->startingActiveServer.reactorConnectInfoImpl;
+				prevConnectInfo = pReactorChannel->currentConnectionOpts;
+			}
+			else
+			{
+				// In the warm standby case, get the starting server for the new preferred host wsb group.
+				// The preferred host switch should only happen on starting active channels, not the secondary connections.
+				pReactorConnectInfoImpl = &pReactorChannel->pWarmStandByHandlerImpl->warmStandbyGroupList[pReactorChannel->preferredHostOptions.warmStandbyGroupListIndex].startingActiveServer.reactorConnectInfoImpl;
+				prevConnectInfo = pReactorChannel->currentConnectionOpts;
+			}
 		}
 		else
 		{
@@ -4058,21 +4069,39 @@ RsslRet _reactorWorkerHandlePreferredHostTimeout(RsslReactorChannelImpl* pReacto
 			// If warm standby is enabled and the fallbackwithinwsbgroup flag is TRUE, send the fallback in group event to the reactor.
 			if (_reactorHandlesWarmStandby(pReactorChannel) == RSSL_TRUE && pReactorChannel->preferredHostOptions.fallBackWithInWSBGroup == RSSL_TRUE)
 			{
-				RsslReactorWarmStandbyEvent* pWSBEvent = (RsslReactorWarmStandbyEvent*)rsslReactorEventQueueGetFromPool(&pReactorImpl->reactorEventQueue);
+				RsslReactorWarmStandbyGroupImpl* pWarmStandByGroupImpl = &pReactorChannel->pWarmStandByHandlerImpl->warmStandbyGroupList[pReactorChannel->pWarmStandByHandlerImpl->currentWSyGroupIndex];
 
-				rsslClearReactorWarmStandbyEvent(pWSBEvent);
-				pWSBEvent->reactorWarmStandByEventType = RSSL_RCIMPL_WSBET_PREFERRED_HOST_FALLBACK_IN_GROUP;
-				pWSBEvent->pReactorChannel = (RsslReactorChannel*)pReactorChannel;
-				if (!RSSL_ERROR_INFO_CHECK(rsslReactorEventQueuePut(&pReactorChannel->pParentReactor->reactorEventQueue, (RsslReactorEventImpl*)pWSBEvent) == RSSL_RET_SUCCESS, RSSL_RET_FAILURE, &pReactorChannel->channelWorkerCerr))
+				/* Checks whether the WSB channel needs to fallback to the starting server for the current WSB group as the PHFallBackWithInWSBGroup option is set to true. */
+				if (pWarmStandByGroupImpl->warmStandbyMode == RSSL_RWSB_MODE_LOGIN_BASED && pReactorChannel->pWarmStandByHandlerImpl->pStartingReactorChannel->channelSetupState != RSSL_RC_CHST_READY)
 				{
-					return RSSL_RET_FAILURE;
+					// Initiate the fallback procedure to switch to the starting sever of the current WSB group.
+					// Send a preferred host START_FALLBACK event to the worker thread.
+					RsslReactorChannelEventImpl* pEvent = (RsslReactorChannelEventImpl*)rsslReactorEventQueueGetFromPool(&pReactorImpl->reactorWorker.workerQueue);
+
+					rsslClearReactorChannelEventImpl(pEvent);
+					pEvent->channelEvent.channelEventType = (RsslReactorChannelEventType)RSSL_RCIMPL_CET_PREFERRED_HOST_START_FALLBACK;
+					pEvent->channelEvent.pReactorChannel = (RsslReactorChannel*)pReactorChannel;
+					if (!RSSL_ERROR_INFO_CHECK(rsslReactorEventQueuePut(&pReactorImpl->reactorWorker.workerQueue, (RsslReactorEventImpl*)pEvent) == RSSL_RET_SUCCESS, RSSL_RET_FAILURE, &pReactorChannel->channelWorkerCerr))
+						return RSSL_RET_FAILURE;
 				}
-
-				pReactorChannel->preferredHostNextReconnectMs =
-					getNextFallbackPreferredHostTime(&pReactorChannel->preferredHostOptions, pReactorWorker->lastRecordedTimeMs);
-				if (pReactorChannel->preferredHostNextReconnectMs > 0)
+				else
 				{
-					_reactorWorkerCalculateNextTimeout(pReactorImpl, (RsslUInt32)(pReactorChannel->preferredHostNextReconnectMs - pReactorWorker->lastRecordedTimeMs));
+					RsslReactorWarmStandbyEvent* pWSBEvent = (RsslReactorWarmStandbyEvent*)rsslReactorEventQueueGetFromPool(&pReactorImpl->reactorEventQueue);
+
+					rsslClearReactorWarmStandbyEvent(pWSBEvent);
+					pWSBEvent->reactorWarmStandByEventType = RSSL_RCIMPL_WSBET_PREFERRED_HOST_FALLBACK_IN_GROUP;
+					pWSBEvent->pReactorChannel = (RsslReactorChannel*)pReactorChannel;
+					if (!RSSL_ERROR_INFO_CHECK(rsslReactorEventQueuePut(&pReactorChannel->pParentReactor->reactorEventQueue, (RsslReactorEventImpl*)pWSBEvent) == RSSL_RET_SUCCESS, RSSL_RET_FAILURE, &pReactorChannel->channelWorkerCerr))
+					{
+						return RSSL_RET_FAILURE;
+					}
+
+					pReactorChannel->preferredHostNextReconnectMs =
+						getNextFallbackPreferredHostTime(&pReactorChannel->preferredHostOptions, pReactorWorker->lastRecordedTimeMs);
+					if (pReactorChannel->preferredHostNextReconnectMs > 0)
+					{
+						_reactorWorkerCalculateNextTimeout(pReactorImpl, (RsslUInt32)(pReactorChannel->preferredHostNextReconnectMs - pReactorWorker->lastRecordedTimeMs));
+					}
 				}
 			}
 			/* Check that pReactorChannel is not preferred host */

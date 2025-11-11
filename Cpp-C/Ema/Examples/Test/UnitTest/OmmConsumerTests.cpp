@@ -13325,3 +13325,685 @@ TEST_F(OmmConsumerTest, RequestRoutingRequestSingleItemPHRecoverDifferentQoS)
 		ASSERT_TRUE(false) << "uncaught exception in test";
 	}
 }
+
+/* Test preferred host fallback to the starting server of the preferred WSB group for the login based wsb mode.
+*  Preferred Host, WSB-Login: WSB-G0(S1,S2), WSB-G1 (S3,S4, S5) are specified. WSB-G0 is preferred WSB group.
+* The following is the test steps:
+* - S1 is down, S2, S3, S4, S5 are up.
+* - Start the consumer.
+* - The consumer connects to S3 as active server and S4, S5 as standby servers.
+* - Bring down S3 and S4 is the new active.
+* - Bring up S1
+* - Waits for PH timer to be triggered.
+* - The consumer should fallback to S1 as active server and S2 as standby server.
+*/
+TEST_F(OmmConsumerTest, PreferredHostFallBackToPreferredWSBWhileWhileStartingServerIsDownForCurrentWSBGroup)
+{
+	Map serviceMap;
+	setupSingleServiceMap(serviceMap, "DIRECT_FEED", 1);
+	ProviderTestOptions provTestOptions;
+
+	provTestOptions.directoryPayload = &serviceMap;
+
+	IProviderTestClientBase provClient1(provTestOptions);
+
+	OmmIProviderConfig provConfig1("EmaConfigTest.xml");
+	provConfig1.adminControlDirectory(OmmIProviderConfig::UserControlEnum).providerName("TestProvider_15000").port("15000");
+
+	IProviderTestClientBase provClient2(provTestOptions);
+
+	OmmIProviderConfig provConfig2("EmaConfigTest.xml");
+	provConfig2.adminControlDirectory(OmmIProviderConfig::UserControlEnum).providerName("TestProvider_15001").port("15001");
+
+	IProviderTestClientBase provClient3(provTestOptions);
+
+	OmmIProviderConfig provConfig3("EmaConfigTest.xml");
+	provConfig3.adminControlDirectory(OmmIProviderConfig::UserControlEnum).providerName("TestProvider_15002").port("15002");
+
+	IProviderTestClientBase provClient4(provTestOptions);
+
+	OmmIProviderConfig provConfig4("EmaConfigTest.xml");
+	provConfig4.adminControlDirectory(OmmIProviderConfig::UserControlEnum).providerName("TestProvider_15003").port("15003");
+
+	IProviderTestClientBase provClient5(provTestOptions);
+
+	OmmIProviderConfig provConfig5("EmaConfigTest.xml");
+	provConfig5.adminControlDirectory(OmmIProviderConfig::UserControlEnum).providerName("TestProvider_15004").port("15004");
+
+	ConsumerTestOptions consTestOptions;
+	consTestOptions.getChannelInformation = true;
+	ConsumerTestClientBase consClient(consTestOptions);
+	OmmConsumerConfig consConfig("EmaConfigTest.xml");
+	consConfig.consumerName("PreferredHostCons_2WSBGroups");
+
+	try
+	{
+		ReqMsg consRequest;
+		Msg* msg;
+		RefreshMsg* refreshMsg;
+		ReqMsg* reqMsg;
+		StatusMsg* statusMsg;
+
+		/* WarmStandbyChannel_3 */
+			// Starting server is down at startup 
+		OmmProvider provider2(provConfig2, provClient2);
+
+		/* WarmStandbyChannel_4 */
+		OmmProvider* pProvider3 = new OmmProvider(provConfig3, provClient3);
+		OmmProvider provider4(provConfig4, provClient4);
+		OmmProvider provider5(provConfig5, provClient5);
+
+		OmmConsumer cons(consConfig);
+
+		testSleep(1000);
+
+
+		ASSERT_EQ(provClient3.wsbActiveState, 0);
+		ASSERT_EQ(provClient4.wsbActiveState, 1);
+		ASSERT_EQ(provClient5.wsbActiveState, 1);
+
+		provClient2.clear();
+		provClient3.clear();
+		provClient4.clear();
+		provClient5.clear();
+
+
+		consRequest.clear().name("Item1").domainType(MMT_MARKET_PRICE).serviceName("DIRECT_FEED");
+
+		UInt64 handle1 = cons.registerClient(consRequest, consClient);
+
+		testSleep(3000);
+
+		// Check to see that the request has been made to the active and standby servers of WarmStandbyChannel_4
+		ASSERT_EQ(provClient3.getMessageQueueSize(), 1);
+		ASSERT_EQ(provClient4.getMessageQueueSize(), 1);
+		ASSERT_EQ(provClient5.getMessageQueueSize(), 1);
+
+		msg = provClient3.popMsg();
+
+		ASSERT_EQ(msg->getDataType(), DataType::ReqMsgEnum);
+		reqMsg = static_cast<ReqMsg*>(msg);
+		ASSERT_EQ(reqMsg->getName(), "Item1");
+		ASSERT_EQ(reqMsg->getDomainType(), MMT_MARKET_PRICE);
+		ASSERT_EQ(reqMsg->getServiceName(), "DIRECT_FEED");
+		ASSERT_EQ(reqMsg->getServiceId(), 1);
+
+		ASSERT_EQ(consClient.getMessageQueueSize(), 1);
+		ASSERT_EQ(consClient.getChannelInfoQueueSize(), 1);
+
+		msg = consClient.popMsg();
+
+		ASSERT_EQ(msg->getDataType(), DataType::RefreshMsgEnum);
+		refreshMsg = static_cast<RefreshMsg*>(msg);
+		ASSERT_EQ(refreshMsg->getName(), "Item1");
+		ASSERT_EQ(refreshMsg->getDomainType(), MMT_MARKET_PRICE);
+		ASSERT_EQ(refreshMsg->getServiceName(), "DIRECT_FEED");
+		ASSERT_EQ(refreshMsg->getServiceId(), (UInt32)1);
+		ASSERT_TRUE(refreshMsg->getComplete());
+		ASSERT_EQ(refreshMsg->getPayload().getDataType(), DataType::FieldListEnum);
+		ChannelInformation *pChannelInfo = consClient.popChannelInfo();
+		ASSERT_EQ(pChannelInfo->getName(), "TestChannel_15002");
+		ASSERT_EQ(pChannelInfo->port(), 15002);
+
+		provClient2.clear();
+		provClient3.clear();
+		provClient4.clear();
+		provClient5.clear();
+
+		// Shutdown the active server of WarmStandbyChannel_4
+		delete pProvider3;
+
+		// Start the active server of WarmStandbyChannel_3
+		OmmProvider provider1(provConfig1, provClient1);
+
+		// In this time, the consumer should reconnect and re-establish the former primary active as a standby
+		testSleep(5000);
+
+		/* Receives the WSB generic message to be the new active server */
+		ASSERT_EQ(provClient4.getMessageQueueSize(), 1);
+		ASSERT_EQ(provClient5.getMessageQueueSize(), 0);
+
+		ASSERT_EQ(provClient4.wsbActiveState, 0);
+		ASSERT_EQ(provClient5.wsbActiveState, 1);
+
+		ASSERT_EQ(consClient.getMessageQueueSize(), 2);
+		ASSERT_EQ(consClient.getChannelInfoQueueSize(), 2);
+
+		msg = consClient.popMsg();
+
+		ASSERT_TRUE(msg != NULL);
+		ASSERT_EQ(msg->getDataType(), DataType::StatusMsgEnum);
+
+		statusMsg = static_cast<StatusMsg*>(msg);
+		ASSERT_EQ(statusMsg->getName(), "Item1");
+		ASSERT_EQ(statusMsg->getDomainType(), MMT_MARKET_PRICE);
+		ASSERT_EQ(statusMsg->getServiceName(), "DIRECT_FEED");
+		ASSERT_TRUE(statusMsg->hasState());
+		ASSERT_EQ(statusMsg->getState().getStreamState(), OmmState::StreamState::OpenEnum);
+		ASSERT_EQ(statusMsg->getState().getDataState(), OmmState::DataState::SuspectEnum);
+		ASSERT_EQ(statusMsg->getState().getStatusCode(), OmmState::StatusCode::NoneEnum);
+		ASSERT_EQ(statusMsg->getState().getStatusText(), "Service for this item was lost.");
+		pChannelInfo = consClient.popChannelInfo();
+		ASSERT_EQ(pChannelInfo->getName(), "TestChannel_15002");
+		ASSERT_EQ(pChannelInfo->port(), 15002);
+
+		msg = consClient.popMsg();
+
+		ASSERT_TRUE(msg != NULL);
+		ASSERT_EQ(msg->getDataType(), DataType::RefreshMsgEnum);
+		refreshMsg = static_cast<RefreshMsg*>(msg);
+		ASSERT_EQ(refreshMsg->getName(), "Item1");
+		ASSERT_EQ(refreshMsg->getDomainType(), MMT_MARKET_PRICE);
+		ASSERT_EQ(refreshMsg->getServiceName(), "DIRECT_FEED");
+		ASSERT_EQ(refreshMsg->getServiceId(), (UInt32)1);
+		ASSERT_TRUE(refreshMsg->getComplete());
+		ASSERT_EQ(refreshMsg->getPayload().getDataType(), DataType::FieldListEnum);
+		pChannelInfo = consClient.popChannelInfo();
+		ASSERT_EQ(pChannelInfo->getName(), "TestChannel_15003");
+		ASSERT_EQ(pChannelInfo->port(), 15003);
+
+		/* Waits until the fallback timer is triggered to connected to the starting server of the preferred WSB Channel(WarmStandbyChannel_3)*/
+		testSleep(10000);
+
+		ASSERT_EQ(consClient.getMessageQueueSize(), 2);
+		ASSERT_EQ(consClient.getChannelInfoQueueSize(), 2);
+
+		msg = consClient.popMsg();
+
+		ASSERT_TRUE(msg != NULL);
+		ASSERT_EQ(msg->getDataType(), DataType::StatusMsgEnum);
+
+		statusMsg = static_cast<StatusMsg*>(msg);
+		ASSERT_EQ(statusMsg->getName(), "Item1");
+		ASSERT_EQ(statusMsg->getDomainType(), MMT_MARKET_PRICE);
+		ASSERT_EQ(statusMsg->getServiceName(), "DIRECT_FEED");
+		ASSERT_TRUE(statusMsg->hasState());
+		ASSERT_EQ(statusMsg->getState().getStreamState(), OmmState::StreamState::OpenEnum);
+		ASSERT_EQ(statusMsg->getState().getDataState(), OmmState::DataState::SuspectEnum);
+		ASSERT_EQ(statusMsg->getState().getStatusCode(), OmmState::StatusCode::NoneEnum);
+		ASSERT_EQ(statusMsg->getState().getStatusText(), "Service for this item was lost.");
+		pChannelInfo = consClient.popChannelInfo();
+		ASSERT_EQ(pChannelInfo->getName(), "TestChannel_15003");
+		ASSERT_EQ(pChannelInfo->port(), 15003);
+
+		msg = consClient.popMsg();
+
+		ASSERT_TRUE(msg != NULL);
+		ASSERT_EQ(msg->getDataType(), DataType::RefreshMsgEnum);
+		refreshMsg = static_cast<RefreshMsg*>(msg);
+		ASSERT_EQ(refreshMsg->getName(), "Item1");
+		ASSERT_EQ(refreshMsg->getDomainType(), MMT_MARKET_PRICE);
+		ASSERT_EQ(refreshMsg->getServiceName(), "DIRECT_FEED");
+		ASSERT_EQ(refreshMsg->getServiceId(), (UInt32)1);
+		ASSERT_TRUE(refreshMsg->getComplete());
+		ASSERT_EQ(refreshMsg->getPayload().getDataType(), DataType::FieldListEnum);
+		pChannelInfo = consClient.popChannelInfo();
+		ASSERT_EQ(pChannelInfo->getName(), "TestChannel_15000");
+		ASSERT_EQ(pChannelInfo->port(), 15000);
+	}
+	catch (...)
+	{
+		ASSERT_TRUE(false) << "uncaught exception in test";
+	}
+}
+
+/* Test preferred host fallback to the starting server of the current WSB group when the PHFallBackWithInWSBGroup option is set to true for the login based wsb mode.
+*  Preferred Host, WSB-Login: WSB-G0(S1,S2), WSB-G1 (S3,S4, S5) are specified. WSB-G0 is preferred WSB group.
+* The following is the test steps:
+* - S1 is down, S2, S3, S4, S5 are up.
+* - Start the consumer.
+* - The consumer connects to S3 as active server and S4, S5 as standby servers.
+* - Bring down S3 and S4 is the new active.
+* - Bring up S1 and S3.
+* - Waits for PH timer to be triggered.
+* - The consumer should fallback to S3 as active server and S4, S5 as standby servers.
+*/
+TEST_F(OmmConsumerTest, PreferredHostFallBackWithInCurrentWSBGroupWhileWhileStartingServerIsDown)
+{
+	Map serviceMap;
+	setupSingleServiceMap(serviceMap, "DIRECT_FEED", 1);
+	ProviderTestOptions provTestOptions;
+
+	provTestOptions.directoryPayload = &serviceMap;
+
+	IProviderTestClientBase provClient1(provTestOptions);
+
+	OmmIProviderConfig provConfig1("EmaConfigTest.xml");
+	provConfig1.adminControlDirectory(OmmIProviderConfig::UserControlEnum).providerName("TestProvider_15000").port("15000");
+
+	IProviderTestClientBase provClient2(provTestOptions);
+
+	OmmIProviderConfig provConfig2("EmaConfigTest.xml");
+	provConfig2.adminControlDirectory(OmmIProviderConfig::UserControlEnum).providerName("TestProvider_15001").port("15001");
+
+	IProviderTestClientBase provClient3(provTestOptions);
+
+	OmmIProviderConfig provConfig3("EmaConfigTest.xml");
+	provConfig3.adminControlDirectory(OmmIProviderConfig::UserControlEnum).providerName("TestProvider_15002").port("15002");
+
+	IProviderTestClientBase provClient4(provTestOptions);
+
+	OmmIProviderConfig provConfig4("EmaConfigTest.xml");
+	provConfig4.adminControlDirectory(OmmIProviderConfig::UserControlEnum).providerName("TestProvider_15003").port("15003");
+
+	IProviderTestClientBase provClient5(provTestOptions);
+
+	OmmIProviderConfig provConfig5("EmaConfigTest.xml");
+	provConfig5.adminControlDirectory(OmmIProviderConfig::UserControlEnum).providerName("TestProvider_15004").port("15004");
+
+	ConsumerTestOptions consTestOptions;
+	consTestOptions.getChannelInformation = true;
+	ConsumerTestClientBase consClient(consTestOptions);
+	OmmConsumerConfig consConfig("EmaConfigTest.xml");
+	consConfig.consumerName("PreferredHostCons_2WSBGroups_fallbackwithingroup");
+
+	try
+	{
+		ReqMsg consRequest;
+		Msg* msg;
+		RefreshMsg* refreshMsg;
+		ReqMsg* reqMsg;
+		StatusMsg* statusMsg;
+
+		/* WarmStandbyChannel_3 */
+		// Starting server is down at startup 
+		OmmProvider provider2(provConfig2, provClient2);
+
+		/* WarmStandbyChannel_4 */
+		OmmProvider* pProvider3 = new OmmProvider(provConfig3, provClient3);
+		OmmProvider provider4(provConfig4, provClient4);
+		OmmProvider provider5(provConfig5, provClient5);
+
+		OmmConsumer cons(consConfig);
+
+		testSleep(1000);
+
+
+		ASSERT_EQ(provClient3.wsbActiveState, 0);
+		ASSERT_EQ(provClient4.wsbActiveState, 1);
+		ASSERT_EQ(provClient5.wsbActiveState, 1);
+
+		provClient2.clear();
+		provClient3.clear();
+		provClient4.clear();
+		provClient5.clear();
+
+
+		consRequest.clear().name("Item1").domainType(MMT_MARKET_PRICE).serviceName("DIRECT_FEED");
+
+		UInt64 handle1 = cons.registerClient(consRequest, consClient);
+
+		testSleep(3000);
+
+		// Check to see that the request has been made to the active and standby servers of WarmStandbyChannel_4
+		ASSERT_EQ(provClient3.getMessageQueueSize(), 1);
+		ASSERT_EQ(provClient4.getMessageQueueSize(), 1);
+		ASSERT_EQ(provClient5.getMessageQueueSize(), 1);
+
+		msg = provClient3.popMsg();
+
+		ASSERT_EQ(msg->getDataType(), DataType::ReqMsgEnum);
+		reqMsg = static_cast<ReqMsg*>(msg);
+		ASSERT_EQ(reqMsg->getName(), "Item1");
+		ASSERT_EQ(reqMsg->getDomainType(), MMT_MARKET_PRICE);
+		ASSERT_EQ(reqMsg->getServiceName(), "DIRECT_FEED");
+		ASSERT_EQ(reqMsg->getServiceId(), 1);
+
+		ASSERT_EQ(consClient.getMessageQueueSize(), 1);
+		ASSERT_EQ(consClient.getChannelInfoQueueSize(), 1);
+
+		msg = consClient.popMsg();
+
+		ASSERT_EQ(msg->getDataType(), DataType::RefreshMsgEnum);
+		refreshMsg = static_cast<RefreshMsg*>(msg);
+		ASSERT_EQ(refreshMsg->getName(), "Item1");
+		ASSERT_EQ(refreshMsg->getDomainType(), MMT_MARKET_PRICE);
+		ASSERT_EQ(refreshMsg->getServiceName(), "DIRECT_FEED");
+		ASSERT_EQ(refreshMsg->getServiceId(), (UInt32)1);
+		ASSERT_TRUE(refreshMsg->getComplete());
+		ASSERT_EQ(refreshMsg->getPayload().getDataType(), DataType::FieldListEnum);
+		ChannelInformation* pChannelInfo = consClient.popChannelInfo();
+		ASSERT_EQ(pChannelInfo->getName(), "TestChannel_15002");
+		ASSERT_EQ(pChannelInfo->port(), 15002);
+
+		provClient2.clear();
+		provClient3.clear();
+		provClient4.clear();
+		provClient5.clear();
+
+		// Shutdown the active server of WarmStandbyChannel_4
+		delete pProvider3;
+
+		// In this time, the consumer should reconnect and re-establish the former primary active as a standby
+		testSleep(5000);
+
+		/* Receives the WSB generic message to be the new active server */
+		ASSERT_EQ(provClient4.getMessageQueueSize(), 1);
+		ASSERT_EQ(provClient5.getMessageQueueSize(), 0);
+
+		ASSERT_EQ(provClient4.wsbActiveState, 0);
+		ASSERT_EQ(provClient5.wsbActiveState, 1);
+
+		ASSERT_EQ(consClient.getMessageQueueSize(), 2);
+		ASSERT_EQ(consClient.getChannelInfoQueueSize(), 2);
+
+		msg = consClient.popMsg();
+
+		ASSERT_TRUE(msg != NULL);
+		ASSERT_EQ(msg->getDataType(), DataType::StatusMsgEnum);
+
+		statusMsg = static_cast<StatusMsg*>(msg);
+		ASSERT_EQ(statusMsg->getName(), "Item1");
+		ASSERT_EQ(statusMsg->getDomainType(), MMT_MARKET_PRICE);
+		ASSERT_EQ(statusMsg->getServiceName(), "DIRECT_FEED");
+		ASSERT_TRUE(statusMsg->hasState());
+		ASSERT_EQ(statusMsg->getState().getStreamState(), OmmState::StreamState::OpenEnum);
+		ASSERT_EQ(statusMsg->getState().getDataState(), OmmState::DataState::SuspectEnum);
+		ASSERT_EQ(statusMsg->getState().getStatusCode(), OmmState::StatusCode::NoneEnum);
+		ASSERT_EQ(statusMsg->getState().getStatusText(), "Service for this item was lost.");
+		pChannelInfo = consClient.popChannelInfo();
+		ASSERT_EQ(pChannelInfo->getName(), "TestChannel_15002");
+		ASSERT_EQ(pChannelInfo->port(), 15002);
+
+		msg = consClient.popMsg();
+
+		ASSERT_TRUE(msg != NULL);
+		ASSERT_EQ(msg->getDataType(), DataType::RefreshMsgEnum);
+		refreshMsg = static_cast<RefreshMsg*>(msg);
+		ASSERT_EQ(refreshMsg->getName(), "Item1");
+		ASSERT_EQ(refreshMsg->getDomainType(), MMT_MARKET_PRICE);
+		ASSERT_EQ(refreshMsg->getServiceName(), "DIRECT_FEED");
+		ASSERT_EQ(refreshMsg->getServiceId(), (UInt32)1);
+		ASSERT_TRUE(refreshMsg->getComplete());
+		ASSERT_EQ(refreshMsg->getPayload().getDataType(), DataType::FieldListEnum);
+		pChannelInfo = consClient.popChannelInfo();
+		ASSERT_EQ(pChannelInfo->getName(), "TestChannel_15003");
+		ASSERT_EQ(pChannelInfo->port(), 15003);
+
+		testSleep(5000);
+
+		provClient3.activeRequests.clear();
+		provClient3.clear();
+
+		// Start the active server of WarmStandbyChannel_3 and WarmStandbyChannel_4.
+		OmmProvider provider1(provConfig1, provClient1);
+		pProvider3 = new OmmProvider(provConfig3, provClient3);
+
+		/* Waits until the fallback timer is triggered to connected to the starting server of the WarmStandbyChannel_4 */
+		testSleep(10000);
+
+		ASSERT_EQ(consClient.getMessageQueueSize(), 2);
+		ASSERT_EQ(consClient.getChannelInfoQueueSize(), 2);
+
+		msg = consClient.popMsg();
+
+		ASSERT_TRUE(msg != NULL);
+		ASSERT_EQ(msg->getDataType(), DataType::StatusMsgEnum);
+
+		statusMsg = static_cast<StatusMsg*>(msg);
+		ASSERT_EQ(statusMsg->getName(), "Item1");
+		ASSERT_EQ(statusMsg->getDomainType(), MMT_MARKET_PRICE);
+		ASSERT_EQ(statusMsg->getServiceName(), "DIRECT_FEED");
+		ASSERT_TRUE(statusMsg->hasState());
+		ASSERT_EQ(statusMsg->getState().getStreamState(), OmmState::StreamState::OpenEnum);
+		ASSERT_EQ(statusMsg->getState().getDataState(), OmmState::DataState::SuspectEnum);
+		ASSERT_EQ(statusMsg->getState().getStatusCode(), OmmState::StatusCode::NoneEnum);
+		ASSERT_EQ(statusMsg->getState().getStatusText(), "Service for this item was lost.");
+		pChannelInfo = consClient.popChannelInfo();
+		ASSERT_EQ(pChannelInfo->getName(), "TestChannel_15003");
+		ASSERT_EQ(pChannelInfo->port(), 15003);
+
+		msg = consClient.popMsg();
+
+		ASSERT_TRUE(msg != NULL);
+		ASSERT_EQ(msg->getDataType(), DataType::RefreshMsgEnum);
+		refreshMsg = static_cast<RefreshMsg*>(msg);
+		ASSERT_EQ(refreshMsg->getName(), "Item1");
+		ASSERT_EQ(refreshMsg->getDomainType(), MMT_MARKET_PRICE);
+		ASSERT_EQ(refreshMsg->getServiceName(), "DIRECT_FEED");
+		ASSERT_EQ(refreshMsg->getServiceId(), (UInt32)1);
+		ASSERT_TRUE(refreshMsg->getComplete());
+		ASSERT_EQ(refreshMsg->getPayload().getDataType(), DataType::FieldListEnum);
+		pChannelInfo = consClient.popChannelInfo();
+		ASSERT_EQ(pChannelInfo->getName(), "TestChannel_15002");
+		ASSERT_EQ(pChannelInfo->port(), 15002);
+
+		delete pProvider3;
+	}
+	catch (...)
+	{
+		ASSERT_TRUE(false) << "uncaught exception in test";
+	}
+}
+
+/* Test preferred host fallback to the starting server of the current WSB group when the PHFallBackWithInWSBGroup option is set to true for the login based wsb mode.
+*  Preferred Host, WSB-Login: WSB-G0(S1,S2), WSB-G1 (S3,S4, S5) are specified. WSB-G0 is preferred WSB group.
+* The following is the test steps:
+* - S1 is down, S2, S3, S4, S5 are up.
+* - Start the consumer.
+* - The consumer connects to S3 as active server and S4, S5 as standby servers.
+* - Bring down S3 and S4 is the new active.
+* - Bring up S1 and S3.
+* - Calls the fallbackPreferredHost() method to fallback.
+* - The consumer should fallback to S3 as active server and S4, S5 as standby servers.
+*/
+TEST_F(OmmConsumerTest, PreferredHostFallBackWithInCurrentWSBGroupWhileWhileStartingServerIsDown_fallbackPreferredHost)
+{
+	Map serviceMap;
+	setupSingleServiceMap(serviceMap, "DIRECT_FEED", 1);
+	ProviderTestOptions provTestOptions;
+
+	provTestOptions.directoryPayload = &serviceMap;
+
+	IProviderTestClientBase provClient1(provTestOptions);
+
+	OmmIProviderConfig provConfig1("EmaConfigTest.xml");
+	provConfig1.adminControlDirectory(OmmIProviderConfig::UserControlEnum).providerName("TestProvider_15000").port("15000");
+
+	IProviderTestClientBase provClient2(provTestOptions);
+
+	OmmIProviderConfig provConfig2("EmaConfigTest.xml");
+	provConfig2.adminControlDirectory(OmmIProviderConfig::UserControlEnum).providerName("TestProvider_15001").port("15001");
+
+	IProviderTestClientBase provClient3(provTestOptions);
+
+	OmmIProviderConfig provConfig3("EmaConfigTest.xml");
+	provConfig3.adminControlDirectory(OmmIProviderConfig::UserControlEnum).providerName("TestProvider_15002").port("15002");
+
+	IProviderTestClientBase provClient4(provTestOptions);
+
+	OmmIProviderConfig provConfig4("EmaConfigTest.xml");
+	provConfig4.adminControlDirectory(OmmIProviderConfig::UserControlEnum).providerName("TestProvider_15003").port("15003");
+
+	IProviderTestClientBase provClient5(provTestOptions);
+
+	OmmIProviderConfig provConfig5("EmaConfigTest.xml");
+	provConfig5.adminControlDirectory(OmmIProviderConfig::UserControlEnum).providerName("TestProvider_15004").port("15004");
+
+	ConsumerTestOptions consTestOptions;
+	consTestOptions.getChannelInformation = true;
+	ConsumerTestClientBase consClient(consTestOptions);
+	OmmConsumerConfig consConfig("EmaConfigTest.xml");
+	consConfig.consumerName("PreferredHostCons_2WSBGroups_fallbackwithingroup_by_fallbackPreferredHost");
+
+	try
+	{
+		ReqMsg consRequest;
+		Msg* msg;
+		RefreshMsg* refreshMsg;
+		ReqMsg* reqMsg;
+		StatusMsg* statusMsg;
+
+		/* WarmStandbyChannel_3 */
+		// Starting server is down at startup
+		OmmProvider provider2(provConfig2, provClient2);
+
+		/* WarmStandbyChannel_4 */
+		OmmProvider* pProvider3 = new OmmProvider(provConfig3, provClient3);
+		OmmProvider provider4(provConfig4, provClient4);
+		OmmProvider provider5(provConfig5, provClient5);
+
+		OmmConsumer cons(consConfig);
+
+		testSleep(1000);
+
+
+		ASSERT_EQ(provClient3.wsbActiveState, 0);
+		ASSERT_EQ(provClient4.wsbActiveState, 1);
+		ASSERT_EQ(provClient5.wsbActiveState, 1);
+
+		provClient2.clear();
+		provClient3.clear();
+		provClient4.clear();
+		provClient5.clear();
+
+
+		consRequest.clear().name("Item1").domainType(MMT_MARKET_PRICE).serviceName("DIRECT_FEED");
+
+		UInt64 handle1 = cons.registerClient(consRequest, consClient);
+
+		testSleep(3000);
+
+		// Check to see that the request has been made to the active and standby servers of WarmStandbyChannel_4
+		ASSERT_EQ(provClient3.getMessageQueueSize(), 1);
+		ASSERT_EQ(provClient4.getMessageQueueSize(), 1);
+		ASSERT_EQ(provClient5.getMessageQueueSize(), 1);
+
+		msg = provClient3.popMsg();
+
+		ASSERT_EQ(msg->getDataType(), DataType::ReqMsgEnum);
+		reqMsg = static_cast<ReqMsg*>(msg);
+		ASSERT_EQ(reqMsg->getName(), "Item1");
+		ASSERT_EQ(reqMsg->getDomainType(), MMT_MARKET_PRICE);
+		ASSERT_EQ(reqMsg->getServiceName(), "DIRECT_FEED");
+		ASSERT_EQ(reqMsg->getServiceId(), 1);
+
+		ASSERT_EQ(consClient.getMessageQueueSize(), 1);
+		ASSERT_EQ(consClient.getChannelInfoQueueSize(), 1);
+
+		msg = consClient.popMsg();
+
+		ASSERT_EQ(msg->getDataType(), DataType::RefreshMsgEnum);
+		refreshMsg = static_cast<RefreshMsg*>(msg);
+		ASSERT_EQ(refreshMsg->getName(), "Item1");
+		ASSERT_EQ(refreshMsg->getDomainType(), MMT_MARKET_PRICE);
+		ASSERT_EQ(refreshMsg->getServiceName(), "DIRECT_FEED");
+		ASSERT_EQ(refreshMsg->getServiceId(), (UInt32)1);
+		ASSERT_TRUE(refreshMsg->getComplete());
+		ASSERT_EQ(refreshMsg->getPayload().getDataType(), DataType::FieldListEnum);
+		ChannelInformation* pChannelInfo = consClient.popChannelInfo();
+		ASSERT_EQ(pChannelInfo->getName(), "TestChannel_15002");
+		ASSERT_EQ(pChannelInfo->port(), 15002);
+
+		provClient2.clear();
+		provClient3.clear();
+		provClient4.clear();
+		provClient5.clear();
+
+		// Shutdown the active server of WarmStandbyChannel_4
+		delete pProvider3;
+
+		// In this time, the consumer should reconnect and re-establish the former primary active as a standby
+		testSleep(5000);
+
+		/* Receives the WSB generic message to be the new active server */
+		ASSERT_EQ(provClient4.getMessageQueueSize(), 1);
+		ASSERT_EQ(provClient5.getMessageQueueSize(), 0);
+
+		ASSERT_EQ(provClient4.wsbActiveState, 0);
+		ASSERT_EQ(provClient5.wsbActiveState, 1);
+
+		ASSERT_EQ(consClient.getMessageQueueSize(), 2);
+		ASSERT_EQ(consClient.getChannelInfoQueueSize(), 2);
+
+		msg = consClient.popMsg();
+
+		ASSERT_TRUE(msg != NULL);
+		ASSERT_EQ(msg->getDataType(), DataType::StatusMsgEnum);
+
+		statusMsg = static_cast<StatusMsg*>(msg);
+		ASSERT_EQ(statusMsg->getName(), "Item1");
+		ASSERT_EQ(statusMsg->getDomainType(), MMT_MARKET_PRICE);
+		ASSERT_EQ(statusMsg->getServiceName(), "DIRECT_FEED");
+		ASSERT_TRUE(statusMsg->hasState());
+		ASSERT_EQ(statusMsg->getState().getStreamState(), OmmState::StreamState::OpenEnum);
+		ASSERT_EQ(statusMsg->getState().getDataState(), OmmState::DataState::SuspectEnum);
+		ASSERT_EQ(statusMsg->getState().getStatusCode(), OmmState::StatusCode::NoneEnum);
+		ASSERT_EQ(statusMsg->getState().getStatusText(), "Service for this item was lost.");
+		pChannelInfo = consClient.popChannelInfo();
+		ASSERT_EQ(pChannelInfo->getName(), "TestChannel_15002");
+		ASSERT_EQ(pChannelInfo->port(), 15002);
+
+		msg = consClient.popMsg();
+
+		ASSERT_TRUE(msg != NULL);
+		ASSERT_EQ(msg->getDataType(), DataType::RefreshMsgEnum);
+		refreshMsg = static_cast<RefreshMsg*>(msg);
+		ASSERT_EQ(refreshMsg->getName(), "Item1");
+		ASSERT_EQ(refreshMsg->getDomainType(), MMT_MARKET_PRICE);
+		ASSERT_EQ(refreshMsg->getServiceName(), "DIRECT_FEED");
+		ASSERT_EQ(refreshMsg->getServiceId(), (UInt32)1);
+		ASSERT_TRUE(refreshMsg->getComplete());
+		ASSERT_EQ(refreshMsg->getPayload().getDataType(), DataType::FieldListEnum);
+		pChannelInfo = consClient.popChannelInfo();
+		ASSERT_EQ(pChannelInfo->getName(), "TestChannel_15003");
+		ASSERT_EQ(pChannelInfo->port(), 15003);
+
+		testSleep(5000);
+
+		provClient3.activeRequests.clear();
+		provClient3.clear();
+
+		// Start the active server of WarmStandbyChannel_3 and WarmStandbyChannel_4.
+		OmmProvider provider1(provConfig1, provClient1);
+		pProvider3 = new OmmProvider(provConfig3, provClient3);
+
+		/* Calls the fallbackPreferredHost() method to fallback to the starting server of the WarmStandbyChannel_4 */
+		cons.fallbackPreferredHost();
+
+		testSleep(5000);
+
+		ASSERT_EQ(consClient.getMessageQueueSize(), 2);
+		ASSERT_EQ(consClient.getChannelInfoQueueSize(), 2);
+
+		msg = consClient.popMsg();
+
+		ASSERT_TRUE(msg != NULL);
+		ASSERT_EQ(msg->getDataType(), DataType::StatusMsgEnum);
+
+		statusMsg = static_cast<StatusMsg*>(msg);
+		ASSERT_EQ(statusMsg->getName(), "Item1");
+		ASSERT_EQ(statusMsg->getDomainType(), MMT_MARKET_PRICE);
+		ASSERT_EQ(statusMsg->getServiceName(), "DIRECT_FEED");
+		ASSERT_TRUE(statusMsg->hasState());
+		ASSERT_EQ(statusMsg->getState().getStreamState(), OmmState::StreamState::OpenEnum);
+		ASSERT_EQ(statusMsg->getState().getDataState(), OmmState::DataState::SuspectEnum);
+		ASSERT_EQ(statusMsg->getState().getStatusCode(), OmmState::StatusCode::NoneEnum);
+		ASSERT_EQ(statusMsg->getState().getStatusText(), "Service for this item was lost.");
+		pChannelInfo = consClient.popChannelInfo();
+		ASSERT_EQ(pChannelInfo->getName(), "TestChannel_15003");
+		ASSERT_EQ(pChannelInfo->port(), 15003);
+
+		msg = consClient.popMsg();
+
+		ASSERT_TRUE(msg != NULL);
+		ASSERT_EQ(msg->getDataType(), DataType::RefreshMsgEnum);
+		refreshMsg = static_cast<RefreshMsg*>(msg);
+		ASSERT_EQ(refreshMsg->getName(), "Item1");
+		ASSERT_EQ(refreshMsg->getDomainType(), MMT_MARKET_PRICE);
+		ASSERT_EQ(refreshMsg->getServiceName(), "DIRECT_FEED");
+		ASSERT_EQ(refreshMsg->getServiceId(), (UInt32)1);
+		ASSERT_TRUE(refreshMsg->getComplete());
+		ASSERT_EQ(refreshMsg->getPayload().getDataType(), DataType::FieldListEnum);
+		pChannelInfo = consClient.popChannelInfo();
+		ASSERT_EQ(pChannelInfo->getName(), "TestChannel_15002");
+		ASSERT_EQ(pChannelInfo->port(), 15002);
+
+		delete pProvider3;
+	}
+	catch (...)
+	{
+		ASSERT_TRUE(false) << "uncaught exception in test";
+	}
+}
+

@@ -5703,6 +5703,11 @@ static RsslRet _reactorDispatchEventFromQueue(RsslReactorImpl *pReactorImpl, Rss
 								pReactorChannel->pWarmStandByHandlerImpl->preferredHostClosingChannels = RSSL_FALSE;
 								// Set the next wsb fallback to not be preferred
 								pReactorChannel->pWarmStandByHandlerImpl->nextWSBGroupShouldBeFallback = RSSL_FALSE;
+
+								/* Set the pActiveReactorChannel to NULL as the old one is no longer an active channel for login based WSB. */
+								pReactorChannel->pWarmStandByHandlerImpl->pActiveReactorChannel = NULL;
+								pReactorChannel->pWarmStandByHandlerImpl->pNextActiveReactorChannel = NULL;
+
 								RSSL_MUTEX_UNLOCK(&pReactorChannel->pWarmStandByHandlerImpl->warmStandByHandlerMutex);
 							}
 							else
@@ -16394,14 +16399,31 @@ RSSL_VA_API RsslRet rsslReactorFallbackToPreferredHost(RsslReactorChannel* pReac
 
 		if(pReactorChannelImpl->preferredHostOptions.fallBackWithInWSBGroup == RSSL_TRUE)
 		{
-			RsslReactorWarmStandbyEvent* pWSBEvent = (RsslReactorWarmStandbyEvent*)rsslReactorEventQueueGetFromPool(&pReactorImpl->reactorEventQueue);
+			RsslReactorWarmStandbyGroupImpl* pWarmStandByGroupImpl = &pReactorChannelImpl->pWarmStandByHandlerImpl->warmStandbyGroupList[pReactorChannelImpl->pWarmStandByHandlerImpl->currentWSyGroupIndex];
 
-			rsslClearReactorWarmStandbyEvent(pWSBEvent);
-			pWSBEvent->reactorWarmStandByEventType = RSSL_RCIMPL_WSBET_PREFERRED_HOST_FALLBACK_IN_GROUP;
-			pWSBEvent->pReactorChannel = (RsslReactorChannel*)pReactorChannelImpl->pWarmStandByHandlerImpl->pStartingReactorChannel;
-			if (!RSSL_ERROR_INFO_CHECK(rsslReactorEventQueuePut(&pReactorImpl->reactorEventQueue, (RsslReactorEventImpl*)pWSBEvent) == RSSL_RET_SUCCESS, RSSL_RET_FAILURE, pError))
+			if (pWarmStandByGroupImpl->warmStandbyMode == RSSL_RWSB_MODE_LOGIN_BASED && pReactorChannelImpl->pWarmStandByHandlerImpl->pStartingReactorChannel->channelSetupState != RSSL_RC_CHST_READY)
 			{
-				return (reactorUnlockInterface(pReactorImpl), RSSL_RET_FAILURE);
+				/* Send preferred host start event to the worker to fallback to the starting server of the current WSB group */
+				pEvent = (RsslReactorChannelEventImpl*)rsslReactorEventQueueGetFromPool(&pReactorImpl->reactorWorker.workerQueue);
+
+				rsslClearReactorChannelEventImpl(pEvent);
+				pEvent->channelEvent.channelEventType = (RsslReactorChannelEventType)RSSL_RCIMPL_CET_PREFERRED_HOST_START_FALLBACK;
+				pEvent->channelEvent.pReactorChannel = (RsslReactorChannel*)pReactorChannelImpl->pWarmStandByHandlerImpl->pStartingReactorChannel;
+
+				if (!RSSL_ERROR_INFO_CHECK(rsslReactorEventQueuePut(&pReactorImpl->reactorWorker.workerQueue, (RsslReactorEventImpl*)pEvent) == RSSL_RET_SUCCESS, RSSL_RET_FAILURE, pError))
+					return (reactorUnlockInterface(pReactorImpl), RSSL_RET_FAILURE);
+			}
+			else
+			{
+				RsslReactorWarmStandbyEvent* pWSBEvent = (RsslReactorWarmStandbyEvent*)rsslReactorEventQueueGetFromPool(&pReactorImpl->reactorEventQueue);
+
+				rsslClearReactorWarmStandbyEvent(pWSBEvent);
+				pWSBEvent->reactorWarmStandByEventType = RSSL_RCIMPL_WSBET_PREFERRED_HOST_FALLBACK_IN_GROUP;
+				pWSBEvent->pReactorChannel = (RsslReactorChannel*)pReactorChannelImpl->pWarmStandByHandlerImpl->pStartingReactorChannel;
+				if (!RSSL_ERROR_INFO_CHECK(rsslReactorEventQueuePut(&pReactorImpl->reactorEventQueue, (RsslReactorEventImpl*)pWSBEvent) == RSSL_RET_SUCCESS, RSSL_RET_FAILURE, pError))
+				{
+					return (reactorUnlockInterface(pReactorImpl), RSSL_RET_FAILURE);
+				}
 			}
 			return (reactorUnlockInterface(pReactorImpl), RSSL_RET_SUCCESS);
 		}
