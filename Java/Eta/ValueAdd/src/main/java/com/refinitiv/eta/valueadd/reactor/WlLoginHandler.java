@@ -30,9 +30,10 @@ class WlLoginHandler implements WlHandler
 	ReactorErrorInfo _errorInfo = ReactorFactory.createReactorErrorInfo();
 	ReactorSubmitOptions _submitOptions = ReactorFactory.createReactorSubmitOptions();
 	Msg _tempMsg = CodecFactory.createMsg();
+	LoginConsumerConnectionStatus _loginCCS;
 	LoginRefresh _loginRefresh;
 	LoginStatus _loginStatus;
-	LoginRTT loginRTT;
+	LoginRTT _loginRTT;
 	StatusMsg _statusMsg;
 	Buffer _tempBuffer;
 	boolean _awaitingResumeAll;
@@ -50,8 +51,10 @@ class WlLoginHandler implements WlHandler
 		_loginRefresh.rdmMsgType(LoginMsgType.REFRESH);
 		_loginStatus = (LoginStatus) LoginMsgFactory.createMsg();
 		_loginStatus.rdmMsgType(LoginMsgType.STATUS);
-		loginRTT = (LoginRTT) LoginMsgFactory.createMsg();
-		loginRTT.rdmMsgType(LoginMsgType.RTT);
+		_loginCCS = (LoginConsumerConnectionStatus) LoginMsgFactory.createMsg();
+		_loginCCS.rdmMsgType(LoginMsgType.CONSUMER_CONNECTION_STATUS);
+		_loginRTT = (LoginRTT) LoginMsgFactory.createMsg();
+		_loginRTT.rdmMsgType(LoginMsgType.RTT);
 		_statusMsg = (StatusMsg) CodecFactory.createMsg();
 		_statusMsg.msgClass(MsgClasses.STATUS);
 		_statusMsg.domainType(DomainTypes.LOGIN);
@@ -925,26 +928,36 @@ class WlLoginHandler implements WlHandler
 	{
 		WlRequest wlRequest = _watchlist.streamIdtoWlRequestTable().get(_tempWlInteger);
 
-		//Redirect message to the provider.
-		boolean isRttMessage = Objects.equals(DataTypes.ELEMENT_LIST, msg.containerType());
+        if (Objects.equals(DataTypes.ELEMENT_LIST, msg.containerType()))
+		{
+            _loginRTT.clear();
+			boolean isRttMessage = _loginRTT.decode(dIter, msg) == CodecReturnCodes.SUCCESS;
+			if (isRttMessage)
+			{
+				if(rttEnabled)
+					submitMsg(wlRequest, msg, _submitOptions, errorInfo);
 
-		// call back user
-		if (!isRttMessage) {
-			return _watchlist.reactor().sendAndHandleDefaultMsgCallback(
-					"WlLoginHandler.readGenericMsg", _watchlist.reactorChannel(),
-					null, msg, wlRequest,
-					errorInfo);
-		} else {
-			if(rttEnabled)
-				submitMsg(wlRequest, msg, _submitOptions, errorInfo);
-			
-			loginRTT.clear();
-			loginRTT.decode(dIter, msg);
-			return _watchlist.reactor().sendAndHandleLoginMsgCallback("WlLoginHandler.readGenericMsg",
-					_watchlist.reactorChannel(), null, msg, loginRTT, wlRequest,
-					errorInfo);
-		}
-	}
+				return _watchlist.reactor().sendAndHandleLoginMsgCallback("WlLoginHandler.readGenericMsg",
+						_watchlist.reactorChannel(), null, msg, _loginRTT, wlRequest,
+						errorInfo);
+			}
+        }
+		else
+		{
+			_loginCCS.clear();
+			boolean isCCSMessage = _loginCCS.decode(dIter, msg) == CodecReturnCodes.SUCCESS;
+			if (isCCSMessage)
+				return _watchlist.reactor().sendAndHandleLoginMsgCallback("WlLoginHandler.readGenericMsg",
+						_watchlist.reactorChannel(), null, msg, _loginCCS, wlRequest,
+						errorInfo);
+        }
+
+		// It is not RTT or CSS message
+		return _watchlist.reactor().sendAndHandleDefaultMsgCallback(
+				"WlLoginHandler.readGenericMsg", _watchlist.reactorChannel(),
+				null, msg, wlRequest,
+				errorInfo);
+    }
 
 	/* Reads an Ack message. */
 	int readAckMsg(WlStream wlStream, DecodeIterator dIter, Msg msg, ReactorErrorInfo errorInfo) 
@@ -1390,7 +1403,8 @@ class WlLoginHandler implements WlHandler
 		_awaitingResumeAll = false;
 		_requestCount = 0;
 		_hasPendingRequest = false;
-		loginRTT.clear();
+		_loginRTT.clear();
 		rttEnabled = false;
+		_loginCCS.clear();
 	}
 }

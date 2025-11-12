@@ -11,33 +11,11 @@ package com.refinitiv.eta.valueadd.reactor;
 import java.util.LinkedList;
 import java.util.List;
 
-import com.refinitiv.eta.codec.Buffer;
-import com.refinitiv.eta.codec.CodecFactory;
-import com.refinitiv.eta.codec.CopyMsgFlags;
-import com.refinitiv.eta.codec.DataStates;
-import com.refinitiv.eta.codec.DecodeIterator;
-import com.refinitiv.eta.codec.GenericMsg;
-import com.refinitiv.eta.codec.MapEntryActions;
-import com.refinitiv.eta.codec.Msg;
-import com.refinitiv.eta.codec.MsgClasses;
-import com.refinitiv.eta.codec.MsgKeyFlags;
-import com.refinitiv.eta.codec.RefreshMsg;
-import com.refinitiv.eta.codec.RequestMsg;
-import com.refinitiv.eta.codec.StateCodes;
-import com.refinitiv.eta.codec.StatusMsg;
-import com.refinitiv.eta.codec.StreamStates;
-import com.refinitiv.eta.codec.UpdateMsg;
+import com.refinitiv.eta.codec.*;
 import com.refinitiv.eta.rdm.Directory;
 import com.refinitiv.eta.rdm.DomainTypes;
 import com.refinitiv.eta.valueadd.domainrep.rdm.MsgBase;
-import com.refinitiv.eta.valueadd.domainrep.rdm.directory.DirectoryMsg;
-import com.refinitiv.eta.valueadd.domainrep.rdm.directory.DirectoryMsgFactory;
-import com.refinitiv.eta.valueadd.domainrep.rdm.directory.DirectoryMsgType;
-import com.refinitiv.eta.valueadd.domainrep.rdm.directory.DirectoryRefresh;
-import com.refinitiv.eta.valueadd.domainrep.rdm.directory.DirectoryRequest;
-import com.refinitiv.eta.valueadd.domainrep.rdm.directory.DirectoryStatus;
-import com.refinitiv.eta.valueadd.domainrep.rdm.directory.DirectoryUpdate;
-import com.refinitiv.eta.valueadd.domainrep.rdm.directory.Service;
+import com.refinitiv.eta.valueadd.domainrep.rdm.directory.*;
 import com.refinitiv.eta.valueadd.domainrep.rdm.directory.Service.ServiceFlags;
 
 class WlDirectoryHandler implements WlHandler
@@ -56,6 +34,7 @@ class WlDirectoryHandler implements WlHandler
     ReactorSubmitOptions _submitOptions = ReactorFactory.createReactorSubmitOptions();
     Msg _tempMsg = CodecFactory.createMsg();
     StatusMsg _statusMsg;
+    DirectoryConsumerStatus _directoryCS;
     Buffer _tempBuffer;
     WlServiceCache _serviceCache;
     RefreshMsg	_tempRefreshMsg;
@@ -101,7 +80,9 @@ class WlDirectoryHandler implements WlHandler
         _statusMsg.domainType(DomainTypes.SOURCE);
         _statusMsg.applyHasState();
         _statusMsg.state().code(StateCodes.NONE);
-        _statusMsg.state().text(_tempBuffer);       
+        _statusMsg.state().text(_tempBuffer);
+        _directoryCS = (DirectoryConsumerStatus) DirectoryMsgFactory.createMsg();
+        _directoryCS.rdmMsgType(DirectoryMsgType.CONSUMER_STATUS);
         _tempBuffer = CodecFactory.createBuffer();
         _tempBuffer.data("");
         _tempRefreshMsg = (RefreshMsg)CodecFactory.createMsg();
@@ -1154,16 +1135,24 @@ class WlDirectoryHandler implements WlHandler
                 msg.streamId(wlRequest.requestMsg().streamId());
                 
                 // callback user
-                if ((ret = _watchlist.reactor().sendAndHandleDefaultMsgCallback("WLDirectoryHandler.readGenericMsg",
-                        _watchlist.reactorChannel(),
-                        null,
-                        msg,
-                        wlRequest,
-                        errorInfo)) < ReactorCallbackReturnCodes.SUCCESS)
+                if (_directoryCS.decode(dIter, msg) == CodecReturnCodes.SUCCESS)
+                {
+                    ret = _watchlist.reactor().sendAndHandleDirectoryMsgCallback("WLDirectoryHandler.readGenericMsg",
+                            _watchlist.reactorChannel(), null, msg, _directoryCS, wlRequest,
+                            errorInfo);
+                }
+                else
+                {
+                    ret = _watchlist.reactor().sendAndHandleDefaultMsgCallback("WLDirectoryHandler.readGenericMsg",
+                            _watchlist.reactorChannel(), null, msg, wlRequest,
+                            errorInfo);
+                }
+                if (ret < ReactorCallbackReturnCodes.SUCCESS)
                 {
                     // break out of loop for error
                     break;
                 }
+
             }
         }
      
@@ -1508,7 +1497,8 @@ class WlDirectoryHandler implements WlHandler
         _statusMsg.domainType(DomainTypes.SOURCE);
         _statusMsg.applyHasState();
         _statusMsg.state().code(StateCodes.NONE);
-        _statusMsg.state().text(_tempBuffer);       
+        _statusMsg.state().text(_tempBuffer);
+        _directoryCS.clear();
         _tempBuffer.clear();
         _tempBuffer.data("");
         _tempMsg.clear();

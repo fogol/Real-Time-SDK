@@ -2,29 +2,28 @@
  *|            This source code is provided under the Apache 2.0 license
  *|  and is provided AS IS with no warranty or guarantee of fit for purpose.
  *|                See the project's LICENSE.md for details.
- *|           Copyright (C) 2020,2024 LSEG. All rights reserved.
+ *|           Copyright (C) 2020,2024,2025 LSEG. All rights reserved.
  *|-----------------------------------------------------------------------------
  */
 
 package com.refinitiv.eta.valueadd.reactor;
 
-import com.refinitiv.eta.codec.CodecFactory;
-import com.refinitiv.eta.codec.CopyMsgFlags;
+import com.refinitiv.eta.codec.*;
+import com.refinitiv.eta.rdm.Directory;
+import com.refinitiv.eta.rdm.DomainTypes;
+import com.refinitiv.eta.rdm.ElementNames;
 import com.refinitiv.eta.valueadd.domainrep.rdm.dictionary.DictionaryClose;
 import com.refinitiv.eta.valueadd.domainrep.rdm.dictionary.DictionaryMsg;
 import com.refinitiv.eta.valueadd.domainrep.rdm.dictionary.DictionaryMsgType;
 import com.refinitiv.eta.valueadd.domainrep.rdm.dictionary.DictionaryRefresh;
 import com.refinitiv.eta.valueadd.domainrep.rdm.dictionary.DictionaryRequest;
 import com.refinitiv.eta.valueadd.domainrep.rdm.dictionary.DictionaryStatus;
-import com.refinitiv.eta.valueadd.domainrep.rdm.directory.DirectoryClose;
-import com.refinitiv.eta.valueadd.domainrep.rdm.directory.DirectoryConsumerStatus;
-import com.refinitiv.eta.valueadd.domainrep.rdm.directory.DirectoryMsg;
-import com.refinitiv.eta.valueadd.domainrep.rdm.directory.DirectoryMsgType;
-import com.refinitiv.eta.valueadd.domainrep.rdm.directory.DirectoryRefresh;
-import com.refinitiv.eta.valueadd.domainrep.rdm.directory.DirectoryRequest;
-import com.refinitiv.eta.valueadd.domainrep.rdm.directory.DirectoryStatus;
-import com.refinitiv.eta.valueadd.domainrep.rdm.directory.DirectoryUpdate;
+import com.refinitiv.eta.valueadd.domainrep.rdm.directory.*;
 import com.refinitiv.eta.valueadd.domainrep.rdm.login.*;
+
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.List;
 
 import static org.junit.Assert.fail;
 
@@ -163,5 +162,165 @@ public class TestUtil
                 fail("Unknown DictionaryMsgType.");
                 break;
         }
+    }
+
+    static Msg createLoginCCSMessage(EncodeIterator encodeIter, DecodeIterator decodeIter, int streamId) {
+        Buffer genericBuffer = CodecFactory.createBuffer();
+        genericBuffer.data(ByteBuffer.allocate(512));
+
+        decodeIter.clear();
+        encodeIter.clear();
+        encodeIter.setBufferAndRWFVersion(genericBuffer, Codec.majorVersion(), Codec.minorVersion());
+
+        Msg msg = CodecFactory.createMsg();
+        GenericMsg genericMsg = (GenericMsg)msg;
+        genericMsg.msgClass(MsgClasses.GENERIC);
+        genericMsg.domainType(DomainTypes.LOGIN);
+        genericMsg.streamId(streamId);
+        genericMsg.containerType(DataTypes.MAP);
+        genericMsg.flags(GenericMsgFlags.HAS_MSG_KEY);
+        genericMsg.msgKey().flags(MsgKeyFlags.HAS_NAME);
+        genericMsg.msgKey().name(ElementNames.CONS_CONN_STATUS);
+        genericMsg.encodeInit(encodeIter, 0);
+
+        Map map = CodecFactory.createMap();
+        MapEntry mapEntry = CodecFactory.createMapEntry();
+
+        map.flags(MapFlags.NONE);
+        map.keyPrimitiveType(DataTypes.ASCII_STRING);
+        map.containerType(DataTypes.ELEMENT_LIST);
+        map.encodeInit(encodeIter, 0, 0);
+
+        mapEntry.clear();
+        mapEntry.flags(MapEntryFlags.NONE);
+        mapEntry.action(MapEntryActions.DELETE);
+        mapEntry.encode(encodeIter, ElementNames.WARMSTANDBY_INFO);
+
+        map.encodeComplete(encodeIter, true);
+        genericMsg.encodeComplete(encodeIter, true);
+
+        decodeIter.setBufferAndRWFVersion(genericBuffer, Codec.majorVersion(), Codec.minorVersion());
+        msg.decode(decodeIter);
+
+        return msg;
+    }
+
+    static Msg createDirectoryCSMessage(EncodeIterator encodeIter, DecodeIterator decodeIter, int streamId) {
+        Buffer genericBuffer = CodecFactory.createBuffer();
+        genericBuffer.data(ByteBuffer.allocate(512));
+
+        decodeIter.clear();
+        encodeIter.clear();
+        encodeIter.setBufferAndRWFVersion(genericBuffer, Codec.majorVersion(), Codec.minorVersion());
+
+        Msg msg = CodecFactory.createMsg();
+        GenericMsg genericMsg = (GenericMsg)msg;
+        genericMsg.msgClass(MsgClasses.GENERIC);
+        genericMsg.domainType(DomainTypes.SOURCE);
+        genericMsg.streamId(streamId);
+        genericMsg.containerType(DataTypes.MAP);
+        genericMsg.flags(GenericMsgFlags.HAS_MSG_KEY);
+        genericMsg.msgKey().flags(MsgKeyFlags.HAS_NAME);
+        genericMsg.msgKey().name(ElementNames.CONS_STATUS);
+        genericMsg.encodeInit(encodeIter, 0);
+
+        ConsumerStatusService consumerStatusService = DirectoryMsgFactory.createConsumerStatusService();
+        consumerStatusService.sourceMirroringMode(Directory.SourceMirroringMode.ACTIVE_WITH_STANDBY);
+        consumerStatusService.serviceId(streamId);
+        consumerStatusService.action(MapEntryActions.ADD);
+        List<ConsumerStatusService> consumerStatusServiceList = new ArrayList<>();
+        consumerStatusServiceList.add(consumerStatusService);
+
+        Map map = CodecFactory.createMap();
+        MapEntry mapEntry = CodecFactory.createMapEntry();
+        UInt tempUInt = CodecFactory.createUInt();
+
+        map.flags(MapFlags.NONE);
+        map.keyPrimitiveType(DataTypes.UINT);
+        map.containerType(DataTypes.ELEMENT_LIST);
+        map.encodeInit(encodeIter, 0, 0);
+
+        for(ConsumerStatusService serviceStatus : consumerStatusServiceList)
+        {
+            mapEntry.clear();
+            mapEntry.flags(MapEntryFlags.NONE);
+            mapEntry.action(serviceStatus.action());
+            tempUInt.value(serviceStatus.serviceId());
+            if (mapEntry.action() != MapEntryActions.DELETE)
+            {
+                mapEntry.encodeInit(encodeIter, tempUInt, 0);
+                serviceStatus.encode(encodeIter);
+                mapEntry.encodeComplete(encodeIter, true);
+            }
+            else
+            {
+                mapEntry.encode(encodeIter, tempUInt);
+            }
+        }
+
+        map.encodeComplete(encodeIter, true);
+        genericMsg.encodeComplete(encodeIter, true);
+
+        decodeIter.setBufferAndRWFVersion(genericBuffer, Codec.majorVersion(), Codec.minorVersion());
+        msg.decode(decodeIter);
+
+        return msg;
+    }
+
+    static Msg createLoginRTTMessage(EncodeIterator encodeIter, DecodeIterator decodeIter,
+                                     int streamId, boolean withTicks) {
+        Buffer genericBuffer = CodecFactory.createBuffer();
+        genericBuffer.data(ByteBuffer.allocate(512));
+
+        decodeIter.clear();
+        encodeIter.clear();
+        encodeIter.setBufferAndRWFVersion(genericBuffer, Codec.majorVersion(), Codec.minorVersion());
+
+        Msg msg = CodecFactory.createMsg();
+        GenericMsg genericMsg = (GenericMsg)msg;
+        genericMsg.msgClass(MsgClasses.GENERIC);
+        genericMsg.domainType(DomainTypes.LOGIN);
+        genericMsg.streamId(streamId);
+        genericMsg.containerType(DataTypes.ELEMENT_LIST);
+        genericMsg.flags(GenericMsgFlags.PROVIDER_DRIVEN);
+        genericMsg.encodeInit(encodeIter, 0);
+
+        ElementList elementList = CodecFactory.createElementList();
+
+        elementList.flags(ElementListFlags.HAS_STANDARD_DATA);
+        elementList.encodeInit(encodeIter, null, 0);
+
+        if (withTicks)
+        {
+            ElementEntry elementEntry = CodecFactory.createElementEntry();
+            UInt tmpUInt = CodecFactory.createUInt();
+
+            elementEntry.dataType(DataTypes.UINT);
+            elementEntry.name(ElementNames.TICKS);
+            tmpUInt.value(1);
+            elementEntry.encode(encodeIter, tmpUInt);
+        }
+
+        elementList.encodeComplete(encodeIter, true);
+        genericMsg.encodeComplete(encodeIter, true);
+
+        decodeIter.setBufferAndRWFVersion(genericBuffer, Codec.majorVersion(), Codec.minorVersion());
+        msg.decode(decodeIter);
+
+        return msg;
+    }
+
+    static Msg createGenericMessage(int domainTypes, int streamId) {
+        Msg msg = CodecFactory.createMsg();
+        GenericMsg genericMsg = (GenericMsg)msg;
+        genericMsg.msgClass(MsgClasses.GENERIC);
+        genericMsg.domainType(domainTypes);
+        genericMsg.streamId(streamId);
+        genericMsg.containerType(DataTypes.NO_DATA);
+        genericMsg.applyHasMsgKey();
+        genericMsg.msgKey().applyHasName();
+        genericMsg.msgKey().name().data("genericMsgInGeneral");
+
+        return msg;
     }
 }

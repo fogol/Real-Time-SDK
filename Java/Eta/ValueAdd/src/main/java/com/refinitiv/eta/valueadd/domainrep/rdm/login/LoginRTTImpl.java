@@ -2,7 +2,7 @@
  *|            This source code is provided under the Apache 2.0 license
  *|  and is provided AS IS with no warranty or guarantee of fit for purpose.
  *|                See the project's LICENSE.md for details.
- *|           Copyright (C) 2020,2022,2024 LSEG. All rights reserved.
+ *|           Copyright (C) 2020,2022,2024,2025 LSEG. All rights reserved.
  *|-----------------------------------------------------------------------------
  */
 
@@ -21,10 +21,10 @@ class LoginRTTImpl extends MsgBaseImpl {
     private long tcpRetrans;
     private long ticks;
 
-    private ElementEntry elementEntry;
-    private ElementList elementList;
-    private UInt tmpUInt;
-    private GenericMsg genericMsg;
+    private final ElementEntry elementEntry;
+    private final ElementList elementList;
+    private final UInt tmpUInt;
+    private final GenericMsg genericMsg;
     private final static String tab = "\t";
 
     LoginRTTImpl() {
@@ -149,6 +149,7 @@ class LoginRTTImpl extends MsgBaseImpl {
             return ret;
 
         elementEntry.clear();
+        boolean isTicksPresent = false;
         while((ret = elementEntry.decode(dIter)) != CodecReturnCodes.END_OF_CONTAINER) {
 
             if (ret != CodecReturnCodes.SUCCESS)
@@ -162,6 +163,7 @@ class LoginRTTImpl extends MsgBaseImpl {
                 if (ret != CodecReturnCodes.SUCCESS)
                     return ret;
                 ticks = tmpUInt.toLong();
+                isTicksPresent = true;
             }
             else if (elementEntry.name().equals(ElementNames.ROUND_TRIP_LATENCY)) {
                 if (elementEntry.dataType() != DataTypes.UINT)
@@ -184,6 +186,9 @@ class LoginRTTImpl extends MsgBaseImpl {
                 tcpRetrans = tmpUInt.toLong();
             }
         }
+
+        if (!isTicksPresent)
+            return CodecReturnCodes.FAILURE;
 
         return CodecReturnCodes.SUCCESS;
     }
