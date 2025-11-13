@@ -16376,7 +16376,7 @@ RSSL_VA_API RsslRet rsslReactorFallbackToPreferredHost(RsslReactorChannel* pReac
 	if (!pReactorChannelImpl->preferredHostOptions.enablePreferredHostOptions)
 	{
 		rsslSetErrorInfo(pError, RSSL_EIC_FAILURE, RSSL_RET_INVALID_ARGUMENT, __FILE__, __LINE__,
-				"Preferred host feature is not enabled for the specified ReactorChannel.");
+				"Preferred host feature is not enabled for the specified ReactorChannel: fallback is not feasible.");
 		return (reactorUnlockInterface(pReactorImpl), RSSL_RET_INVALID_ARGUMENT);
 	}
 
