@@ -860,7 +860,7 @@ class OmmConsumerImpl extends OmmBaseImpl<OmmConsumerClient> implements OmmConsu
 						
 						if(result != ReactorReturnCodes.SUCCESS) {
 							strBuilder().append("Failed to switch to preferred host.")
-									.append(". Reason: ")
+									.append(" Reason: ")
 									.append(ReactorReturnCodes.toString(result))
 									.append(". Error text: ")
 									.append(errorInfo.error().text());
@@ -886,7 +886,7 @@ class OmmConsumerImpl extends OmmBaseImpl<OmmConsumerClient> implements OmmConsu
 	
 				if(result != ReactorReturnCodes.SUCCESS) {
 					strBuilder().append("Failed to switch to preferred host.")
-							.append(". Reason: ")
+							.append(" Reason: ")
 							.append(ReactorReturnCodes.toString(result))
 							.append(". Error text: ")
 							.append(errorInfo.error().text());

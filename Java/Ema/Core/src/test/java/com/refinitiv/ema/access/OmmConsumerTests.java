@@ -7757,4 +7757,108 @@ public class OmmConsumerTests extends TestCase
 				ommprovider_6.uninitialize();
 		}
 	}
+	
+	public void  testSingleConnectionFallbackPreferredHostFailureForChannelWhenPreferredHostIsNotEnabled()
+	{
+		TestUtilities.printTestHead("testSingleConnectionFallbackPreferredHostFailureForChannelWhenPreferredHostIsNotEnabled","");
+		
+		String emaConfigFileLocation = "./src/test/resources/com/refinitiv/ema/unittest/OmmConsumerTests/EmaConfigTest.xml";
+		
+		OmmIProviderConfig config = EmaFactory.createOmmIProviderConfig(emaConfigFileLocation);
+
+		ProviderTestOptions providerTestOptions = new ProviderTestOptions();
+		providerTestOptions.sendRefreshAttrib = true;
+
+		ProviderTestClient providerClient_1 = new ProviderTestClient(providerTestOptions);
+		providerClient_1.name = "Provider_1";
+
+		// Provider_9 provides the DIRECT_FEED and DIRECT_FEED1 service name for channel.
+		// Channel_1 
+		OmmProvider ommprovider_1 = EmaFactory.createOmmProvider(config.port("19001").providerName("Provider_9"), providerClient_1);
+		assertNotNull(ommprovider_1);
+
+		OmmConsumer ommconsumer = null;
+		ConsumerTestOptions consumerOption = new ConsumerTestOptions();
+		ConsumerTestClient consumerClient = new ConsumerTestClient(consumerOption);
+		
+		try
+		{
+			ommconsumer = EmaFactory.createOmmConsumer(EmaFactory.createOmmConsumerConfig(emaConfigFileLocation)
+					.consumerName("Consumer_1"), consumerClient);
+			
+			OmmConsumer tempConsumer = ommconsumer;
+			
+			Exception exception = assertThrows(OmmInvalidUsageException.class,  () -> tempConsumer.fallbackPreferredHost());
+			assertEquals("Failed to switch to preferred host. Reason: ReactorReturnCodes.FAILURE. Error text: Preferred host feature is not enabled for the specified ReactorChannel: fallback is not feasible.", exception.getMessage());
+			
+		}
+		catch(Exception exp)
+		{
+			System.out.println("Exception message: " + exp.getMessage());
+			assertTrue(false);
+		}
+		finally
+		{
+			ommconsumer.uninitialize();
+			
+			ommprovider_1.uninitialize();
+		}
+	}
+	
+	public void  testSingleConnectionFallbackPreferredHostFailureForWSBChannelWhenPreferredHostIsNotEnabled()
+	{
+		TestUtilities.printTestHead("testSingleConnectionFallbackPreferredHostFailureForWSBChannelWhenPreferredHostIsNotEnabled","");
+		
+		String emaConfigFileLocation = "./src/test/resources/com/refinitiv/ema/unittest/OmmConsumerTests/EmaConfigTest.xml";
+		
+		OmmIProviderConfig config = EmaFactory.createOmmIProviderConfig(emaConfigFileLocation);
+
+		ProviderTestOptions providerTestOptions = new ProviderTestOptions();
+		providerTestOptions.supportStandby = true;
+		providerTestOptions.sendRefreshAttrib = true;
+		providerTestOptions.itemGroupId = ByteBuffer.wrap("10".getBytes());
+
+		ProviderTestClient providerClient_1 = new ProviderTestClient(providerTestOptions);
+		providerClient_1.name = "Provider_1";
+		
+		ProviderTestClient providerClient_2 = new ProviderTestClient(providerTestOptions);
+		providerClient_1.name = "Provider_2";
+
+		// Provider_9 provides the DIRECT_FEED and DIRECT_FEED1 service name for channel.
+		// Channel_3 
+		OmmProvider ommprovider_1 = EmaFactory.createOmmProvider(config.port("19003").providerName("Provider_9"), providerClient_1);
+		assertNotNull(ommprovider_1);
+		
+		// Channel_6 
+		OmmProvider ommprovider_2 = EmaFactory.createOmmProvider(config.port("19006").providerName("Provider_9"), providerClient_2);
+		assertNotNull(ommprovider_2);
+
+		OmmConsumer ommconsumer = null;
+		ConsumerTestOptions consumerOption = new ConsumerTestOptions();
+
+		ConsumerTestClient consumerClient = new ConsumerTestClient(consumerOption);
+		
+		try
+		{
+			ommconsumer = EmaFactory.createOmmConsumer(EmaFactory.createOmmConsumerConfig(emaConfigFileLocation)
+					.consumerName("Consumer_24"), consumerClient);
+			
+			OmmConsumer tempConsumer = ommconsumer;
+			
+			Exception exception = assertThrows(OmmInvalidUsageException.class,  () -> tempConsumer.fallbackPreferredHost());
+			assertEquals("Failed to switch to preferred host. Reason: ReactorReturnCodes.FAILURE. Error text: Preferred host feature is not enabled for the specified ReactorChannel: fallback is not feasible.", exception.getMessage());
+			
+		}
+		catch(Exception exp)
+		{
+			System.out.println("Exception message: " + exp.getMessage());
+			assertTrue(false);
+		}
+		finally
+		{
+			ommconsumer.uninitialize();
+			ommprovider_1.uninitialize();
+			ommprovider_2.uninitialize();
+		}
+	}
 }

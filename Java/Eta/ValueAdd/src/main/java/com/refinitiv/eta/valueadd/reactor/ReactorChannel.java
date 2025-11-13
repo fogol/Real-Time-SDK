@@ -59,7 +59,6 @@ import com.refinitiv.eta.valueadd.domainrep.rdm.login.LoginMsgType;
 import com.refinitiv.eta.valueadd.domainrep.rdm.login.LoginRequest;
 import com.refinitiv.eta.valueadd.domainrep.rdm.login.LoginRequestFlags;
 import com.refinitiv.eta.valueadd.reactor.ReactorAuthTokenInfo.TokenVersion;
-import com.refinitiv.eta.valueadd.reactor.ReactorChannel.State;
 import com.refinitiv.eta.valueadd.reactor.ReactorTokenSession.SessionState;
 
 /**
@@ -2518,7 +2517,7 @@ public class ReactorChannel extends VaNode
 
     /* This function can be called by the fallbackPreferredHost() method which checks the state of the main reactor channel or the actual reactor channel. 
      * Also, it can be called by timer trigger event which has a ReactorChannel associated with the event. */
-    int switchHostToPreferredHost(boolean callByTimer)
+    int switchHostToPreferredHost(boolean callByTimer, ReactorErrorInfo errorInfo)
     {
     	// If we are already switching to preferred host, exit out of this and return success
     	if ((warmStandByHandlerImpl != null ? warmStandByHandlerImpl.startingReactorChannel()._switchingToPreferredHost : _switchingToPreferredHost)
@@ -2526,12 +2525,18 @@ public class ReactorChannel extends VaNode
     		return ReactorReturnCodes.SUCCESS;
     	
     	// If preferred host is disabled, return failure
-    	if (warmStandByHandlerImpl != null
-    			&& !warmStandByHandlerImpl.startingReactorChannel()._preferredHostOptions.isPreferredHostEnabled())
+    	if ( (warmStandByHandlerImpl != null && !warmStandByHandlerImpl.startingReactorChannel()._preferredHostOptions.isPreferredHostEnabled()) || 
+    		 (warmStandByHandlerImpl == null && !_preferredHostOptions.isPreferredHostEnabled()))
+    	{
+    		if(errorInfo != null) /* errorInfo is not null when calling by the fallbackPreferredHost() method. */
+    		{
+    			_reactor.populateErrorInfo(errorInfo, ReactorReturnCodes.FAILURE,
+                        "ReactorChannel.fallbackPreferredHost",
+                        "Preferred host feature is not enabled for the specified ReactorChannel: fallback is not feasible.");
+    		}
+    		
     		return ReactorReturnCodes.FAILURE;
-    	else if (warmStandByHandlerImpl == null
-    			&& !_preferredHostOptions.isPreferredHostEnabled())
-    		return ReactorReturnCodes.FAILURE;
+    	}
 
     	ReactorChannel reactorChannel = this;
     	
@@ -2772,13 +2777,6 @@ public class ReactorChannel extends VaNode
         }
     	else
     	{
-    		// Warm standby is not enabled
-    		if (reactorChannel._reactorConnectOptions == null)
-    		{
-    			// We have not yet connected, or are in a down_reconnecting state, return failure
-        		return ReactorReturnCodes.FAILURE;
-    		}
-    		
         	// If we are currently on the preferred host, log it in API and return SUCCESS 
         	if (reactorChannel._reactorConnectOptions.connectionList().get(reactorChannel._preferredHostOptions.connectionListIndex()) == reactorChannel._currentConnectInfo)
         	{
@@ -2821,34 +2819,45 @@ public class ReactorChannel extends VaNode
      * 
      * @param errorInfo error structure to be populated in the event of failure
      * 
-     * @return {@link ReactorReturnCodes} with success if switch has initiated, failure if preferred host is not enabled or connection is currently on preferred host already
+     * @return {@link ReactorReturnCodes} with success if switch has initiated or connection is currently on preferred host already, failure if preferred host is not enabled.
      */
     public int fallbackPreferredHost(ReactorErrorInfo errorInfo)
     {
+    	 if (errorInfo == null || _reactor == null)
+             return ReactorReturnCodes.FAILURE;
+    	
     	_reactor._reactorLock.lock();
     	
-    	// Debug log output that method fallback has been initiated
-        if (_reactor._reactorOptions.debuggerOptions().debugConnectionLevel()) {
-            _reactor.debugger.writeDebugInfo("Preferred host: fallback function called to attempt switching to preferred host",
-                    _reactor.hashCode(),
-                    this.hashCode()
-            );
-        }
-    	
-    	int retCode;
-    	retCode = switchHostToPreferredHost(false);
-    	
-    	if (retCode < ReactorReturnCodes.SUCCESS)
+    	try
+    	{
+	    	// Debug log output that method fallback has been initiated
+	        if (_reactor._reactorOptions.debuggerOptions().debugConnectionLevel()) {
+	            _reactor.debugger.writeDebugInfo("Preferred host: fallback function called to attempt switching to preferred host",
+	                    _reactor.hashCode(),
+	                    this.hashCode()
+	            );
+	        }
+	        
+	        if (_reactor.isShutdown())
+	        {
+	            return _reactor.populateErrorInfo(errorInfo, ReactorReturnCodes.SHUTDOWN,
+	                    "ReactorChannel.fallbackPreferredHost",
+	                    "Reactor is shutdown, fallbackPreferredHost aborted.");
+	        }
+	        
+	        if(_role.type() != ReactorRoleTypes.CONSUMER)
+	        {
+	        	return _reactor.populateErrorInfo(errorInfo, ReactorReturnCodes.FAILURE,
+	                    "ReactorChannel.fallbackPreferredHost",
+	                    "Preferred host feature is not enabled for Interactive and Non-interactive Provider.");
+	        }
+	    	
+	    	return switchHostToPreferredHost(false, errorInfo);
+    	}
+    	finally
     	{
     		_reactor._reactorLock.unlock();
-    		return _reactor.populateErrorInfo(errorInfo, ReactorReturnCodes.FAILURE,
-                    "ReactorChannel.fallbackPreferredHost",
-                    "reactorChannel.fallbackPreferredHost() failed");
     	}
-    	
-    	_reactor._reactorLock.unlock();
-    	
-    	return retCode;
     }
     
     // Used to copy service options into startup service name list, especially after being cleared

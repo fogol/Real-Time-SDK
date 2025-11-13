@@ -199,7 +199,7 @@ class Worker implements Runnable
                      		 	}
                         	
                     		// Trigger preferred host change
-                        	event.reactorChannel().switchHostToPreferredHost(true);
+                        	event.reactorChannel().switchHostToPreferredHost(true, null);
                          	
                     		// Set next time up
                     		 if (event.reactorChannel()._preferredHostOptions.detectionTimeSchedule() != null &&
