@@ -163,7 +163,10 @@ void rsslWatchlistDestroy(RsslWatchlist *pWatchlist)
 					case RSSL_DMT_LOGIN:
 					{
 						WlLoginStream *pLoginStream = (WlLoginStream*)pStream;
-						wlLoginStreamDestroy(pLoginStream);
+						if (pWatchlistImpl->login.pStream)
+						{
+							wlLoginStreamDestroy(pLoginStream);
+						}
 						break;
 					}
 					case RSSL_DMT_SOURCE:
@@ -647,7 +650,6 @@ RsslRet rsslWatchlistProcessTimer(RsslWatchlist *pWatchlist, RsslInt64 currentTi
 				RsslDecodeIterator dIter;
 				RsslRDMLoginMsg loginMsg;
 				WlLoginProviderAction loginAction;
-				RsslInt32 streamId = pWatchlistImpl->login.pStream->base.streamId;
 
 				rsslClearDecodeIterator(&dIter);
 				rsslSetDecodeIteratorRWFVersion(&dIter, RSSL_RWF_MAJOR_VERSION, 
@@ -5118,7 +5120,10 @@ static RsslRet wlStreamSubmitMsg(RsslWatchlistImpl *pWatchlistImpl,
 					{
 						WlLoginStream *pLoginStream = (WlLoginStream*)pStream;
 						wlUnsetStreamFromPendingLists(&pWatchlistImpl->base, &pStream->base);
-						wlLoginStreamDestroy(pLoginStream);
+						if (pWatchlistImpl->login.pStream)
+						{
+							wlLoginStreamDestroy(pLoginStream);
+						}
 						break;
 					}
 					case RSSL_DMT_SOURCE:
@@ -5153,38 +5158,47 @@ static RsslRet wlStreamSubmitMsg(RsslWatchlistImpl *pWatchlistImpl,
 		{
 			case RSSL_DMT_LOGIN:
 			{
-				RsslRDMLoginRequest loginRequest;
-
-				loginRequest = *pWatchlistImpl->login.pRequest[pWatchlistImpl->login.index]->pLoginReqMsg;
-				loginRequest.rdmMsgBase.streamId = pStream->base.streamId;
-
-				if (!pWatchlistImpl->base.config.supportOptimizedPauseResume)
-					loginRequest.flags &= ~RDM_LG_RQF_PAUSE_ALL;
-
-				ret = wlEncodeAndSubmitMsg(pWatchlistImpl, NULL, 
-						(RsslRDMMsg*)&loginRequest, RSSL_FALSE, NULL, pError);
-
-				if (ret >= RSSL_RET_SUCCESS)
+				/* Checks to ensure that this login hasn't been closed yet */
+				if (pWatchlistImpl->login.pRequest[pWatchlistImpl->login.index])
 				{
-					if (pWatchlistImpl->base.channelState < WL_CHS_LOGIN_REQUESTED)
-						pWatchlistImpl->base.channelState = WL_CHS_LOGIN_REQUESTED;
+					RsslRDMLoginRequest* pLoginRequest = pWatchlistImpl->login.pRequest[pWatchlistImpl->login.index]->pLoginReqMsg;
 
-					if (pWatchlistImpl->base.pRsslChannel && !(loginRequest.flags & RDM_LG_RQF_NO_REFRESH))
-						wlSetStreamPendingResponse(&pWatchlistImpl->base, &pStream->base);
+					pLoginRequest->rdmMsgBase.streamId = pStream->base.streamId;
 
-					wlUnsetStreamMsgPending(&pWatchlistImpl->base, &pStream->base);
+					if (!pWatchlistImpl->base.config.supportOptimizedPauseResume)
+						pLoginRequest->flags &= ~RDM_LG_RQF_PAUSE_ALL;
 
-					/* If this was a pause message, unset the pause flag */
-					if (pWatchlistImpl->login.pRequest[pWatchlistImpl->login.index]->pLoginReqMsg->flags & RDM_LG_RQF_PAUSE_ALL)
-						pWatchlistImpl->login.pRequest[pWatchlistImpl->login.index]->pLoginReqMsg->flags &= ~RDM_LG_RQF_PAUSE_ALL;
+					ret = wlEncodeAndSubmitMsg(pWatchlistImpl, NULL,
+						(RsslRDMMsg*)pLoginRequest, RSSL_FALSE, NULL, pError);
+
+					if (ret >= RSSL_RET_SUCCESS)
+					{
+						if (pWatchlistImpl->base.channelState < WL_CHS_LOGIN_REQUESTED)
+							pWatchlistImpl->base.channelState = WL_CHS_LOGIN_REQUESTED;
+
+						if (pWatchlistImpl->base.pRsslChannel && !(pLoginRequest->flags & RDM_LG_RQF_NO_REFRESH))
+							wlSetStreamPendingResponse(&pWatchlistImpl->base, &pStream->base);
+
+						wlUnsetStreamMsgPending(&pWatchlistImpl->base, &pStream->base);
+
+						/* If this was a pause message, unset the pause flag */
+						if (pLoginRequest->flags & RDM_LG_RQF_PAUSE_ALL)
+							pLoginRequest->flags &= ~RDM_LG_RQF_PAUSE_ALL;
 
 
-					if (pWatchlistImpl->login.pRequest[pWatchlistImpl->login.index]->pCurrentToken
+						if (pWatchlistImpl->login.pRequest[pWatchlistImpl->login.index]->pCurrentToken
 							&& !pWatchlistImpl->login.pRequest[pWatchlistImpl->login.index]->pCurrentToken->needRefresh)
-						wlLoginSetNextUserToken(&pWatchlistImpl->login,
+							wlLoginSetNextUserToken
+							(&pWatchlistImpl->login,
 								&pWatchlistImpl->base);
 
-					return ret;
+						return ret;
+					}
+				}
+				else
+				{
+					/* Remove this stream from the pending request queue */
+					wlUnsetStreamMsgPending(&pWatchlistImpl->base, &pStream->base);
 				}
 				break;
 			}

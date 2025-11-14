@@ -176,16 +176,16 @@ RsslRet wlLoginProcessProviderMsg(WlLogin *pLogin, WlBase *pBase,
 	RsslRet ret;
 	*oAction = WL_LGPA_NONE;
 
-	/* Stop timer. */
-	if (pBase->pRsslChannel)
-		wlUnsetStreamPendingResponse(pBase, &pLogin->pStream->base);
-
 	if (pLogin->pStream)
 	{
 		WlLoginRequest *pLoginRequest = pLogin->pRequest[pLogin->index];
 		RsslRDMLoginRequest *pLoginReqMsg = pLoginRequest->pLoginReqMsg;
 
 		assert(pLoginRequest);
+
+		/* Stop timer. */
+		if (pBase->pRsslChannel)
+			wlUnsetStreamPendingResponse(pBase, &pLogin->pStream->base);
 
 		do
 		{
