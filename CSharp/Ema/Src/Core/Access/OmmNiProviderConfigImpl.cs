@@ -726,7 +726,7 @@ namespace LSEG.Ema.Access
 
         // Generates the reactor connect options based on the NiProvider Config.
         // Prerequsites: The user-supplied OmmNiProviderConfigImpl has been verified with OmmNiProviderConfigImpl.VerifyConfig and this is run on the "active" configuration copy
-        public override ReactorConnectOptions GenerateReactorConnectOpts()
+        public override ReactorConnectOptions GenerateReactorConnectOpts(ILoggerClient? loggerClient = null)
         {
             ReactorConnectOptions connOpts = new ReactorConnectOptions();
             NiProviderConfig niProvConfig = NiProviderConfigMap[NiProviderName];

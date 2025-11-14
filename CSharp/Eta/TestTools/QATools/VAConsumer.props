@@ -1,0 +1,28 @@
+<Project>
+
+	<PropertyGroup>
+		<OutputType>Exe</OutputType>
+		<RootNamespace>LSEG.Eta.ValueAdd.Consumer</RootNamespace>
+		<Nullable>enable</Nullable>
+		<AssemblyName>VAConsumer</AssemblyName>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<ExamplePath>$(ProjectDir)..\..\..\Applications\Examples\VAConsumer\</ExamplePath>
+		<BaseOutputPath>$(ProjectDir)..\..\..\Executables\QATools\$(MSBuildProjectName)</BaseOutputPath>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\..\..\Src\Core\Core.csproj" />
+		<ProjectReference Include="..\..\..\Src\ValueAdd\ValueAdd.csproj" />
+		<ProjectReference Include="..\..\..\Applications\Examples\EtaAppCommon\EtaAppCommon.csproj" />
+		<ProjectReference Include="..\..\..\Applications\Examples\VACommon\VACommon.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<QAToolFiles Include="*.cs"/>
+	</ItemGroup>
+	<ItemGroup>
+		<Compile Include="$(ExamplePath)\*.cs"/>
+		<Compile Remove="@(QAToolFiles ->'$(ExamplePath)\%(Filename)%(Extension)')"/>
+	</ItemGroup>
+	
+</Project>

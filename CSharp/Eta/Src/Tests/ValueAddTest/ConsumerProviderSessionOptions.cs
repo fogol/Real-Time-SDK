@@ -69,6 +69,8 @@ public class ConsumerProviderSessionOptions
 
     public CompressionType CompressionType { get; set; } = CompressionType.NONE;
 
+    public ReactorPreferredHostOptions PreferredHostOptions { get; set; }
+
     /// <summary>
     /// Optional (mock) replacement for the Consumer's <see cref="WlLoginHandler"/> implementation.
     /// </summary>

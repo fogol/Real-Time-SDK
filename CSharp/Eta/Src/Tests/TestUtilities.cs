@@ -6,9 +6,12 @@
  *|-----------------------------------------------------------------------------
  */
 
+using System.Collections.Generic;
+using System.Linq;
+
 namespace LSEG.Eta.Tests
 {
-    class TestUtilities
+    static class TestUtilities
     {
         public static bool CompareByteArray(byte[] first, int firstOffSet, byte[] second, int secondOffset, int length)
         {
@@ -27,5 +30,8 @@ namespace LSEG.Eta.Tests
 
             return true;
         }
+
+        public static IEnumerable<object[]> ToXunitMemberData<T>(this IEnumerable<T> data) =>
+            data.Select(x => new object[] { x });
     }
 }

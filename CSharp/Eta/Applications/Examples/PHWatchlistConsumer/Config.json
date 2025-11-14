@@ -1,0 +1,30 @@
+{
+  "preferredHost": {
+    "enablePH": true, "$comment_enablePH": "default value is true when connectListIndex value is defined",
+    "connectListIndex": 0, "$comment_connectListIndex": "default value is 0",
+    "detectionTimeInterval": 15,
+    "detectionTimeSchedule": "* * ? * *"
+  },
+  "connectionList": [
+    {
+      "host": "localhost", "$comment_host": "default value is localhost",
+      "port": "14002", "$comment_port": "default value is 14002",
+      "sessionMgnt": false, "$comment_sessionMgnt": "default value is false",
+      "connType": 0
+    },
+    {
+      "host": "localhost",
+      "port": 14003,
+      "connType": 1, "$comment_connType": "0 - SOCKET, 1 - ENCRYPTED",
+      "encryptedConnType": 0, "$comment_encryptedConnType": "Currently only value 0 (SOCKET) is possible; present for future compatibility",
+      "encryptionProtocolFlags": 4, "$comment_encryptionProtocolFlags": "4 - TLSv1_2, 8 - TLSv1_3, 12 - both TLSv1_2 and TLSv1_3; default value is unspecified - determined and negotiated by underyling system"
+    },
+    {
+      "host": "localhost",
+      "port": 14004,
+      "connType": 1,
+      "encryptionProtocolFlags": 12
+    }
+  ], "$comment_connectionList": "At least one element is required"
+}
+ 

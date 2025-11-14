@@ -238,15 +238,20 @@ namespace LSEG.Ema.Access
                                 {
                                     singleItem.ServiceName = ServiceName;
 
-                                    /* The item state is changed to normal item stream */
-                                    singleItem.State = SingleItem<T>.StateEnum.NORMAL;
-                                    singleItem.Submit(singleItem.RequestMsg!, ServiceName, false, false);
+
+                                    if (singleItem.State != SingleItem<T>.StateEnum.RECOVERING_BY_WATCHLIST)
+                                    {
+                                        singleItem.Submit(singleItem.RequestMsg!, ServiceName, false, false);
+                                    }
 
                                     /* Removes from the recovery queue after the while loop */
                                     m_TempRemoveSingleItems.Enqueue(singleItem);
 
                                     /* Adds to the active queue */
                                     _itemNameMap[itemName].Add(singleItem);
+
+                                    /* The item state is changed to normal item stream */
+                                    singleItem.State = SingleItem<T>.StateEnum.NORMAL;
                                 }
                                 else
                                 {

@@ -470,35 +470,48 @@ internal sealed class SessionWatchlist<T>
                     /* Recover item only for non-private item stream. */
                     if (requestMsg.CheckPrivateStream() == false)
                     {
-                        /* This is used to close this stream with the watchlist only */
-                        singleItem.State = SingleItem<T>.StateEnum.CLOSING_STREAM;
+                        SessionChannelInfo<T> sessionChannelInfo = (dynamic)singleItem.Directory()!.ChannelInfo!.SessionChannelInfo!;
 
-                        try
+                        if (sessionChannelInfo.PHOperationInProcess == false)
                         {
-                            singleItem.Close();
-                        }
-                        catch (OmmInvalidUsageException iue)
-                        {
-                            /* This will be closed later when the ReactorChannel is operational  */
-                            if (singleItem.Directory()!.ChannelInfo!.ReactorChannel!.State == ReactorChannelState.CLOSED)
+                            /* This is used to close this stream with the watchlist only */
+                            singleItem.State = SingleItem<T>.StateEnum.CLOSING_STREAM;
+
+                            try
                             {
-                                _closingItemQueue.Enqueue(singleItem);
-                                break;
+                                singleItem.Close();
                             }
-                            else if (iue.ErrorCode == OmmInvalidUsageException.ErrorCodes.SHUTDOWN)
+                            catch (OmmInvalidUsageException iue)
                             {
-                                /* Remove this item as Reactor is shutdown */
-                                singleItem.Remove();
+                                /* This will be closed later when the ReactorChannel is operational  */
+                                if (singleItem.Directory()!.ChannelInfo!.ReactorChannel!.State == ReactorChannelState.CLOSED)
+                                {
+                                    _closingItemQueue.Enqueue(singleItem);
+                                    break;
+                                }
+                                else if (iue.ErrorCode == OmmInvalidUsageException.ErrorCodes.SHUTDOWN)
+                                {
+                                    /* Remove this item as Reactor is shutdown */
+                                    singleItem.Remove();
 
-                                state.StreamState(StreamStates.CLOSED);
-                                break;
+                                    state.StreamState(StreamStates.CLOSED);
+                                    break;
+                                }
                             }
                         }
 
-                        if (handleConnectionRecovering)
+                        if (handleConnectionRecovering || sessionChannelInfo.PHOperationInProcess)
                         {
-                            /* Sets the state that the item is being recovered */
-                            singleItem.State = SingleItem<T>.StateEnum.RECOVERING;
+                            if (sessionChannelInfo.PHOperationInProcess)
+                            {
+                                /* Sets the state that the item is being recovered by watchlist when the requested service is operational */
+                                singleItem.State = SingleItem<T>.StateEnum.RECOVERING_BY_WATCHLIST;
+                            }
+                            else
+                            {
+                                /* Sets the state that the item is being recovered */
+                                singleItem.State = SingleItem<T>.StateEnum.RECOVERING;
+                            }
 
                             /* Waiting to recover this item with the same channel */
                             singleItem.RetrytosameChannel = true;

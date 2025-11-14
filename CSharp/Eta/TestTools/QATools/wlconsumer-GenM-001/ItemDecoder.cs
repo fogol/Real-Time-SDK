@@ -6,15 +6,9 @@
  *|-----------------------------------------------------------------------------
  */
 
-namespace LSEG.Eta.ValueAdd.WatchlistConsumer;
-
-using System;
 using System.Text;
 
-using LSEG.Eta.Codec;
-using LSEG.Eta.Rdm;
-using LSEG.Eta.ValueAdd.Reactor;
-
+namespace LSEG.Eta.ValueAdd.WatchlistConsumer;
 
 internal class ItemDecoder
 {

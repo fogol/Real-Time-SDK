@@ -283,6 +283,7 @@ namespace LSEG.Ema.Access
             OmmState.NOTFOUND_STRING => OmmState.StatusCodes.NOT_FOUND,
             OmmState.TIMEOUT_STRING => OmmState.StatusCodes.TIMEOUT,
             OmmState.NOTAUTHORIZED_STRING => OmmState.StatusCodes.NOT_AUTHORIZED,
+            OmmState.NOTENTITLED_STRING => OmmState.StatusCodes.NOT_AUTHORIZED,
             OmmState.INVALIDARGUMENT_STRING => OmmState.StatusCodes.INVALID_ARGUMENT,
             OmmState.USAGEERROR_STRING => OmmState.StatusCodes.USAGE_ERROR,
             OmmState.PREEMPTED_STRING => OmmState.StatusCodes.PREEMPTED,

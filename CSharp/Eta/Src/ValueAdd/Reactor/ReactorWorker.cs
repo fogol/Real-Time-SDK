@@ -8,6 +8,7 @@
 
 using LSEG.Eta.Transports;
 using LSEG.Eta.ValueAdd.Common;
+using LSEG.Eta.ValueAdd.Reactor.Fallback.Init;
 using System.Net.Sockets;
 using SessionState = LSEG.Eta.ValueAdd.Reactor.ReactorTokenSession.SessionState;
 
@@ -30,6 +31,8 @@ namespace LSEG.Eta.ValueAdd.Reactor
         private VaIteratableQueue m_ReconnectingChannelQueue = new VaIteratableQueue();
         private VaIteratableQueue m_TokenSessionQueue = new VaIteratableQueue();
 
+        private List<ReactorChannel> m_ChannelsWithFallbackTimers = new();
+
         private volatile bool m_Exit;
 
         private Socket? EventSocket { get; set; }
@@ -42,13 +45,7 @@ namespace LSEG.Eta.ValueAdd.Reactor
 
         private bool IsCalculatedWaitTime { get; set; } = false;
 
-        internal ReactorEventQueue WorkerEventQueue
-        {
-            get
-            {
-                return m_WorkerEventQueue;
-            }
-        }
+        internal ReactorEventQueue WorkerEventQueue => m_WorkerEventQueue;
 
         public ReactorWorker(Reactor reactor)
         {
@@ -161,19 +158,56 @@ namespace LSEG.Eta.ValueAdd.Reactor
                 if (nextTimerMs != Int64.MaxValue)
                     CalculateNextTimeout(nextTimerMs - LastRecordedTimeMs);
 
+                // initiate fallback for channels with fallback timers set
+                nextTimerMs = Int64.MaxValue;
+                foreach (var reactorChannel in m_ChannelsWithFallbackTimers)
+                {
+                    var isWrongReactorChannelState = reactorChannel.State is ReactorChannelState.DOWN_RECONNECTING or ReactorChannelState.INITIALIZING;
+                    if (isWrongReactorChannelState || reactorChannel.FallbackContext!.IsSwitchingToPreferredHost)
+                        continue;
+                    var timer = reactorChannel.FallbackTimer!;
+                    if (LastRecordedTimeMs >= timer.TriggerTimeMs)
+                    {
+                        if (reactorChannel.ShouldFallbackToPreferredHost)
+                        {
+                            ProcessPreferredHostStartFallback(reactorChannel);
+                        }
+                        else
+                        {
+                            /* Sends the PREFERRED_HOST_NO_FALLBACK event to application that there is no fallback */
+                            reactorChannel.OnNoFallback();
+                        }
+                            
+                        timer.Reset(LastRecordedTimeMs);
+                    }
+                    else
+                    {
+                        nextTimerMs = Math.Min(nextTimerMs, timer.TriggerTimeMs);
+                    }
+                }
+                if (nextTimerMs != Int64.MaxValue)
+                    CalculateNextTimeout(nextTimerMs - LastRecordedTimeMs);
+
                 // initialize channels and check if initialization timeout occurred
                 m_InitChannelQueue.Rewind();
                 while (m_InitChannelQueue.HasNext())
                 {
                     ReactorChannel? reactorChannel = (ReactorChannel?)m_InitChannelQueue.Next();
+                    if (reactorChannel == null)
+                        continue;
                     // handle initialization timeout
-                    if (reactorChannel != null && reactorChannel.State == ReactorChannelState.INITIALIZING)
+                    if (reactorChannel.FallbackContext!.State == ReactorChannelState.INITIALIZING)
                     {
-                        if (reactorChannel.Channel != null &&
-                            (reactorChannel.Channel.State == ChannelState.INACTIVE || reactorChannel.Channel.State == ChannelState.INITIALIZING))
+                        var channel = reactorChannel.FallbackContext!.Channel;
+                        if (channel != null &&
+                            (channel.State == ChannelState.INACTIVE || channel.State == ChannelState.INITIALIZING))
                         {
                             InitializeChannel(reactorChannel);
                         }
+                    }
+                    if (reactorChannel.FallbackContext.IsSwitchingToPreferredHost)
+                    {
+                        ProcessPing(reactorChannel);
                     }
                 }
 
@@ -184,23 +218,7 @@ namespace LSEG.Eta.ValueAdd.Reactor
                     ReactorChannel? reactorChannel = (ReactorChannel?)m_ActiveChannelQueue.Next();
                     if (reactorChannel != null)
                     {
-                        if (reactorChannel.Channel != null && reactorChannel.Channel.State == ChannelState.ACTIVE
-                            && reactorChannel.State != ReactorChannelState.DOWN_RECONNECTING
-                            && reactorChannel.State != ReactorChannelState.DOWN
-                            && reactorChannel.State != ReactorChannelState.CLOSED
-                            && reactorChannel.State != ReactorChannelState.RDP_RT
-                            && reactorChannel.State != ReactorChannelState.RDP_RT_DONE
-                            && reactorChannel.State != ReactorChannelState.RDP_RT_FAILED)
-                        {
-                            if (reactorChannel.GetPingHandler().HandlePings(reactorChannel, out Error? error)
-                                < TransportReturnCode.SUCCESS)
-                            {
-                                reactorChannel.State = ReactorChannelState.DOWN;
-                                SendReactorImplEvent(reactorChannel, ReactorEventImpl.ImplType.CHANNEL_DOWN,
-                                        ReactorReturnCode.FAILURE, "Worker.Run()",
-                                        "Ping error for channel: " + error?.Text);
-                            }
-                        }
+                        ProcessPing(reactorChannel);
                     }
                 }
 
@@ -210,39 +228,28 @@ namespace LSEG.Eta.ValueAdd.Reactor
                 {
                     ReactorChannel? reactorChannel = (ReactorChannel?)m_ReconnectingChannelQueue.Next();
 
-                    if (reactorChannel != null)
+                    if (reactorChannel == null)
                     {
-                        if (reactorChannel.NextRecoveryTime > LastRecordedTimeMs)
-                        {
-                            CalculateNextTimeout(reactorChannel.NextRecoveryTime - LastRecordedTimeMs);
-                            continue;
-                        }
+                        continue;
+                    }
+                    if (reactorChannel.NextRecoveryTime > LastRecordedTimeMs)
+                    {
+                        CalculateNextTimeout(reactorChannel.NextRecoveryTime - LastRecordedTimeMs);
+                        continue;
+                    }
 
-                        IChannel? channel = null;
-                        Error? error = null;
+                    IChannel? channel = reactorChannel.Reconnect(out var error);
 
-                        if(reactorChannel.State != ReactorChannelState.RDP_RT &&
-                            reactorChannel.State != ReactorChannelState.RDP_RT_DONE &&
-                            reactorChannel.State != ReactorChannelState.RDP_RT_FAILED)
-                        {
-                            channel = reactorChannel.Reconnect(out error);
-                        }
-
-                        if(reactorChannel.State == ReactorChannelState.RDP_RT ||
-                            reactorChannel.State == ReactorChannelState.RDP_RT_DONE ||
-                            reactorChannel.State == ReactorChannelState.RDP_RT_FAILED)
-                        {
-                            channel = reactorChannel.ReconnectRDP(out error);
-                        }
-
-                        if (channel is null && reactorChannel.State != ReactorChannelState.RDP_RT)
+                    if (channel is null && reactorChannel.FallbackContext!.State != ReactorChannelState.RDP_RT)
+                    {
+                        // Reconnect attempt failed -- send channel down event.
+                        m_ReconnectingChannelQueue.Remove(reactorChannel);
+                        if (!reactorChannel.FallbackContext!.IsSwitchingToPreferredHost)
                         {
                             reactorChannel.SetChannel(channel);
 
-                            // Reconnect attempt failed -- send channel down event.
-                            m_ReconnectingChannelQueue.Remove(reactorChannel);
                             if (reactorChannel.TokenSession != null && (reactorChannel.TokenSession.SessionMgntState == SessionState.STOP_TOKEN_REQUEST ||
-                                reactorChannel.TokenSession.SessionMgntState == SessionState.STOP_QUERYING_SERVICE_DISCOVERY))
+                                                reactorChannel.TokenSession.SessionMgntState == SessionState.STOP_QUERYING_SERVICE_DISCOVERY))
                             {
                                 /* This is a terminal state.  There was an REST error that we cannot recover from, so set the reconnectLimit to 0 */
                                 reactorChannel.ConnectOptions!.SetReconnectAttempLimit(0);
@@ -250,18 +257,24 @@ namespace LSEG.Eta.ValueAdd.Reactor
 
                             SendReactorImplEvent(reactorChannel, ReactorEventImpl.ImplType.CHANNEL_DOWN,
                                     ReactorReturnCode.FAILURE, "Worker.Run()",
-                                    "Reconnection failed: " + error?.Text);
-                            continue;
+                                    "Reconnection failed: " + error?.Text); 
                         }
-
-                        if (reactorChannel.State != ReactorChannelState.RDP_RT)
+                        else
                         {
-                            reactorChannel.SetChannel(channel);
-                            reactorChannel.State = ReactorChannelState.INITIALIZING;
-                            m_ReconnectingChannelQueue.Remove(reactorChannel);
-
-                            ProcessChannelInit(reactorChannel);
+                            /* Adds the ReactorChannel back as it failed to fallback to the preferred host */
+                            m_ActiveChannelQueue.Add(reactorChannel);
+                            reactorChannel.OnFallbackFailed();
                         }
+                        continue;
+                    }
+
+                    if (reactorChannel.FallbackContext!.State != ReactorChannelState.RDP_RT)
+                    {
+                        reactorChannel.FallbackContext!.SetChannel(channel);
+                        reactorChannel.FallbackContext!.State = ReactorChannelState.INITIALIZING;
+                        m_ReconnectingChannelQueue.Remove(reactorChannel);
+
+                        ProcessChannelInit(reactorChannel);
                     }
                 }
 
@@ -282,7 +295,6 @@ namespace LSEG.Eta.ValueAdd.Reactor
 
                             /* Removes from the queue as the access token is expired */
                             m_TokenSessionQueue.Remove(tokenSession);
-                            tokenSession.InTokenSessionQueue = false;
                         }
                         else
                         {
@@ -300,12 +312,34 @@ namespace LSEG.Eta.ValueAdd.Reactor
             IsWorkerThreadStarted = false;
         }
 
+        private void ProcessPing(ReactorChannel reactorChannel)
+        {
+            if (reactorChannel.Channel != null && reactorChannel.Channel.State == ChannelState.ACTIVE
+                    && reactorChannel.State != ReactorChannelState.DOWN_RECONNECTING
+                    && reactorChannel.State != ReactorChannelState.DOWN
+                    && reactorChannel.State != ReactorChannelState.CLOSED
+                    && reactorChannel.State != ReactorChannelState.RDP_RT
+                    && reactorChannel.State != ReactorChannelState.RDP_RT_DONE
+                    && reactorChannel.State != ReactorChannelState.RDP_RT_FAILED)
+            {
+                if (reactorChannel.GetPingHandler().HandlePings(reactorChannel, out Error? error)
+                    < TransportReturnCode.SUCCESS)
+                {
+                    reactorChannel.State = ReactorChannelState.DOWN;
+                    SendReactorImplEvent(reactorChannel, ReactorEventImpl.ImplType.CHANNEL_DOWN,
+                            ReactorReturnCode.FAILURE, "Worker.Run()",
+                            "Ping error for channel: " + error?.Text);
+                }
+            }
+        }
+
         private void ProcessReactorEventImpl(ReactorEvent? reactorEvent)
         {
             if (reactorEvent != null)
             {
                 ReactorEventImpl eventImpl = (ReactorEventImpl)reactorEvent;
                 ReactorChannel? reactorChannel = reactorEvent.ReactorChannel;
+                var eventProcessed = true;
 
                 switch (eventImpl.EventImplType)
                 {
@@ -331,6 +365,10 @@ namespace LSEG.Eta.ValueAdd.Reactor
                     case ReactorEventImpl.ImplType.CHANNEL_CLOSE:
                         {
                             ProcessChannelClose(reactorChannel);
+                            if (reactorChannel != null)
+                            {
+                                m_ChannelsWithFallbackTimers.Remove(reactorChannel);
+                            }
                             
                             if(reactorChannel != null)
                                 reactorChannel.IsClosedAckSent = true;
@@ -360,9 +398,8 @@ namespace LSEG.Eta.ValueAdd.Reactor
 
                             if (tokenSession is not null)
                             {
-                                if (!tokenSession.InTokenSessionQueue)
+                                if (tokenSession.InQueue == null)
                                 {
-                                    tokenSession.InTokenSessionQueue = true;
                                     m_TokenSessionQueue.Add(tokenSession);
                                 }
 
@@ -374,12 +411,34 @@ namespace LSEG.Eta.ValueAdd.Reactor
 
                             break;
                         }
+                    case ReactorEventImpl.ImplType.PREFERRED_HOST_OPTIONS_CHANGED:
+                        {
+                            eventProcessed = ProcessPreferredHostOptionsChange(reactorChannel, eventImpl.AdditonalPayload as FallbackMembersToAssign);
+                            break;
+                        }
+                    case ReactorEventImpl.ImplType.PREFERRED_HOST_START_FALLBACK:
+                        {
+                            ProcessPreferredHostStartFallback(reactorChannel);
+                            break;
+                        }
+                    case ReactorEventImpl.ImplType.PREFERRED_HOST_SWITCHOVER_COMPLETE:
+                        {
+                            reactorChannel?.OnFallbackSwitchoverComplete();
+                            break;
+                        }
                     default:
                         System.Console.WriteLine("Worker.processWorkerEvent(): received unexpected eventType=" + eventImpl.EventImplType);
                         break;
                 }
 
-                reactorEvent.ReturnToPool();
+                if (eventProcessed)
+                {
+                    reactorEvent.ReturnToPool();
+                }
+                else
+                {
+                    m_WorkerEventQueue.PutEventToQueue(eventImpl);
+                }
             }
         }
 
@@ -387,11 +446,17 @@ namespace LSEG.Eta.ValueAdd.Reactor
         {
             if (reactorChannel != null)
             {
-                m_InitChannelQueue.Add(reactorChannel);
-
-                if (reactorChannel.NotifierEvent != null && reactorChannel.Channel != null)
+                /* Adds reactorChannel only when it is not in the m_InitChannelQueue yet */
+                if (reactorChannel.InQueue != m_InitChannelQueue)
                 {
-                    m_Notifier.AddEvent(reactorChannel.NotifierEvent, reactorChannel.Channel.Socket, reactorChannel);
+                    m_InitChannelQueue.Add(reactorChannel);
+                }
+
+                var notifierEvent = reactorChannel.FallbackContext!.NotifierEvent;
+                var channel = reactorChannel.FallbackContext!.Channel;
+                if (notifierEvent != null && channel != null)
+                {
+                    m_Notifier.AddEvent(notifierEvent, channel.Socket, reactorChannel);
                 }
             }
         }
@@ -408,11 +473,7 @@ namespace LSEG.Eta.ValueAdd.Reactor
                 CancelRegister(reactorChannel);
             }
 
-            if (m_ActiveChannelQueue.Remove(reactorChannel) == false)
-                if (m_InitChannelQueue.Remove(reactorChannel) == false)
-                {
-                    m_ReconnectingChannelQueue.Remove(reactorChannel);
-                }
+            reactorChannel.InQueue?.Remove(reactorChannel);
         }
 
         private void ProcessChannelFlush(ReactorChannel? reactorChannel)
@@ -502,15 +563,74 @@ namespace LSEG.Eta.ValueAdd.Reactor
             }
         }
 
+        private bool ProcessPreferredHostOptionsChange(ReactorChannel? reactorChannel, FallbackMembersToAssign? membersToAssign)
+        {
+            if (reactorChannel == null)
+                return true;
+
+            if (reactorChannel.FallbackContext!.IsSwitchingToPreferredHost)
+            {
+                return false;
+            }
+
+            if (membersToAssign != null)
+            {
+                reactorChannel.ApplyPreferredHostOptions(membersToAssign);
+                SendReactorImplEvent(reactorChannel, ReactorEventImpl.ImplType.PREFERRED_HOST_OPTIONS_APPLIED, ReactorReturnCode.SUCCESS, null, null, membersToAssign.PreferredHostOptions);
+            }
+
+            /* reactorChannel.IsChannelUpForTheFirstTime is set to true for the first channel up */
+            if (reactorChannel.FallbackTimer != null && reactorChannel.IsChannelUpForTheFirstTime)
+            {
+                m_ChannelsWithFallbackTimers.Add(reactorChannel);
+                reactorChannel.FallbackTimer.Reset(LastRecordedTimeMs);
+            }
+            else
+            {
+                m_ChannelsWithFallbackTimers.Remove(reactorChannel);
+            }
+
+            return true;
+        }
+
+        private void ProcessPreferredHostStartFallback(ReactorChannel? reactorChannel)
+        {
+            if (reactorChannel == null)
+                return;
+
+            if (reactorChannel.InQueue != m_ReconnectingChannelQueue)
+            {
+                if (reactorChannel.InQueue == m_ActiveChannelQueue)
+                    m_ActiveChannelQueue.Remove(reactorChannel);
+
+                if (reactorChannel.InQueue == m_InitChannelQueue)
+                    m_InitChannelQueue.Remove(reactorChannel);
+
+                m_ReconnectingChannelQueue.Add(reactorChannel);
+            }
+
+            reactorChannel.OnFallbackStarted();
+        }
+
         private void InitializeChannel(ReactorChannel reactorChannel)
         {
-            IChannel? channel = reactorChannel.Channel;
+            IChannel? channel = reactorChannel.FallbackContext!.Channel;
             TransportReturnCode retval = channel!.Init(m_InProgInfo, out Error error);
 
             if (retval < TransportReturnCode.SUCCESS)
             {
                 CancelRegister(reactorChannel);
-                reactorChannel.State = ReactorChannelState.DOWN;
+                reactorChannel.FallbackContext!.State = ReactorChannelState.DOWN;
+
+                if (reactorChannel.FallbackContext!.IsSwitchingToPreferredHost)
+                {
+                    /* Adds the ReactorChannel back as it failed to fallback to the preferred host */
+                    m_InitChannelQueue.Remove(reactorChannel);
+                    m_ActiveChannelQueue.Add(reactorChannel);
+                    reactorChannel.OnFallbackFailed();
+                    return;
+                }
+
                 SendReactorImplEvent(reactorChannel, ReactorEventImpl.ImplType.CHANNEL_DOWN,
                         ReactorReturnCode.FAILURE, "Worker.InitializeChannel",
                         "Error initializing channel: errorId=" + error?.ErrorId + " text="
@@ -526,6 +646,16 @@ namespace LSEG.Eta.ValueAdd.Reactor
                         if ((retval = ReRegister(m_InProgInfo, reactorChannel, out Error? reReisterErr)) != TransportReturnCode.SUCCESS)
                         {
                             CancelRegister(reactorChannel);
+
+                            if (reactorChannel.FallbackContext!.IsSwitchingToPreferredHost)
+                            {
+                                /* Adds the ReactorChannel back as it failed to fallback to the preferred host */
+                                m_InitChannelQueue.Remove(reactorChannel);
+                                m_ActiveChannelQueue.Add(reactorChannel);
+                                reactorChannel.OnFallbackFailed();
+                                break;
+                            }
+
                             SendReactorImplEvent(reactorChannel, ReactorEventImpl.ImplType.CHANNEL_DOWN,
                                     ReactorReturnCode.FAILURE, "Worker.InitializeChannel",
                                     "Error - failed to re-register on SCKT_CHNL_CHANGE: "
@@ -535,9 +665,18 @@ namespace LSEG.Eta.ValueAdd.Reactor
                     else
                     {
                         // check if initialization timeout occurred.
-                        if (ReactorUtil.GetCurrentTimeMilliSecond() > reactorChannel.InitializationEndTimeMs())
+                        if (ReactorUtil.GetCurrentTimeMilliSecond() > reactorChannel.FallbackContext!.InitializationEndTimeMs())
                         {
                             CancelRegister(reactorChannel);
+                            if (reactorChannel.FallbackContext!.IsSwitchingToPreferredHost)
+                            {
+                                /* Adds the ReactorChannel back as it failed to fallback to the preferred host */
+                                m_InitChannelQueue.Remove(reactorChannel);
+                                m_ActiveChannelQueue.Add(reactorChannel);
+                                reactorChannel.OnFallbackFailed();
+                                break;
+                            }
+
                             SendReactorImplEvent(reactorChannel, ReactorEventImpl.ImplType.CHANNEL_DOWN,
                                     ReactorReturnCode.FAILURE, "Worker.InitializeChannel",
                                     "Error - exceeded initialization timeout ("
@@ -558,8 +697,24 @@ namespace LSEG.Eta.ValueAdd.Reactor
                     // move the channel from the initQueue to the activeQueue
                     m_InitChannelQueue.Remove(reactorChannel);
                     m_ActiveChannelQueue.Add(reactorChannel);
+
+                    /* Start the fallback timer for the first channel up */
+                    if (reactorChannel.FallbackTimer != null && !reactorChannel.IsChannelUpForTheFirstTime)
+                    {
+                        m_ChannelsWithFallbackTimers.Add(reactorChannel);
+                        reactorChannel.FallbackTimer.Reset(LastRecordedTimeMs);
+                    }
+
+                    reactorChannel.IsChannelUpForTheFirstTime = true;
+
+                    if (reactorChannel.FallbackContext!.IsSwitchingToPreferredHost)
+                    {
+                        m_Reactor!.SendPreferredHostReconnectComplete(reactorChannel);
+                        break;
+                    }
                     SendReactorImplEvent(reactorChannel, ReactorEventImpl.ImplType.CHANNEL_UP,
                             ReactorReturnCode.SUCCESS, null, null);
+                    reactorChannel.OnFallbackPostChannelUp();
                     break;
                 default:
                     CancelRegister(reactorChannel);
@@ -596,7 +751,7 @@ namespace LSEG.Eta.ValueAdd.Reactor
 
         private void CancelRegister(ReactorChannel reactorChannel)
         {
-            m_Notifier.RemoveEvent(reactorChannel.NotifierEvent);
+            m_Notifier.RemoveEvent(reactorChannel.FallbackContext!.NotifierEvent);
         }
 
         private void Shutdown()
@@ -609,56 +764,30 @@ namespace LSEG.Eta.ValueAdd.Reactor
                     if (reactorChannel.Channel != null)
                     {
                         reactorChannel.Channel.Close(out Error error);
-                        if (m_ActiveChannelQueue.Remove(reactorChannel) == false)
-                            if (m_InitChannelQueue.Remove(reactorChannel) == false)
-                                m_ReconnectingChannelQueue.Remove(reactorChannel);
+
+                        reactorChannel.InQueue?.Remove(reactorChannel);
                     }
 
                     reactorChannel.ReturnToPool();
                 }
             }
 
-            while (m_InitChannelQueue.Size() > 0)
+            static void CleanupChannelQueue(VaIteratableQueue queue)
             {
-                ReactorChannel? reactorChannel = (ReactorChannel?)m_InitChannelQueue.Poll();
-                if (reactorChannel != null)
+                while (queue.Size() > 0)
                 {
-                    if (reactorChannel.Channel != null)
+                    ReactorChannel? reactorChannel = (ReactorChannel?)queue.Poll();
+                    if (reactorChannel != null)
                     {
-                        reactorChannel.Channel.Close(out Error error);
+                        reactorChannel.Channel?.Close(out _);
+                        reactorChannel.ReturnToPool();
                     }
-
-                    reactorChannel.ReturnToPool();
                 }
             }
 
-            while (m_ActiveChannelQueue.Size() > 0)
-            {
-                ReactorChannel? reactorChannel = (ReactorChannel?)m_ActiveChannelQueue.Poll();
-                if (reactorChannel != null)
-                {
-                    if (reactorChannel.Channel != null)
-                    {
-                        reactorChannel.Channel.Close(out Error error);
-                    }
-
-                    reactorChannel.ReturnToPool();
-                }
-            }
-
-            while (m_ReconnectingChannelQueue.Size() > 0)
-            {
-                ReactorChannel? reactorChannel = (ReactorChannel?)m_ReconnectingChannelQueue.Poll();
-                if (reactorChannel != null)
-                {
-                    if (reactorChannel.Channel != null)
-                    {
-                        reactorChannel.Channel.Close(out Error error);
-                    }
-
-                    reactorChannel.ReturnToPool();
-                }
-            }
+            CleanupChannelQueue(m_InitChannelQueue);
+            CleanupChannelQueue(m_ActiveChannelQueue);
+            CleanupChannelQueue(m_ReconnectingChannelQueue);
 
             while(m_TokenSessionQueue.Size() > 0)
             {
@@ -668,17 +797,20 @@ namespace LSEG.Eta.ValueAdd.Reactor
                     // Just remove from the queue if any.
                 }
             }
+
+            m_ChannelsWithFallbackTimers.Clear();
         }
 
         /* Send a ReactorImplEvent to Reactor*/
         private void SendReactorImplEvent(ReactorChannel? reactorChannel, ReactorEventImpl.ImplType eventType, ReactorReturnCode reactorReturnCode,
-            string? location, string? text)
+            string? location, string? text, object? additionalPayload = null)
         {
             ReactorEventImpl reactorEventImpl = m_Reactor.GetReactorPool().CreateReactorEventImpl();
             reactorEventImpl.EventImplType = eventType;
             reactorEventImpl.ReactorChannel = reactorChannel;
             reactorEventImpl.ReactorErrorInfo.Code = reactorReturnCode;
             reactorEventImpl.ReactorErrorInfo.Error.ErrorId = (TransportReturnCode)reactorReturnCode;
+            reactorEventImpl.AdditonalPayload = additionalPayload;
             if(location != null)
             {
                 reactorEventImpl.ReactorErrorInfo.Location = location;

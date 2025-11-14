@@ -146,7 +146,7 @@ namespace LSEG.Ema.Access.Tests.OmmConfigTests
             // Loaded the Config, now make sure everything's in it.
 
             // There should be 2 Consumers, 2 ClientChannels, 2 Loggers, and 2 Dictionaries
-            Assert.Equal(2, consConfigImpl.ConsumerConfigMap.Count);
+            Assert.Equal(3, consConfigImpl.ConsumerConfigMap.Count);
             Assert.Equal(2, consConfigImpl.ClientChannelConfigMap.Count);
             Assert.Equal(2, consConfigImpl.LoggerConfigMap.Count);
             Assert.Equal(2, consConfigImpl.DictionaryConfigMap.Count);
@@ -186,6 +186,11 @@ namespace LSEG.Ema.Access.Tests.OmmConfigTests
                 .AddAscii("RestLogFileName", "ProgRestLog")
                 .AddUInt("ServiceCountHint", 2140)
                 .AddUInt("RestRequestTimeOut", 2150)
+                // Preferred Host block
+                .AddUInt("EnablePreferredHostOptions", 1)
+                .AddAscii("PHDetectionTimeSchedule", "*")
+                .AddUInt("PHDetectionTimeInterval", 100)
+                .AddAscii("PreferredChannelName", "Channel_1")
                 // XML tracing block
                 .AddUInt("XmlTraceToStdout", 1)
                 .AddUInt("XmlTraceToFile", 0)
@@ -318,7 +323,7 @@ namespace LSEG.Ema.Access.Tests.OmmConfigTests
 
             consConfigImpl.Config(outerMap);
 
-            Assert.Equal(4, consConfigImpl.ConsumerConfigMap.Count);
+            Assert.Equal(5, consConfigImpl.ConsumerConfigMap.Count);
             Assert.Equal(4, consConfigImpl.ClientChannelConfigMap.Count);
             Assert.Equal(4, consConfigImpl.LoggerConfigMap.Count);
             Assert.Equal(4, consConfigImpl.DictionaryConfigMap.Count);
@@ -351,6 +356,11 @@ namespace LSEG.Ema.Access.Tests.OmmConfigTests
             Assert.Equal("ProgRestLog", testConsConfig.RestLogFileName);
             Assert.Equal((ulong)2150, testConsConfig.RestRequestTimeOut);
             Assert.Equal((int)2140, testConsConfig.ServiceCountHint);
+            // Preferred Host block
+            Assert.True(testConsConfig.EnablePreferredHostOptions);
+            Assert.Equal("*", testConsConfig.PHDetectionTimeSchedule);
+            Assert.Equal((uint)100, testConsConfig.PHDetectionTimeInterval);
+            Assert.Equal("Channel_1", testConsConfig.PreferredChannelName);
             // XML tracing block
             Assert.True(testConsConfig.XmlTraceToStdout);
             Assert.False(testConsConfig.XmlTraceToFile);
@@ -535,7 +545,7 @@ namespace LSEG.Ema.Access.Tests.OmmConfigTests
             // Loaded the Config, now make sure everything's in it.
 
             // There should be 2 Consumers, 2 ClientChannels, 1 Logger, and 1 Dictionary
-            Assert.Equal(2, consConfigImpl.ConsumerConfigMap.Count);
+            Assert.Equal(3, consConfigImpl.ConsumerConfigMap.Count);
             Assert.Equal(2, consConfigImpl.ClientChannelConfigMap.Count);
             Assert.Equal(2, consConfigImpl.LoggerConfigMap.Count);
             Assert.Equal(2, consConfigImpl.DictionaryConfigMap.Count);
@@ -706,7 +716,7 @@ namespace LSEG.Ema.Access.Tests.OmmConfigTests
             consConfigImpl.Config(outerMap);
 
 
-            Assert.Equal(3, consConfigImpl.ConsumerConfigMap.Count);
+            Assert.Equal(4, consConfigImpl.ConsumerConfigMap.Count);
             Assert.Equal(2, consConfigImpl.ClientChannelConfigMap.Count);
             Assert.Equal(2, consConfigImpl.LoggerConfigMap.Count);
             Assert.Equal(2, consConfigImpl.DictionaryConfigMap.Count);

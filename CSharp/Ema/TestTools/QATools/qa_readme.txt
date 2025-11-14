@@ -635,6 +635,28 @@ Series400Consumer490-Dict-003
 	Note: RDMFieldDictionart1 must append this into last line
 	NEG_ACVOL_1    "NEG VOL ACCUMULATED"       -32  NULL        INTEGER            15  REAL64           7
 
+Module:  Series500Consumer500
+-----------------------------
+Series500Consumer500-ConsFunc-001
+	Alters to subscribe for two different services and items. Also print ChannelInformation for each event callback.
+	-serviceName1 - specifies first service name;
+	-serviceName2 - specifies second service name;
+	-itemName1 - specifies first item name;
+	-itemName2 - specifies second item name.
+
+ Series500Consumer500-ConsFunc-002
+	Alters to print ChannelInformation every 5 seconds.   
+
+Module:  Series500Consumer502
+-----------------------------
+Series500Consumer502-ConsFunc-001
+	Alters to subscribe for two different services and items. Also print ChannelInformation for each event callback.
+	-serviceName1 - specifies first service name;
+	-serviceName2 - specifies second service name;
+	-itemName1 - specifies first item name;
+	-itemName2 - specifies second item name.
+
+
 Module Series500Consumer510
 -----------------------------------------------------------------------------
 Series500Consumer510-ConsFunc-001

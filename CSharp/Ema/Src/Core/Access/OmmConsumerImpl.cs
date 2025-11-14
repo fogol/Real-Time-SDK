@@ -158,64 +158,8 @@ namespace LSEG.Ema.Access
                 if (reactorChannel == null)
                     reactorChannel = LoginCallbackClient.m_LoginChannelList[0].ReactorChannel;
 
-                channelInformation.Hostname = reactorChannel!.HostName;
+                channelInformation.Set(reactorChannel!);
                 channelInformation.IpAddress = "not available for OmmConsumer connections";
-                channelInformation.Port = reactorChannel.Port;
-
-                ReactorChannelInfo rci = new ReactorChannelInfo();
-                if (reactorChannel.Info(rci, out _) != ReactorReturnCode.SUCCESS)
-                {
-                    channelInformation.ComponentInfo = "unavailable";
-                    channelInformation.EncryptionProtocol = System.Security.Authentication.SslProtocols.None;
-                }
-                else
-                {
-                    channelInformation.EncryptionProtocol = rci.ChannelInfo.EncryptionProtocol;
-                    channelInformation.MaxOutputBuffers = rci.ChannelInfo.MaxOutputBuffers;
-                    channelInformation.NumInputBuffers = rci.ChannelInfo.NumInputBuffers;
-                    channelInformation.CompressionThreshold = rci.ChannelInfo.CompressionThresHold;
-                    channelInformation.CompressionType = Access.ChannelInformation.EtaToEmaCompressionType(rci.ChannelInfo.CompressionType);
-                    channelInformation.GuaranteedOutputBuffers = rci.ChannelInfo.GuaranteedOutputBuffers;
-                    channelInformation.MaxFragmentSize = rci.ChannelInfo.MaxFragmentSize;
-                    channelInformation.SysRecvBufSize = rci.ChannelInfo.SysRecvBufSize;
-                    channelInformation.SysSendBufSize = rci.ChannelInfo.SysSendBufSize;
-
-                    if (rci.ChannelInfo == null || rci.ChannelInfo.ComponentInfoList == null || rci.ChannelInfo.ComponentInfoList.Count == 0)
-                        channelInformation.ComponentInfo = "unavailable";
-                    else
-                    {
-                        channelInformation.ComponentInfo = rci.ChannelInfo.ComponentInfoList[0].ComponentVersion.ToString();
-                    }
-                }
-
-                IChannel? channel = reactorChannel.Channel;
-
-                if (channel != null)
-                {
-                    channelInformation.ChannelState = Access.ChannelInformation.EtaToEmaChannelState(channel.State);
-                    channelInformation.ConnectionType = Access.ChannelInformation.EtaToEmaConnectionType(channel.ConnectionType);
-
-                    if(channelInformation.ConnectionType == ConnectionType.ENCRYPTED)
-                    {
-                        channelInformation.EncryptedConnectionType = ConnectionType.SOCKET;
-                    }
-
-                    channelInformation.ProtocolType = Access.ChannelInformation.EtaToEmaProtocolType(channel.ProtocolType);
-                    channelInformation.MajorVersion = channel.MajorVersion;
-                    channelInformation.MinorVersion = channel.MinorVersion;
-                    channelInformation.PingTimeout = channel.PingTimeOut;
-                }
-                else
-                {
-                    channelInformation.ChannelState = ChannelState.INACTIVE;
-                    channelInformation.ConnectionType = ConnectionType.UNIDENTIFIED;
-                    channelInformation.EncryptedConnectionType = ConnectionType.UNIDENTIFIED;
-
-                    channelInformation.ProtocolType = ProtocolType.UNKNOWN;
-                    channelInformation.MajorVersion = 0;
-                    channelInformation.MinorVersion = 0;
-                    channelInformation.PingTimeout = 0;
-                }
             }
             finally
             {
@@ -502,6 +446,106 @@ namespace LSEG.Ema.Access
             }
         }
 
+        internal void ModifyIOCtl(IOCtlCode code, object val)
+        {
+            UserLock.Enter();
+
+            try
+            {
+               if(base.ConsumerSession != null)
+               {
+                    foreach(var sessionChannelInfo in base.ConsumerSession.SessionChannelList)
+                    {
+                        if (sessionChannelInfo.ReactorChannel != null && val is PreferredHostOptions preferredHostOptions)
+                        {
+                            if (preferredHostOptions.SessionChannelName != null &&
+                                 sessionChannelInfo.SessionChannelConfig.Name.Equals(preferredHostOptions.SessionChannelName))
+                            {
+                                base.ModifyIOCtl(code, preferredHostOptions, sessionChannelInfo.ReactorChannel, sessionChannelInfo.SessionChannelConfig);
+                            }
+                        }
+                        else
+                        {
+                            StringBuilder strBuilder = GetStrBuilder();
+                            // Returns this exception as a session channel name is required to modify a ReactorChannel.
+                            strBuilder.Append($"Failed to modify I/O option = {code}. Reason: ")
+                            .Append($"The request routing feature supports only the {IOCtlCode.FALLBACK_PREFERRED_HOST_OPTIONS} code");
+
+                            HandleInvalidUsage(strBuilder.ToString(), OmmInvalidUsageException.ErrorCodes.INVALID_ARGUMENT);
+                        }
+                    }
+                }
+               else
+               {
+                    base.ModifyIOCtl(code, val, LoginCallbackClient!.ActiveChannelInfo()?.ReactorChannel);
+               }
+            }
+            finally
+            {
+                UserLock.Exit();
+            }
+        }
+
+        internal void FallbackPreferredHost()
+        {
+            UserLock.Enter();
+
+            try
+            {
+                if (base.ConsumerSession != null)
+                {
+                    foreach(var sessionChanelInfo in base.ConsumerSession.SessionChannelList)
+                    {
+                        if (sessionChanelInfo.ReactorChannel != null)
+                        {
+                            ReactorReturnCode result = sessionChanelInfo.ReactorChannel.FallbackPreferredHost(out var errorInfo);
+                            if (result != ReactorReturnCode.SUCCESS)
+                            {
+                                StringBuilder strBuilder = GetStrBuilder();
+                                strBuilder.Append($"Failed to switch to preferred host for session channel name: {sessionChanelInfo.SessionChannelConfig.Name}")
+                                    .Append(". Reason: ")
+                                    .Append(result.ToString())
+                                    .Append(". Error text: ")
+                                    .Append(errorInfo?.Error.Text ?? string.Empty);
+                                HandleInvalidUsage(strBuilder.ToString(), OmmInvalidUsageException.ErrorCodes.FAILURE);
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    ChannelInfo? activeChannelInfo = LoginCallbackClient?.ActiveChannelInfo();
+
+                    if (activeChannelInfo == null || activeChannelInfo.ReactorChannel == null)
+                    {
+                        HandleInvalidUsage("No active channel for switching to preferred host.",
+                            OmmInvalidUsageException.ErrorCodes.NO_ACTIVE_CHANNEL);
+                        return;
+                    }
+
+                    ReactorChannel reactorChannel = activeChannelInfo.ReactorChannel;
+                    ReactorReturnCode result = reactorChannel.FallbackPreferredHost(out var errorInfo);
+
+                    if (result != ReactorReturnCode.SUCCESS)
+                    {
+                        StringBuilder strBuilder = GetStrBuilder();
+
+                        strBuilder.Append("Failed to switch to preferred host.")
+                            .Append(". Reason: ")
+                            .Append(result.ToString())
+                            .Append(". Error text: ")
+                            .Append(errorInfo?.Error.Text ?? string.Empty);
+
+                        HandleInvalidUsage(strBuilder.ToString(), OmmInvalidUsageException.ErrorCodes.FAILURE);
+                    }
+                }
+            }
+            finally
+            {
+                UserLock.Exit();
+            }
+        }
+
         protected override void OnDispatchError(string text, int errorCode)
         {
             m_ErrorClient?.OnDispatchError(text, errorCode);
@@ -512,17 +556,27 @@ namespace LSEG.Ema.Access
         {
             if(reactorChannel != null)
             {
-                channelInformation.Set(reactorChannel);
-
                 if (channelInfo != null)
                 {
-                    channelInformation.ChannelName = channelInfo.ChannelConfig.Name;
-                    if(channelInfo.SessionChannelInfo != null)
-                    {
-                        channelInformation.SessionChannelName = channelInfo.SessionChannelInfo.SessionChannelConfig.Name;
-                    }
-                }
+                    var sessionChannelInfo = channelInfo.SessionChannelInfo;
 
+                    if (sessionChannelInfo != null)
+                    {
+                        channelInformation.Set(reactorChannel, sessionChannelInfo.SessionChannelConfig);
+                        channelInformation.SessionChannelName = sessionChannelInfo.SessionChannelConfig.Name;
+                    }
+                    else
+                    {
+                        channelInformation.Set(reactorChannel);
+                    }
+
+                    channelInformation.ChannelName = channelInfo.ChannelConfig.Name;
+                }
+                else
+                {
+                    channelInformation.Set(reactorChannel);
+                }    
+                    
                 channelInformation.IpAddress = "not available for OmmConsumer connections";
                 channelInformation.Port = reactorChannel.Port;
             }

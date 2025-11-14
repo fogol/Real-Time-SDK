@@ -95,4 +95,6 @@ public class ThreadWithExceptionHandling
         => ex is ThreadInterruptedException || ex is ThreadAbortException;
 
     public System.Threading.Thread UnderlyingThread => _thread;
-}
+
+    public System.Threading.ThreadState ThreadState => _thread.ThreadState;
+    }

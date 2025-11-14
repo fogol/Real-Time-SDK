@@ -335,4 +335,5 @@ internal class SessionChannelInfo<T>
 	   when initializing OmmConsumer instance */
     public long State { get; internal set; }
     public bool SendChannelUp { get; internal set; }
+    public bool PHOperationInProcess { get; internal set; }
 }

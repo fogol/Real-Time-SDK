@@ -10,6 +10,7 @@
 using LSEG.Eta.Transports;
 using LSEG.Eta.ValueAdd.Reactor;
 using System.Collections.Generic;
+
 using static LSEG.Ema.Access.Tests.OmmConfigTests.ConfigTestsUtils;
 
 namespace LSEG.Ema.Access.Tests.OmmConfigTests
@@ -39,7 +40,7 @@ namespace LSEG.Ema.Access.Tests.OmmConfigTests
         {
             OmmConsumerConfigImpl consConfigImpl = LoadEmaTestConfig().OmmConsConfigImpl;
             Assert.Equal(0, consConfigImpl.ConfigErrorLog!.Count());
-            Assert.Equal(2, consConfigImpl.ConsumerConfigMap.Count);
+            Assert.Equal(3, consConfigImpl.ConsumerConfigMap.Count);
             Assert.Equal(2, consConfigImpl.ClientChannelConfigMap.Count);
             Assert.Equal(2, consConfigImpl.LoggerConfigMap.Count);
             Assert.Equal(2, consConfigImpl.DictionaryConfigMap.Count);
@@ -108,8 +109,38 @@ namespace LSEG.Ema.Access.Tests.OmmConfigTests
             Assert.Equal("TestConsumer_2", testConsConfig.Name);
             Assert.Equal(2, testConsConfig.ChannelSet.Count);
             Assert.Equal("TestChannel_1", testConsConfig.ChannelSet[0]);
-            Assert.Equal("TestChannel_2", testConsConfig.ChannelSet[1]);  
+            Assert.Equal("TestChannel_2", testConsConfig.ChannelSet[1]);
+
+            // Check that the reactor connect options are generated with default Preferred Host settings
+            consConfigImpl.ConsumerName = "TestConsumer_2";
+            var reactorConnOpts = consConfigImpl.GenerateReactorConnectOpts();
+            Assert.False(reactorConnOpts.PreferredHostOptions.EnablePreferredHostOptions);
+            Assert.Empty(reactorConnOpts.PreferredHostOptions.DetectionTimeSchedule);
+            Assert.Equal((uint)0, reactorConnOpts.PreferredHostOptions.DetectionTimeInterval);
+            Assert.Equal(0, reactorConnOpts.PreferredHostOptions.ConnectionListIndex);
         }
+
+        [Fact]
+        public void ConsumerWithPreferredHostTest()
+        {
+            OmmConsumerConfigImpl consConfigImpl = LoadEmaTestConfig().OmmConsConfigImpl;
+            Assert.True(consConfigImpl.ConsumerConfigMap.ContainsKey("Consumer_9"));
+            var testConsConfig = consConfigImpl.ConsumerConfigMap["Consumer_9"];
+
+            // Checks values of Consumer_9
+            Assert.NotEmpty(testConsConfig.ChannelSet);
+            Assert.Equal(2, testConsConfig.ChannelSet.Count);
+            Assert.Contains("TestChannel_1", testConsConfig.ChannelSet);
+            Assert.Contains("TestChannel_2", testConsConfig.ChannelSet);
+            Assert.Equal("Consumer_9", testConsConfig.Name);
+            Assert.NotEmpty(testConsConfig.Dictionary);
+            Assert.Equal("TestDictionary_1", testConsConfig.Dictionary);
+            Assert.True(testConsConfig.EnablePreferredHostOptions);
+            Assert.Equal((ulong)10, testConsConfig.PHDetectionTimeInterval);
+            Assert.Equal("* * ? * *", testConsConfig.PHDetectionTimeSchedule);
+            Assert.Equal("TestChannel_2", testConsConfig.PreferredChannelName);
+        }
+
 
         private static void AssertConsumerConfigIsDefault(ConsumerConfig testConsConfig)
         {
@@ -781,6 +812,11 @@ namespace LSEG.Ema.Access.Tests.OmmConfigTests
             Assert.Equal(defaultConsConfig.RestLogFileName, testConsConfig.RestLogFileName);
             Assert.Equal(defaultConsConfig.RestRequestTimeOut, testConsConfig.RestRequestTimeOut);
             Assert.Equal(defaultConsConfig.ServiceCountHint, testConsConfig.ServiceCountHint);
+            // Preferred Host block
+            Assert.False(testConsConfig.EnablePreferredHostOptions);
+            Assert.Empty(testConsConfig.PHDetectionTimeSchedule);
+            Assert.Equal((uint)0, testConsConfig.PHDetectionTimeInterval);
+            Assert.Empty(testConsConfig.PreferredChannelName);
             // XML tracing block
             Assert.Equal(defaultConsConfig.XmlTraceToStdout, testConsConfig.XmlTraceToStdout);
             Assert.Equal(defaultConsConfig.XmlTraceToFile, testConsConfig.XmlTraceToFile);

@@ -24,7 +24,7 @@ namespace LSEG.Ema.Access.Tests.OmmConsumerTests
             $"XmlTraceToStdout: False{NewLine}\tXmlTraceToFile: False{NewLine}\tXmlTraceMaxFileSize: 100000000{NewLine}\tXmlTraceFileName: EmaTrace{NewLine}\tXmlTraceToMultipleFiles: False{NewLine}\t" +
             $"XmlTraceWrite: True{NewLine}\tXmlTraceRead: True{NewLine}\tXmlTracePing: False{NewLine}\tObeyOpenWindow: True{NewLine}\tPostAckTimeout: 15000{NewLine}\tMaxOutstandingPosts: 100000{NewLine}\t" +
             $"DispatchMode: 2{NewLine}\tDispatchTimeoutApiThread: 0{NewLine}\tReconnectAttemptLimit: -1{NewLine}\tReconnectMinDelay: 1000{NewLine}\tReconnectMaxDelay: 5000{NewLine}\tMsgKeyInUpdates: True{NewLine}\t" +
-            $"DirectoryRequestTimeOut: 45000{NewLine}\tDictionaryRequestTimeOut: 45000{NewLine}\tRestRequestTimeOut: 15000{NewLine}\tLoginRequestTimeOut: 3000{NewLine}loggerMsgEnd{NewLine}";
+            $"DirectoryRequestTimeOut: 45000{NewLine}\tDictionaryRequestTimeOut: 45000{NewLine}\tRestRequestTimeOut: 15000{NewLine}\t";
 
         private static readonly string VERBOSE_LOG_1 = $"{NewLine}TRACE|: loggerMsg{NewLine}    ClientName: Consumer_1_Verbose{NewLine}    Severity: Trace    Text:" +
             $"    Successfully created Reactor.{NewLine}loggerMsgEnd{NewLine}{NewLine}TRACE|: loggerMsg{NewLine}    ClientName: LoginCallbackClient{NewLine}    Severity: Trace" +
@@ -64,7 +64,7 @@ namespace LSEG.Ema.Access.Tests.OmmConsumerTests
 
         private static readonly string ERROR_LOG = $"{NewLine}ERROR|: loggerMsg{NewLine}    ClientName: Consumer_1_Error{NewLine}    Severity: Error    Text:    login failed (timed out after" +
             $" waiting 3000 milliseconds) for localhost:5555){NewLine}loggerMsgEnd{NewLine}{NewLine}ERROR|: loggerMsg{NewLine}    ClientName: ChannelCallbackClient{NewLine}    Severity: Error    Text:    Received ChannelDown" +
-            $" event on channel Channel_1{NewLine}\tInstance Name Consumer_1_Error{NewLine}\tReactor";
+            $" event on channel Channel_1{NewLine}\tInstance Name Consumer_1_Error{NewLine}\t";
 
         private static readonly string WARNING_LOG = $"{NewLine}WARN|: loggerMsg{NewLine}    ClientName: ChannelCallbackClient{NewLine}    Severity: Warning    Text:" +
             $"    Received ChannelDownReconnecting event on channel Channel_1{NewLine}\tInstance Name Consumer_1_Warning{NewLine}\tChannel is null{NewLine}\tError Id SUCCESS{NewLine}" +

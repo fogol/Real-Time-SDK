@@ -74,6 +74,77 @@
 			<RequestTimeout value="5000"/>
 			<SessionEnhancedItemRecovery value="1"/>
 		</Consumer>
+		<Consumer>
+			<Name value="Consumer_13"/>
+			<ChannelSet value="Channel_1, Channel_2" />
+			<PreferredChannelName value="Channel_2" />
+			<Dictionary value="Dictionary_3"/>
+			<LoginRequestTimeOut value="30000"/>
+			<DirectoryRequestTimeOut value="30000"/>
+			<RequestTimeout value="30000"/>
+			<XmlTraceToStdout value="0"/>
+			<EnablePreferredHostOptions value="1"/>
+			<ReconnectAttemptLimit value="3"/>
+			<ReconnectMinDelay value="1000" />
+			<ReconnectMaxDelay value="1000" />
+			<PHDetectionTimeInterval value="7"/>
+		</Consumer>
+		<Consumer>
+			<Name value="Consumer_14"/>
+			<ChannelSet value="Channel_1, Channel_2" />
+			<PreferredChannelName value="Channel_2" />
+			<Dictionary value="Dictionary_3"/>
+			<LoginRequestTimeOut value="30000"/>
+			<DirectoryRequestTimeOut value="30000"/>
+			<RequestTimeout value="30000"/>
+			<XmlTraceToStdout value="0"/>
+			<EnablePreferredHostOptions value="1"/>
+			<ReconnectAttemptLimit value="3"/>
+			<ReconnectMinDelay value="1000" />
+			<ReconnectMaxDelay value="1000" />
+			<PHDetectionTimeInterval value="0"/>
+		</Consumer>
+		<Consumer>
+			<Name value="Consumer_15"/>
+			<ChannelSet value="Channel_1, Channel_2" />
+			<PreferredChannelName value="Channel_2" />
+			<Dictionary value="Dictionary_3"/>
+			<LoginRequestTimeOut value="30000"/>
+			<DirectoryRequestTimeOut value="30000"/>
+			<RequestTimeout value="30000"/>
+			<XmlTraceToStdout value="0"/>
+			<EnablePreferredHostOptions value="0"/>
+			<ReconnectAttemptLimit value="3"/>
+			<ReconnectMinDelay value="1000" />
+			<ReconnectMaxDelay value="1000" />
+		</Consumer>
+		<Consumer>
+			<Name value="Consumer_16"/>
+			<SessionChannelSet value="Connection_5, Connection_6"/>
+			<Dictionary value="Dictionary_3"/>
+			<ReconnectAttemptLimit value="10"/>
+			<ReconnectMinDelay value="2000" />
+			<ReconnectMaxDelay value="3000" />
+			<SessionEnhancedItemRecovery value="1"/>
+		</Consumer>
+		<Consumer>
+			<Name value="Consumer_17"/>
+			<SessionChannelSet value="Connection_7, Connection_8"/>
+			<Dictionary value="Dictionary_3"/>
+			<ReconnectAttemptLimit value="10"/>
+			<ReconnectMinDelay value="2000" />
+			<ReconnectMaxDelay value="3000" />
+			<SessionEnhancedItemRecovery value="1"/>
+		</Consumer>
+		<Consumer>
+			<Name value="Consumer_18"/>
+			<SessionChannelSet value="Connection_9, Connection_10"/>
+			<Dictionary value="Dictionary_3"/>
+			<ReconnectAttemptLimit value="10"/>
+			<ReconnectMinDelay value="2000" />
+			<ReconnectMaxDelay value="3000" />
+			<SessionEnhancedItemRecovery value="1"/>
+		</Consumer>
 	</ConsumerList>
 </ConsumerGroup>
 
@@ -324,9 +395,87 @@
                         <ReconnectMinDelay value="2000"/>
                         <ReconnectMaxDelay value="4000"/>
                 </SessionChannelInfo>
+				<SessionChannelInfo>
+                        <Name value="Connection_5"/>
+                        <ChannelSet value="Channel_1, Channel_2" />
+						<PreferredChannelName value="Channel_2" />
+						<ReconnectAttemptLimit value="10"/>
+						<ReconnectMinDelay value="1000" />
+						<ReconnectMaxDelay value="1000" />
+						<EnablePreferredHostOptions value="1"/>
+						<PHDetectionTimeInterval value="7"/>
+				</SessionChannelInfo>
+                <SessionChannelInfo>
+                        <Name value="Connection_6"/>
+                        <ChannelSet value="Channel_4, Channel_5"/>
+						<PreferredChannelName value="Channel_5" />
+                        <ReconnectAttemptLimit value="10"/>
+                        <ReconnectMinDelay value="1000"/>
+                        <ReconnectMaxDelay value="1000"/>
+						<EnablePreferredHostOptions value="1"/>
+						<PHDetectionTimeInterval value="7"/>
+                </SessionChannelInfo>
+				<SessionChannelInfo>
+                        <Name value="Connection_7"/>
+                        <ChannelSet value="Channel_1, Channel_2" />
+						<PreferredChannelName value="Channel_2" />
+						<ReconnectAttemptLimit value="10"/>
+						<ReconnectMinDelay value="1000" />
+						<ReconnectMaxDelay value="1000" />
+						<EnablePreferredHostOptions value="1"/>
+				</SessionChannelInfo>
+                <SessionChannelInfo>
+                        <Name value="Connection_8"/>
+                        <ChannelSet value="Channel_4, Channel_5"/>
+						<PreferredChannelName value="Channel_5" />
+                        <ReconnectAttemptLimit value="10"/>
+                        <ReconnectMinDelay value="1000"/>
+                        <ReconnectMaxDelay value="1000"/>
+						<EnablePreferredHostOptions value="1"/>
+                </SessionChannelInfo>
+				<SessionChannelInfo>
+                        <Name value="Connection_9"/>
+                        <ChannelSet value="Channel_1, Channel_2" />
+						<PreferredChannelName value="Channel_2" />
+						<ReconnectAttemptLimit value="10"/>
+						<ReconnectMinDelay value="1000" />
+						<ReconnectMaxDelay value="1000" />
+						<EnablePreferredHostOptions value="0"/>
+				</SessionChannelInfo>
+                <SessionChannelInfo>
+                        <Name value="Connection_10"/>
+                        <ChannelSet value="Channel_4, Channel_5"/>
+						<PreferredChannelName value="Channel_5" />
+                        <ReconnectAttemptLimit value="10"/>
+                        <ReconnectMinDelay value="1000"/>
+                        <ReconnectMaxDelay value="1000"/>
+						<EnablePreferredHostOptions value="0"/>
+                </SessionChannelInfo>
         </SessionChannelList>
 </SessionChannelGroup>
 
+<LoggerGroup>
+	<LoggerList>
+		<Logger>
+			<Name value="Logger_1"/>
+
+			<!-- LoggerType is optional:  defaulted to "File"											-->
+			<!-- possible values: Stdout, File															-->
+			<LoggerType value="LoggerType::Stdout"/>
+
+			<!-- LoggerSeverity is optional: defaulted to "Success"										-->
+			<!-- possible values: Verbose, Success, Warning, Error, NoLogMsg							-->
+			<LoggerSeverity value="LoggerSeverity::Success"/>
+		</Logger>
+		<Logger>
+			<Name value="Logger_2"/>
+			<LoggerType value="LoggerType::File"/>
+			<!-- FileName is optional: defaulted to "emaLog_<process id>.log"							-->
+			<FileName value="emaLog"/>
+			<LoggerSeverity value="LoggerSeverity::Success"/>
+		</Logger>
+	</LoggerList>
+</LoggerGroup>
 
 <!-- source directory refresh configuration used by provider -->
 <DirectoryGroup>

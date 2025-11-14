@@ -12,20 +12,11 @@ using LSEG.Eta.Transports;
 
 namespace LSEG.Eta.Example.VACommon
 {
-    public class ConnectionArgsParser
+    public class ConnectionArgsParser : IArgsParser
     {
-        const int ERROR_RETURN_CODE = -1;
         public List<ConnectionArg> ConnectionList { get; private set; } = new List<ConnectionArg>();
 
-
-        /// <summary>
-        /// Returns true if argOffset is start of connection arguments.
-        /// </summary>
-        ///
-        /// <param name="args">array of command line arguments</param>
-        /// <param name="argOffset">offset into array of command line arguments</param>
-        ///
-        /// <returns>true if argOffset is start of connection arguments and false otherwise</returns>
+        /// <inheritdoc/>
         public bool IsStart(string[] args, int argOffset)
         {
             if ("-c".Equals(args[argOffset])
@@ -37,14 +28,7 @@ namespace LSEG.Eta.Example.VACommon
             return false;
         }
 
-        /// <summary>
-        /// Parses connection arguments.
-        /// </summary>
-        ///
-        /// <param name="args">array of command line arguments</param>
-        /// <param name="argOffset">offset into array of command line arguments</param>
-        ///
-        /// <returns>argument offset after connection arguments or -1 if error</returns>
+        /// <inheritdoc/>
         public int Parse(string[] args, int argOffset)
         {
             int offset = 0;
@@ -56,7 +40,7 @@ namespace LSEG.Eta.Example.VACommon
             }
             else
             {
-                offset = ERROR_RETURN_CODE;
+                offset = IArgsParser.ERROR_RETURN_CODE;
             }
 
             return offset;
@@ -70,49 +54,40 @@ namespace LSEG.Eta.Example.VACommon
         /// <returns></returns>
         private int ParseSocketConnectionArgs(string[] args, int argOffset)
         {
-            int retCode = ERROR_RETURN_CODE;
+            int retCode = IArgsParser.ERROR_RETURN_CODE;
             ConnectionArg? connectionArg;
 
-            if ((args.Length - 1) >= argOffset + 3)
+            HostArgsParser hostArgsParser = new();
+            if ((args.Length - 1) >= argOffset + 3
+                && hostArgsParser.IsStart(args, argOffset + 1))
             {
-                if (args[argOffset + 1].Contains(':')
-                    && !args[argOffset + 2].Contains(':'))
-                {
-                    string[] tokens = args[argOffset + 1].Split(":");
-                    if (tokens.Length == 2)
-                    {
-                        connectionArg = new ConnectionArg();
-                        connectionArg.ConnectionType = ConnectionType.SOCKET;
-                        if (!args[argOffset + 2].StartsWith("-"))
-                        {
-                            connectionArg.Service = args[argOffset + 2];
-                            retCode = argOffset + 3;
-                        }
-                        else
-                        {
-                            retCode = argOffset + 2;
-                        }
-                        connectionArg.Hostname = tokens[0];
-                        connectionArg.Port = tokens[1];
-                        ConnectionList.Add(connectionArg);
-                    }
-                    else
-                    {
-                        return retCode;
-                    }
-                }
-                else
+                retCode = hostArgsParser.Parse(args, argOffset + 1);
+                if (retCode == IArgsParser.ERROR_RETURN_CODE)
                 {
                     return retCode;
                 }
+
+                connectionArg = new ConnectionArg
+                {
+                    ConnectionType = ConnectionType.SOCKET,
+                    HostList = hostArgsParser.HostList,
+                };
+                ConnectionList.Add(connectionArg);
             }
             else
             {
                 return retCode;
             }
 
+            // parse service name
+            if (!args[retCode].StartsWith("-") && !args[retCode].Contains(':'))
+            {
+                connectionArg.Service = args[retCode];
+                retCode++;
+            }
+
             // parse item arguments for this connection
-            ItemArgsParser itemArgsParser = new ItemArgsParser();
+            ItemArgsParser itemArgsParser = new();
             if (itemArgsParser.IsStart(args, retCode))
             {
                 retCode = itemArgsParser.Parse(args, retCode);
@@ -123,7 +98,7 @@ namespace LSEG.Eta.Example.VACommon
                      && !args[retCode].Equals("-tsAuth")
                      && !args[retCode].Equals("-tsDomain"))
             {
-                retCode = ERROR_RETURN_CODE;
+                retCode = IArgsParser.ERROR_RETURN_CODE;
             }
 
             return retCode;

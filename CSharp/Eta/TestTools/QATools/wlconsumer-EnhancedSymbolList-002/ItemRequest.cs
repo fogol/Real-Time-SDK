@@ -6,12 +6,6 @@
  *|-----------------------------------------------------------------------------
  */
 
-using System.Collections.Generic;
-
-using LSEG.Eta.Codec;
-using LSEG.Eta.Example.Common;
-using LSEG.Eta.Rdm;
-
 using static LSEG.Eta.Example.Common.MarketPriceRequestFlags;
 
 namespace LSEG.Eta.ValueAdd.WatchlistConsumer;
@@ -79,6 +73,7 @@ internal class ItemRequest
     public void Clear()
     {
         m_Flags = 0;
+        m_RequestFlags = 0;
         m_Qos.Clear();
         m_WorstQos.Clear();
         m_ItemNames.Clear();
@@ -577,10 +572,10 @@ internal class ItemRequest
             m_TempUInt.Value(SymbolList.SymbolListDataStreamRequestFlags.SYMBOL_LIST_DATA_STREAMS);
         else
             m_TempUInt.Value(SymbolList.SymbolListDataStreamRequestFlags.SYMBOL_LIST_DATA_SNAPSHOTS);
-            //APIQA
-            System.Console.WriteLine("\n------ APIQA: Encoding SLD request with SYMBOL_LIST_DATA_SNAPSHOTS:  " + SymbolList.SymbolListDataStreamRequestFlags.SYMBOL_LIST_DATA_SNAPSHOTS + "\n\n");
-            m_TempUInt.Value(SymbolList.SymbolListDataStreamRequestFlags.SYMBOL_LIST_DATA_SNAPSHOTS);
-            //END APIQA
+        //APIQA
+        Console.WriteLine("\n------ APIQA: Encoding SLD request with SYMBOL_LIST_DATA_SNAPSHOTS:  " + SymbolList.SymbolListDataStreamRequestFlags.SYMBOL_LIST_DATA_SNAPSHOTS + "\n\n");
+        m_TempUInt.Value(SymbolList.SymbolListDataStreamRequestFlags.SYMBOL_LIST_DATA_SNAPSHOTS);
+        //END APIQA
         if ((ret = m_DataStreamEntry.Encode(encodeIter, m_TempUInt)) < CodecReturnCode.SUCCESS)
         {
             return ret;

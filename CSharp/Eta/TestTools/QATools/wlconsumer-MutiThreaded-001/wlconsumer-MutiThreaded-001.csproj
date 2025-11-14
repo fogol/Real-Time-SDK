@@ -1,0 +1,6 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="..\WatchlistConsumer.props"/>
+	<ItemGroup>
+		<ProjectReference Include="..\..\..\Applications\PerfTools\ProvPerf\ProvPerf.csproj" />
+	</ItemGroup>
+</Project>

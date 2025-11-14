@@ -161,6 +161,15 @@ namespace LSEG.Eta.ValuedAdd.Tests
             throw new Xunit.Sdk.XunitException(message);
         }
 
+        public delegate ReactorReturnCode ReactorMethodDelegate(out ReactorErrorInfo reactorErrorInfo);
+        public static void AssertSuccess(ReactorMethodDelegate reactorMethod)
+        {
+            var retVal = reactorMethod(out var error);
+            Assert.True(
+                retVal >= ReactorReturnCode.SUCCESS,
+                $"Reactor method call failed ({retVal}), error details: {error?.ToString() ?? "<null>"}");
+        }
+
         public static string FIELD_TYPE_DICTIONARY_SHORT = "!\n" +
                                 "MIN_FID     \"MIN_FID_DDE\"         -32768  NULL ENUMERATED    3 ( 3 )  ENUM            1\n" +
                                 "!\n" +

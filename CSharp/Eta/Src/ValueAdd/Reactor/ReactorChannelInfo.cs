@@ -13,7 +13,7 @@ namespace LSEG.Eta.ValueAdd.Reactor
     /// <summary>
     /// Information returned by the <see cref="ReactorChannel.Info(ReactorChannelInfo, out ReactorErrorInfo?)"/> call.
     /// </summary>
-    sealed public class ReactorChannelInfo
+    public sealed class ReactorChannelInfo
     {
         /// <summary>
         /// Gets Channel information.
@@ -21,11 +21,17 @@ namespace LSEG.Eta.ValueAdd.Reactor
         public ChannelInfo ChannelInfo { get; private set; } = new ChannelInfo();
 
         /// <summary>
+        /// Gets preferred host information.
+        /// </summary>
+        public ReactorPreferredHostInfo PreferredHostInfo { get; private set; } = new ReactorPreferredHostInfo();
+
+        /// <summary>
         /// Clears this object for reuse.
         /// </summary>
         public void Clear()
         {
             ChannelInfo.Clear();
+            PreferredHostInfo.Clear();
         }
     }
 }

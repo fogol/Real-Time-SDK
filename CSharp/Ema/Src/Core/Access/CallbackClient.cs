@@ -92,16 +92,25 @@ namespace LSEG.Ema.Access
         {
             if(reactorChannel != null)
             {
-                channelInformation.Set(reactorChannel);
-
                 if(channelInfo != null)
                 {
-                    channelInformation.ChannelName = channelInfo.ChannelConfig.Name;
+                    var sessionChannelInfo = channelInfo.SessionChannelInfo;
 
-                    if(channelInfo.SessionChannelInfo != null)
+                    if (sessionChannelInfo != null)
                     {
-                        channelInformation.SessionChannelName = channelInfo.SessionChannelInfo.SessionChannelConfig.Name;
+                        channelInformation.Set(reactorChannel, sessionChannelInfo.SessionChannelConfig);
+                        channelInformation.SessionChannelName = sessionChannelInfo.SessionChannelConfig.Name;
                     }
+                    else
+                    {
+                        channelInformation.Set(reactorChannel);
+                    }
+
+                    channelInformation.ChannelName = channelInfo.ChannelConfig.Name;
+                }
+                else
+                {
+                    channelInformation.Set(reactorChannel);
                 }
 
                 if (m_OmmProvider == null)

@@ -151,6 +151,8 @@ internal class ConsumerSession<T> : IDirectoryServiceClient<T>
     /* Keeps a list of mismatch service names between session channels that need to be handled */
     private HashSet<string>? _mismatchServiceSet;
 
+    internal int CurrentRsslDataState;
+
     internal ConsumerSession(OmmBaseImpl<T> baseImpl)
     {
         m_OmmBaseImpl = baseImpl;
@@ -196,6 +198,8 @@ internal class ConsumerSession<T> : IDirectoryServiceClient<T>
 
         /* Generate an unique service ID for ServiceList if any */
         GenerateServiceIdForServiceMap();
+
+        CurrentRsslDataState = DataStates.SUSPECT;
     }
 
     private void GenerateServiceIdForServiceMap()
@@ -954,6 +958,8 @@ internal class ConsumerSession<T> : IDirectoryServiceClient<T>
             m_State.DataState(DataStates.SUSPECT);
         }
 
+        CurrentRsslDataState = m_State.DataState();
+
         m_State.Code(StateCodes.NONE);
         m_State.Text().Data("session channel closed");
         m_EtaStatusMsg.State = m_State;
@@ -1027,6 +1033,8 @@ internal class ConsumerSession<T> : IDirectoryServiceClient<T>
                 m_State.StreamState(StreamStates.OPEN);
                 m_State.DataState(DataStates.SUSPECT);
 
+                CurrentRsslDataState = m_State.DataState();
+
                 m_State.Code(StateCodes.NONE);
                 m_State.Text().Data("session channel up");
                 m_EtaStatusMsg.State = m_State;
@@ -1062,6 +1070,8 @@ internal class ConsumerSession<T> : IDirectoryServiceClient<T>
                 {
                     m_State.DataState(DataStates.SUSPECT);
                 }
+
+                CurrentRsslDataState = m_State.DataState();
 
                 m_State.Code(StateCodes.NONE);
                 m_State.Text().Data("session channel up");
@@ -1119,6 +1129,8 @@ internal class ConsumerSession<T> : IDirectoryServiceClient<T>
                     m_State.DataState(DataStates.SUSPECT);
                 }
 
+                CurrentRsslDataState = m_State.DataState();
+
                 m_State.Code(StateCodes.NONE);
                 m_State.Text().Data("session channel down reconnecting");
                 m_EtaStatusMsg.State = m_State;
@@ -1142,6 +1154,87 @@ internal class ConsumerSession<T> : IDirectoryServiceClient<T>
                 sessionChannelInfo.SendChannelUp = false;
 
                 HandleLoginStreamForChannelDown(loginItemList, @event.ReactorChannel!, m_SessionChannelList.Count);
+                break;
+
+            case ReactorChannelEventType.PREFERRED_HOST_STARTING_FALLBACK:
+
+                if (loginItemList == null)
+                    return;
+
+                PopulateStatusMsg();
+
+                m_State.StreamState(StreamStates.OPEN);
+                m_State.DataState(CurrentRsslDataState);
+                m_State.Code(OmmState.StatusCodes.PREFERRED_HOST_STARTING_FALLBACK);
+                m_State.Text().Data("preferred host starting fallback");
+                m_EtaStatusMsg.State = m_State;
+                m_EtaStatusMsg.ApplyHasState();
+
+                m_StatusMsg.Decode(m_EtaStatusMsg, @event.ReactorChannel!.MajorVersion, @event.ReactorChannel!.MinorVersion, null);
+
+                for (int idx = 0; idx < loginItemList.Count; idx++)
+                {
+                    m_EventImpl.Item = loginItemList[idx];
+                    m_EventImpl.ReactorChannel = @event.ReactorChannel;
+
+                    ((IOmmConsumerClient?)m_EventImpl.Item.Client)?.OnAllMsg(m_StatusMsg, m_EventImpl);
+                    ((IOmmConsumerClient?)m_EventImpl.Item.Client)?.OnStatusMsg(m_StatusMsg, m_EventImpl);
+                }
+
+                break;
+
+            case ReactorChannelEventType.PREFERRED_HOST_COMPLETE:
+
+                if (loginItemList == null)
+                    return;
+
+                PopulateStatusMsg();
+
+                m_State.StreamState(StreamStates.OPEN);
+                m_State.DataState(CurrentRsslDataState);
+                m_State.Code(OmmState.StatusCodes.PREFERRED_HOST_COMPLETE);
+                m_State.Text().Data("preferred host complete");
+                m_EtaStatusMsg.State = m_State;
+                m_EtaStatusMsg.ApplyHasState();
+
+                m_StatusMsg.Decode(m_EtaStatusMsg, @event.ReactorChannel!.MajorVersion, @event.ReactorChannel!.MinorVersion, null);
+
+                for (int idx = 0; idx < loginItemList.Count; idx++)
+                {
+                    m_EventImpl.Item = loginItemList[idx];
+                    m_EventImpl.ReactorChannel = @event.ReactorChannel;
+
+                    ((IOmmConsumerClient?)m_EventImpl.Item.Client)?.OnAllMsg(m_StatusMsg, m_EventImpl);
+                    ((IOmmConsumerClient?)m_EventImpl.Item.Client)?.OnStatusMsg(m_StatusMsg, m_EventImpl);
+                }
+
+                break;
+
+            case ReactorChannelEventType.PREFERRED_HOST_NO_FALLBACK:
+
+                if (loginItemList == null)
+                    return;
+
+                PopulateStatusMsg();
+
+                m_State.StreamState(StreamStates.OPEN);
+                m_State.DataState(CurrentRsslDataState);
+                m_State.Code(OmmState.StatusCodes.PREFERRED_HOST_NO_FALLBACK);
+                m_State.Text().Data("preferred host no fallback");
+                m_EtaStatusMsg.State = m_State;
+                m_EtaStatusMsg.ApplyHasState();
+
+                m_StatusMsg.Decode(m_EtaStatusMsg, @event.ReactorChannel!.MajorVersion, @event.ReactorChannel!.MinorVersion, null);
+
+                for (int idx = 0; idx < loginItemList.Count; idx++)
+                {
+                    m_EventImpl.Item = loginItemList[idx];
+                    m_EventImpl.ReactorChannel = @event.ReactorChannel;
+
+                    ((IOmmConsumerClient?)m_EventImpl.Item.Client)?.OnAllMsg(m_StatusMsg, m_EventImpl);
+                    ((IOmmConsumerClient?)m_EventImpl.Item.Client)?.OnStatusMsg(m_StatusMsg, m_EventImpl);
+                }
+
                 break;
         }
     }
@@ -1463,6 +1556,9 @@ internal class ConsumerSession<T> : IDirectoryServiceClient<T>
             if (_isConsumerSessionInitialized)
             {
                 HandlePendingRequestsForServiceList(newSessionDirectory);
+
+                /* Recover items in the item recovery queue if any. */
+                NextDispatchTime(1000);
             }
         }
         else if(sessionDirectory.Service!.HasInfo == false)

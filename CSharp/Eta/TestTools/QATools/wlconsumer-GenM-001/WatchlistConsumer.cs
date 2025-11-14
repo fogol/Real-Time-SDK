@@ -8,24 +8,6 @@
 
 namespace LSEG.Eta.ValueAdd.WatchlistConsumer;
 
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Net;
-using System.Net.Sockets;
-
-using LSEG.Eta.Codec;
-using LSEG.Eta.Common;
-using LSEG.Eta.Example.Common;
-using LSEG.Eta.Rdm;
-using LSEG.Eta.Transports;
-using LSEG.Eta.ValueAdd.Rdm;
-using LSEG.Eta.ValueAdd.Reactor;
-
-using static LSEG.Eta.Rdm.Dictionary;
-using static Rdm.LoginMsgType;
-
 /// <summary>
 /// <p>
 /// This is a main class to run the ETA Value Add WatchlistConsumer application.
@@ -146,14 +128,14 @@ using static Rdm.LoginMsgType;
 /// <li>-rtt enables rtt support by a consumer. If provider make distribution of RTT messages, consumer will return back them. In another case, consumer will ignore them.
 /// </ul>
 /// </summary>
-public class WatchlistConsumer : IConsumerCallback, IReactorServiceEndpointEventCallback
+public class WatchlistConsumer : IConsumerCallback, IReactorServiceEndpointEventCallback, IReactorOAuthCredentialEventCallback
 {
     private const string FIELD_DICTIONARY_DOWNLOAD_NAME = "RWFFld";
     private const string ENUM_TABLE_DOWNLOAD_NAME = "RWFEnum";
     private const int FIELD_DICTIONARY_STREAM_ID = 3;
     private const int ENUM_DICTIONARY_STREAM_ID = 4;
 
-    private Reactor? m_Reactor;
+    private Reactor.Reactor? m_Reactor;
     private readonly ReactorOptions m_ReactorOptions = new();
     private readonly ReactorDispatchOptions m_DispatchOptions = new();
     private WatchlistConsumerConfig m_WatchlistConsumerConfig;
@@ -167,7 +149,7 @@ public class WatchlistConsumer : IConsumerCallback, IReactorServiceEndpointEvent
 
     private readonly TimeSpan m_Closetime = TimeSpan.FromSeconds(10);
     private System.DateTime m_CloseRunTime;
-    private bool m_CloseHandled;
+    
     private readonly ItemDecoder m_ItemDecoder = new();
     private bool m_ItemsRequested = false;
 
@@ -180,7 +162,7 @@ public class WatchlistConsumer : IConsumerCallback, IReactorServiceEndpointEvent
     private readonly ICloseMsg m_CloseMsg = new Msg();
 
     private readonly ItemRequest m_ItemRequest = new();
-    private Eta.Codec.Buffer? m_Payload;
+    private Buffer? m_Payload;
 
     private FileStream? m_FileStream;
 
@@ -195,7 +177,9 @@ public class WatchlistConsumer : IConsumerCallback, IReactorServiceEndpointEvent
 
     public WatchlistConsumer()
     {
+        //APIQA
         m_DispatchOptions.SetMaxMessages(1);
+        //END APIQA
         m_WatchlistConsumerConfig = new WatchlistConsumerConfig();
         m_WatchlistConsumerConfig.AddCommandLineArgs();
     }
@@ -256,8 +240,17 @@ public class WatchlistConsumer : IConsumerCallback, IReactorServiceEndpointEvent
             }
         }
 
+        if (!string.IsNullOrEmpty(m_WatchlistConsumerConfig.RestProxyHostname))
+        {
+            var rPOpt = m_ReactorOptions.RestProxyOptions;
+            rPOpt.ProxyHostName = m_WatchlistConsumerConfig.RestProxyHostname;
+            rPOpt.ProxyPort = m_WatchlistConsumerConfig.RestProxyPort;
+            rPOpt.ProxyUserName = m_WatchlistConsumerConfig.RestProxyUsername;
+            rPOpt.ProxyPassword = m_WatchlistConsumerConfig.RestProxyPassword;
+        }
+
         // create reactor
-        m_Reactor = Reactor.CreateReactor(m_ReactorOptions, out var errorInfo);
+        m_Reactor = Reactor.Reactor.CreateReactor(m_ReactorOptions, out var errorInfo);
         if ((errorInfo is not null && errorInfo.Code != ReactorReturnCode.SUCCESS) || m_Reactor is null)
         {
             Console.WriteLine("Reactor.CreateReactor() failed: " + errorInfo?.ToString());
@@ -362,51 +355,48 @@ public class WatchlistConsumer : IConsumerCallback, IReactorServiceEndpointEvent
                 }
             }
 
-            if (System.DateTime.Now >= m_Runtime && !m_CloseHandled)
+            if (System.DateTime.Now >= m_Runtime)
             {
                 Console.WriteLine("Consumer run-time expired, close now...");
-                HandleClose();
-                m_CloseHandled = true;
+                break;
             }
             else if (System.DateTime.Now >= m_CloseRunTime)
             {
                 Console.WriteLine("Consumer closetime expired, shutdown reactor.");
                 break;
             }
-            if (!m_CloseHandled)
+            if (!m_ChnlInfoList.GetOpen().Any())
             {
-                HandlePosting();
+                break;
+            }
+            HandlePosting();
 
-                // send login reissue if login reissue time has passed
-                foreach (var chnlInfo in m_ChnlInfoList)
+            // send login reissue if login reissue time has passed
+            foreach (var chnlInfo in m_ChnlInfoList.GetOpen())
+            {
+                if (chnlInfo.CanSendLoginReissue &&
+                    System.DateTime.Now >= chnlInfo.LoginReissueTime)
                 {
-                    if (chnlInfo.CanSendLoginReissue &&
-                        System.DateTime.Now >= chnlInfo.LoginReissueTime)
+                    LoginRequest loginRequest = chnlInfo.ConsumerRole.RdmLoginRequest!;
+                    m_SubmitOptions.Clear();
+                    var ret = chnlInfo!.ReactorChannel!.Submit(loginRequest, m_SubmitOptions, out var errorInfo);
+                    if (ret != ReactorReturnCode.SUCCESS)
                     {
-                        LoginRequest loginRequest = chnlInfo.ConsumerRole.RdmLoginRequest!;
-                        m_SubmitOptions.Clear();
-                        var ret = chnlInfo!.ReactorChannel!.Submit(loginRequest, m_SubmitOptions, out var errorInfo);
-                        if (ret != ReactorReturnCode.SUCCESS)
-                        {
-                            Console.WriteLine("Login reissue failed. Error: " + errorInfo?.Error.Text);
-                        }
-                        else
-                        {
-                            Console.WriteLine("Login reissue sent");
-                        }
-                        chnlInfo!.CanSendLoginReissue = false;
+                        Console.WriteLine("Login reissue failed. Error: " + errorInfo?.Error.Text);
                     }
+                    else
+                    {
+                        Console.WriteLine("Login reissue sent");
+                    }
+                    chnlInfo!.CanSendLoginReissue = false;
                 }
             }
-
-            if (m_CloseHandled)
-                break;
         }
     }
 
 
     // APIQA: Closing 1st user item stream
-    private CodecReturnCode CloseItem(Reactor reactor, ReactorChannel channel)
+    private CodecReturnCode CloseItem(Reactor.Reactor reactor, ReactorChannel channel)
     {
 
         if (m_ItemClosed)
@@ -517,7 +507,6 @@ public class WatchlistConsumer : IConsumerCallback, IReactorServiceEndpointEvent
                 m_ViewFieldList.Add(1025);
                 m_ItemRequest.ViewFields = m_ViewFieldList;
                 ret = m_ItemRequest.Encode(m_EncIter);
-
                 if (ret < CodecReturnCode.SUCCESS)
                 {
                     Console.WriteLine("RequestItem.Encode() failed");
@@ -539,7 +528,7 @@ public class WatchlistConsumer : IConsumerCallback, IReactorServiceEndpointEvent
             var subRet = channel.Submit(m_ItemRequest.RequestMsg, m_SubmitOptions, out var errorInfo);
             if (subRet < ReactorReturnCode.SUCCESS)
             {
-                Console.WriteLine("\nReactorChannel.Submit() failed: " + ret + "(" + errorInfo?.Error.Text + ")\n");
+                Console.WriteLine("\nReactorChannel.Submit() failed: " + subRet + "(" + errorInfo?.Error.Text + ")\n");
                 Environment.Exit((int)ReactorReturnCode.FAILURE);
             }
         }
@@ -677,18 +666,7 @@ public class WatchlistConsumer : IConsumerCallback, IReactorServiceEndpointEvent
                     if (reactorEvent.ReactorErrorInfo != null && reactorEvent.ReactorErrorInfo.Error.Text != null)
                         Console.WriteLine("    Error text: " + reactorEvent.ReactorErrorInfo.Error.Text + "\n");
 
-                    // unregister selectableChannel from Selector
-                    if (reactorEvent.ReactorChannel!.Socket != null)
-                    {
-                        m_Sockets.Remove(reactorEvent.ReactorChannel.Socket);
-                        m_SocketFdValueMap.Remove(reactorEvent.ReactorChannel.Socket.Handle.ToInt32());
-                    }
-
-                    // close ReactorChannel
-                    if (chnlInfo.ReactorChannel != null)
-                    {
-                        chnlInfo.ReactorChannel.Close(out _);
-                    }
+                    CloseConnection(chnlInfo);
                     break;
                 }
             case ReactorChannelEventType.WARNING:
@@ -697,7 +675,6 @@ public class WatchlistConsumer : IConsumerCallback, IReactorServiceEndpointEvent
                     Console.WriteLine("    Error text: " + reactorEvent.ReactorErrorInfo.Error.Text + "\n");
 
                 break;
-
             default:
                 {
                     Console.WriteLine("Unknown channel event!\n");
@@ -741,11 +718,7 @@ public class WatchlistConsumer : IConsumerCallback, IReactorServiceEndpointEvent
 
             Console.Write("defaultMsgCallback: {0}({1})\n", reactorEvent.ReactorErrorInfo.Error.Text, reactorEvent.ReactorErrorInfo.Location);
 
-            // close ReactorChannel
-            if (chnlInfo?.ReactorChannel != null)
-            {
-                chnlInfo.ReactorChannel.Close(out _);
-            }
+            CloseConnection(chnlInfo, reactorEvent.ReactorChannel);
             return ReactorCallbackReturnCode.SUCCESS;
         }
 
@@ -923,7 +896,11 @@ public class WatchlistConsumer : IConsumerCallback, IReactorServiceEndpointEvent
                     chnlInfo.LoginReissueTime = DateTimeOffset.FromUnixTimeSeconds(chnlInfo.LoginRefresh.AuthenticationTTReissue).DateTime;
                     chnlInfo.CanSendLoginReissue = m_WatchlistConsumerConfig.EnableSessionManagement ? false : true;
                 }
-
+                if (reactorEvent.LoginMsg.LoginRefresh.State.StreamState() != StreamStates.OPEN)
+                {
+                    Console.WriteLine("Login attempt failed");
+                    CloseConnection(chnlInfo);
+                }
                 break;
 
             case STATUS:
@@ -937,7 +914,11 @@ public class WatchlistConsumer : IConsumerCallback, IReactorServiceEndpointEvent
                 }
                 if (loginStatus.HasUserName)
                     Console.WriteLine(" UserName: " + loginStatus.UserName.ToString());
-
+                if (loginStatus.State.StreamState() != StreamStates.OPEN)
+                {
+                    Console.WriteLine("Login attempt failed");
+                    CloseConnection(chnlInfo);
+                }
                 break;
 
             case RTT:
@@ -972,6 +953,12 @@ public class WatchlistConsumer : IConsumerCallback, IReactorServiceEndpointEvent
         ChannelInfo? chnlInfo = (ChannelInfo?)reactorEvent.ReactorChannel?.UserSpecObj;
         DirectoryMsgType msgType = reactorEvent.DirectoryMsg!.DirectoryMsgType;
         List<Service>? serviceList = null;
+
+        if (chnlInfo == null)
+        {
+            Console.WriteLine("ChannelInfo is null in passed reactorEvent.ReactorChannel.UserSpecObj");
+            return ReactorCallbackReturnCode.FAILURE;
+        }
 
         switch (msgType)
         {
@@ -1096,8 +1083,19 @@ public class WatchlistConsumer : IConsumerCallback, IReactorServiceEndpointEvent
         ChannelInfo? chnlInfo = (ChannelInfo?)reactorEvent.ReactorChannel?.UserSpecObj;
         DictionaryMsgType? msgType = reactorEvent.DictionaryMsg?.DictionaryMsgType;
 
+        if (chnlInfo == null)
+        {
+            Console.WriteLine("ChannelInfo is null in passed reactorEvent.ReactorChannel.UserSpecObj");
+            return ReactorCallbackReturnCode.FAILURE;
+        }
+        if (chnlInfo!.ReactorChannel == null)
+        {
+            Console.WriteLine("ReactorChannel is null in passed ChannelInfo");
+            return ReactorCallbackReturnCode.FAILURE;
+        }
+
         // initialize dictionary
-        if (chnlInfo is not null && chnlInfo.Dictionary == null)
+        if (chnlInfo.Dictionary == null)
         {
             chnlInfo.Dictionary = new();
         }
@@ -1125,7 +1123,7 @@ public class WatchlistConsumer : IConsumerCallback, IReactorServiceEndpointEvent
 
                         default:
                             Console.WriteLine($"Unknown dictionary type {dictionaryRefresh.DictionaryType} from message on stream {dictionaryRefresh.StreamId}");
-                            chnlInfo?.ReactorChannel?.Close(out _);
+                            CloseConnection(chnlInfo);
                             return ReactorCallbackReturnCode.SUCCESS;
                     }
                 }
@@ -1157,10 +1155,7 @@ public class WatchlistConsumer : IConsumerCallback, IReactorServiceEndpointEvent
                     else
                     {
                         Console.WriteLine("Decoding Field Dictionary failed: " + decodeFieldError.Text);
-                        if (chnlInfo!.ReactorChannel!.Close(out var closeError) != ReactorReturnCode.SUCCESS)
-                        {
-                            Console.WriteLine("ReactorChannel.Close() failed: " + closeError?.Error.Text);
-                        }
+                        CloseConnection(chnlInfo);
                     }
                 }
                 else if (dictionaryRefresh.StreamId == chnlInfo.EnumDictionaryStreamId)
@@ -1178,11 +1173,7 @@ public class WatchlistConsumer : IConsumerCallback, IReactorServiceEndpointEvent
                     else
                     {
                         Console.WriteLine("Decoding EnumType Dictionary failed: " + decodeEnumError.Text);
-
-                        if(chnlInfo!.ReactorChannel!.Close(out var closeError) != ReactorReturnCode.SUCCESS)
-                        {
-                            Console.WriteLine("ReactorChannel.Close() failed: " + closeError?.Error.Text);
-                        }
+                        CloseConnection(chnlInfo);
                     }
                 }
                 else
@@ -1220,6 +1211,40 @@ public class WatchlistConsumer : IConsumerCallback, IReactorServiceEndpointEvent
         Console.WriteLine("");
 
         return ReactorCallbackReturnCode.SUCCESS;
+    }
+
+
+
+    private void CloseConnections()
+    {
+        foreach (ChannelInfo chnlInfo in m_ChnlInfoList.GetOpen())
+        {
+            CloseConnection(chnlInfo);
+        }
+    }
+
+    private void CloseConnection(ChannelInfo? chnlInfo, ReactorChannel? reactorChannel = null)
+    {
+        ReactorChannel? reactorChannelToClose = chnlInfo?.ReactorChannel ?? reactorChannel;
+        // unregister selectableChannel from Selector
+        if (reactorChannelToClose?.Socket != null)
+        {
+            UnregisterSocket(reactorChannelToClose.Socket);
+        }
+        if (chnlInfo is not null)
+        {
+            Console.WriteLine("Consumer closes streams...");
+            CloseItemStreams(chnlInfo);
+        }
+        // close ReactorChannel
+        if (reactorChannelToClose is not null && reactorChannelToClose.Close(out var closeError) != ReactorReturnCode.SUCCESS)
+        {
+            Console.WriteLine("ReactorChannel.Close() failed: " + closeError!.Error.Text);
+        }
+        if (chnlInfo is not null)
+        {
+            chnlInfo.isChannelClosed = true;
+        }
     }
 
     public ReactorCallbackReturnCode ReactorServiceEndpointEventCallback(ReactorServiceEndpointEvent reactorEvent)
@@ -1267,6 +1292,31 @@ public class WatchlistConsumer : IConsumerCallback, IReactorServiceEndpointEvent
         return ReactorCallbackReturnCode.SUCCESS;
     }
 
+    public ReactorCallbackReturnCode ReactorOAuthCredentialEventCallback(ReactorOAuthCredentialEvent reactorOAuthCredentialEvent)
+    {
+        ReactorOAuthCredentialRenewalOptions renewalOptions = new ReactorOAuthCredentialRenewalOptions();
+        ReactorOAuthCredentialRenewal reactorOAuthCredentialRenewal = new ReactorOAuthCredentialRenewal();
+        ReactorOAuthCredential? reactorOAuthCredential = (ReactorOAuthCredential?)reactorOAuthCredentialEvent.UserSpecObj;
+
+        if (reactorOAuthCredential is not null)
+        {
+            if (reactorOAuthCredential.ClientSecret.Length > 0)
+            {
+                renewalOptions.RenewalModes = ReactorOAuthCredentialRenewalModes.CLIENT_SECRET;
+                reactorOAuthCredentialRenewal.ClientSecret.Data(reactorOAuthCredential.ClientSecret.ToString());
+            }
+            else
+            {
+                renewalOptions.RenewalModes = ReactorOAuthCredentialRenewalModes.CLIENT_JWK;
+                reactorOAuthCredentialRenewal.ClientJwk.Data(reactorOAuthCredential.ClientJwk.ToString());
+            }
+
+            reactorOAuthCredentialEvent.Reactor!.SubmitOAuthCredentialRenewal(renewalOptions, reactorOAuthCredentialRenewal, out _);
+        }
+
+        return ReactorCallbackReturnCode.SUCCESS;
+    }
+
     private bool IsRequestedServiceUp(ChannelInfo chnlInfo)
     {
         return chnlInfo.HasServiceInfo &&
@@ -1304,7 +1354,7 @@ public class WatchlistConsumer : IConsumerCallback, IReactorServiceEndpointEvent
     /// </summary>
     private void HandlePosting()
     {
-        foreach (var chnlInfo in m_ChnlInfoList)
+        foreach (var chnlInfo in m_ChnlInfoList.GetOpen())
         {
             if (chnlInfo.LoginRefresh == null ||
                 chnlInfo.ServiceInfo == null ||
@@ -1414,6 +1464,9 @@ public class WatchlistConsumer : IConsumerCallback, IReactorServiceEndpointEvent
             {
                 m_ReactorOAuthCredential.ClientSecret.Data(m_WatchlistConsumerConfig.ClientSecret);
                 m_ReactorServiceDiscoveryOptions.ClientSecret.Data(m_WatchlistConsumerConfig.ClientSecret);
+
+                /* Specified the IReactorOAuthCredentialEventCallback to get sensitive information as needed to authorize with the token service. */
+                m_ReactorOAuthCredential.ReactorOAuthCredentialEventCallback = this;
             }
         }
 
@@ -1421,9 +1474,13 @@ public class WatchlistConsumer : IConsumerCallback, IReactorServiceEndpointEvent
         {
             try
             {
-                m_ReactorOAuthCredential.ClientJwk.Data(m_WatchlistConsumerConfig.JwkFile);
+                var jwkData = File.ReadAllText(m_WatchlistConsumerConfig.JwkFile);
+                m_ReactorOAuthCredential.ClientJwk.Data(jwkData);
                 chnlInfo.ConsumerRole.ReactorOAuthCredential = m_ReactorOAuthCredential;
-                m_ReactorServiceDiscoveryOptions.ClientJwk.Data(m_WatchlistConsumerConfig.JwkFile);
+                m_ReactorServiceDiscoveryOptions.ClientJwk.Data(jwkData);
+
+                /* Specified the IReactorOAuthCredentialEventCallback to get JWK */
+                m_ReactorOAuthCredential.ReactorOAuthCredentialEventCallback = this;
             }
             catch (Exception e)
             {
@@ -1447,6 +1504,9 @@ public class WatchlistConsumer : IConsumerCallback, IReactorServiceEndpointEvent
             m_ReactorServiceDiscoveryOptions.Audience.Data(m_WatchlistConsumerConfig.Audience);
             chnlInfo.ConsumerRole.ReactorOAuthCredential = m_ReactorOAuthCredential;
         }
+
+        /* Passing data to OAuth callback */
+        m_ReactorOAuthCredential.UserSpecObj = m_ReactorOAuthCredential;
 
         if (!string.IsNullOrEmpty(m_WatchlistConsumerConfig.ProxyHostname))
         {
@@ -1552,8 +1612,8 @@ public class WatchlistConsumer : IConsumerCallback, IReactorServiceEndpointEvent
         chnlInfo.ConnectOptions.SetReconnectAttempLimit(-1); // attempt to recover forever
         chnlInfo.ConnectOptions.SetReconnectMinDelay(500); // 0.5 second minimum
         chnlInfo.ConnectOptions.SetReconnectMaxDelay(3000); // 3 second maximum
-        chnlInfo.ConnectOptions.ConnectionList[0].ConnectOptions.MajorVersion = Codec.MajorVersion();
-        chnlInfo.ConnectOptions.ConnectionList[0].ConnectOptions.MinorVersion = Codec.MinorVersion();
+        chnlInfo.ConnectOptions.ConnectionList[0].ConnectOptions.MajorVersion = Codec.Codec.MajorVersion();
+        chnlInfo.ConnectOptions.ConnectionList[0].ConnectOptions.MinorVersion = Codec.Codec.MinorVersion();
         chnlInfo.ConnectOptions.ConnectionList[0].ConnectOptions.ConnectionType = chnlInfo.ConnectionArg.ConnectionType;
         chnlInfo.ConnectOptions.ConnectionList[0].ConnectOptions.UserSpecObject = chnlInfo;
         chnlInfo.ConnectOptions.ConnectionList[0].ConnectOptions.GuaranteedOutputBuffers = 1000;
@@ -1569,7 +1629,7 @@ public class WatchlistConsumer : IConsumerCallback, IReactorServiceEndpointEvent
         {
             cOpt.ConnectionType = ConnectionType.ENCRYPTED;
             cOpt.EncryptionOpts.EncryptedProtocol = chnlInfo.ConnectionArg.ConnectionType;
-            SetEncryptedConfiguration(cOpt);
+            SetEncryptedConfiguration(cOpt, chnlInfo.EncryptionProtocol);
         }
 
         /* Setup proxy info */
@@ -1619,7 +1679,7 @@ public class WatchlistConsumer : IConsumerCallback, IReactorServiceEndpointEvent
 
             if (m_Reactor!.QueryServiceDiscovery(m_ReactorServiceDiscoveryOptions, out var errorInfo) != ReactorReturnCode.SUCCESS)
             {
-                Console.WriteLine("Error: " + errorInfo?.Code + " Text: " + errorInfo?.Error.Text);
+                Console.WriteLine($"Error: {errorInfo?.Code} Text: " + errorInfo!.Error.Text);
                 return;
             }
         }
@@ -1649,15 +1709,16 @@ public class WatchlistConsumer : IConsumerCallback, IReactorServiceEndpointEvent
             chnlInfo.PostHandler.PostItemName.Data("OFFPOST");
             chnlInfo.PostHandler.ServiceId = chnlInfo.ServiceInfo.ServiceId;
             chnlInfo.PostHandler.Dictionary = chnlInfo.Dictionary;
-            if (chnlInfo!.PostHandler!.CloseOffStreamPost(chnlInfo!.ReactorChannel!, out var errorInfo) != CodecReturnCode.SUCCESS)
-            {
-                Console.WriteLine("PostHandler.CloseOffStreamPost() failed: " + errorInfo?.Error.Text);
-            }
+            if (chnlInfo.ReactorChannel is not null)
+                if (chnlInfo!.PostHandler!.CloseOffStreamPost(chnlInfo!.ReactorChannel!, out var errorInfo) != CodecReturnCode.SUCCESS)
+                {
+                    Console.WriteLine("PostHandler.CloseOffStreamPost() failed: " + errorInfo?.Error.Text);
+                }
         }
 
         for (int itemListIndex = 0; itemListIndex < m_WatchlistConsumerConfig.ItemCount; ++itemListIndex)
         {
-            int domainType = (int)m_WatchlistConsumerConfig.ItemList[itemListIndex].Domain;
+            int domainType = m_WatchlistConsumerConfig.ItemList[itemListIndex].Domain;
             int streamId = m_WatchlistConsumerConfig.ItemList[itemListIndex].StreamId;
 
             /* encode item close */
@@ -1666,10 +1727,11 @@ public class WatchlistConsumer : IConsumerCallback, IReactorServiceEndpointEvent
             m_CloseMsg.StreamId = streamId;
             m_CloseMsg.DomainType = domainType;
             m_CloseMsg.ContainerType = DataTypes.NO_DATA;
-            if (chnlInfo!.ReactorChannel!.Submit((Msg)m_CloseMsg, m_SubmitOptions, out var erroInfo) != ReactorReturnCode.SUCCESS)
-            {
-                Console.WriteLine($"Close itemStream of {streamId} failed: {erroInfo?.Error.Text}");
-            }
+            if (chnlInfo.ReactorChannel is not null)
+                if (chnlInfo!.ReactorChannel!.Submit((Msg)m_CloseMsg, m_SubmitOptions, out var erroInfo) != ReactorReturnCode.SUCCESS)
+                {
+                    Console.WriteLine($"Close itemStream of {streamId} failed: {erroInfo?.Error.Text}");
+                }
         }
     }
 
@@ -1680,17 +1742,7 @@ public class WatchlistConsumer : IConsumerCallback, IReactorServiceEndpointEvent
     {
         Console.WriteLine("Consumer unitializing and exiting...");
 
-        foreach (var chnlInfo in m_ChnlInfoList)
-        {
-            // close items streams
-            CloseItemStreams(chnlInfo);
-
-            // close ReactorChannel
-            if (chnlInfo.ReactorChannel != null)
-            {
-                chnlInfo?.ReactorChannel?.Close(out _);
-            }
-        }
+        CloseConnections();
 
         m_FileStream?.Dispose();
 
@@ -1698,19 +1750,9 @@ public class WatchlistConsumer : IConsumerCallback, IReactorServiceEndpointEvent
         m_Reactor?.Shutdown(out _);
     }
 
-    private void HandleClose()
+    private static void SetEncryptedConfiguration(ConnectOptions options, EncryptionProtocolFlags encryption)
     {
-        Console.WriteLine("Consumer closes streams...");
-
-        foreach (var chnlInfo in m_ChnlInfoList)
-        {
-            CloseItemStreams(chnlInfo);
-        }
-    }
-
-    private static void SetEncryptedConfiguration(ConnectOptions options)
-    {
-        options.EncryptionOpts.EncryptionProtocolFlags = EncryptionProtocolFlags.ENC_TLSV1_2;
+        options.EncryptionOpts.EncryptionProtocolFlags = encryption;
         options.EncryptionOpts.EncryptedProtocol = ConnectionType.SOCKET;
     }
     // APIQA: Send generic message on Source Directory domain and stream

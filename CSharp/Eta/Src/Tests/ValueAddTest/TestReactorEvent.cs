@@ -147,4 +147,23 @@ public class TestReactorEvent
         TestUtil.CopyErrorInfo(evt.ReactorErrorInfo, ReactorEvent.ReactorErrorInfo);
         ReactorEvent.ReactorChannel = evt.ReactorChannel;
     }
+
+    public override string ToString()
+    {
+        var additionalInfo = ReactorEvent switch
+        {
+            ReactorChannelEvent evt => evt.EventType.ToString(),
+            RDMLoginMsgEvent evt => evt.LoginMsg?.LoginMsgType.ToString(),
+            RDMDirectoryMsgEvent evt => evt.DirectoryMsg?.DirectoryMsgType.ToString(),
+            RDMDictionaryMsgEvent evt => evt.DictionaryMsg?.DictionaryMsgType.ToString(),
+            ReactorAuthTokenEvent evt => evt.ReactorAuthTokenInfo?.ToString(),
+            ReactorOAuthCredentialEvent evt => evt.ReactorOAuthCredentialRenewal?.ToString(),
+            ReactorServiceEndpointEvent evt => $"endpoints count {evt.ServiceEndpointInfoList?.Count}",
+            _ => ReactorEvent.Type.ToString(),
+        };
+        var errorInfo = ReactorEvent.ReactorErrorInfo.Code < ReactorReturnCode.SUCCESS
+            ? ", " + ReactorEvent.ReactorErrorInfo.ToString()
+            : "";
+        return $"{ReactorEvent.GetType().Name}({additionalInfo}{errorInfo})";
+    }
 }

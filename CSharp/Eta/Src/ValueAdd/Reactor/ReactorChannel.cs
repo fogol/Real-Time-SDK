@@ -8,6 +8,7 @@
 
 using System.Diagnostics;
 using System.Net.Sockets;
+using System.Runtime.CompilerServices;
 using System.Text;
 
 using LSEG.Eta.Common;
@@ -15,7 +16,10 @@ using LSEG.Eta.Codec;
 using LSEG.Eta.Transports;
 using LSEG.Eta.ValueAdd.Common;
 using LSEG.Eta.ValueAdd.Rdm;
-using System.Runtime.CompilerServices;
+using LSEG.Eta.ValueAdd.Reactor.Fallback.Timers;
+using LSEG.Eta.ValueAdd.Reactor.Fallback.ConnectionInfoSelectors;
+using LSEG.Eta.ValueAdd.Reactor.Fallback.Init;
+using LSEG.Eta.ValueAdd.Reactor.Fallback;
 
 namespace LSEG.Eta.ValueAdd.Reactor
 {
@@ -24,20 +28,27 @@ namespace LSEG.Eta.ValueAdd.Reactor
     /// </summary>
     sealed public class ReactorChannel : VaNode
     {
-        private long m_InitializationTimeout;
-        private long m_InitializationEndTimeMs;
+        private ReactorChannelInitializationTimeout m_Initialization = new();
         private PingHandler m_PingHandler = new PingHandler();
         private StringBuilder m_StringBuilder = new StringBuilder(100);
 
         /* Connection recovery information. */
         private const int NO_RECONNECT_LIMIT = -1;
         internal ReactorConnectOptions? ConnectOptions { get; private set; }
+        internal IFallbackTimer? FallbackTimer { get; private set; }
         private int m_ReconnectAttempts;
         private int m_ReconnectDelay;
-        private int m_ListIndex;
+        private IConnectionInfoSelector? m_ConnectionInfoSelector;
+        private IConnectionInfoSelectorSwitcher? m_ConnectionInfoSelectorSwitcher;
+        internal bool ShouldFallbackToPreferredHost => m_ConnectionInfoSelector?.ShouldSwitchPrematurely ?? false;
+        private bool IsPreferredHostEnabled => ConnectOptions?.PreferredHostOptions.EnablePreferredHostOptions ?? false;
+        internal FallbackContext? FallbackContext { get; private set; }
         internal NotifierEvent NotifierEvent { get; private set; }
 
         private ReactorRole? m_Role;
+
+        private Reactor? m_Reactor;
+        private IReactorEventSender? m_ReactorEventSender;
 
         internal Watchlist? Watchlist { get; set; }
 
@@ -46,6 +57,7 @@ namespace LSEG.Eta.ValueAdd.Reactor
 
         #region Session management
         private ReactorRestConnectOptions? m_RestConnectOptions;
+
         internal ReactorTokenSession? TokenSession { get; set; }
 
         internal List<ReactorServiceEndpointInfo> ServiceEndpointInfoList { get; private set; }
@@ -61,19 +73,22 @@ namespace LSEG.Eta.ValueAdd.Reactor
         {
             [MethodImpl(MethodImplOptions.AggressiveOptimization | MethodImplOptions.AggressiveInlining)]
             public ReactorChannel? GetPrev(ReactorChannel thisPrev) { return thisPrev._reactorChannelPrev; }
-            
+
             [MethodImpl(MethodImplOptions.AggressiveOptimization | MethodImplOptions.AggressiveInlining)]
             public void SetPrev(ReactorChannel? thisPrev, ReactorChannel? thatPrev) { thisPrev!._reactorChannelPrev = thatPrev; }
-            
+
             [MethodImpl(MethodImplOptions.AggressiveOptimization | MethodImplOptions.AggressiveInlining)]
             public ReactorChannel? GetNext(ReactorChannel thisNext) { return thisNext._reactorChannelNext; }
-            
+
             [MethodImpl(MethodImplOptions.AggressiveOptimization | MethodImplOptions.AggressiveInlining)]
             public void SetNext(ReactorChannel? thisNext, ReactorChannel? thatNext) { thisNext!._reactorChannelNext = thatNext; }
         }
 
         /* This is used to indicate the worker thread only whether the closed ack is sent from worker to Reactor */
         internal bool IsClosedAckSent = false;
+
+        /* This is used by the PH feature to check whether the channel is up for the first time in order to enable the PH timer if any. */
+        internal bool IsChannelUpForTheFirstTime = false;
 
         internal static readonly ReactorChannelLink REACTOR_CHANNEL_LINK = new();
 
@@ -97,7 +112,15 @@ namespace LSEG.Eta.ValueAdd.Reactor
         /// <summary>
         /// Gets the <see cref="Reactor"/> associated with this <see cref="ReactorChannel"/>.
         /// </summary>
-        public Reactor? Reactor { get; internal set; }
+        public Reactor? Reactor
+        {
+            get => m_Reactor;
+            internal set
+            {
+                m_Reactor = value;
+                m_ReactorEventSender = value;
+            }
+        }
 
         /// <summary>
         /// Gets the <see cref="System.Net.Sockets.Socket"/> associated with this <see cref="ReactorChannel"/>.
@@ -258,7 +281,9 @@ namespace LSEG.Eta.ValueAdd.Reactor
             ReactorReturnCode retVal = ReactorReturnCode.SUCCESS;
 
             if (Reactor is null)
-                return ReactorReturnCode.FAILURE;
+                return Reactor.PopulateErrorInfo(out errorInfo, ReactorReturnCode.FAILURE,
+                            "ReactorChannel.Close",
+                            "Reactor cannot be null.");
 
             Reactor.ReactorLock.Enter();
 
@@ -346,6 +371,31 @@ namespace LSEG.Eta.ValueAdd.Reactor
                 return Reactor.PopulateErrorInfo(out errorInfo, ReactorReturnCode.FAILURE,
                         "ReactorChannel.Info",
                         "The channel is no longer available.");
+            }
+
+            if (IsConsumerChannel() && ConnectOptions is not null)
+            {
+                Reactor.ReactorLock.Enter();
+                try
+                {
+                    info.PreferredHostInfo.AssignFrom(ConnectOptions!.PreferredHostOptions);
+
+                    // Calculates the remaing detection time if any
+                    long currentTimeMs = ReactorUtil.GetCurrentTimeMilliSecond();
+                    long triggerTimeMs = FallbackTimer?.TriggerTimeMs ?? 0;
+                    if (FallbackTimer != null && triggerTimeMs > currentTimeMs)
+                    {
+                        info.PreferredHostInfo.RemainingDetectionTime = (uint)((triggerTimeMs - currentTimeMs) / 1000);
+                    }
+                    else
+                    {
+                        info.PreferredHostInfo.RemainingDetectionTime = 0;
+                    }
+                }
+                finally
+                {
+                    Reactor.ReactorLock.Exit();
+                }
             }
 
             Error transportError;
@@ -669,24 +719,179 @@ namespace LSEG.Eta.ValueAdd.Reactor
             }
         }
 
+        /// <summary>
+        /// Changes some aspects of the ReactorChannel
+        /// </summary>
+        /// <param name="code">code indicating the option to change</param>
+        /// <param name="value">value to change the option to</param>
+        /// <param name="errorInfo">error structure to be populated in the event of failure</param>
+        /// <returns><see cref="ReactorReturnCode"/> value indicating the status of the operation</returns>
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+        public ReactorReturnCode IOCtl(ReactorChannelIOCtlCode code, object? value, out ReactorErrorInfo? errorInfo)
+        {
+            if (Reactor == null)
+            {
+                return Reactor.PopulateErrorInfo(out errorInfo, ReactorReturnCode.FAILURE, "ReactorChannel.IOCtl", "Reactor cannot be null");
+            }
+            if (Reactor.IsShutdown)
+            {
+                return Reactor.PopulateErrorInfo(out errorInfo, ReactorReturnCode.SHUTDOWN,
+                        "ReactorChannel.IOCtl",
+                        "Reactor is shutdown, IOCtl aborted.");
+            }
+
+            if (value == null)
+            {
+                return Reactor.PopulateErrorInfo(out errorInfo, ReactorReturnCode.PARAMETER_INVALID,
+                        "ReactorChannel.IOCtl",
+                        "value cannot be null.");
+            }
+
+            if (Channel == null)
+            {
+                return Reactor.PopulateErrorInfo(out errorInfo, ReactorReturnCode.SHUTDOWN,
+                        "ReactorChannel.IOCtl",
+                        "Channel is shutdown, IOCtl aborted.");
+            }
+
+            errorInfo = null;
+            var retCode = ReactorReturnCode.SUCCESS;
+
+            switch (code)
+            {
+                case ReactorChannelIOCtlCode.PREFERRED_HOST_OPTIONS:
+                    {
+                        retCode = UpdatePreferredHostOptions((ReactorPreferredHostOptions)value, out errorInfo, applyImmediately: false);
+                        break;
+                    }
+                default:
+                    {
+                        retCode = Reactor.PopulateErrorInfo(out errorInfo, ReactorReturnCode.PARAMETER_INVALID,
+                            "ReactorChannel.IOCtl",
+                            $"Unsupported IOCtl code: {code}.");
+                        break;
+                    }
+            }
+
+            return retCode;
+        }
+
+
+        /// <summary>
+        /// Fallback to preferred host of WSB group if the preferred host feature is enabled for this ReactorChannel.
+        /// </summary>
+        /// <param name="errorInfo">error structure to be populated in the event of failure</param>
+        /// <returns>value indicating the status of the operation</returns>
+        public ReactorReturnCode FallbackPreferredHost(out ReactorErrorInfo? errorInfo)
+        {
+            errorInfo = null;
+
+            if (!IsPreferredHostEnabled)
+                return Reactor.PopulateErrorInfo(out errorInfo, ReactorReturnCode.INVALID_USAGE,
+                    "ReactorChannel.FallbackPreferredHost",
+                    "Preferred host fallback is disabled.");
+            if (!ShouldFallbackToPreferredHost)
+            {
+                m_ReactorEventSender!.SendPreferredHostNoFallback(this);
+                return ReactorReturnCode.SUCCESS;
+            }
+
+            return m_ReactorEventSender!.SendWorkerImplEvent(ReactorEventImpl.ImplType.PREFERRED_HOST_START_FALLBACK, this);
+        }
+
+        internal void OnFallbackStarted()
+        {
+            Reactor!.SendPreferredHostStarting(this);
+            FallbackContext!.BeginEnforcedFallback();
+        }
+
+        internal void OnFallbackReconnectComplete()
+        {
+            FallbackContext!.FallbackReconnectionComplete();
+            m_ConnectionInfoSelector!.SwitchToNext();
+        }
+
+        internal void OnFallbackSwitchoverComplete()
+        {
+            SendPreferredHostCompleteToReactor();
+            FallbackContext!.FallbackSwitchoverComplete();
+        }
+
+        internal void OnFallbackPostChannelUp()
+        {
+            SendPreferredHostCompleteToReactor();
+        }
+
+        internal void OnFallbackFailed()
+        {
+            SendPreferredHostCompleteToReactor();
+            FallbackContext!.RollbackEnforcedFallback();
+        }
+
+        internal void OnNoFallback()
+        {
+            SendPreferredHostNoFallbackToReactor();
+        }
+
+        private void SendPreferredHostCompleteToReactor()
+        {
+            if (IsPreferredHostEnabled
+                && (!ShouldFallbackToPreferredHost || FallbackContext!.IsSwitchingToPreferredHost)
+                && !FallbackContext!.IsFirstTimeConnect)
+            {
+                Reactor!.SendPreferredHostComplete(this);
+            }
+        }
+
+        private void SendPreferredHostNoFallbackToReactor()
+        {
+            if (IsPreferredHostEnabled)
+            {
+                Reactor?.SendPreferredHostNoFallback(this);
+            }
+        }
+
         [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         internal IChannel? Reconnect(out Error? error)
         {
-            m_ReconnectAttempts++;
-             if (++m_ListIndex == ConnectOptions!.ConnectionList.Count)
+            IChannel? channel = null;
+            error = null;
+
+            bool IsRDPState() =>
+                FallbackContext!.State == ReactorChannelState.RDP_RT ||
+                FallbackContext!.State == ReactorChannelState.RDP_RT_DONE ||
+                FallbackContext!.State == ReactorChannelState.RDP_RT_FAILED;
+
+            if (!IsRDPState())
             {
-                m_ListIndex = 0;
+                channel = ReconnectPreRDP(out error);
             }
 
-            ReactorConnectInfo reactorConnectInfo = ConnectOptions.ConnectionList[m_ListIndex];
-
-            if(reactorConnectInfo.EnableSessionManagement)
+            if (IsRDPState())
             {
-                if(RedoServiceDiscoveryForCurrentChannel())
+                channel = ReconnectRDP(out error);
+            }
+
+            return channel;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+        private IChannel? ReconnectPreRDP(out Error? error)
+        {
+            if (!FallbackContext!.IsSwitchingToPreferredHost)
+                m_ReconnectAttempts++;
+
+            ReactorConnectInfo reactorConnectInfo = FallbackContext!.IsSwitchingToPreferredHost
+                    ? m_ConnectionInfoSelector!.Next
+                    : m_ConnectionInfoSelector!.SwitchToNext(IsChannelUpForTheFirstTime ? m_ReconnectAttempts : -1); /* Handles to reconnect to PH again when this is not initial connection. */
+
+            if (reactorConnectInfo.EnableSessionManagement)
+            {
+                if (RedoServiceDiscoveryForChannel(reactorConnectInfo))
                 {
                     reactorConnectInfo.ConnectOptions.UnifiedNetworkInfo.Address = string.Empty;
                     reactorConnectInfo.ConnectOptions.UnifiedNetworkInfo.ServiceName = string.Empty;
-                    ResetCurrentChannelRetryCount();
+                    ResetCurrentChannelRetryCount(reactorConnectInfo);
                 }
 
                 if (Reactor!.SessionManagementStartup(TokenSession!, reactorConnectInfo, Role!, this, true,
@@ -707,26 +912,28 @@ namespace LSEG.Eta.ValueAdd.Reactor
                 return null;
             }
 
-            return Reconnect(reactorConnectInfo, out error);
+            return ReconnectTransport(reactorConnectInfo, out error);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-        internal IChannel? ReconnectRDP(out Error? error)
+        private IChannel? ReconnectRDP(out Error? error)
         {
-            ReactorConnectInfo reactorConnectInfo = ConnectOptions!.ConnectionList[m_ListIndex];
+            ReactorConnectInfo reactorConnectInfo = FallbackContext!.IsSwitchingToPreferredHost
+                    ? m_ConnectionInfoSelector!.Next
+                    : m_ConnectionInfoSelector!.Current;
             ReactorErrorInfo? errorInfo;
 
-            UserSpecObj = reactorConnectInfo.ConnectOptions.UserSpecObject;
+            FallbackContext!.UserSpecObj = reactorConnectInfo.ConnectOptions.UserSpecObject;
 
-            if(State == ReactorChannelState.RDP_RT_DONE)
+            if (FallbackContext!.State == ReactorChannelState.RDP_RT_DONE)
             {
                 ApplyAccessToken();
 
-                if(Reactor.RequestServiceDiscovery(reactorConnectInfo))
+                if (Reactor.RequestServiceDiscovery(reactorConnectInfo))
                 {
-                    if(ApplyServiceDiscoveryEndpoint(out errorInfo) != ReactorReturnCode.SUCCESS)
+                    if (ApplyServiceDiscoveryEndpoint(reactorConnectInfo, out errorInfo) != ReactorReturnCode.SUCCESS)
                     {
-                        State = ReactorChannelState.DOWN;
+                        FallbackContext!.State = ReactorChannelState.DOWN;
 
                         error = new Error
                         {
@@ -738,12 +945,12 @@ namespace LSEG.Eta.ValueAdd.Reactor
                     }
                 }
 
-                return Reconnect(reactorConnectInfo, out error);
+                return ReconnectTransport(reactorConnectInfo, out error);
             }
 
-            if(State == ReactorChannelState.RDP_RT_FAILED)
+            if (FallbackContext!.State == ReactorChannelState.RDP_RT_FAILED)
             {
-                State = ReactorChannelState.DOWN; /* Waiting to retry with another channel info in the list. */
+                FallbackContext!.State = ReactorChannelState.DOWN; /* Waiting to retry with another channel info in the list. */
 
                 error = new Error
                 {
@@ -760,10 +967,10 @@ namespace LSEG.Eta.ValueAdd.Reactor
         }
 
         [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-        private IChannel? Reconnect(ReactorConnectInfo reactorConnectInfo, out Error error)
+        private IChannel? ReconnectTransport(ReactorConnectInfo reactorConnectInfo, out Error error)
         {
-            IncreaseRetryCountForCurrentChannel();
-            UserSpecObj = reactorConnectInfo.ConnectOptions.UserSpecObject;
+            IncreaseRetryCountForChannel(reactorConnectInfo);
+            FallbackContext!.UserSpecObj = reactorConnectInfo.ConnectOptions.UserSpecObject;
             reactorConnectInfo.ConnectOptions.ChannelReadLocking = true;
             reactorConnectInfo.ConnectOptions.ChannelWriteLocking = true;
 
@@ -771,7 +978,7 @@ namespace LSEG.Eta.ValueAdd.Reactor
             IChannel channel = Transport.Connect(reactorConnectInfo.ConnectOptions, out error);
 
             if (channel != null)
-                InitializationTimeout(reactorConnectInfo.GetInitTimeout());
+                FallbackContext!.InitializationTimeout(reactorConnectInfo.GetInitTimeout());
 
             return channel;
         }
@@ -788,6 +995,25 @@ namespace LSEG.Eta.ValueAdd.Reactor
             Clear();
         }
 
+        /// <summary>
+        /// Constructor for unit testing purposes.
+        /// </summary>
+        /// <param name="connectOptions"></param>
+        /// <param name="connectionInfoSelector"></param>
+        /// <param name="reactorEventSender"></param>
+        internal ReactorChannel(
+            ReactorConnectOptions connectOptions,
+            IConnectionInfoSelector? connectionInfoSelector = null,
+            IReactorEventSender? reactorEventSender = null)
+            : this()
+        {
+            ConnectOptions = connectOptions;
+            if (connectionInfoSelector != null)
+                m_ConnectionInfoSelectorSwitcher!.SetConnectionInfoSelector(connectionInfoSelector);
+            if (reactorEventSender != null)
+                m_ReactorEventSender = reactorEventSender;
+        }
+
         [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         internal void Clear()
         {
@@ -797,8 +1023,7 @@ namespace LSEG.Eta.ValueAdd.Reactor
             Channel = null;
             Server = null;
             UserSpecObj = null;
-            m_InitializationTimeout = 0;
-            m_InitializationEndTimeMs = 0;
+            m_Initialization.Timeout(0);
             FlushRequested = false;
             FlushAgain = false;
             m_PingHandler.Clear();
@@ -806,16 +1031,19 @@ namespace LSEG.Eta.ValueAdd.Reactor
             m_ReconnectDelay = 0;
             NextRecoveryTime = 0;
             ConnectOptions = null;
-            m_ListIndex = 0;
+            var connectionInfoSelectorDecorator = new ConnectionInfoSelectorSwitchDecorator();
+            m_ConnectionInfoSelector = connectionInfoSelectorDecorator;
+            m_ConnectionInfoSelectorSwitcher = connectionInfoSelectorDecorator;
+            FallbackContext = new(this);
             Role = null;
             m_RestConnectOptions = null;
             TokenSession = null;
             ServiceEndpointInfoList.Clear();
             RDMLoginRequestRDP = null;
-            TokenSession = null;
             Watchlist = null;
             ReadRet = TransportReturnCode.SUCCESS;
             IsClosedAckSent = false;
+            IsChannelUpForTheFirstTime = false;
         }
 
         /// <summary>
@@ -832,6 +1060,10 @@ namespace LSEG.Eta.ValueAdd.Reactor
             Channel = null;
             Server = null;
             ConnectOptions = null;
+            m_ConnectionInfoSelector = null;
+            m_ConnectionInfoSelectorSwitcher?.Dispose();
+            m_ConnectionInfoSelectorSwitcher = null;
+            FallbackContext = null;
             Role = null;
             TokenSession = null;
             RDMLoginRequestRDP = null;
@@ -844,34 +1076,23 @@ namespace LSEG.Eta.ValueAdd.Reactor
         }
 
         [MethodImpl(MethodImplOptions.AggressiveOptimization | MethodImplOptions.AggressiveInlining)]
-        internal void InitializationTimeout(int timeout)
-        {
-            m_InitializationTimeout = timeout;
-            m_InitializationEndTimeMs = (timeout * 1000) + ReactorUtil.GetCurrentTimeMilliSecond();
-        }
+        internal void InitializationTimeout(long timeout) => m_Initialization.Timeout(timeout);
 
         [MethodImpl(MethodImplOptions.AggressiveOptimization | MethodImplOptions.AggressiveInlining)]
-        internal long InitializationTimeout()
-        {
-            return m_InitializationTimeout;
-        }
+        internal long InitializationTimeout() => m_Initialization.Timeout();
 
         [MethodImpl(MethodImplOptions.AggressiveOptimization | MethodImplOptions.AggressiveInlining)]
-        internal long InitializationEndTimeMs()
-        {
-            return m_InitializationEndTimeMs;
-        }
+        internal long InitializationEndTimeMs() => m_Initialization.EndTimeMs();
 
         [MethodImpl(MethodImplOptions.AggressiveOptimization | MethodImplOptions.AggressiveInlining)]
-        internal PingHandler GetPingHandler()
-        {
-            return m_PingHandler;
-        }
+        internal PingHandler GetPingHandler() => m_PingHandler;
 
         /* Stores connection options for reconnection. */
         [MethodImpl(MethodImplOptions.AggressiveOptimization | MethodImplOptions.AggressiveInlining)]
-        internal void ReactorConnectOptions(ReactorConnectOptions reactorConnectOptions)
+        internal ReactorReturnCode ReactorConnectOptions(ReactorConnectOptions reactorConnectOptions, out ReactorErrorInfo? errorInfo)
         {
+            errorInfo = null;
+
             if (ConnectOptions is null)
                 ConnectOptions = new ReactorConnectOptions();
 
@@ -886,6 +1107,49 @@ namespace LSEG.Eta.ValueAdd.Reactor
 
             m_ReconnectDelay = 0;
             NextRecoveryTime = 0;
+
+            return UpdatePreferredHostOptions(ConnectOptions.PreferredHostOptions, out errorInfo);
+        }
+
+        private ReactorReturnCode UpdatePreferredHostOptions(ReactorPreferredHostOptions preferredHostOptions, out ReactorErrorInfo? errorInfo, bool applyImmediately = true)
+        {
+            errorInfo = null;
+            if (Reactor == null)
+                return PopulateError(ReactorReturnCode.FAILURE, "Reactor cannot be null", out errorInfo);
+            if (ConnectOptions == null)
+                return PopulateError(ReactorReturnCode.FAILURE, "ConnectOptions cannot be null", out errorInfo);
+
+            FallbackMembersToAssign? membersToAssign;
+            try
+            {
+                membersToAssign = new(preferredHostOptions, ConnectOptions.ConnectionList);
+            }
+            catch (Exception e)
+            {
+                return PopulateError(ReactorReturnCode.FAILURE, e.Message, out errorInfo);
+            }
+
+            if (applyImmediately)
+            {
+                ApplyPreferredHostOptions(membersToAssign);
+                membersToAssign = null;
+            }
+
+            return Reactor.SendWorkerImplEvent(ReactorEventImpl.ImplType.PREFERRED_HOST_OPTIONS_CHANGED, this, membersToAssign);
+
+            ReactorReturnCode PopulateError(ReactorReturnCode reactorReturnCode, string text, out ReactorErrorInfo? errorInfo) =>
+                Reactor.PopulateErrorInfo(out errorInfo, reactorReturnCode, nameof(ReactorChannel) + "." + nameof(UpdatePreferredHostOptions), text);
+        }
+
+        internal void ApplyPreferredHostOptions(FallbackMembersToAssign membersToAssign)
+        {
+            m_ConnectionInfoSelectorSwitcher!.SetConnectionInfoSelector(membersToAssign.ConnectionInfoSelector!);
+            FallbackTimer = membersToAssign.FallbackTimer;
+        }
+
+        internal void OnPreferredHostOptionsApplied(ReactorPreferredHostOptions? preferredHostOptions)
+        {
+            preferredHostOptions?.Copy(ConnectOptions!.PreferredHostOptions);
         }
 
         /* Determines the time at which reconnection should be attempted for this channel. */
@@ -932,7 +1196,7 @@ namespace LSEG.Eta.ValueAdd.Reactor
         [MethodImpl(MethodImplOptions.AggressiveOptimization | MethodImplOptions.AggressiveInlining)]
         internal ReactorConnectInfo GetReactorConnectInfo()
         {
-            return ConnectOptions!.ConnectionList![m_ListIndex];
+            return m_ConnectionInfoSelector!.Current;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveOptimization | MethodImplOptions.AggressiveInlining)]
@@ -950,6 +1214,12 @@ namespace LSEG.Eta.ValueAdd.Reactor
                 Socket = null;
                 OldSocket= null;
             }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveOptimization | MethodImplOptions.AggressiveInlining)]
+        internal void SetOnlyChannel(IChannel? channel)
+        {
+            Channel = channel;
         }
 
         /// <summary>
@@ -976,7 +1246,7 @@ namespace LSEG.Eta.ValueAdd.Reactor
                 m_RestConnectOptions = new ReactorRestConnectOptions(Reactor!.m_ReactorOptions);
             }
 
-            ReactorConnectInfo reactorConnectInfo = ConnectOptions!.ConnectionList![m_ListIndex];
+            ReactorConnectInfo reactorConnectInfo = m_ConnectionInfoSelector!.Current;
             m_RestConnectOptions.ProxyOptions.ProxyHostName = reactorConnectInfo.ConnectOptions.ProxyOptions.ProxyHostName;
             m_RestConnectOptions.ProxyOptions.ProxyPort = reactorConnectInfo.ConnectOptions.ProxyOptions.ProxyPort;
             m_RestConnectOptions.ProxyOptions.ProxyUserName = reactorConnectInfo.ConnectOptions.ProxyOptions.ProxyUserName;
@@ -986,9 +1256,12 @@ namespace LSEG.Eta.ValueAdd.Reactor
         }
 
         [MethodImpl(MethodImplOptions.AggressiveOptimization | MethodImplOptions.AggressiveInlining)]
-        internal ReactorReturnCode ApplyServiceDiscoveryEndpoint(out ReactorErrorInfo? errorInfo)
+        internal ReactorReturnCode ApplyServiceDiscoveryEndpoint(out ReactorErrorInfo? errorInfo) =>
+            ApplyServiceDiscoveryEndpoint(m_ConnectionInfoSelector!.Current, out errorInfo);
+
+        [MethodImpl(MethodImplOptions.AggressiveOptimization | MethodImplOptions.AggressiveInlining)]
+        private ReactorReturnCode ApplyServiceDiscoveryEndpoint(ReactorConnectInfo reactorConnectInfo, out ReactorErrorInfo? errorInfo)
         {
-            ReactorConnectInfo reactorConnectInfo = ConnectOptions!.ConnectionList![m_ListIndex];
             string transportType = string.Empty;
             ReactorServiceEndpointInfo? selectedEndpoint = null;
 
@@ -1038,20 +1311,20 @@ namespace LSEG.Eta.ValueAdd.Reactor
         [MethodImpl(MethodImplOptions.AggressiveOptimization | MethodImplOptions.AggressiveInlining)]
         internal bool EnableSessionManagement()
         {
-            return ConnectOptions!.ConnectionList![m_ListIndex].EnableSessionManagement;
+            return m_ConnectionInfoSelector!.Current.EnableSessionManagement;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveOptimization | MethodImplOptions.AggressiveInlining)]
         internal IReactorAuthTokenEventCallback? ReactorAuthTokenEventCallback()
         {
-            return ConnectOptions!.ConnectionList![m_ListIndex].ReactorAuthTokenEventCallback;
+            return m_ConnectionInfoSelector!.Current.ReactorAuthTokenEventCallback;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveOptimization | MethodImplOptions.AggressiveInlining)]
         internal void ApplyAccessToken()
         {
             /* Checks to ensure that the application specifies the Login request in the ConsumerRole as well */
-            if(RDMLoginRequestRDP is not null && TokenSession is not null)
+            if (RDMLoginRequestRDP is not null && TokenSession is not null)
             {
                 RDMLoginRequestRDP.UserNameType = Eta.Rdm.Login.UserIdTypes.AUTHN_TOKEN;
                 RDMLoginRequestRDP.UserName.Data(TokenSession.ReactorAuthTokenInfo.AccessToken);
@@ -1062,12 +1335,10 @@ namespace LSEG.Eta.ValueAdd.Reactor
         }
 
         [MethodImpl(MethodImplOptions.AggressiveOptimization | MethodImplOptions.AggressiveInlining)]
-        bool RedoServiceDiscoveryForCurrentChannel()
+        private bool RedoServiceDiscoveryForChannel(ReactorConnectInfo connectInfo)
         {
-            if (ConnectOptions != null)
+            if (IsConsumerChannel())
             {
-                ReactorConnectInfo connectInfo = ConnectOptions.ConnectionList![m_ListIndex];
-
                 return (connectInfo.ServiceDiscoveryRetryCount != 0
                         && !connectInfo.HostAndPortProvided
                         && connectInfo.ReconnectAttempts == connectInfo.ServiceDiscoveryRetryCount);
@@ -1080,11 +1351,10 @@ namespace LSEG.Eta.ValueAdd.Reactor
         }
 
         [MethodImpl(MethodImplOptions.AggressiveOptimization | MethodImplOptions.AggressiveInlining)]
-        void IncreaseRetryCountForCurrentChannel()
+        private void IncreaseRetryCountForChannel(ReactorConnectInfo connectInfo)
         {
-            if (ConnectOptions != null)
+            if (IsConsumerChannel())
             {
-                ReactorConnectInfo connectInfo = ConnectOptions.ConnectionList![m_ListIndex];
                 if (connectInfo.EnableSessionManagement && connectInfo.ServiceDiscoveryRetryCount != 0)
                 {
                     connectInfo.ReconnectAttempts++;
@@ -1095,11 +1365,25 @@ namespace LSEG.Eta.ValueAdd.Reactor
         [MethodImpl(MethodImplOptions.AggressiveOptimization | MethodImplOptions.AggressiveInlining)]
         internal void ResetCurrentChannelRetryCount()
         {
-            if (ConnectOptions != null)
+            if (IsConsumerChannel())
             {
-                ReactorConnectInfo connectInfo = ConnectOptions.ConnectionList![m_ListIndex];
+                ResetCurrentChannelRetryCount(
+                    FallbackContext!.IsSwitchingToPreferredHost
+                        ? m_ConnectionInfoSelector!.Next
+                        : m_ConnectionInfoSelector!.Current);
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveOptimization | MethodImplOptions.AggressiveInlining)]
+        private void ResetCurrentChannelRetryCount(ReactorConnectInfo connectInfo)
+        {
+            if (IsConsumerChannel())
+            {
                 connectInfo.ReconnectAttempts = 0;
             }
         }
+
+        [MethodImpl(MethodImplOptions.AggressiveOptimization | MethodImplOptions.AggressiveInlining)]
+        private bool IsConsumerChannel() => ConnectOptions != null;
     }
 }

@@ -15,14 +15,14 @@ namespace LSEG.Eta.Example.VACommon;
 /// </summary>
 public class ItemArg
 {
-    public DomainType Domain { get; set; }
-    public string? ItemName { get; set; }
-    public bool EnablePrivateStream { get; set; }
-    public bool EnableView { get; set; }
-    public bool EnableSnapshot { get; set; }
-    public bool EnableMsgKeyInUpdates { get; set; }
-    public int ViewId { get; set; }
-    public bool SymbolListData { get; set; }
+    public DomainType Domain;
+    public string? ItemName;
+    public bool EnablePrivateStream;
+    public bool EnableView;
+    public bool EnableSnapshot;
+    public bool EnableMsgKeyInUpdates;
+    public int ViewId;
+    public bool SymbolListData;
 
     public ItemArg(DomainType domain, string itemName, bool enablePrivateStream)
     {

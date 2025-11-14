@@ -87,7 +87,12 @@ namespace LSEG.Ema.Access
             /// <summary>
             /// This is used to indicate that this item is removed so it is not recovered
             /// </summary>
-            REMOVED = 4
+            REMOVED = 4,
+
+            /// <summary>
+            /// This indicates that this item is being recovered by watchlist when the requested service is operational.
+            /// </summary>
+            RECOVERING_BY_WATCHLIST = 5,
         }
 
         private static readonly string CLIENT_NAME = "SingleItem";
@@ -625,7 +630,7 @@ namespace LSEG.Ema.Access
                     ItemClosedDirHash = null;
                 }
 
-                bool returnToPool = !(State == StateEnum.RECOVERING || State == StateEnum.RECOVERING_NO_MATHCING);
+                bool returnToPool = !(State == StateEnum.RECOVERING || State == StateEnum.RECOVERING_NO_MATHCING || State == StateEnum.RECOVERING_BY_WATCHLIST);
 
                 m_OmmBaseImpl.ItemCallbackClient!.RemoveFromMap(this, returnToPool);
 

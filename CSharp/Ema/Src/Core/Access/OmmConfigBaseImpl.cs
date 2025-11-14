@@ -121,7 +121,7 @@ namespace LSEG.Ema.Access
 
         // Generates the reactor connect options based on the Consumer Config.
         // Prerequsites: The user-supplied OmmConsumerConfig has been verified with OmmConsumerConfigImpl.VerifyConfig and this is run on the "active" configuration copy
-        public abstract ReactorConnectOptions GenerateReactorConnectOpts();
+        public abstract ReactorConnectOptions GenerateReactorConnectOpts(ILoggerClient? loggerClient);
 
         internal void TlsCipherSuites(IEnumerable<TlsCipherSuite> cipherSuites)
         {

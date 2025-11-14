@@ -31,16 +31,19 @@ namespace LSEG.Ema.Access
         // when this channel belongs to a SessionChannel
         public SessionChannelConfig? SessionInfo { get; private set; }
 
+        public ConsumerConfig? ConsumerConfig { get; private set; }
+
         public ChannelInfo(ClientChannelConfig config, Reactor reactor)
         {
             ChannelConfig = config;
             Reactor = reactor;
         }
 
-        public ChannelInfo(ClientChannelConfig config, Reactor reactor, SessionChannelConfig? sessionInfo)
+        public ChannelInfo(ClientChannelConfig config, Reactor reactor, ConsumerConfig? consumerConfig, SessionChannelConfig? sessionInfo)
             : this(config, reactor)
         {
             SessionInfo = sessionInfo;
+            ConsumerConfig = consumerConfig;
         }
     }
 
@@ -178,15 +181,20 @@ namespace LSEG.Ema.Access
         private void InitializeReactor(List<string> channelSet, SessionChannelInfo<IOmmConsumerClient>? sessionChannelInfo = null)
         {
             StringBuilder channelNames = new StringBuilder();
+            OmmConsumerConfigImpl? ommConsumerConfigImpl = null;
 
-            if (sessionChannelInfo is not null
-                && baseImpl.OmmConfigBaseImpl is OmmConsumerConfigImpl consumerConfig)
+            if(baseImpl.OmmConfigBaseImpl is OmmConsumerConfigImpl)
             {
-                reactorConnOptions = consumerConfig.GenerateReactorSessionConnectOpts(sessionChannelInfo);
+                ommConsumerConfigImpl = (OmmConsumerConfigImpl)baseImpl.OmmConfigBaseImpl;
+            }
+
+            if (sessionChannelInfo is not null && ommConsumerConfigImpl is not null)
+            {
+                reactorConnOptions = ommConsumerConfigImpl.GenerateReactorSessionConnectOpts(sessionChannelInfo, baseImpl.LoggerClient);
             }
             else
             {
-                reactorConnOptions = baseImpl.OmmConfigBaseImpl.GenerateReactorConnectOpts();
+                reactorConnOptions = baseImpl.OmmConfigBaseImpl.GenerateReactorConnectOpts(baseImpl.LoggerClient);
             }
 
             m_ChannelCount = channelSet.Count;
@@ -218,7 +226,7 @@ namespace LSEG.Ema.Access
             foreach (string channelName in channelSet)
             {
                 ChannelInfo channelInfo = new ChannelInfo(baseImpl.OmmConfigBaseImpl.ClientChannelConfigMap[channelName],
-                    reactor, sessionChannelInfo?.SessionChannelConfig);
+                    reactor, ommConsumerConfigImpl?.ConsumerConfig, sessionChannelInfo?.SessionChannelConfig);
 
                 // If proxy options were set by functions, override them for all connections.
                 if (string.IsNullOrEmpty(baseImpl.OmmConfigBaseImpl.ProxyHost) == false)
@@ -751,6 +759,80 @@ namespace LSEG.Ema.Access
                         }
 
                         break;
+                    }
+                case ReactorChannelEventType.PREFERRED_HOST_STARTING_FALLBACK:
+                    {
+                        if (baseImpl.LoggerClient.IsInfoEnabled)
+                        {
+                            StringBuilder temp = baseImpl.GetStrBuilder();
+                            temp.AppendLine($"Received PreferredHostSwitchoverStarting event on channel {channelInfo?.ChannelConfig.Name}")
+                                .Append($"Instance Name {baseImpl.InstanceName}");
+
+                            baseImpl.LoggerClient.Info(CLIENT_NAME, temp.ToString());
+                        }
+
+                        baseImpl.ProcessChannelEvent(evt);
+
+                        if(sessionChannelInfo != null)
+                        {
+                            sessionChannelInfo.PHOperationInProcess = true;
+                            sessionChannelInfo.ConsumerSession.ProcessChannelEvent(sessionChannelInfo, evt);
+                        }
+                        else
+                        {
+                            baseImpl.LoginCallbackClient!.ProcessChannelEvent(evt);
+                        }
+
+                        return ReactorCallbackReturnCode.SUCCESS;
+                    }
+                case ReactorChannelEventType.PREFERRED_HOST_COMPLETE:
+                    {
+                        if (baseImpl.LoggerClient.IsInfoEnabled)
+                        {
+                            StringBuilder temp = baseImpl.GetStrBuilder();
+                            temp.AppendLine($"Received PreferredHostSwitchoverComplete event on channel {channelInfo?.ChannelConfig.Name}")
+                                .Append($"Instance Name {baseImpl.InstanceName}");
+
+                            baseImpl.LoggerClient.Info(CLIENT_NAME, temp.ToString());
+                        }
+
+                        baseImpl.ProcessChannelEvent(evt);
+
+                        if (sessionChannelInfo != null)
+                        {
+                            sessionChannelInfo.PHOperationInProcess = false;
+                            sessionChannelInfo.ConsumerSession.ProcessChannelEvent(sessionChannelInfo, evt);
+                        }
+                        else
+                        {
+                            baseImpl.LoginCallbackClient!.ProcessChannelEvent(evt);
+                        }
+
+                        return ReactorCallbackReturnCode.SUCCESS;
+                    }
+                case ReactorChannelEventType.PREFERRED_HOST_NO_FALLBACK:
+                    {
+                        if (baseImpl.LoggerClient.IsInfoEnabled)
+                        {
+                            StringBuilder temp = baseImpl.GetStrBuilder();
+                            temp.AppendLine($"Received PreferredHostNoFallback event due to already being on preferred channel {channelInfo?.ChannelConfig.Name}")
+                                .Append($"Instance Name {baseImpl.InstanceName}");
+
+                            baseImpl.LoggerClient.Info(CLIENT_NAME, temp.ToString());
+                        }
+
+                        baseImpl.ProcessChannelEvent(evt);
+
+                        if (sessionChannelInfo != null)
+                        {
+                            sessionChannelInfo.ConsumerSession.ProcessChannelEvent(sessionChannelInfo, evt);
+                        }
+                        else
+                        {
+                            baseImpl.LoginCallbackClient!.ProcessChannelEvent(evt);
+                        }
+
+                        return ReactorCallbackReturnCode.SUCCESS;
                     }
                 default:
                     {

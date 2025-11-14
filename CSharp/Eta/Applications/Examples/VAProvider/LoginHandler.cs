@@ -189,7 +189,7 @@ namespace LSEG.Eta.ValueAdd.Provider
 
             m_LoginStatus.Clear();
             m_LoginStatus.StreamId = loginReqInfo.LoginRequest.StreamId;
-            m_LoginStatus.HasState = true;
+            m_LoginStatus.HasState = true; 
             m_LoginStatus.State.StreamState(StreamStates.CLOSED);
             m_LoginStatus.State.DataState(DataStates.SUSPECT);
             m_LoginStatus.State.Text().Data("Login stream closed");
@@ -246,7 +246,6 @@ namespace LSEG.Eta.ValueAdd.Provider
             m_LoginRefresh.State.Text().Data("Login accepted by host localhost");
 
             m_LoginRefresh.Solicited = true;
-
             m_LoginRefresh.HasAttrib = true;
             m_LoginRefresh.LoginAttrib.HasApplicationId = true;
             m_LoginRefresh.LoginAttrib.ApplicationId.Data(applicationId);

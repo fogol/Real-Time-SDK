@@ -57,6 +57,19 @@ internal class SessionChannelConfig
     public bool ReconnectAttemptLimitSet { get; internal set; }
     public bool ReconnectMaxDelaySet { get; internal set; }
     public bool ReconnectMinDelaySet { get; internal set; }
+    public bool PHDetectionTimeScheduleSet { get; internal set; }
+    public bool PHDetectionTimeIntervalSet { get; internal set; }
+
+    /* Preferred host configuration options */
+    public bool EnablePreferredHostOptions { get; set; } = false;
+
+    public string PreferredChannelName { get; internal set; } = string.Empty;
+
+    public string PHDetectionTimeSchedule { get; internal set; } = string.Empty;
+
+    public uint PHDetectionTimeInterval { get; internal set; }
+
+    public int PreferredChannelIndex;
     #endregion
 
     public SessionChannelConfig()
@@ -76,6 +89,15 @@ internal class SessionChannelConfig
         ReconnectAttemptLimitSet = oldConfig.ReconnectAttemptLimitSet;
         ReconnectMaxDelaySet = oldConfig.ReconnectMaxDelaySet;
         ReconnectMinDelaySet = oldConfig.ReconnectMinDelaySet;
+        PHDetectionTimeScheduleSet = oldConfig.PHDetectionTimeScheduleSet;
+        PHDetectionTimeIntervalSet = oldConfig.PHDetectionTimeIntervalSet;
+
+        EnablePreferredHostOptions = oldConfig.EnablePreferredHostOptions;
+        PreferredChannelName = oldConfig.PreferredChannelName;
+        PHDetectionTimeSchedule = oldConfig.PHDetectionTimeSchedule;
+        PHDetectionTimeInterval = oldConfig.PHDetectionTimeInterval;
+        PreferredChannelIndex = oldConfig.PreferredChannelIndex;
+
 
         ChannelSet = new List<string>(oldConfig.ChannelSet.Count);
         ChannelSet.AddRange(oldConfig.ChannelSet);
@@ -94,6 +116,14 @@ internal class SessionChannelConfig
         ReconnectAttemptLimitSet = false;
         ReconnectMaxDelaySet = false;
         ReconnectMinDelaySet = false;
+        PHDetectionTimeScheduleSet = false;
+        PHDetectionTimeIntervalSet = false;
+
+        EnablePreferredHostOptions = false;
+        PreferredChannelName = string.Empty;
+        PHDetectionTimeSchedule = string.Empty;
+        PHDetectionTimeInterval = 0;
+        PreferredChannelIndex = 0;
     }
 
     // Copy method, produces a deep copy into DestConfig.
@@ -106,7 +136,15 @@ internal class SessionChannelConfig
         DestConfig.ReconnectAttemptLimitSet = ReconnectAttemptLimitSet;
         DestConfig.ReconnectMaxDelaySet = ReconnectMaxDelaySet;
         DestConfig.ReconnectMinDelaySet = ReconnectMinDelaySet;
+        DestConfig.PHDetectionTimeScheduleSet = PHDetectionTimeScheduleSet;
+        DestConfig.PHDetectionTimeIntervalSet = PHDetectionTimeIntervalSet;
 
         DestConfig.ChannelSet.AddRange(ChannelSet);
+
+        DestConfig.EnablePreferredHostOptions = EnablePreferredHostOptions;
+        DestConfig.PreferredChannelName = PreferredChannelName;
+        DestConfig.PHDetectionTimeSchedule = PHDetectionTimeSchedule;
+        DestConfig.PHDetectionTimeInterval = PHDetectionTimeInterval;
+        DestConfig.PreferredChannelIndex = PreferredChannelIndex;
     }
 }

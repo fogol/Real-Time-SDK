@@ -21,7 +21,7 @@ namespace LSEG.Ema.Access
     /// performs connection and item recovery, etc.
     /// </para>
     /// <para>
-    /// OmmConsumer provides a default behaviour / functionality. 
+    /// OmmConsumer provides a default behaviour / functionality.
     /// This may be tuned / modified by application when using <see cref="OmmConsumerConfig"/>.
     /// </para>
     /// <para>
@@ -340,6 +340,37 @@ namespace LSEG.Ema.Access
         /// </exception>
         public void ModifyIOCtl(IOCtlCode code, int val) =>
             m_OmmConsumerImpl?.ModifyIOCtl(code, val);
+
+        /// <summary>
+        /// Allows modifying some I/O values programmatically for a channel to override
+        /// the default values.
+        /// </summary>
+        ///
+        /// <para> This method is ObjectLevelSafe.</para>
+        ///
+        /// <param name="code">provides Code of I/O option defined in <see cref="IOCtlCode"/>
+        ///   to modify.</param>
+        /// <param name="val">provides Value to modify I/O option to</param>
+        ///
+        /// <exception cref="OmmInvalidUsageException">
+        /// if failed to modify I/O option to
+        /// </exception>
+        public void ModifyIOCtl(IOCtlCode code, object val)
+        {
+            m_OmmConsumerImpl?.ModifyIOCtl(code, val);
+        }
+
+        /// <summary>
+        ///	Triggers an immediate attempt to switch the current connection to the preferred host.
+        ///	</summary>
+        ///
+        ///	<exception cref="OmmInvalidUsageException">
+        ///	if the reactor failed to switch to preferred host.
+        ///	</exception>
+        public void FallbackPreferredHost()
+        {
+            m_OmmConsumerImpl?.FallbackPreferredHost();
+        }
 
         /// <summary>
         /// Relinquishes interest in an open item stream.

@@ -9,11 +9,7 @@
 using System;
 using System.Collections.Generic;
 
-using LSEG.Eta.Codec;
-using LSEG.Eta.Example.Common;
 using LSEG.Eta.Example.VACommon;
-using LSEG.Eta.Rdm;
-using LSEG.Eta.Transports;
 
 using static LSEG.Eta.Example.Common.CommandLine;
 
@@ -35,11 +31,12 @@ internal class WatchlistConsumerConfig
 
     private const int DEFAULT_RUNTIME = 600;
 
+    //APIQA
     private const int DEFAULT_REC_AT_LIMIT = -1;
     private const int DEFAULT_REC_AT_MIN_DELAY = 500;
     private const int DEFAULT_REC_AT_MAX_DELAY = 3000;
     private const int DEFAULT_NUM_CONNECTIONS = 1;
-
+    //END APIQA
     private const int MAX_ITEMS = 128;
     private const int ITEMS_MIN_STREAM_ID = 5;
 
@@ -203,45 +200,15 @@ internal class WatchlistConsumerConfig
             {
                 args[i] = args[i].Replace("connectionType", "c");
             }
+
 }
 
 AddCommandLineArgs();
         try
         {
             CommandLine.ParseArgs(args);
-            List<ItemArg> itemList = new();
 
-            List<string>? itemNames = Values("mp");
-            if (itemNames != null && itemNames.Count > 0)
-                ParseItems(itemNames, DomainType.MARKET_PRICE, false, false, itemList);
-
-            itemNames = Values("mbo");
-            if (itemNames != null && itemNames.Count > 0)
-                ParseItems(itemNames, DomainType.MARKET_BY_ORDER, false, false, itemList);
-
-            itemNames = Values("mbp");
-            if (itemNames != null && itemNames.Count > 0)
-                ParseItems(itemNames, DomainType.MARKET_BY_PRICE, false, false, itemList);
-
-            itemNames = Values("yc");
-            if (itemNames != null && itemNames.Count > 0)
-                ParseItems(itemNames, DomainType.YIELD_CURVE, false, false, itemList);
-
-            itemNames = Values("sl");
-            if (itemNames != null && itemNames.Count > 0)
-                ParseItems(itemNames, DomainType.SYMBOL_LIST, false, false, itemList);
-
-            itemNames = Values("sld");
-            if (itemNames != null && itemNames.Count > 0)
-                ParseItems(itemNames, DomainType.SYMBOL_LIST, false, true, itemList);
-
-            if (itemList.Count == 0 && !HasArg("tunnel"))
-            {
-                ItemArg itemArg = new(DomainType.MARKET_PRICE, DEFAULT_ITEM_NAME, false);
-                itemList.Add(itemArg);
-            }
-
-            ConnectionArg connectionArg = new ConnectionArg();
+            ConnectionArg connectionArg = new();
 
             string? connectionType = Value("c");
             if (connectionType?.Equals("socket") ?? false)
@@ -253,6 +220,15 @@ AddCommandLineArgs();
                 connectionArg.ConnectionType = ConnectionType.ENCRYPTED;
                 EnableEncrypted = true;
             }
+
+            EncryptionProtocolFlags EncryptionProtocol = EncryptionProtocolFlags.ENC_NONE;
+            if (CommandLine.BoolValue("spTLSv1.2"))
+                EncryptionProtocol |= EncryptionProtocolFlags.ENC_TLSV1_2;
+            if (CommandLine.BoolValue("spTLSv1.3"))
+                EncryptionProtocol |= EncryptionProtocolFlags.ENC_TLSV1_3;
+
+            if (EncryptionProtocol != EncryptionProtocolFlags.ENC_NONE)
+                connectionArg.EncryptionProtocolFlags = EncryptionProtocol;
 
             if (HasArg("encryptedProtocolType"))
             {
@@ -298,9 +274,37 @@ AddCommandLineArgs();
 
             connectionArg.InterfaceName = Value("if");
 
+            List<ItemArg> itemList = new();
 
-            connectionArg.ItemList = itemList;
-            ConnectionList.Add(connectionArg);
+            List<string>? itemNames = Values("mp");
+            if (itemNames != null && itemNames.Count > 0)
+                ParseItems(itemNames, DomainType.MARKET_PRICE, false, false, itemList);
+
+            itemNames = Values("mbo");
+            if (itemNames != null && itemNames.Count > 0)
+                ParseItems(itemNames, DomainType.MARKET_BY_ORDER, false, false, itemList);
+
+            itemNames = Values("mbp");
+            if (itemNames != null && itemNames.Count > 0)
+                ParseItems(itemNames, DomainType.MARKET_BY_PRICE, false, false, itemList);
+
+            itemNames = Values("yc");
+            if (itemNames != null && itemNames.Count > 0)
+                ParseItems(itemNames, DomainType.YIELD_CURVE, false, false, itemList);
+
+            itemNames = Values("sl");
+            if (itemNames != null && itemNames.Count > 0)
+                ParseItems(itemNames, DomainType.SYMBOL_LIST, false, false, itemList);
+
+            itemNames = Values("sld");
+            if (itemNames != null && itemNames.Count > 0)
+                ParseItems(itemNames, DomainType.SYMBOL_LIST, false, true, itemList);
+
+            if (itemList.Count == 0 && !HasArg("tunnel"))
+            {
+                ItemArg itemArg = new(DomainType.MARKET_PRICE, DEFAULT_ITEM_NAME, false);
+                itemList.Add(itemArg);
+            }
 
             //API QA
             Console.WriteLine("\nQA NumConnections = " + NumConnections!);
@@ -346,6 +350,9 @@ AddCommandLineArgs();
                 }
             }
             //END API QA
+            connectionArg.ItemList = itemList;
+            ConnectionList.Add(connectionArg);
+
             string? value = Value("publisherInfo") ?? string.Empty;
             if (value != null)
             {
@@ -422,6 +429,14 @@ AddCommandLineArgs();
     public string? ProxyUsername => Value("plogin");
 
     public string? ProxyPassword => Value("ppasswd");
+
+    public string? RestProxyHostname => Value("restProxyHostname");
+
+    public string? RestProxyPort => Value("restProxyPort");
+
+    public string? RestProxyUsername => Value("restProxyUsername");
+
+    public string? RestProxyPassword => Value("restProxyPasswd");
 
     public string? AuthenticationToken => Value("at");
 
@@ -517,6 +532,11 @@ AddCommandLineArgs();
         AddOption("plogin", "", "User Name on proxy server");
         AddOption("ppasswd", "", "Password on proxy server");
 
+        AddOption("restProxyHostname", "", "Proxy server host name for REST requests");
+        AddOption("restProxyPort", "", "Proxy port number for REST requests");
+        AddOption("restProxyUsername", "", "User Name on proxy server for REST requests");
+        AddOption("restProxyPasswd", "", "Password on proxy server for REST requests");
+
         AddOption("at", "", "Specifies the Authentication Token. If this is present, the login user name type will be Login.UserIdTypes.AUTHN_TOKEN.");
         AddOption("ax", "", "Specifies the Authentication Extended information.");
         AddOption("aid", "", "Specifies the Application ID.");
@@ -533,7 +553,11 @@ AddCommandLineArgs();
         AddOption("serviceDiscoveryURL", "Specifies the service discovery URL.");
         AddOption("restEnableLog", false, "(optional) Enable REST logging message");
         AddOption("restLogFileName", "Set REST logging output stream");      
+
         AddOption("rtt", false, "(optional) Enable RTT support in the WatchList");
+
+        AddOption("spTLSv1.2", false, "Specifies that TLSv1.2 can be used for an encrypted connection");
+        AddOption("spTLSv1.3", false, "Specifies that TLSv1.3 can be used for an encrypted connection");
         //API QA
         AddOption("attemptLimit", DEFAULT_REC_AT_LIMIT, "ReconnectAttemptLimit");
         AddOption("minDelay", DEFAULT_REC_AT_MIN_DELAY, "ReconnectMinDelay in milliseconds");

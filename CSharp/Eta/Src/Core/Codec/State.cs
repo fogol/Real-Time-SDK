@@ -222,14 +222,19 @@ namespace LSEG.Eta.Codec
 			return _dataState;
 		}
 
-		/// <summary>
-		/// An enumerated code providing additional state information. Typically
-		/// indicates more specific information (e.g., pertaining to a condition
-		/// occurring upstream causing current data and stream states).
-		/// code is typically used for informational purposes.
-		/// Populated from <see cref="StateCodes"/>.
-		/// Must be in the range of <see cref="StateCodes.NONE"/> - 127.
-		/// </summary>
+        /// <summary>
+        /// An enumerated code providing additional state information.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Typically indicates more specific information (e.g., pertaining to a condition
+        /// occurring upstream causing current data and stream states).  code is typically
+        /// used for informational purposes.</para>
+        /// <para>
+        /// Populated from <see cref="StateCodes"/>.</para>
+        /// <para>
+        /// Must be in the range of <see cref="StateCodes.NONE"/>...<see cref="StateCodes.MAX_RESERVED"/>.</para>
+        /// </remarks>
 		/// <param name="code"> the code to set
 		/// </param>
 		/// <returns> <c>CodecReturnCode.SUCCESS</c> on success,

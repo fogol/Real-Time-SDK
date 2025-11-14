@@ -157,7 +157,8 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                     EncryptedConnectionType = eventChannelInfo.EncryptedConnectionType,
                     EncryptionProtocol = eventChannelInfo.EncryptionProtocol,
                     ChannelName = eventChannelInfo.ChannelName,
-                    SessionChannelName = eventChannelInfo.SessionChannelName
+                    SessionChannelName = eventChannelInfo.SessionChannelName,
+                    PreferredHostInfo = eventChannelInfo.PreferredHostInfo
                 };
 
                 m_ChannelInfoQueue.Enqueue(channelInfo);
@@ -196,6 +197,10 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 m_Handles.Add(consumerEvent.Handle);
 
                 RefreshMsg cloneMsg = new RefreshMsg(refreshMsg);
+
+                m_Output.WriteLine($"\n>>>>>>>>>>>>>> Consumer received refresh message in domain {cloneMsg.DomainType()}");
+                if (cloneMsg.HasServiceName)
+                    m_Output.WriteLine($", serviceName: {cloneMsg.ServiceName()}");
 
                 if (refreshMsg.DomainType() == EmaRdm.MMT_DICTIONARY)
                 {

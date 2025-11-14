@@ -8,10 +8,6 @@
 
 using System.Diagnostics;
 using System.Net;
-
-using LSEG.Eta.Common;
-using LSEG.Eta.Codec;
-using LSEG.Eta.Example.Common;
 using LSEG.Eta.Rdm;
 using LSEG.Eta.ValueAdd.Reactor;
 
@@ -340,7 +336,7 @@ namespace LSEG.Eta.ValueAdd.Consumer
                 if (dictionaryEntry != null)
                 {
                     fEntry.FieldId = 32745;
-                    fEntry.DataType = dictionaryEntry.RwfType;
+                    fEntry.DataType = dictionaryEntry.GetRwfType();
                     uintValue.Value(1);
                     if ((ret1 = fEntry.Encode(m_EncodeIterator, uintValue)) < CodecReturnCode.SUCCESS)
                     {
@@ -354,7 +350,7 @@ namespace LSEG.Eta.ValueAdd.Consumer
                 if (dictionaryEntry != null)
                 {
                     fEntry.FieldId = 32746;
-                    fEntry.DataType = dictionaryEntry.RwfType;
+                    fEntry.DataType = dictionaryEntry.GetRwfType();
                     inputValue.Data("QVFJQzV3TTJMWTRTZmN5WElqRNE9USTFNems1QUFKVE1RQUNNREk9Iw==");
                     if ((ret1 = fEntry.Encode(m_EncodeIterator, inputValue)) < CodecReturnCode.SUCCESS)
                     {
@@ -368,7 +364,7 @@ namespace LSEG.Eta.ValueAdd.Consumer
                 if (dictionaryEntry != null)
                 {
                     fEntry.FieldId = 32747;
-                    fEntry.DataType = dictionaryEntry.RwfType;
+                    fEntry.DataType = dictionaryEntry.GetRwfType();
                     inputValue.Data("Insertlink");
                     if ((ret1 = fEntry.Encode(m_EncodeIterator, inputValue)) < CodecReturnCode.SUCCESS)
                     {
@@ -382,7 +378,7 @@ namespace LSEG.Eta.ValueAdd.Consumer
                 if (dictionaryEntry != null)
                 {
                     fEntry.FieldId = 32748;
-                    fEntry.DataType = dictionaryEntry.RwfType;
+                    fEntry.DataType = dictionaryEntry.GetRwfType();
                     inputValue.Data("upalibtest");
                     if ((ret1 = fEntry.Encode(m_EncodeIterator, inputValue)) < CodecReturnCode.SUCCESS)
                     {
@@ -396,7 +392,7 @@ namespace LSEG.Eta.ValueAdd.Consumer
                 if (dictionaryEntry != null)
                 {
                     fEntry.FieldId = 32749;
-                    fEntry.DataType = dictionaryEntry.RwfType;
+                    fEntry.DataType = dictionaryEntry.GetRwfType();
                     inputValue.Data("1.0");
                     if ((ret1 = fEntry.Encode(m_EncodeIterator, inputValue)) < CodecReturnCode.SUCCESS)
                     {
@@ -410,7 +406,7 @@ namespace LSEG.Eta.ValueAdd.Consumer
                 if (dictionaryEntry != null)
                 {
                     fEntry.FieldId = 32750;
-                    fEntry.DataType = dictionaryEntry.RwfType;
+                    fEntry.DataType = dictionaryEntry.GetRwfType();
                     inputValue.Data("MmJtMjU3ag==");
                     if ((ret1 = fEntry.Encode(m_EncodeIterator, inputValue)) < CodecReturnCode.SUCCESS)
                     {

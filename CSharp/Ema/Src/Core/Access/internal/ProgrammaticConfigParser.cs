@@ -439,6 +439,88 @@ namespace LSEG.Ema.Access
                                         }
 
                                         break;
+
+                                    // begin Preferred Host configuration parameters
+
+                                    // EnablePreferredHostOptions bool
+                                    case "EnablePreferredHostOptions" :
+                                        CheckElementEntry("Consumer", "EnablePreferredHostOptions", DataTypes.UINT, consumerEntry, "and have a value of \"0\" or \"1\".");
+
+                                        tmpConfig.EnablePreferredHostOptions = (consumerEntry.UIntValue() != 0);
+                                        break;
+
+                                    // PHDetectionTimeSchedule string
+                                    case "PHDetectionTimeSchedule" :
+                                        CheckElementEntry("Consumer", "PHDetectionTimeSchedule", DataTypes.ASCII_STRING, consumerEntry);
+
+                                        tmpConfig.PHDetectionTimeSchedule = consumerEntry.OmmAsciiValue().ToString();
+                                        break;
+
+                                    // PHDetectionTimeInterval uint
+                                    case "PHDetectionTimeInterval" :
+                                        CheckElementEntry("Consumer", "PHDetectionTimeInterval", DataTypes.UINT, consumerEntry);
+
+                                        tmpConfig.PHDetectionTimeInterval = Utilities.Convert_ulong_uint(consumerEntry.UIntValue());
+                                        break;
+
+                                    // PreferredChannelName string
+                                    case "PreferredChannelName" :
+                                        CheckElementEntry("Consumer", "PreferredChannelName", DataTypes.ASCII_STRING, consumerEntry);
+
+                                        tmpConfig.PreferredChannelName = consumerEntry.OmmAsciiValue().ToString();
+                                        break;
+
+                                    // end Preferred Host configuration parameters
+
+                                    // XmlTraceToStdout bool
+                                    case "XmlTraceToStdout":
+                                        CheckElementEntry("Consumer", "XmlTraceToStdout", DataTypes.UINT, consumerEntry, "and have a value of \"0\" or \"1\".");
+
+                                        tmpConfig.XmlTraceToStdout = (consumerEntry.UIntValue() != 0);
+                                        break;
+                                    // XmlTraceToFile bool
+                                    case "XmlTraceToFile":
+                                        CheckElementEntry("Consumer", "XmlTraceToFile", DataTypes.UINT, consumerEntry, "and have a value of \"0\" or \"1\".");
+
+                                        tmpConfig.XmlTraceToFile = (consumerEntry.UIntValue() != 0);
+                                        break;
+                                    // XmlTraceToFile string
+                                    case "XmlTraceFileName":
+                                        CheckElementEntry("Consumer", "XmlTraceFileName", DataTypes.ASCII_STRING, consumerEntry);
+
+                                        tmpConfig.XmlTraceFileName = consumerEntry.OmmAsciiValue().ToString();
+                                        break;
+                                    // XmlTraceMaxFileSize ulong
+                                    case "XmlTraceMaxFileSize":
+                                        CheckElementEntry("Consumer", "XmlTraceMaxFileSize", DataTypes.UINT, consumerEntry);
+
+                                        tmpConfig.XmlTraceMaxFileSize = consumerEntry.UIntValue();
+                                        break;
+                                    // XmlTraceToMultipleFiles bool
+                                    case "XmlTraceToMultipleFiles":
+                                        CheckElementEntry("Consumer", "XmlTraceToMultipleFiles", DataTypes.UINT, consumerEntry, "and have a value of \"0\" or \"1\".");
+
+                                        tmpConfig.XmlTraceToMultipleFiles = (consumerEntry.UIntValue() != 0);
+                                        break;
+                                    // XmlTraceWrite bool
+                                    case "XmlTraceWrite":
+                                        CheckElementEntry("Consumer", "XmlTraceWrite", DataTypes.UINT, consumerEntry, "and have a value of \"0\" or \"1\".");
+
+                                        tmpConfig.XmlTraceWrite = (consumerEntry.UIntValue() != 0);
+                                        break;
+                                    // XmlTraceRead bool
+                                    case "XmlTraceRead":
+                                        CheckElementEntry("Consumer", "XmlTraceRead", DataTypes.UINT, consumerEntry, "and have a value of \"0\" or \"1\".");
+
+                                        tmpConfig.XmlTraceRead = (consumerEntry.UIntValue() != 0);
+                                        break;
+                                    // XmlTracePing bool
+                                    case "XmlTracePing":
+                                        CheckElementEntry("Consumer", "XmlTracePing", DataTypes.UINT, consumerEntry, "and have a value of \"0\" or \"1\".");
+
+                                        tmpConfig.XmlTracePing = (consumerEntry.UIntValue() != 0);
+                                        break;
+
                                     case "UpdateTypeFilter":
                                         CheckElementEntry("Consumer", "UpdateTypeFilter", DataTypes.UINT, consumerEntry);
                                         tmpConfig.UpdateTypeFilter = consumerEntry.UIntValue();
@@ -2410,6 +2492,32 @@ namespace LSEG.Ema.Access
                                             tmpConfig.ChannelSet.Add(channelArray[i].Trim());
                                         break;
 
+                                    case "EnablePreferredHostOptions":
+                                        CheckElementEntry("SessionChannelInfo", "EnablePreferredHostOptions", DataTypes.UINT, channelEntry);
+
+                                        tmpConfig.EnablePreferredHostOptions = channelEntry.UIntValue() > 0;
+                                        break;
+
+                                    case "PHDetectionTimeSchedule":
+                                        CheckElementEntry("SessionChannelInfo", "PHDetectionTimeSchedule", DataTypes.ASCII_STRING, channelEntry);
+
+                                        tmpConfig.PHDetectionTimeSchedule = channelEntry.OmmAsciiValue().ToString();
+                                        tmpConfig.PHDetectionTimeScheduleSet = true;
+                                        break;
+
+                                    case "PHDetectionTimeInterval":
+                                        CheckElementEntry("SessionChannelInfo", "PHDetectionTimeInterval", DataTypes.UINT, channelEntry);
+
+                                        tmpConfig.PHDetectionTimeInterval = Utilities.Convert_ulong_uint(channelEntry.UIntValue());
+                                        tmpConfig.PHDetectionTimeIntervalSet = true;
+                                        break;
+
+                                    case "PreferredChannelName":
+                                        CheckElementEntry("SessionChannelInfo", "PreferredChannelName", DataTypes.ASCII_STRING, channelEntry);
+
+                                        tmpConfig.PreferredChannelName = channelEntry.OmmAsciiValue().ToString();
+                                        break;
+
                                     default:
                                         break;
                                 }
@@ -2505,4 +2613,3 @@ namespace LSEG.Ema.Access
 
     }
 }
-

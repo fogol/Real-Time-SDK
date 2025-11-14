@@ -1,0 +1,21 @@
+<Project>
+
+	<PropertyGroup>
+		<Nullable>enable</Nullable>
+		<BaseOutputPath>$(ProjectDir)VACommon_patched\bin</BaseOutputPath>
+		<AssemblyName>VACommon</AssemblyName>
+		<RootNamespace>LSEG.Eta.Example.VACommon</RootNamespace>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\..\..\Src\Core\Core.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Compile Remove="*.cs" />
+		<Compile Include="..\..\..\Applications\Examples\VACommon\*.cs" />
+		<Compile Remove="..\..\..\Applications\Examples\VACommon\ItemArg.cs" />
+		<Compile Include="ItemArg.cs" />
+	</ItemGroup>
+
+</Project>

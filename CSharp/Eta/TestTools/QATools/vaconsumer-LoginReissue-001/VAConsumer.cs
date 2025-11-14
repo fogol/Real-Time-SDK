@@ -7,8 +7,7 @@
  */
 
 using System.Net.Sockets;
-
-using LSEG.Eta.Codec;
+using System.Text;
 using LSEG.Eta.Example.VACommon;
 using LSEG.Eta.Rdm;
 using LSEG.Eta.Transports;
@@ -128,10 +127,23 @@ namespace LSEG.Eta.ValueAdd.Consumer
     ///          ignore them.
     /// </ul>
     ///
-    public class VAConsumer : IConsumerCallback , IReactorAuthTokenEventCallback, IReactorOAuthCredentialEventCallback
+    /// <li>Options for IOCtl and Fallback calls:
+    /// <ul>
+    /// <li>-fallBackInterval specifies time interval(in second) in application before Ad Hoc Fallback function is invoked.O indicates that function won't be invoked.
+    /// <li>-ioctlInterval specifies time interval(in second) before IOCtl function is invoked.O indicates that function won't be invoked.
+    /// <li>-ioctlEnablePH enables Preferred host feature.
+    /// <li>-ioctlConnectListIndex specifies the preferred host as the index in the connection list.
+    /// <li>-ioctlDetectionTimeInterval specifies time interval(in second) to switch over to a preferred host. 0 indicates that the detection time interval is disabled.
+    /// <li>-ioctlDetectionTimeSchedule specifies Cron time format to switch over to a preferred host.
+    /// </ul>
+    /// </li>
+    public class VAConsumer : IConsumerCallback, IReactorAuthTokenEventCallback, IReactorOAuthCredentialEventCallback
     {
         private const string FIELD_DICTIONARY_FILE_NAME = "RDMFieldDictionary";
         private const string ENUM_TABLE_FILE_NAME = "enumtype.def";
+
+        /// default EncryptionProtocolFlags
+        private const EncryptionProtocolFlags DEFAULT_TLS = EncryptionProtocolFlags.ENC_NONE;
 
         /// default server host name
         private const string DEFAULT_SRVR_HOSTNAME = "localhost";
@@ -147,6 +159,8 @@ namespace LSEG.Eta.ValueAdd.Consumer
 
         /// default item name 2
         private const string DEFAULT_ITEM_NAME2 = ".DJI";
+
+        private const string TIMESTAMP_FORMAT = "yyyy-MM-dd HH:mm:ss.fff";
 
         private Reactor.Reactor? m_Reactor;
         private ReactorOptions m_ReactorOptions = new();
@@ -169,7 +183,6 @@ namespace LSEG.Eta.ValueAdd.Consumer
 
         private TimeSpan m_Closetime;
         private System.DateTime m_CloseRuntime;
-        bool m_CloseHandled;
 
         // APIQA: Adding variables
         int eventCounter = 0;
@@ -180,12 +193,18 @@ namespace LSEG.Eta.ValueAdd.Consumer
 
         private FileStream? m_FileStream;
 
+        private System.DateTime m_IoctlTime;
+        private bool m_IsIOCtlCalled;
+        private System.DateTime m_FallbackTime;
+        private bool m_IsFallbackCalled;
+
         /// <summary>
         /// Map Socket file descriptor to the corresponding ReactorChannel.
         /// It is needed in C# version of the app because there is no way to attach
         /// payload to Sockets in Select method.
         /// </summary>
-        private Dictionary<Int32, ReactorChannel> m_SocketFdValueMap = new();
+        private Dictionary<int, ReactorChannel> m_SocketFdValueMap = new();
+        private static ReactorChannelInfo m_ReactorChannelInfo = new();
 
         public VAConsumer()
         {
@@ -220,7 +239,8 @@ namespace LSEG.Eta.ValueAdd.Consumer
                                                                 DEFAULT_SERVICE_NAME,
                                                                 DEFAULT_SRVR_HOSTNAME,
                                                                 DEFAULT_SRVR_PORT_NO,
-                                                                itemList);
+                                                                itemList,
+                                                                DEFAULT_TLS);
                 m_ConsumerCmdLineParser.ConnectionList.Add(connectionArg);
 
                 // second connection - localhost:14002 DIRECT_FEED mp:TRI.N mp:.DJI
@@ -232,7 +252,8 @@ namespace LSEG.Eta.ValueAdd.Consumer
                                                                  DEFAULT_SERVICE_NAME,
                                                                  DEFAULT_SRVR_HOSTNAME,
                                                                  DEFAULT_SRVR_PORT_NO,
-                                                                 itemList2);
+                                                                 itemList2,
+                                                                DEFAULT_TLS);
                 m_ConsumerCmdLineParser.ConnectionList.Add(connectionArg2);
             }
 
@@ -252,9 +273,18 @@ namespace LSEG.Eta.ValueAdd.Consumer
                 m_ReactorOptions.XmlTracing = true;
             }
 
-            if(!string.IsNullOrEmpty(m_ConsumerCmdLineParser.TokenURLV2))
+            // Initialize timers for ioctl and fallback calls
+            m_IoctlTime = System.DateTime.Now + TimeSpan.FromSeconds(m_ConsumerCmdLineParser.IoctlInterval);
+            m_FallbackTime = System.DateTime.Now + TimeSpan.FromSeconds(m_ConsumerCmdLineParser.FallBackInterval);
+
+            if (!string.IsNullOrEmpty(m_ConsumerCmdLineParser.TokenURLV2))
             {
                 m_ReactorOptions.SetTokenServiceURL(m_ConsumerCmdLineParser.TokenURLV2);
+            }
+
+            if (!string.IsNullOrEmpty(m_ConsumerCmdLineParser.serviceDiscoveryURL))
+            {
+                m_ReactorOptions.SetServiceDiscoveryURL(m_ConsumerCmdLineParser.serviceDiscoveryURL);
             }
 
             if (m_ConsumerCmdLineParser.EnableRestLogging)
@@ -274,6 +304,15 @@ namespace LSEG.Eta.ValueAdd.Consumer
                     Console.WriteLine($"Failed to create a FileStream with error text: {ex.Message}");
                     Environment.Exit((int)ReactorReturnCode.FAILURE);
                 }
+            }
+
+            if (!string.IsNullOrEmpty(m_ConsumerCmdLineParser.RestProxyHostname))
+            {
+                var rPOpt = m_ReactorOptions.RestProxyOptions;
+                rPOpt.ProxyHostName = m_ConsumerCmdLineParser.RestProxyHostname;
+                rPOpt.ProxyPort = m_ConsumerCmdLineParser.RestProxyPort;
+                rPOpt.ProxyUserName = m_ConsumerCmdLineParser.RestProxyUsername;
+                rPOpt.ProxyPassword = m_ConsumerCmdLineParser.RestProxyPasswd;
             }
 
             // create reactor
@@ -332,6 +371,34 @@ namespace LSEG.Eta.ValueAdd.Consumer
                     Environment.Exit((int)ReactorReturnCode.FAILURE);
                 }
 
+                System.DateTime currentTime = System.DateTime.Now;
+                if (m_ConsumerCmdLineParser.IoctlInterval > 0 && currentTime >= m_IoctlTime && !m_IsIOCtlCalled)
+                {
+                    foreach (var chnlInfo in chnlInfoList.GetOpen())
+                    {
+                        ReactorChannel? rc = chnlInfo.ReactorChannel;
+                        if (rc != null && m_ConsumerCmdLineParser.IoctlOverridesPreferredHost)
+                        {
+                            ModifyIOCtl(rc);
+                            m_IsIOCtlCalled = true;
+                        }
+                    }
+                }
+
+                if (m_ConsumerCmdLineParser.FallBackInterval > 0 && currentTime >= m_FallbackTime && !m_IsFallbackCalled)
+                {
+                    foreach (var chnlInfo in chnlInfoList.GetOpen())
+                    {
+                        ReactorChannel? rc = chnlInfo.ReactorChannel;
+
+                        if (rc != null)
+                        {
+                            FallbackPreferredHost(rc);
+                            m_IsFallbackCalled = true;
+                        }
+                    }
+                }
+
                 // nothing to read
                 if (sockReadList.Count > 0)
                 {
@@ -382,59 +449,114 @@ namespace LSEG.Eta.ValueAdd.Consumer
                 }
 
                 // Handle run-time
-                if (System.DateTime.Now >= m_Runtime && !m_CloseHandled)
+                if (System.DateTime.Now >= m_Runtime)
                 {
                     Console.WriteLine("Consumer run-time expired, close now...");
-                    HandleClose();
-                    m_CloseHandled = true;
+                    break;
                 }
                 else if (System.DateTime.Now >= m_CloseRuntime)
                 {
                     Console.WriteLine("Consumer closetime expired, shutdown reactor.");
                     break;
                 }
-                if (!m_CloseHandled)
+
+                if (!chnlInfoList.GetOpen().Any())
                 {
-                    HandlePosting();
-                    HandleTunnelStream();
-
-                    // send login reissue if login reissue time has passed
-                    foreach (ChannelInfo chnlInfo in chnlInfoList)
-                    {
-                        if (chnlInfo.ReactorChannel == null
-                            || (chnlInfo.ReactorChannel.State != ReactorChannelState.UP
-                                && chnlInfo.ReactorChannel.State != ReactorChannelState.READY))
-                        {
-                            continue;
-                        }
-
-                        if (chnlInfo.CanSendLoginReissue
-                            && (m_ConsumerCmdLineParser.EnableSessionMgnt == false)
-                            && System.DateTime.Now >= chnlInfo.LoginReissueTime)
-                        {
-                            LoginRequest loginRequest = chnlInfo.ConsumerRole.RdmLoginRequest!;
-                            m_SubmitOptions.Clear();
-                            if (chnlInfo.ReactorChannel.Submit(loginRequest, m_SubmitOptions, out var errorInfo) != ReactorReturnCode.SUCCESS)
-                            {
-                                Console.WriteLine("Login reissue failed. Error: " + errorInfo?.Error.Text);
-                            }
-                            else
-                            {
-                                Console.WriteLine("Login reissue sent");
-                            }
-                            chnlInfo.CanSendLoginReissue = false;
-                        }
-                    }
+                    break;
                 }
 
-                if (m_CloseHandled)
-                    break;
+                HandlePosting();
+                HandleTunnelStream();
+
+                // send login reissue if login reissue time has passed
+                foreach (ChannelInfo chnlInfo in chnlInfoList.GetOpen())
+                {
+                    if (chnlInfo.ReactorChannel == null
+                        || (chnlInfo.ReactorChannel.State != ReactorChannelState.UP
+                            && chnlInfo.ReactorChannel.State != ReactorChannelState.READY))
+                    {
+                        continue;
+                    }
+
+                    if (chnlInfo.CanSendLoginReissue
+                        && (m_ConsumerCmdLineParser.EnableSessionMgnt == false)
+                        && System.DateTime.Now >= chnlInfo.LoginReissueTime)
+                    {
+                        LoginRequest loginRequest = chnlInfo.ConsumerRole.RdmLoginRequest!;
+                        m_SubmitOptions.Clear();
+                        if (chnlInfo.ReactorChannel.Submit(loginRequest, m_SubmitOptions, out var errorInfo) != ReactorReturnCode.SUCCESS)
+                        {
+                            Console.WriteLine("Login reissue failed. Error: " + errorInfo?.Error.Text);
+                        }
+                        else
+                        {
+                            Console.WriteLine("Login reissue sent");
+                        }
+                        chnlInfo.CanSendLoginReissue = false;
+                    }
+                }
             }
         }
 
+        private void ModifyIOCtl(ReactorChannel reactorChannel)
+        {
+            ReactorChannelInfo channelInfo = new();
+            if (reactorChannel.Info(channelInfo, out var errorInfo) != ReactorReturnCode.SUCCESS)
+            {
+                Console.WriteLine("channel.Info failed: " + errorInfo?.ToString());
+                return;
+            }
+            ReactorPreferredHostOptions preferredHostOptions = new(channelInfo.PreferredHostInfo)
+            {
+                EnablePreferredHostOptions = m_ConsumerCmdLineParser.IoctlEnablePH ?? m_ConsumerCmdLineParser.EnablePreferredHost,
+                DetectionTimeInterval = m_ConsumerCmdLineParser.IoctlDetectionTimeInterval ?? m_ConsumerCmdLineParser.DetectionTimeInterval,
+                DetectionTimeSchedule = m_ConsumerCmdLineParser.IoctlDetectionTimeSchedule ?? m_ConsumerCmdLineParser.DetectionTimeSchedule ?? string.Empty
+            };
+
+            if (m_ConsumerCmdLineParser.IoctlConnectListIndex.HasValue)
+            {
+                if (m_ConsumerCmdLineParser.IoctlConnectListIndex.Value < m_ConsumerCmdLineParser.ConnectionList.SelectMany(c => c.HostList).Count())
+                {
+                    preferredHostOptions.ConnectionListIndex = m_ConsumerCmdLineParser.IoctlConnectListIndex.Value;
+                }
+                else
+                {
+                    Console.WriteLine("IOCtl preferred host connection list index is out of the bound of connection list!");
+                }
+            }
+            else
+            {
+                preferredHostOptions.ConnectionListIndex = m_ConsumerCmdLineParser.PreferredHostIndex;
+            }
+
+            if (reactorChannel.IOCtl(ReactorChannelIOCtlCode.PREFERRED_HOST_OPTIONS, preferredHostOptions, out errorInfo) != ReactorReturnCode.SUCCESS)
+            {
+                Console.WriteLine("channel.IOCtl() was failed: " + errorInfo?.ToString());
+            }
+            else
+            {
+                Console.WriteLine("channel.IOCtl() was successful");
+            }
+        }
+
+        private static void FallbackPreferredHost(ReactorChannel reactorChannel)
+        {
+            if (reactorChannel.FallbackPreferredHost(out var errorInfo) != ReactorReturnCode.SUCCESS)
+            {
+                Console.WriteLine("channel.FallbackPreferredHost() was failed: " + errorInfo?.Error.Text);
+            }
+            else
+            {
+                Console.WriteLine("channel.FallbackPreferredHost() was successful");
+            }
+        }
+
+        private static void DumpTimestamp() =>
+            Console.WriteLine("<!-- " + System.DateTime.UtcNow.ToString(TIMESTAMP_FORMAT) + " (UTC) -->");
 
         public ReactorCallbackReturnCode ReactorChannelEventCallback(ReactorChannelEvent evt)
         {
+            DumpTimestamp();
             ChannelInfo? chnlInfo = evt.ReactorChannel?.UserSpecObj as ChannelInfo;
             if (chnlInfo == null)
                 return ReactorCallbackReturnCode.FAILURE;
@@ -444,9 +566,12 @@ namespace LSEG.Eta.ValueAdd.Consumer
                 case ReactorChannelEventType.CHANNEL_UP:
                     {
                         if (evt.ReactorChannel?.Socket != null)
-                            Console.WriteLine("Channel Up Event: " + evt.ReactorChannel.Socket.Handle.ToInt32());
+                            Console.WriteLine("Channel Up Event: " + FormatReactorChannel(evt.ReactorChannel));
                         else
                             Console.WriteLine("Channel Up Event");
+
+                        evt.ReactorChannel?.Info(m_ReactorChannelInfo, out var _);
+                        PrintPreferredHostInfo(m_ReactorChannelInfo.PreferredHostInfo);
 
                         // register selector with channel event's reactorChannel
                         RegisterChannel(evt.ReactorChannel!);
@@ -473,9 +598,12 @@ namespace LSEG.Eta.ValueAdd.Consumer
                         // set ReactorChannel on ChannelInfo
                         chnlInfo.ReactorChannel = evt.ReactorChannel;
                         if (evt.ReactorChannel?.Socket != null)
-                            Console.WriteLine("Channel Ready Event: " + evt.ReactorChannel.Socket.Handle.ToInt32());
+                            Console.WriteLine("Channel Ready Event: " + FormatReactorChannel(evt.ReactorChannel));
                         else
                             Console.WriteLine("Channel Ready Event");
+
+                        evt.ReactorChannel?.Info(m_ReactorChannelInfo, out var _);
+                        PrintPreferredHostInfo(m_ReactorChannelInfo.PreferredHostInfo);
 
                         if (IsRequestedServiceUp(chnlInfo))
                         {
@@ -497,14 +625,14 @@ namespace LSEG.Eta.ValueAdd.Consumer
                         break;
                     }
                 case ReactorChannelEventType.CHANNEL_DOWN_RECONNECTING:
-                    {
-                        if (evt.ReactorChannel?.Socket != null)
-                            Console.WriteLine("\nConnection down reconnecting: Channel " + evt.ReactorChannel.Socket.Handle.ToInt32());
-                        else
-                            Console.WriteLine("\nConnection down reconnecting");
+                    {                        
+                        Console.WriteLine("\nConnection down reconnecting");
 
                         if (evt.ReactorErrorInfo != null && evt.ReactorErrorInfo.Error.Text != null)
                             Console.WriteLine("\tError text: " + evt.ReactorErrorInfo.Error.Text + "\n");
+                        
+                        evt.ReactorChannel?.Info(m_ReactorChannelInfo, out var _);
+                        PrintPreferredHostInfo(m_ReactorChannelInfo.PreferredHostInfo);
 
                         // allow Reactor to perform connection recovery
 
@@ -537,25 +665,14 @@ namespace LSEG.Eta.ValueAdd.Consumer
                 case ReactorChannelEventType.CHANNEL_DOWN:
                     {
                         if (evt.ReactorChannel!.Socket != null)
-                            Console.WriteLine("\nConnection down: Channel " + evt.ReactorChannel.Socket.Handle.ToInt32());
+                            Console.WriteLine("\nConnection down: " + FormatReactorChannel(evt.ReactorChannel));
                         else
                             Console.WriteLine("\nConnection down");
 
                         if (evt.ReactorErrorInfo != null && evt.ReactorErrorInfo.Error.Text != null)
                             Console.WriteLine("    Error text: " + evt.ReactorErrorInfo.Error.Text + "\n");
 
-                        // unregister selectableChannel from Selector
-                        if (evt.ReactorChannel!.Socket != null)
-                        {
-                            m_ReadSockets.Remove(evt.ReactorChannel.Socket);
-                            m_SocketFdValueMap.Remove(evt.ReactorChannel.Socket.Handle.ToInt32());
-                        }
-
-                        // close ReactorChannel
-                        if (chnlInfo.ReactorChannel != null)
-                        {
-                            chnlInfo.ReactorChannel.Close(out _);
-                        }
+                        CloseConnection(chnlInfo);
                         break;
                     }
                 case ReactorChannelEventType.WARNING:
@@ -563,6 +680,14 @@ namespace LSEG.Eta.ValueAdd.Consumer
                     if (evt.ReactorErrorInfo != null && evt.ReactorErrorInfo.Error.Text != null)
                         Console.WriteLine("    Error text: " + evt.ReactorErrorInfo.Error.Text + "\n");
 
+                    break;
+				case ReactorChannelEventType.PREFERRED_HOST_COMPLETE:
+                    Console.WriteLine($"Received ReactorChannel PREFERRED_HOST_COMPLETE event.");
+                    if (evt.ReactorErrorInfo != null && evt.ReactorErrorInfo.Error.Text != null)
+                        Console.WriteLine("    Error text: " + evt.ReactorErrorInfo.Error.Text + "\n");
+                    
+                    evt.ReactorChannel?.Info(m_ReactorChannelInfo, out var _);
+                    PrintPreferredHostInfo(m_ReactorChannelInfo.PreferredHostInfo);
                     break;
                 default:
                     {
@@ -574,6 +699,27 @@ namespace LSEG.Eta.ValueAdd.Consumer
             return ReactorCallbackReturnCode.SUCCESS;
         }
 
+
+        private static string FormatReactorChannel(ReactorChannel reactorChannel)
+            => $"Channel {reactorChannel.Socket!.Handle.ToInt32()} Host: {reactorChannel.HostName}:{reactorChannel.Port}";
+
+        private static void PrintPreferredHostInfo(ReactorPreferredHostInfo reactorPreferredHostInfo)
+        {
+            if (!reactorPreferredHostInfo.IsPreferredHostEnabled)
+            {
+                return;
+            }
+
+            StringBuilder stringBuilder = new(256);
+            stringBuilder.Append("\nPreferredHostInfo:")
+                .Append("\n\tPreferredHostEnabled=").Append(reactorPreferredHostInfo.IsPreferredHostEnabled)
+                .Append("\n\tDetectionTimeSchedule='").Append(reactorPreferredHostInfo.DetectionTimeSchedule).Append('\'')
+                .Append("\n\tDetectionTimeInterval=").Append(reactorPreferredHostInfo.DetectionTimeInterval)
+                .Append("\n\tConnectionListIndex=").Append(reactorPreferredHostInfo.ConnectionListIndex)
+                .Append("\n");
+
+            Console.WriteLine(stringBuilder);
+        }
 
         public ReactorCallbackReturnCode DefaultMsgCallback(ReactorMsgEvent evt)
         {
@@ -588,38 +734,31 @@ namespace LSEG.Eta.ValueAdd.Consumer
                 Console.WriteLine("DefaultMsgCallback: {0}({1})",
                     evt.ReactorErrorInfo.Error.Text, evt.ReactorErrorInfo.Location);
 
-                // unregister selectableChannel from Selector
-                if (evt.ReactorChannel!.Socket != null)
-                {
-                    m_ReadSockets.Remove(evt.ReactorChannel.Socket);
-                    m_SocketFdValueMap.Remove(evt.ReactorChannel.Socket.Handle.ToInt32());
-                }
+                CloseConnection(chnlInfo, evt.ReactorChannel);
 
-                // close ReactorChannel
-                if (chnlInfo!.ReactorChannel != null)
-                {
-                    chnlInfo.ReactorChannel.Close(out _);
-                }
                 return ReactorCallbackReturnCode.SUCCESS;
             }
 
-            // set response message
-            chnlInfo!.ResponseMsg = msg;
-
-            // set-up decode iterator if message has message body
-            if (msg.EncodedDataBody != null
-                && msg.EncodedDataBody.Data() != null)
+            if (chnlInfo != null)
             {
-                // clear decode iterator
-                chnlInfo.DecodeIter.Clear();
+                // set response message
+                chnlInfo.ResponseMsg = msg;
 
-                // set buffer and version info
-                chnlInfo.DecodeIter.SetBufferAndRWFVersion(msg.EncodedDataBody,
-                    evt.ReactorChannel!.MajorVersion,
-                    evt.ReactorChannel.MinorVersion);
+                // set-up decode iterator if message has message body
+                if (msg.EncodedDataBody != null
+                    && msg.EncodedDataBody.Data() != null)
+                {
+                    // clear decode iterator
+                    chnlInfo.DecodeIter.Clear();
+
+                    // set buffer and version info
+                    chnlInfo.DecodeIter.SetBufferAndRWFVersion(msg.EncodedDataBody,
+                        evt.ReactorChannel!.MajorVersion,
+                        evt.ReactorChannel.MinorVersion);
+                }
+
+                ProcessResponse(chnlInfo);
             }
-
-            ProcessResponse(chnlInfo);
 
             return ReactorCallbackReturnCode.SUCCESS;
         }
@@ -651,6 +790,12 @@ namespace LSEG.Eta.ValueAdd.Consumer
                         chnlInfo.LoginReissueTime = DateTimeOffset.FromUnixTimeSeconds(chnlInfo.LoginRefresh.AuthenticationTTReissue).DateTime;
                         chnlInfo.CanSendLoginReissue = true;
                     }
+
+                    if (evt.LoginMsg.LoginRefresh.State.StreamState() != StreamStates.OPEN)
+                    {
+                        Console.WriteLine("Login attempt failed");
+                        CloseConnection(chnlInfo);
+                    }
                     break;
 
                 case LoginMsgType.STATUS:
@@ -659,6 +804,11 @@ namespace LSEG.Eta.ValueAdd.Consumer
                     if (loginStatus.HasState)
                     {
                         Console.WriteLine("\t" + loginStatus.State);
+                    }
+                    if (loginStatus.State.StreamState() != StreamStates.OPEN)
+                    {
+                        Console.WriteLine("Login attempt failed");
+                        CloseConnection(chnlInfo);
                     }
                     break;
 
@@ -684,6 +834,34 @@ namespace LSEG.Eta.ValueAdd.Consumer
             }
 
             return ReactorCallbackReturnCode.SUCCESS;
+        }
+
+        private void CloseConnections()
+        {
+            foreach (ChannelInfo chnlInfo in chnlInfoList.GetOpen())
+            {
+                CloseConnection(chnlInfo);
+            }
+        }
+
+        private void CloseConnection(ChannelInfo? chnlInfo, ReactorChannel? reactorChannel = null)
+        {
+            ReactorChannel? reactorChannelToClose = chnlInfo?.ReactorChannel ?? reactorChannel;
+            // unregister selectableChannel from Selector
+            if (reactorChannelToClose?.Socket != null)
+            {
+                UnregisterSocket(reactorChannelToClose.Socket);
+            }
+            if (chnlInfo is not null)
+            {
+                CloseItemStreams(chnlInfo);
+            }
+            // close ReactorChannel
+            reactorChannelToClose?.Close(out _);
+            if (chnlInfo is not null)
+            {
+                chnlInfo.isChannelClosed = true;
+            }
         }
 
         public ReactorCallbackReturnCode RdmDirectoryMsgCallback(RDMDirectoryMsgEvent evt)
@@ -732,17 +910,18 @@ namespace LSEG.Eta.ValueAdd.Consumer
                     {
                         // Do a RESUME
                         LoginRequest loginRequest = chnlInfo.ConsumerRole.RdmLoginRequest!;
-                        loginRequest.Flags = loginRequest.Flags & ~LoginRequestFlags.PAUSE_ALL;
-                        loginRequest.Flags = loginRequest.Flags & ~LoginRequestFlags.NO_REFRESH;
+                        loginRequest.Flags &= ~LoginRequestFlags.PAUSE_ALL;
+                        loginRequest.Flags &= ~LoginRequestFlags.NO_REFRESH;
                         m_SubmitOptions.Clear();
-                        if (chnlInfo.ReactorChannel.Submit(loginRequest, m_SubmitOptions, out var errorInfo) != ReactorReturnCode.SUCCESS)
-                        {
-                            Console.WriteLine("APIQA: Submit failed when attempting to send RESUME ALL. Error: " + errorInfo.Error.Text);
-                        }
-                        else
-                        {
-                            Console.WriteLine("APIQA: sending RESUME ALL");
-                        }
+                        if (chnlInfo?.ReactorChannel is not null)
+                            if (chnlInfo.ReactorChannel.Submit(loginRequest, m_SubmitOptions, out var errorInfo) != ReactorReturnCode.SUCCESS)
+                            {
+                                Console.WriteLine("APIQA: Submit failed when attempting to send RESUME ALL. Error: " + errorInfo?.Error.Text);
+                            }
+                            else
+                            {
+                                Console.WriteLine("APIQA: sending RESUME ALL");
+                            }
                     }
                     // END APIQA:
 
@@ -799,7 +978,7 @@ namespace LSEG.Eta.ValueAdd.Consumer
                                 break;
                             default:
                                 Console.WriteLine($"Unknown dictionary type {dictionaryRefresh.DictionaryType} from message on stream {dictionaryRefresh.StreamId}");
-                                chnlInfo.ReactorChannel!.Close(out _);
+                                CloseConnection(chnlInfo);
                                 return ReactorCallbackReturnCode.SUCCESS;
                         }
                     }
@@ -829,7 +1008,7 @@ namespace LSEG.Eta.ValueAdd.Consumer
                         else
                         {
                             Console.WriteLine("Decoding Field Dictionary failed: " + error.Text);
-                            chnlInfo.ReactorChannel!.Close(out _);
+                            CloseConnection(chnlInfo);
                         }
                     }
                     else if (dictionaryRefresh.StreamId == chnlInfo.EnumDictionaryStreamId)
@@ -845,7 +1024,7 @@ namespace LSEG.Eta.ValueAdd.Consumer
                         else
                         {
                             Console.WriteLine("Decoding EnumType Dictionary failed: " + error.Text);
-                            chnlInfo.ReactorChannel!.Close(out _);
+                            CloseConnection(chnlInfo);
                         }
                     }
                     else
@@ -866,7 +1045,7 @@ namespace LSEG.Eta.ValueAdd.Consumer
 
         public ReactorCallbackReturnCode ReactorAuthTokenEventCallback(ReactorAuthTokenEvent reactorAuthTokenEvent)
         {
-            if(reactorAuthTokenEvent.ReactorErrorInfo.Code != ReactorReturnCode.SUCCESS)
+            if (reactorAuthTokenEvent.ReactorErrorInfo.Code != ReactorReturnCode.SUCCESS)
             {
                 System.Console.WriteLine($"Retrive an access token failed. Text: {reactorAuthTokenEvent.ReactorErrorInfo}");
             }
@@ -886,8 +1065,16 @@ namespace LSEG.Eta.ValueAdd.Consumer
 
             if (reactorOAuthCredential is not null)
             {
-                renewalOptions.RenewalModes = ReactorOAuthCredentialRenewalModes.CLIENT_SECRET;
-                reactorOAuthCredentialRenewal.ClientSecret.Data(reactorOAuthCredential.ClientSecret.ToString());
+                if (reactorOAuthCredential.ClientSecret.Length > 0)
+                {
+                    renewalOptions.RenewalModes = ReactorOAuthCredentialRenewalModes.CLIENT_SECRET;
+                    reactorOAuthCredentialRenewal.ClientSecret.Data(reactorOAuthCredential.ClientSecret.ToString());
+                }
+                else
+                {
+                    renewalOptions.RenewalModes = ReactorOAuthCredentialRenewalModes.CLIENT_JWK;
+                    reactorOAuthCredentialRenewal.ClientJwk.Data(reactorOAuthCredential.ClientJwk.ToString());
+                }
 
                 reactorOAuthCredentialEvent.Reactor!.SubmitOAuthCredentialRenewal(renewalOptions, reactorOAuthCredentialRenewal, out _);
             }
@@ -1026,7 +1213,7 @@ namespace LSEG.Eta.ValueAdd.Consumer
         // on and off stream posting if enabled
         private void HandlePosting()
         {
-            foreach (ChannelInfo chnlInfo in chnlInfoList)
+            foreach (ChannelInfo chnlInfo in chnlInfoList.GetOpen())
             {
                 if (chnlInfo.LoginRefresh == null
                     || chnlInfo.ServiceInfo == null
@@ -1069,7 +1256,7 @@ namespace LSEG.Eta.ValueAdd.Consumer
 
         private void HandleTunnelStream()
         {
-            foreach (ChannelInfo chnlInfo in chnlInfoList)
+            foreach (ChannelInfo chnlInfo in chnlInfoList.GetOpen())
             {
                 if (chnlInfo.LoginRefresh == null ||
                     chnlInfo.ServiceInfo == null ||
@@ -1092,17 +1279,20 @@ namespace LSEG.Eta.ValueAdd.Consumer
                     eventCounter++;
                     if (eventCounter == 3)
                     {
-                        LoginRequest loginRequest = chnlInfo.ConsumerRole.RdmLoginRequest;
-                        loginRequest.Flags |= LoginRequestFlags.PAUSE_ALL;
-                        loginRequest.Flags |= LoginRequestFlags.NO_REFRESH;
-                        m_SubmitOptions.Clear();
-                        if ((chnlInfo.ReactorChannel.Submit(loginRequest, m_SubmitOptions, out var errorInfo)) != ReactorReturnCode.SUCCESS)
+                        LoginRequest? loginRequest = chnlInfo.ConsumerRole.RdmLoginRequest;
+                        if(loginRequest is not null)
                         {
-                            Console.WriteLine("APIQA: Submit failed when attempting to send PAUSE ALL. Error: " + errorInfo.Error.Text);
-                        }
-                        else
-                        {
-                            Console.WriteLine("APIQA: sending PAUSE ALL");
+                            loginRequest.Flags |= LoginRequestFlags.PAUSE_ALL;
+                            loginRequest.Flags |= LoginRequestFlags.NO_REFRESH;
+                            m_SubmitOptions.Clear();
+                            if ((chnlInfo.ReactorChannel.Submit(loginRequest, m_SubmitOptions, out var errorInfo)) != ReactorReturnCode.SUCCESS)
+                            {
+                                Console.WriteLine("APIQA: Submit failed when attempting to send PAUSE ALL. Error: " + errorInfo?.Error.Text);
+                            }
+                            else
+                            {
+                                Console.WriteLine("APIQA: sending PAUSE ALL");
+                            }
                         }
                     }
                     // END APIQA
@@ -1240,17 +1430,36 @@ namespace LSEG.Eta.ValueAdd.Consumer
                 loginRequest.Password.Data(m_ConsumerCmdLineParser.Passwd);
                 loginRequest.HasPassword = true;
             }
-            if(!string.IsNullOrEmpty(m_ConsumerCmdLineParser.ClientId))
+            if (!string.IsNullOrEmpty(m_ConsumerCmdLineParser.ClientId))
             {
                 oAuthCredential.ClientId.Data(m_ConsumerCmdLineParser.ClientId);
 
-                if(!string.IsNullOrEmpty(m_ConsumerCmdLineParser.ClientSecret))
+                if (!string.IsNullOrEmpty(m_ConsumerCmdLineParser.ClientSecret))
                 {
                     oAuthCredential.ClientSecret.Data(m_ConsumerCmdLineParser.ClientSecret);
 
                     /* Specified the IReactorOAuthCredentialEventCallback to get sensitive information as needed to authorize with the token service. */
                     oAuthCredential.ReactorOAuthCredentialEventCallback = this;
                 }
+            }
+
+            if (!string.IsNullOrEmpty(m_ConsumerCmdLineParser.JwkFile))
+            {
+                if (!File.Exists(m_ConsumerCmdLineParser.JwkFile))
+                {
+                    Console.Error.WriteLine($"Cannot load jwk file: {m_ConsumerCmdLineParser.JwkFile}");
+                    Environment.Exit((int)CodecReturnCode.FAILURE);
+                }
+
+                oAuthCredential.ClientJwk.Data(File.ReadAllText(m_ConsumerCmdLineParser.JwkFile));
+
+                /* Specified the IReactorOAuthCredentialEventCallback to get JWK */
+                oAuthCredential.ReactorOAuthCredentialEventCallback = this;
+            }
+
+            if (!string.IsNullOrEmpty(m_ConsumerCmdLineParser.Audience))
+            {
+                oAuthCredential.Audience.Data(m_ConsumerCmdLineParser.Audience);
             }
 
             if (!string.IsNullOrEmpty(m_ConsumerCmdLineParser.TokenScope))
@@ -1328,56 +1537,55 @@ namespace LSEG.Eta.ValueAdd.Consumer
             chnlInfo.ConnectOptions.SetReconnectAttempLimit(-1); // attempt to recover forever
             chnlInfo.ConnectOptions.SetReconnectMinDelay(1000); // 1 second minimum
             chnlInfo.ConnectOptions.SetReconnectMaxDelay(60000); // 60 second maximum
-            chnlInfo.ConnectOptions.ConnectionList[0].ConnectOptions.MajorVersion = Codec.Codec.MajorVersion();
-            chnlInfo.ConnectOptions.ConnectionList[0].ConnectOptions.MinorVersion = Codec.Codec.MinorVersion();
-            chnlInfo.ConnectOptions.ConnectionList[0].ConnectOptions.ConnectionType = chnlInfo.ConnectionArg.ConnectionType;
 
-            if (m_ConsumerCmdLineParser.EnableSessionMgnt)
+            var chnlConnectionList = chnlInfo.ConnectOptions.ConnectionList;
+            var connectionArg = chnlInfo.ConnectionArg;
+
+            for (var i = 0; i < connectionArg.HostList.Count; i++)
             {
-                chnlInfo.ConnectOptions.ConnectionList[0].EnableSessionManagement = true;
-                chnlInfo.ConnectOptions.ConnectionList[0].ReactorAuthTokenEventCallback = this;
-                chnlInfo.ConnectOptions.ConnectionList[0].ConnectOptions.EncryptionOpts.EncryptedProtocol = ConnectionType.SOCKET;
+                ReactorConnectInfo connectInfo;
+                if (i == chnlConnectionList.Count)
+                {
+                    connectInfo = new();
+                    chnlConnectionList.Add(connectInfo);
+                }
+                else
+                {
+                    connectInfo = chnlConnectionList[i];
+                }
+
+                SetConnectInfo(chnlInfo, connectionArg.HostList[i], connectInfo);
             }
 
-            chnlInfo.ConnectOptions.ConnectionList[0].ConnectOptions.UnifiedNetworkInfo.ServiceName = chnlInfo.ConnectionArg.Port ?? String.Empty;
-            chnlInfo.ConnectOptions.ConnectionList[0].ConnectOptions.UnifiedNetworkInfo.Address = chnlInfo.ConnectionArg.Hostname ?? String.Empty;
-
-            chnlInfo.ConnectOptions.ConnectionList[0].ConnectOptions.UserSpecObject = chnlInfo;
-            chnlInfo.ConnectOptions.ConnectionList[0].ConnectOptions.GuaranteedOutputBuffers = 1000;
             // add backup connection if specified
             if (m_ConsumerCmdLineParser.BackupHostname != null
                 && m_ConsumerCmdLineParser.BackupPort != null)
             {
                 ReactorConnectInfo connectInfo = new();
-                chnlInfo.ConnectOptions.ConnectionList.Add(connectInfo);
-                chnlInfo.ConnectOptions.ConnectionList[1].ConnectOptions.MajorVersion = Codec.Codec.MajorVersion();
-                chnlInfo.ConnectOptions.ConnectionList[1].ConnectOptions.MinorVersion = Codec.Codec.MinorVersion();
-                chnlInfo.ConnectOptions.ConnectionList[1].ConnectOptions.ConnectionType = chnlInfo.ConnectionArg.ConnectionType;
-                chnlInfo.ConnectOptions.ConnectionList[1].ConnectOptions.UnifiedNetworkInfo.ServiceName = m_ConsumerCmdLineParser.BackupPort;
-                chnlInfo.ConnectOptions.ConnectionList[1].ConnectOptions.UnifiedNetworkInfo.Address = m_ConsumerCmdLineParser.BackupHostname;
-                chnlInfo.ConnectOptions.ConnectionList[1].ConnectOptions.UserSpecObject = chnlInfo;
-                chnlInfo.ConnectOptions.ConnectionList[1].ConnectOptions.GuaranteedOutputBuffers = 1000;
-
-                if (m_ConsumerCmdLineParser.EnableSessionMgnt)
-                {
-                    chnlInfo.ConnectOptions.ConnectionList[1].EnableSessionManagement = true;
-
-                    chnlInfo.ConnectOptions.ConnectionList[1].ReactorAuthTokenEventCallback = this;
-
-                    ConnectOptions cOpt = chnlInfo.ConnectOptions.ConnectionList[1].ConnectOptions;
-                    cOpt.ConnectionType = ConnectionType.ENCRYPTED;
-                    cOpt.EncryptionOpts.EncryptedProtocol = ConnectionType.SOCKET;
-                }
+                chnlConnectionList.Add(connectInfo);
+                HostArg hostArg = new() { Hostname = m_ConsumerCmdLineParser.BackupHostname, Port = m_ConsumerCmdLineParser.BackupPort };
+                SetConnectInfo(chnlInfo, hostArg, connectInfo);
             }
+
+            // preferred host options
+            var preferredHostOptions = chnlInfo.ConnectOptions.PreferredHostOptions;
+            preferredHostOptions.EnablePreferredHostOptions = m_ConsumerCmdLineParser.EnablePreferredHost;
+            preferredHostOptions.ConnectionListIndex = m_ConsumerCmdLineParser.PreferredHostIndex;
+            preferredHostOptions.DetectionTimeInterval = m_ConsumerCmdLineParser.DetectionTimeInterval;
+            preferredHostOptions.DetectionTimeSchedule = m_ConsumerCmdLineParser.DetectionTimeSchedule ?? string.Empty;
 
             // handler encrypted connection
             chnlInfo.ShouldEnableEncrypted = m_ConsumerCmdLineParser.EnableEncrypted;
 
-            if(chnlInfo.ShouldEnableEncrypted)
+            if (chnlInfo.ShouldEnableEncrypted)
             {
-                ConnectOptions cOpt = chnlInfo.ConnectOptions.ConnectionList[0].ConnectOptions;
-                cOpt.ConnectionType = ConnectionType.ENCRYPTED;
-                cOpt.EncryptionOpts.EncryptedProtocol = m_ConsumerCmdLineParser.EncryptedProtocolType;
+                foreach (var connectInfo in chnlInfo.ConnectOptions.ConnectionList)
+                {
+                    ConnectOptions cOpt = connectInfo.ConnectOptions;
+                    cOpt.ConnectionType = ConnectionType.ENCRYPTED;
+                    cOpt.EncryptionOpts.EncryptedProtocol = m_ConsumerCmdLineParser.EncryptedProtocolType;
+                    cOpt.EncryptionOpts.EncryptionProtocolFlags = m_ConsumerCmdLineParser.Protocol;
+                }
             }
 
             /* Setup proxy if configured */
@@ -1396,11 +1604,40 @@ namespace LSEG.Eta.ValueAdd.Consumer
                     Environment.Exit((int)CodecReturnCode.FAILURE);
                 }
 
-                chnlInfo.ConnectOptions.ConnectionList[0].ConnectOptions.ProxyOptions.ProxyHostName = proxyHostName;
-                chnlInfo.ConnectOptions.ConnectionList[0].ConnectOptions.ProxyOptions.ProxyPort = proxyPort;
-                chnlInfo.ConnectOptions.ConnectionList[0].ConnectOptions.ProxyOptions.ProxyUserName = m_ConsumerCmdLineParser.ProxyUsername;
-                chnlInfo.ConnectOptions.ConnectionList[0].ConnectOptions.ProxyOptions.ProxyPassword = m_ConsumerCmdLineParser.ProxyPasswd;
+                foreach (var connectInfo in chnlInfo.ConnectOptions.ConnectionList)
+                {
+                    ProxyOptions proxyOpt = connectInfo.ConnectOptions.ProxyOptions;
+                    proxyOpt.ProxyHostName = proxyHostName;
+                    proxyOpt.ProxyPort = proxyPort;
+                    proxyOpt.ProxyUserName = m_ConsumerCmdLineParser.ProxyUsername;
+                    proxyOpt.ProxyPassword = m_ConsumerCmdLineParser.ProxyPasswd;
+                }
             }
+        }
+
+        private void SetConnectInfo(ChannelInfo chnlInfo, HostArg hostArg, ReactorConnectInfo connectInfo)
+        {
+            ConnectOptions cOpt = connectInfo.ConnectOptions;
+            cOpt.MajorVersion = Codec.Codec.MajorVersion();
+            cOpt.MinorVersion = Codec.Codec.MinorVersion();
+            cOpt.ConnectionType = chnlInfo.ConnectionArg.ConnectionType;
+            cOpt.EncryptionOpts.EncryptionProtocolFlags = chnlInfo.ConnectionArg.EncryptionProtocolFlags;
+
+            if (m_ConsumerCmdLineParser.EnableSessionMgnt)
+            {
+                connectInfo.EnableSessionManagement = true;
+                connectInfo.ReactorAuthTokenEventCallback = this;
+                connectInfo.ConnectOptions.EncryptionOpts.EncryptedProtocol = ConnectionType.SOCKET;
+            }
+
+            cOpt.UnifiedNetworkInfo.ServiceName = hostArg.Port ?? String.Empty;
+            cOpt.UnifiedNetworkInfo.Address = hostArg.Hostname ?? String.Empty;
+
+            cOpt.UserSpecObject = chnlInfo;
+            cOpt.GuaranteedOutputBuffers = 1000;
+
+            if (!string.IsNullOrEmpty(m_ConsumerCmdLineParser.Location))
+                connectInfo.Location = m_ConsumerCmdLineParser.Location;
         }
 
         private void SetItemState(ChannelInfo chnlInfo, int streamState, int dataState, int stateCode)
@@ -1657,20 +1894,9 @@ namespace LSEG.Eta.ValueAdd.Consumer
         private void Uninitialize()
         {
             Console.WriteLine("Consumer unitializing and exiting...");
+            CloseConnections();
 
-            foreach (ChannelInfo chnlInfo in chnlInfoList)
-            {
-                // close items streams
-                CloseItemStreams(chnlInfo);
-
-                // close ReactorChannel
-                if (chnlInfo.ReactorChannel != null)
-                {
-                    chnlInfo.ReactorChannel.Close(out _);
-                }
-            }
-
-            if(m_FileStream != null)
+            if (m_FileStream != null)
             {
                 m_FileStream.Dispose();
             }
@@ -1694,16 +1920,6 @@ namespace LSEG.Eta.ValueAdd.Consumer
         private ReactorChannel GetChannelBySocketFd(int fd)
         {
             return m_SocketFdValueMap[fd];
-        }
-
-        private void HandleClose()
-        {
-            Console.WriteLine("Consumer closes streams...");
-
-            foreach (ChannelInfo chnlInfo in chnlInfoList)
-            {
-                CloseItemStreams(chnlInfo);
-            }
         }
 
         public static void Main(string[] args)

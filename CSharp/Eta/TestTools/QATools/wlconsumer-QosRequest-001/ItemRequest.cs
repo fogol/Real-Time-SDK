@@ -6,12 +6,6 @@
  *|-----------------------------------------------------------------------------
  */
 
-using System.Collections.Generic;
-
-using LSEG.Eta.Codec;
-using LSEG.Eta.Example.Common;
-using LSEG.Eta.Rdm;
-
 using static LSEG.Eta.Example.Common.MarketPriceRequestFlags;
 
 namespace LSEG.Eta.ValueAdd.WatchlistConsumer;
@@ -19,6 +13,10 @@ namespace LSEG.Eta.ValueAdd.WatchlistConsumer;
 internal class ItemRequest
 {
     private readonly List<string> m_ItemNames = new();
+    //APIQA - make Qos and WorstQos public
+    public Qos Qos { get; } = new();
+    public Qos WorstQos { get; } = new();
+    //END APIQA
     private int m_Identifier;
     private List<int> m_ViewFieldList = new();
     private MarketPriceRequestFlags m_Flags;
@@ -77,7 +75,7 @@ internal class ItemRequest
     public void Clear()
     {
         m_Flags = 0;
-	m_RequestFlags = 0;
+	    m_RequestFlags = 0;
         Qos.Clear();
         WorstQos.Clear();
         m_ItemNames.Clear();
@@ -236,10 +234,6 @@ internal class ItemRequest
     /// Element names.
     /// </summary>
     public List<string> ViewElementNameList { get; set; } = new();
-
-    public Qos Qos { get; } = new();
-
-    public Qos WorstQos { get; } = new();
 
     /// <summary>
     /// Encodes the stream.

@@ -37,8 +37,6 @@ namespace LSEG.Eta.ValueAdd.Reactor
 
         public ReactorChannel? ReactorChannel { get; set; }
 
-        public bool InTokenSessionQueue { get; set; } = false;
-
         /* This is used for unit testing to override the expires in seconds */
         internal static int ExpiresInTest { get; set; } = -1;
 
@@ -215,7 +213,7 @@ namespace LSEG.Eta.ValueAdd.Reactor
                                             m_Reactor.SendAuthTokenEvent(ReactorChannel, this, null);
 
                                             /* Send to worker thread to calculate next expire time */
-                                            m_Reactor.SendReactorImplEvent(ReactorEventImpl.ImplType.TOKEN_MGNT, ReactorChannel);
+                                            m_Reactor.SendWorkerImplEvent(ReactorEventImpl.ImplType.TOKEN_MGNT, ReactorChannel);
 
                                             if (ReactorChannel.State == ReactorChannelState.RDP_RT)
                                             {

@@ -6,13 +6,6 @@
  *|-----------------------------------------------------------------------------
  */
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
-using LSEG.Eta.Common;
-using LSEG.Eta.Codec;
-using LSEG.Eta.Example.Common;
 using LSEG.Eta.Rdm;
 using LSEG.Eta.ValueAdd.Reactor;
 

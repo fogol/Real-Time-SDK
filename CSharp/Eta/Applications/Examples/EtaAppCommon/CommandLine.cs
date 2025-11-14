@@ -8,6 +8,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 
 namespace LSEG.Eta.Example.Common
@@ -17,10 +18,12 @@ namespace LSEG.Eta.Example.Common
         private static IDictionary<string, List<string>> Parameters = new Dictionary<string, List<string>>();
 
         // for random option lookup when parsing command line
-        private static IDictionary<string, Option> Options = new Dictionary<string, Option>();
+        private static readonly IDictionary<string, Option> Options = new Dictionary<string, Option>();
+
+        private static readonly IDictionary<string, Option> Aliases = new Dictionary<string, Option>();
 
         // maintains order so help text can be constructed
-        private static List<Option> OptionsAndHelpText = new List<Option>();
+        private static List<Option> OptionsAndHelpText = new();
 
         private static string ArgumentPrefix = "-";
         private static string ProgramName = " ";
@@ -28,6 +31,104 @@ namespace LSEG.Eta.Example.Common
         static CommandLine()
         {
             AddOption("help", false, "Display help information and exit");
+        }
+
+        [AttributeUsage(AttributeTargets.Class)]
+        protected class ProgNameAttribute : Attribute
+        {
+            public ProgNameAttribute(string progName)
+            {
+                ProgName = progName;
+            }
+
+            public string ProgName { get; }
+        }
+
+        [AttributeUsage(AttributeTargets.Property, AllowMultiple = false)]
+        protected class OptionAttribute : Attribute
+        {
+            public OptionAttribute(string argName, string description)
+            {
+                ArgName = argName;
+                Description = description;
+            }
+
+            public OptionAttribute(string argName, string defaultValue, string description) : this(argName, description)
+                => DefaultValues = new string[] { defaultValue };
+
+            public OptionAttribute(string argName, bool defaultValue, string description) : this(argName, defaultValue.ToString(), description)
+            { }
+
+            public OptionAttribute(string argName, int defaultValue, string description) : this(argName, defaultValue.ToString(), description)
+            { }
+
+            public OptionAttribute(string argName, string[] defaultValues, string description) : this(argName, description)
+                => DefaultValues = defaultValues;
+
+            public string[]? DefaultValues { get; }
+            public string ArgName { get; }
+            public string Description { get; }
+            public string[] Aliases { get; set; } = Array.Empty<string>();
+        }
+
+        /// <summary>
+        /// Adds options and the program nmae defined in the inherited class as attributes ProgNameAttribute and OptionAttribute
+        /// </summary>
+        protected void AddCommandLineArgs()
+        {
+            if(GetType().GetCustomAttributes(typeof(ProgNameAttribute), true).FirstOrDefault() is ProgNameAttribute progNameAtt)
+            {
+                ProgName(progNameAtt.ProgName);
+            }
+            foreach (var property in GetType().GetProperties())
+            {
+                if (property.GetCustomAttributes(typeof(OptionAttribute), true).FirstOrDefault() is OptionAttribute optionAtt)
+                {
+                    AddOption(optionAtt.ArgName, optionAtt.DefaultValues, optionAtt.Description, optionAtt.Aliases);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Injects command line attribute values on properties described by OptionAttributes.
+        /// </summary>
+        protected void ParseArgs()
+        {
+            ParseArgs(Environment.GetCommandLineArgs().Skip(1).ToArray());
+            static object? GetValue(Type type, string argName)
+            {
+                if(!HasArg(argName) && (type.IsAssignableTo(typeof(Nullable<>)) || Nullable.GetUnderlyingType(type) != null))
+                {
+                    return null;
+                }
+                if(type == typeof(bool) || type == typeof(bool?))
+                    return BoolValue(argName);
+                if (type == typeof(int) || type == typeof(int?))
+                    return IntValue(argName);
+                if (type == typeof(string))
+                    return Value(argName);
+                if(type == typeof(List<string>))
+                    return Values(argName);
+                throw new InvalidOperationException($"{type} is not a supported command line parameter type.");
+            }
+
+            foreach (var property in GetType().GetProperties())
+            {
+                if (property.GetCustomAttributes(typeof(OptionAttribute), true).FirstOrDefault() is OptionAttribute optionAtt)
+                {
+                    if(Options.TryGetValue(optionAtt.ArgName, out var option))
+                    {
+                        if(option.DefaultValue is not null && property.PropertyType.IsGenericType 
+                            && property.PropertyType.GetGenericTypeDefinition() == typeof(Nullable<>))
+                        {
+                            throw new InvalidOperationException($"Nullable property {property.Name} cannot have defualt value.");
+                        }
+                        var value = GetValue(property.PropertyType, optionAtt.ArgName);
+                        if (value is not null)
+                            property.SetValue(this, value);
+                    }
+                }
+            }
         }
 
         /// <summary>
@@ -67,13 +168,18 @@ namespace LSEG.Eta.Example.Common
         /// <param name="arg">the argument name</param>
         /// <param name="defaultValues">the default values</param>
         /// <param name="description">the description of the option</param>
-        public static void AddOption(string arg, string[] defaultValues, string description)
+        public static void AddOption(string arg, string[]? defaultValues, string description, string[]? aliases)
         {
             if (!Options.ContainsKey(arg))
             {
                 Option option = new Option(arg, defaultValues, description, false);
                 Options.Add(arg, option);
                 OptionsAndHelpText.Add(option);
+                if(aliases is not null)
+                    foreach(var alias in aliases)
+                    {
+                        Aliases.Add(alias, option);
+                    }
             }
         }
 
@@ -158,13 +264,13 @@ namespace LSEG.Eta.Example.Common
                     throw new Exception("Unknown option: " + current.ParsedString);
                 }
 
-                if (!current.IsKnownOption) // option must match the known options
+                if (current.Option is null) // option must match the known options
                 {
                     throw new Exception("Unknown option: " + current.ParsedString);
                 }
 
                 ArgumentToken? next = ArgumentToken.Next(argv);
-                if (next == null || (next != null && next.HasArgPrefix && next.IsKnownOption))
+                if (next == null || (next != null && next.HasArgPrefix && next.Option is not null))
                 {
                     // Next token is a new -option (or end-of-line), so treat current 
                     // -option as a bool with true value
@@ -308,15 +414,17 @@ namespace LSEG.Eta.Example.Common
 
             public string Arg;
             public string[]? DefaultValue;
+            public string[]? Aliases;
             public string Description;
             public bool IsRequired;
 
-            public Option(string a, string[]? dv, string d, bool isRequired)
+            public Option(string a, string[]? dv, string d, bool isRequired, string[]? aliases = null)
             {
                 Arg = a;
                 DefaultValue = dv;
                 Description = d;
                 IsRequired = isRequired;
+                Aliases = aliases;
             }
 
             public override string ToString()
@@ -364,7 +472,7 @@ namespace LSEG.Eta.Example.Common
         private class ArgumentToken
         {
             public bool HasArgPrefix = false;
-            public bool IsKnownOption = false;
+            public Option? Option;
             public string? ParsedString;
 
             public ArgumentToken(string arg)
@@ -376,15 +484,23 @@ namespace LSEG.Eta.Example.Common
                 {
                     HasArgPrefix = true;
                     string optionString = arg.Substring(ArgumentPrefix.Length, arg.Length - 1);
-                    if (Options.ContainsKey(optionString))
+                    if (Options.TryGetValue(optionString, out var option))
                     {
                         ParsedString = optionString;
-                        IsKnownOption = true;
+                        Option = option;
                     }
                     else
                     {
-                        // Not a known option: leave ArgumentPrefix (e.g. "-") as part of the value string
-                        ParsedString = arg;
+                        if (Aliases.TryGetValue(optionString, out var aliasOption))
+                        {
+                            ParsedString = aliasOption.Arg;
+                            Option = aliasOption;
+                        }
+                        else
+                        {
+                            // Not a known option: leave ArgumentPrefix (e.g. "-") as part of the value string
+                            ParsedString = arg;
+                        }
                     }
                 }
                 else

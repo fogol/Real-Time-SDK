@@ -6,8 +6,9 @@
  *|-----------------------------------------------------------------------------
  */
 
+using System;
 using System.Collections.Generic;
-
+using System.Linq;
 using LSEG.Eta.Transports;
 
 namespace LSEG.Eta.Example.VACommon
@@ -38,12 +39,25 @@ namespace LSEG.Eta.Example.VACommon
         /// <summary>
         /// Hostname of provider to connect to.
         /// </summary>
-        public string Hostname { get; set; }
+        public string Hostname
+        {
+            get => GetHost().Hostname ?? string.Empty;
+            set => GetHost().Hostname = value;
+        }
 
         /// <summary>
         /// Port of provider to connect to.
         /// </summary>
-        public string Port { get; set; }
+        public string Port
+        {
+            get => GetHost().Port ?? string.Empty;
+            set => GetHost().Port = value;
+        }
+
+        /// <summary>
+        /// Hosts of provider to connect to.
+        /// </summary>
+        public List<HostArg> HostList { get; set; }
 
         /// <summary>
         /// Interface that the provider will be using.  This is optional
@@ -66,11 +80,10 @@ namespace LSEG.Eta.Example.VACommon
         /// <param name="itemList">the item list</param>
         public ConnectionArg(ConnectionType connectionType, string service, string hostname, string port, List<ItemArg> itemList, EncryptionProtocolFlags encryptionProtocolFlags)
         {
-            this.ConnectionType = connectionType;
-            this.Service = service;
-            this.Hostname = hostname;
-            this.Port = port;
-            this.ItemList = itemList;
+            ConnectionType = connectionType;
+            Service = service;
+            HostList = new() { new HostArg { Hostname = hostname, Port = port } };
+            ItemList = itemList;
             EncryptionProtocolFlags = encryptionProtocolFlags;
         }
 
@@ -82,9 +95,29 @@ namespace LSEG.Eta.Example.VACommon
         {
             ItemList = new();
             Service = string.Empty;
-            Hostname = string.Empty;
-            Port = string.Empty;
+            HostList = new();
             EncryptionProtocolFlags = EncryptionProtocolFlags.ENC_NONE;
+        }
+
+        private HostArg GetHost()
+        {
+            if (HostList == null)
+            {
+                HostList = new();
+            }
+
+            HostArg result;
+            if (HostList.Count > 0)
+            {
+                result = HostList[0];
+            }
+            else
+            {
+                result = new HostArg();
+                HostList.Add(result);
+            }
+
+            return result;
         }
     }
 }

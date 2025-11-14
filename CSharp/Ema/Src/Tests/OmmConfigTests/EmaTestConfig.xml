@@ -50,6 +50,17 @@
 				<Channel value="TestChannel_1"/>
 			</Consumer>
 
+			<!-- Consumer for fallback to preferred host feature -->
+			<Consumer>
+				<Name value="Consumer_9"/>
+				<ChannelSet value="TestChannel_1, TestChannel_2"/>
+				<Dictionary value="TestDictionary_1"/>
+				<EnablePreferredHostOptions value="1"/>
+				<PHDetectionTimeSchedule value="* * ? * *"/>
+				<PHDetectionTimeInterval value="10"/>
+				<PreferredChannelName value="TestChannel_2"/>
+				<XmlTraceToStdout value="0"/>
+			</Consumer>
 		</ConsumerList>
 	</ConsumerGroup>
 

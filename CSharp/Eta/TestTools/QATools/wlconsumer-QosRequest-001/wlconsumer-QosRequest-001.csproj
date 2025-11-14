@@ -1,0 +1,7 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="..\WatchlistConsumerNoCommon.props" />
+  <ItemGroup>
+    <Compile Remove="ItemArg.cs" />
+    <ProjectReference Include="wlconsumer-QosRequest-001-VACommon.csproj" />
+  </ItemGroup>
+</Project>

@@ -6,15 +6,17 @@
  *|-----------------------------------------------------------------------------
  */
 
-using LSEG.Eta.ValueAdd.Reactor;
-using LSEG.Eta.ValueAdd.Rdm;
 using System;
 using System.Collections.Generic;
+using System.IO;
+
+using LSEG.Eta.ValueAdd.Reactor;
+using LSEG.Eta.ValueAdd.Rdm;
 using LSEG.Eta.Codec;
 using LSEG.Eta.Rdm;
 
 using static LSEG.Eta.Rdm.Directory;
-using System.IO;
+using System.Text;
 
 namespace LSEG.Ema.Access
 {
@@ -860,9 +862,22 @@ namespace LSEG.Ema.Access
             return role;
         }
 
+        internal void ThrowOmmInvalidConfigExceptionIfNameIsNotInList(string name, string nameLabel, string list, string listLable, ILoggerClient? loggerClient)
+        {
+            StringBuilder strBuilder = new();
+            strBuilder.Append($"{nameLabel}: {name} is not present in {listLable}: {list}");
+
+            if (loggerClient != null)
+            {
+                loggerClient.Error(ConsumerConfig.Name, strBuilder.ToString());
+            }
+
+            throw new OmmInvalidConfigurationException(strBuilder.ToString());
+        }
+
         // Generates the reactor connect options based on the Consumer Config.
         // Prerequsites: The user-supplied OmmConsumerConfig has been verified with OmmConsumerConfigImpl.VerifyConfig and this is run on the "active" configuration copy
-        public override ReactorConnectOptions GenerateReactorConnectOpts()
+        public override ReactorConnectOptions GenerateReactorConnectOpts(ILoggerClient? loggerClient = null)
         {
             ReactorConnectOptions connOpts = new ReactorConnectOptions();
             ConsumerConfig consConfig = ConsumerConfigMap[ConsumerName];
@@ -877,15 +892,35 @@ namespace LSEG.Ema.Access
                 connOpts.ConnectionList.Add(chnlConfig.ConnectInfo);
             }
 
+            // Preferred Host fallback attributes
+            connOpts.PreferredHostOptions.EnablePreferredHostOptions = consConfig.EnablePreferredHostOptions;
+            connOpts.PreferredHostOptions.DetectionTimeSchedule = consConfig.PHDetectionTimeSchedule;
+            connOpts.PreferredHostOptions.DetectionTimeInterval = consConfig.PHDetectionTimeInterval;
+            int channelIndex = 0;
+
+            if (String.IsNullOrEmpty(consConfig.PreferredChannelName) == false)
+            {
+                channelIndex = consConfig.ChannelSet.IndexOf(consConfig.PreferredChannelName);
+
+                // Throw the OmmInvalidConfigurationException if the channelIndex is -1, which means that the PreferredChannelName is not in the ChannelSet.
+                if (channelIndex == -1)
+                {
+                    ThrowOmmInvalidConfigExceptionIfNameIsNotInList(consConfig.PreferredChannelName, "PreferredChannelName", string.Join(", ", consConfig.ChannelSet),
+                        "ChannelSet", loggerClient);
+                }
+            }
+
+            connOpts.PreferredHostOptions.ConnectionListIndex = channelIndex < 0 ? 0 : channelIndex;
+
             return connOpts;
         }
 
-        internal ReactorConnectOptions GenerateReactorSessionConnectOpts(SessionChannelInfo<IOmmConsumerClient> sessionInfo)
+        internal ReactorConnectOptions GenerateReactorSessionConnectOpts(SessionChannelInfo<IOmmConsumerClient> sessionInfo, ILoggerClient? loggerClient = null)
         {
             ReactorConnectOptions connOpts = new ReactorConnectOptions();
             SessionChannelConfig sessionConfig = sessionInfo.SessionChannelConfig;
 
-            /* Overries these reconnect parameters if they are not set */
+            /* Overries these reconnect and PH parameters if they are not set */
             if(sessionConfig.ReconnectAttemptLimitSet == false)
             {
                 sessionConfig.ReconnectAttemptLimit = ConsumerConfig.ReconnectAttemptLimit;
@@ -901,6 +936,16 @@ namespace LSEG.Ema.Access
                 sessionConfig.ReconnectMinDelay = ConsumerConfig.ReconnectMinDelay;
             }
 
+            if(sessionConfig.PHDetectionTimeScheduleSet == false)
+            {
+                sessionConfig.PHDetectionTimeSchedule = ConsumerConfig.PHDetectionTimeSchedule;
+            }
+
+            if (sessionConfig.PHDetectionTimeIntervalSet == false)
+            {
+                sessionConfig.PHDetectionTimeInterval = ConsumerConfig.PHDetectionTimeInterval;
+            }
+
             connOpts.SetReconnectMaxDelay((int)sessionConfig.ReconnectMaxDelay);
             connOpts.SetReconnectMinDelay((int)sessionConfig.ReconnectMinDelay);
             connOpts.SetReconnectAttempLimit((int)sessionConfig.ReconnectAttemptLimit);
@@ -910,6 +955,26 @@ namespace LSEG.Ema.Access
                 ClientChannelConfig chnlConfig = ClientChannelConfigMap[chnlName];
                 connOpts.ConnectionList.Add(chnlConfig.ConnectInfo);
             }
+
+            // Preferred Host fallback attributes
+            connOpts.PreferredHostOptions.EnablePreferredHostOptions = sessionConfig.EnablePreferredHostOptions;
+            connOpts.PreferredHostOptions.DetectionTimeSchedule = sessionConfig.PHDetectionTimeSchedule;
+            connOpts.PreferredHostOptions.DetectionTimeInterval = sessionConfig.PHDetectionTimeInterval;
+            int channelIndex = 0;
+
+            if (String.IsNullOrEmpty(sessionConfig.PreferredChannelName) == false)
+            {
+                channelIndex = sessionConfig.ChannelSet.IndexOf(sessionConfig.PreferredChannelName);
+
+                // Throw the OmmInvalidConfigurationException if the channelIndex is -1, which means that the PreferredChannelName is not in the ChannelSet.
+                if (channelIndex == -1)
+                {
+                    ThrowOmmInvalidConfigExceptionIfNameIsNotInList(sessionConfig.PreferredChannelName, "PreferredChannelName", string.Join(", ", sessionConfig.ChannelSet),
+                        "SessionChannelInfo.ChannelSet", loggerClient);
+                }
+            }
+
+            connOpts.PreferredHostOptions.ConnectionListIndex = channelIndex < 0 ? 0 : channelIndex;
 
             return connOpts;
         }

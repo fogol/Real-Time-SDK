@@ -17,11 +17,27 @@ namespace LSEG.Eta.ValuedAdd.Tests;
 /// </summary>
 public class Consumer : TestReactorComponent, IConsumerCallback
 {
-    public Consumer(TestReactor testReactor) : base(testReactor)
+    public Consumer(TestReactor testReactor, bool disposeReactor = false) : base(testReactor, disposeReactor)
     {
         ReactorRole = new ConsumerRole();
     }
 
+    public Consumer() : this(new TestReactor(), true)
+    { }
+
+    public ConsumerRole Role => (ConsumerRole)ReactorRole;
+
+    public Consumer WithDefaultRole()
+    {
+        Role.InitDefaultRDMLoginRequest();
+        Role.InitDefaultRDMDirectoryRequest();
+        Role.ChannelEventCallback = this;
+        Role.LoginMsgCallback = this;
+        Role.DirectoryMsgCallback = this;
+        Role.DictionaryMsgCallback = this;
+        Role.DefaultMsgCallback = this;
+        return this;
+    }
 
     public virtual ReactorCallbackReturnCode ReactorChannelEventCallback(ReactorChannelEvent evt)
     {
@@ -51,4 +67,7 @@ public class Consumer : TestReactorComponent, IConsumerCallback
     {
         return TestReactor.HandleDictionaryMsgEvent(evt);
     }
+
+    public void Connect(ConsumerProviderSessionOptions opts, params int[] portNumbers) =>
+        TestReactor.Connect(opts, this, portNumbers);
 }

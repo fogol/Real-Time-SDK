@@ -58,5 +58,21 @@ namespace LSEG.Eta.ValueAdd.Reactor
         /// in the channelOpenCallback).
         /// </summary>
         CHANNEL_OPENED,
+
+        /// <summary>
+        /// This event is sent from the Worker to the Reactor, and given to the user when the
+        /// preferred host operation starts in the Worker.
+        /// </summary>
+        PREFERRED_HOST_STARTING_FALLBACK,
+
+        /// <summary>
+        /// Preferred host flow is completed.
+        /// </summary>
+        PREFERRED_HOST_COMPLETE,
+
+        /// <summary>
+        /// The preferred host operation has determined that no fallback will be performed on this channel
+        /// </summary>
+        PREFERRED_HOST_NO_FALLBACK
     }
 }

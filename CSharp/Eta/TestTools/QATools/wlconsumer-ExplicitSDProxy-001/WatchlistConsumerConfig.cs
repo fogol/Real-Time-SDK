@@ -6,14 +6,7 @@
  *|-----------------------------------------------------------------------------
  */
 
-using System;
-using System.Collections.Generic;
-
-using LSEG.Eta.Codec;
-using LSEG.Eta.Example.Common;
 using LSEG.Eta.Example.VACommon;
-using LSEG.Eta.Rdm;
-using LSEG.Eta.Transports;
 
 using static LSEG.Eta.Example.Common.CommandLine;
 
@@ -219,15 +212,14 @@ internal class WatchlistConsumerConfig
                 EnableEncrypted = true;
             }
 
-            try
-            {
-                connectionArg.EncryptionProtocolFlags = EncryptionProtocol.Value;
-            }
-            catch (Exception ex)
-            {
-                Console.Error.WriteLine($"Error: {ex.Message}.");
-                System.Environment.Exit((int)TransportReturnCode.FAILURE);
-            }
+            EncryptionProtocolFlags EncryptionProtocol = EncryptionProtocolFlags.ENC_NONE;
+            if (CommandLine.BoolValue("spTLSv1.2"))
+                EncryptionProtocol |= EncryptionProtocolFlags.ENC_TLSV1_2;
+            if (CommandLine.BoolValue("spTLSv1.3"))
+                EncryptionProtocol |= EncryptionProtocolFlags.ENC_TLSV1_3;
+
+            if (EncryptionProtocol != EncryptionProtocolFlags.ENC_NONE)
+                connectionArg.EncryptionProtocolFlags = EncryptionProtocol;
 
             if (HasArg("encryptedProtocolType"))
             {
@@ -421,8 +413,6 @@ internal class WatchlistConsumerConfig
 
     public List<ConnectionArg> ConnectionList { get; set; } = new();
 
-    public readonly EncryptionProtocolCommandLineArg EncryptionProtocol = new ();
-
     /// <summary>
     /// Publisher id.
     /// </summary>
@@ -518,5 +508,8 @@ internal class WatchlistConsumerConfig
         AddOption("restLogFileName", "Set REST logging output stream");
         
         AddOption("rtt", false, "(optional) Enable RTT support in the WatchList");
+
+        AddOption("spTLSv1.2", false, "Specifies that TLSv1.2 can be used for an encrypted connection");
+        AddOption("spTLSv1.3", false, "Specifies that TLSv1.3 can be used for an encrypted connection");
     }
 }

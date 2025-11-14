@@ -300,7 +300,7 @@
                             </xs:complexType>
                           </xs:element>
 						  
-			  <xs:element name="SessionChannelSet" minOccurs="0" maxOccurs="1">
+                          <xs:element name="SessionChannelSet" minOccurs="0" maxOccurs="1">
                             <!-- a comma-separated list of Session Channel names -->
                             <xs:complexType>
                               <xs:attribute name="value" type="NonEmptyString" use="required" />
@@ -310,6 +310,30 @@
                           <xs:element name="SessionEnhancedItemRecovery" minOccurs="0" maxOccurs="1">
                             <xs:complexType>
                               <xs:attribute name="value" type="xs:unsignedLong" use="required" />
+                            </xs:complexType>
+                          </xs:element>
+
+                          <xs:element name="EnablePreferredHostOptions" minOccurs="0" maxOccurs="1">
+                            <xs:complexType>
+                              <xs:attribute name="value" type="xs:unsignedLong" use="required" />
+                            </xs:complexType>
+                          </xs:element>
+
+                          <xs:element name="PHDetectionTimeSchedule" minOccurs="0" maxOccurs="1">
+                            <xs:complexType>
+                              <xs:attribute name="value" type="NonEmptyString" use="required" />
+                            </xs:complexType>
+                          </xs:element>
+
+                          <xs:element name="PHDetectionTimeInterval" minOccurs="0" maxOccurs="1">
+                            <xs:complexType>
+                              <xs:attribute name="value" type="xs:unsignedInt" use="required" />
+                            </xs:complexType>
+                          </xs:element>
+
+                          <xs:element name="PreferredChannelName" minOccurs="0" maxOccurs="1">
+                            <xs:complexType>
+                              <xs:attribute name="value" type="NonEmptyString" use="required" />
                             </xs:complexType>
                           </xs:element>
 
@@ -1603,6 +1627,30 @@
                           <xs:element name="ReconnectMinDelay" minOccurs="0" maxOccurs="1">
                             <xs:complexType>
                               <xs:attribute name="value" type="xs:unsignedInt" use="required" />
+                            </xs:complexType>
+                          </xs:element>
+ 
+                          <xs:element name="EnablePreferredHostOptions" minOccurs="0" maxOccurs="1">
+                            <xs:complexType>
+                              <xs:attribute name="value" type="xs:unsignedLong" use="required" />
+                            </xs:complexType>
+                          </xs:element>
+
+                          <xs:element name="PHDetectionTimeSchedule" minOccurs="0" maxOccurs="1">
+                            <xs:complexType>
+                              <xs:attribute name="value" type="NonEmptyString" use="required" />
+                            </xs:complexType>
+                          </xs:element>
+
+                          <xs:element name="PHDetectionTimeInterval" minOccurs="0" maxOccurs="1">
+                            <xs:complexType>
+                              <xs:attribute name="value" type="xs:unsignedLong" use="required" />
+                            </xs:complexType>
+                          </xs:element>
+
+                          <xs:element name="PreferredChannelName" minOccurs="0" maxOccurs="1">
+                            <xs:complexType>
+                              <xs:attribute name="value" type="NonEmptyString" use="required" />
                             </xs:complexType>
                           </xs:element>
 

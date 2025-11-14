@@ -6,20 +6,9 @@
  *|-----------------------------------------------------------------------------
  */
 
-namespace LSEG.Eta.ValueAdd.WatchlistConsumer;
-
-using System;
 using System.Diagnostics;
-using System.Linq;
-using System.Net;
-using System.Net.Sockets;
 
-using LSEG.Eta.Codec;
-using LSEG.Eta.Common;
-using LSEG.Eta.Example.Common;
-using LSEG.Eta.Rdm;
-using LSEG.Eta.Transports;
-using LSEG.Eta.ValueAdd.Reactor;
+namespace LSEG.Eta.ValueAdd.WatchlistConsumer;
 
 /// <summary>
 /// This is the post handler for the ETA Value Add consumer application.
@@ -434,10 +423,10 @@ public class PostHandler
             m_PostMsg.PostUserInfo.UserId = Environment.ProcessId;
         }
 
-        m_PostNestedMsgPayLoad = new Eta.Codec.Buffer();
+        m_PostNestedMsgPayLoad = new ();
         m_PostNestedMsgPayLoad.Data(new ByteBuffer(1024));
         // encode message
-        m_EncIter.SetBufferAndRWFVersion(m_PostNestedMsgPayLoad, chnl.MajorVersion, Codec.MinorVersion());
+        m_EncIter.SetBufferAndRWFVersion(m_PostNestedMsgPayLoad, chnl.MajorVersion, Codec.Codec.MinorVersion());
 
         itemInfo.InitFields();
         itemInfo.TRDPRC_1 = NextItemData();
@@ -590,7 +579,7 @@ public class PostHandler
         m_StatusMsg.State.StreamState(StreamStates.CLOSED);
         m_StatusMsg.State.DataState(DataStates.SUSPECT);
 
-        m_PostNestedMsgPayLoad = new Eta.Codec.Buffer();
+        m_PostNestedMsgPayLoad = new ();
         m_PostNestedMsgPayLoad.Data(new ByteBuffer(1024));
 
         // encode post message

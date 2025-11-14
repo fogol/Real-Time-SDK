@@ -8,21 +8,8 @@
 
 
 //APIQA
-namespace LSEG.Eta.ValueAdd.WatchlistConsumer;
 
-using LSEG.Eta.Codec;
-using LSEG.Eta.Common;
-using LSEG.Eta.Example.Common;
-using LSEG.Eta.Rdm;
-using LSEG.Eta.Transports;
-using LSEG.Eta.ValueAdd.Rdm;
-using LSEG.Eta.ValueAdd.Reactor;
-using System;
-using System.IO;
-using System.Net;
-using System.Net.Sockets;
-using static LSEG.Eta.Rdm.Dictionary;
-using static Rdm.LoginMsgType;
+namespace LSEG.Eta.ValueAdd.WatchlistConsumer;
 
 /**
  * <p>
@@ -31,8 +18,7 @@ using static Rdm.LoginMsgType;
  */
 class ConsumerRequestThread
 {
-    private Eta.Codec.Buffer? m_Payload;
-    private ItemRequest? m_ItemReuest = null;
+    private Buffer? m_Payload;
     private ChannelInfo? m_ChnlInfo;
     private ConsumerCallbackThread? m_ConsumerCallbackThread;
 
@@ -44,15 +30,9 @@ class ConsumerRequestThread
     public List<WatchlistConsumerConfig.ItemInfo>? m_ItemInfoList;
     public ConsumerRequestThread(ChannelInfo channelInfo, ConsumerCallbackThread consumer)
     {
-        m_ItemReuest = CreateItemRequest();
         m_ChnlInfo = channelInfo;
         m_ConsumerCallbackThread = consumer;
         m_ItemInfoList = consumer!.m_WatchlistConsumerConfig!.ItemList!;
-    }
-
-    protected ItemRequest CreateItemRequest()
-    {
-        return new ItemRequest();
     }
     
     /* Runs the Value Add consumer application. */

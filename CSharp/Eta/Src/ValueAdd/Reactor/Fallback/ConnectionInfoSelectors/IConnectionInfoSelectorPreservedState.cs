@@ -1,0 +1,18 @@
+﻿/*|-----------------------------------------------------------------------------
+ *|            This source code is provided under the Apache 2.0 license      --
+ *|  and is provided AS IS with no warranty or guarantee of fit for purpose.  --
+ *|                See the project's LICENSE.md for details.                  --
+ *|           Copyright (C) 2024 LSEG. All rights reserved.                   --
+ *|-----------------------------------------------------------------------------
+ */
+
+namespace LSEG.Eta.ValueAdd.Reactor.Fallback.ConnectionInfoSelectors
+{
+    /// <summary>
+    /// Represents state that should be preserved when preferred host options changed.
+    /// </summary>
+    internal interface IConnectionInfoSelectorPreservedState
+    {
+        int CurrentIndex { get; set; }
+    }
+}

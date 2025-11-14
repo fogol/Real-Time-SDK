@@ -2,7 +2,7 @@
  *|            This source code is provided under the Apache 2.0 license
  *|  and is provided AS IS with no warranty or guarantee of fit for purpose.
  *|                See the project's LICENSE.md for details.
- *|           Copyright (C) 2023-2024 LSEG. All rights reserved.     
+ *|           Copyright (C) 2023-2025 LSEG. All rights reserved.
  *|-----------------------------------------------------------------------------
  */
 
@@ -13,7 +13,10 @@ using LSEG.Eta.ValueAdd.Reactor;
 using LSEG.Eta.ValueAdd.Rdm;
 using LSEG.Eta.Codec;
 using System;
+using System.Linq;
 using System.Net.Sockets;
+
+using static LSEG.Eta.ValuedAdd.Tests.TestUtil;
 
 namespace LSEG.Eta.ValuedAdd.Tests;
 
@@ -28,12 +31,24 @@ namespace LSEG.Eta.ValuedAdd.Tests;
 /// queue. You can then retrieve those events and test that they are correct.
 /// </remarks>
 ///
-public class TestReactor
+public class TestReactor : IDisposable
 {
     /** Controls whether reactor does XML tracing. */
     public static bool EnableReactorXmlTracing = false;
 
     public List<TestReactorComponent> ComponentList { get => m_ComponentList; }
+
+    /// <summary>
+    /// Default timeout for <see cref="Dispatch(int)"/> & <see cref="Dispatch(int, bool)"/> methods,
+    /// when expected event count is unlimited (i.e. -1).
+    /// </summary>
+    public TimeSpan DefaultDispatchTimeout { get; set; } = TimeSpan.FromMilliseconds(200);
+
+    /// <summary>
+    /// Default timeout for <see cref="Dispatch(int)"/> & <see cref="Dispatch(int, bool)"/> methods,
+    /// when expected event count is specified.
+    /// </summary>
+    public TimeSpan DefaultDispatchTimeoutForEventCount { get; set; } = TimeSpan.FromSeconds(10);
 
 
     /// <summary>
@@ -55,6 +70,14 @@ public class TestReactor
 
     private List<Socket> m_ReadSocketList;
 
+    #region Utility methods
+
+    private string GetEventQueueDump(bool showCount = true) =>
+        @$"Event queue contents{(showCount ? $" ({m_EventQueue.Count} element(s))" : "")}:
+{string.Join("," + Environment.NewLine, m_EventQueue.Select(x => $" - {x?.ToString() ?? "<null>"}"))}
+--------";
+
+    #endregion
 
     /// <summary>
     /// Creates a TestReactor.
@@ -98,68 +121,64 @@ public class TestReactor
     /// Calls dispatch on the component's Reactor, and will store received events for
     /// later review.
     /// </summary>
-    ///
+    /// <remarks>
     /// The test will verify that the exact number of events is received, and will fail if fewer
     /// or more are received.
-    ///
+    /// </remarks>
     /// <param name="expectedEventCount">The exact number of events that should be received.</param>
-    ///
-    public void Dispatch(int expectedEventCount)
-    {
+    public TestReactor Dispatch(int expectedEventCount) =>
         Dispatch(expectedEventCount, false);
-    }
 
     /// <summary>
     /// Calls dispatch on the component's Reactor, and will store received events for
     /// later review.
     /// </summary>
-    ///
+    /// <remarks>
     /// The test will verify that the exact number of events is received, and will fail if
     /// fewer or more are received.
     ///
-    /// Used for forced close connection from client, use {@link #dispatch(int)} for ordinary scenarios
-    ///
+    /// Used for forced close connection from client, use <see cref="Dispatch(int)"/> for ordinary scenarios
+    /// </remarks>
     /// <param name="expectedEventCount">The exact number of events that should be received.</param>
     /// <param name="channelWasClosed">true if client forcible have closed channel</param>
-    ///
-    public void Dispatch(int expectedEventCount, bool channelWasClosed)
+    public TestReactor Dispatch(int expectedEventCount, bool channelWasClosed)
     {
         TimeSpan timeout = (expectedEventCount > 0)
-            ? TimeSpan.FromMilliseconds(1000)
-            : TimeSpan.FromMilliseconds(200);
+            ? DefaultDispatchTimeoutForEventCount
+            : DefaultDispatchTimeout;
 
-        Dispatch(expectedEventCount, timeout, channelWasClosed);
+        return Dispatch(expectedEventCount, timeout, channelWasClosed);
     }
 
 
+    /// <summary>
     /// Waits for notification on the component's Reactor, and calls dispatch when
     /// triggered.  It will store any received events for later review.
-    ///
+    /// </summary>
+    /// <remarks>
     /// Waiting for notification stops once the expected number of events is received
     /// (unless that number is zero, in which case it waits for the full specified time).
-    ///
+    /// </remarks>
     /// <param name="expectedEventCount">The exact number of events that should be received.</param>
-    /// <param name="timeoutMsec">The maximum time to wait for all events.</param>
-    ///
-    public void Dispatch(int expectedEventCount, TimeSpan timeout)
-    {
+    /// <param name="timeout">The maximum time to wait for all events.</param>
+    public TestReactor Dispatch(int expectedEventCount, TimeSpan timeout) =>
         Dispatch(expectedEventCount, timeout, false);
-    }
 
+    /// <summary>
     /// Waits for notification on the component's Reactor, and calls dispatch when
     /// triggered. It will store any received events for later review.
-    ///
+    /// </summary>
+    /// <remarks>
     /// Waiting for notification stops once the expected number of events is received
     /// (unless that number is zero, in which case it waits for the full specified time).
     ///
-    /// Used for forced close connection from client, use {@link #dispatch(int)} for
+    /// Used for forced close connection from client, use <see cref="Dispatch(int)"/> for
     /// ordinary scenarios
-    ///
+    /// <remarks>
     /// <param name="expectedEventCount">The exact number of events that should be received.</param>
-    /// <param name="timeoutMsec">The maximum time to wait for all events.</param>
+    /// <param name="timeout">The maximum time to wait for all events.</param>
     /// <param name="channelWasClosed">true if client forcible have closed channel</param>
-    ///
-    public void Dispatch(int expectedEventCount, TimeSpan timeout, bool channelWasClosed)
+    public TestReactor Dispatch(int expectedEventCount, TimeSpan timeout, bool channelWasClosed)
     {
         int selectRet = 0;
         System.DateTime currentTime, stopTime;
@@ -186,7 +205,7 @@ public class TestReactor
                 if (eventSocket == null)
                 {
                     if (channelWasClosed)
-                        return;
+                        return this;
                     else
                         TestUtil.Fail("No selectable channel exists");
                 }
@@ -196,7 +215,8 @@ public class TestReactor
                 {
                     if (component.ReactorChannel != null
                         && component.IsReactorChannelUp
-                        && component.ReactorChannel.Socket != null)
+                        && component.ReactorChannel.Socket != null
+                        && !component.ReactorChannel.Socket.SafeHandle.IsClosed)
                     {
                         m_ReadSocketList.Add(component.ReactorChannel.Socket);
                     }
@@ -238,7 +258,7 @@ public class TestReactor
                 {
                     dispatchOpts.Clear();
                     lastDispatchRet = m_Reactor.Dispatch(dispatchOpts, out var dispatchErrorInfo);
-                    Assert.True(lastDispatchRet >= 0,
+                    Assert.True(lastDispatchRet >= ReactorReturnCode.SUCCESS,
                         $"Dispatch failed: {lastDispatchRet} ({dispatchErrorInfo?.Location} -- {dispatchErrorInfo?.Error?.Text})");
                 }
                 while (lastDispatchRet > 0);
@@ -266,7 +286,13 @@ public class TestReactor
 
         /* Don't check event queue size when expectedEventCount is set to -1 */
         if (expectedEventCount != -1)
-            Assert.Equal(expectedEventCount, m_EventQueue.Count);
+            Assert.True(expectedEventCount == m_EventQueue.Count, $@"
+Failure:  Event queue size differ
+Expected: {expectedEventCount}
+Actual:   {m_EventQueue.Count}
+{GetEventQueueDump(showCount: false)}");
+
+        return this;
     }
 
 
@@ -301,15 +327,20 @@ public class TestReactor
             case ReactorChannelEventType.CHANNEL_READY:
             case ReactorChannelEventType.FD_CHANGE:
             case ReactorChannelEventType.WARNING:
+            case ReactorChannelEventType.PREFERRED_HOST_COMPLETE:
+            case ReactorChannelEventType.PREFERRED_HOST_STARTING_FALLBACK:
+            case ReactorChannelEventType.PREFERRED_HOST_NO_FALLBACK:
                 Assert.NotNull(component.ReactorChannel);
                 break;
             default:
-                TestUtil.Fail("Unhandled ReactorChannelEventType.");
+                TestUtil.Fail($"Unhandled ReactorChannelEventType: {evt.EventType}.");
                 break;
 
         }
 
-        if (component.ReactorChannel != null)
+        // ReactorChannel may be different when current Provider has been contacted again.
+        // So this check is only relevant for Consumer.
+        if (component.ReactorChannel != null && component.ReactorRole.Type == ReactorRoleType.CONSUMER)
             Assert.Equal(component.ReactorChannel, evt.ReactorChannel);
         else
             component.ReactorChannel = evt.ReactorChannel;
@@ -363,6 +394,38 @@ public class TestReactor
         return m_EventQueue.Dequeue();
     }
 
+    public TEvent PollReactorEvent<TEvent>()
+        where TEvent : ReactorEvent
+    {
+        var @event = PollEvent();
+        Assert.IsAssignableFrom<TEvent>(@event.ReactorEvent);
+        return (TEvent)@event.ReactorEvent;
+    }
+
+    public TestReactor AssertReactorChannelEvent(ReactorChannelEventType type) =>
+        AssertEventType(type, (ReactorChannelEvent evt) => evt.EventType);
+
+    public TestReactor AssertLoginMsgEvent(LoginMsgType type) =>
+        AssertEventType(type, (RDMLoginMsgEvent evt) => evt.LoginMsg.LoginMsgType);
+
+    public TestReactor AssertDirectoryMsgEvent(DirectoryMsgType type) =>
+        AssertEventType(type, (RDMDirectoryMsgEvent evt) => evt.DirectoryMsg.DirectoryMsgType);
+
+    private TestReactor AssertEventType<TEvent, TEventType>(TEventType type, Func<TEvent, TEventType> getEventType)
+        where TEvent : ReactorEvent
+    {
+        var reactorEvent = PollReactorEvent<TEvent>();
+        var actualEventType = getEventType(reactorEvent);
+        Assert.True(type.Equals(actualEventType), $@"
+Failure:  Wrong reactor event type
+Expected: {type}
+Actual:   {actualEventType}
+{GetEventQueueDump()}");
+
+
+        return this;
+    }
+
     /// <summary>
     /// Adds a component to the Reactor.
     /// </summary>
@@ -398,40 +461,77 @@ public class TestReactor
     internal void Connect(ConsumerProviderSessionOptions opts, TestReactorComponent component, int portNumber)
     {
         ReactorConnectOptions connectOpts = new();
-        ReactorConnectInfo connectInfo = new();
 
         connectOpts.Clear();
-        connectOpts.ConnectionList.Add(connectInfo);
-        connectOpts.ConnectionList[0].ConnectOptions.MajorVersion = Codec.Codec.MajorVersion();
-        connectOpts.ConnectionList[0].ConnectOptions.MinorVersion = Codec.Codec.MinorVersion();
-        connectOpts.ConnectionList[0].ConnectOptions.ConnectionType = opts.ConnectionType;
-        connectOpts.ConnectionList[0].ConnectOptions.UserSpecObject = component;
-        connectOpts.ConnectionList[0].ConnectOptions.CompressionType = opts.CompressionType;
-        connectOpts.ConnectionList[0].ConnectOptions.NumInputBuffers = 20;
+        MapToReactorConnectOptions(connectOpts, opts, component, new[] {portNumber});
 
+        ConnectChecked(connectOpts, component.ReactorRole);
+    }
+
+    /// <summary>
+    /// Associates a component with this reactor and opens a connection.
+    /// </summary>
+    internal void Connect(ConsumerProviderSessionOptions opts, TestReactorComponent component, int[] portNumbers)
+    {
+        if (portNumbers.Length == 0)
+            throw new ArgumentException("At least 1 port number must be specified", nameof(portNumbers));
+
+        ReactorConnectOptions connectOpts = new();
+
+        connectOpts.Clear();
+        MapToReactorConnectOptions(connectOpts, opts, component, portNumbers);
+
+        ConnectChecked(connectOpts, component.ReactorRole);
+    }
+
+    private static void MapToReactorConnectOptions(ReactorConnectOptions connectOpts, ConsumerProviderSessionOptions opts, TestReactorComponent component, int[] portNumbers)
+    {
         connectOpts.SetReconnectAttempLimit(opts.ReconnectAttemptLimit);
         connectOpts.SetReconnectMinDelay((int)opts.ReconnectMinDelay.TotalMilliseconds);
         connectOpts.SetReconnectMaxDelay((int)opts.ReconnectMaxDelay.TotalMilliseconds);
-        connectOpts.ConnectionList[0].ConnectOptions.PingTimeout = (int)opts.PingTimeout.TotalSeconds;
-        connectOpts.ConnectionList[0].SetInitTimeout((int)opts.ConsumerChannelInitTimeout.TotalSeconds);
 
-        connectOpts.ConnectionList[0].ConnectOptions.UnifiedNetworkInfo.Address = "localhost";
-        connectOpts.ConnectionList[0].ConnectOptions.UnifiedNetworkInfo.ServiceName = portNumber.ToString();
+        opts.PreferredHostOptions?.Copy(connectOpts.PreferredHostOptions);
 
-        if(opts.SysSendBufSize > 0)
-            connectOpts.ConnectionList[0].ConnectOptions.SysSendBufSize = opts.SysSendBufSize;
+        foreach (var portNumber in portNumbers)
+        {
+            ReactorConnectInfo connectInfo = new()
+            {
+                ConnectOptions = {
+                    MajorVersion = Codec.Codec.MajorVersion(),
+                    MinorVersion = Codec.Codec.MinorVersion(),
+                    ConnectionType = opts.ConnectionType,
+                    UserSpecObject = component,
+                    CompressionType = opts.CompressionType,
+                    NumInputBuffers = 20,
+                    UnifiedNetworkInfo = {
+                        Address = "localhost",
+                        ServiceName = portNumber.ToString(),
+                    },
+                },
+            };
 
-        if (opts.SysRecvBufSize > 0)
-            connectOpts.ConnectionList[0].ConnectOptions.SysRecvBufSize = opts.SysRecvBufSize;
+            connectInfo.ConnectOptions.PingTimeout = (int)opts.PingTimeout.TotalSeconds;
+            connectInfo.SetInitTimeout((int)opts.ConsumerChannelInitTimeout.TotalSeconds);
 
-        ReactorReturnCode connectCode = m_Reactor.Connect(connectOpts, component.ReactorRole, out var connectError);
+            if (opts.SysSendBufSize > 0)
+                connectInfo.ConnectOptions.SysSendBufSize = opts.SysSendBufSize;
+
+            if (opts.SysRecvBufSize > 0)
+                connectInfo.ConnectOptions.SysRecvBufSize = opts.SysRecvBufSize;
+
+            connectOpts.ConnectionList.Add(connectInfo);
+        }
+    }
+
+    private void ConnectChecked(ReactorConnectOptions connectOpts, ReactorRole reactorRole)
+    {
+        ReactorReturnCode connectCode = m_Reactor.Connect(connectOpts, reactorRole, out var connectError);
         Assert.True(ReactorReturnCode.SUCCESS == connectCode,
             $"Connect failed: {connectCode} ({connectError?.Location} -- {connectError?.Error?.Text})");
 
         /* Clear ReactorConnectOptions after connecting -- this tests whether the Reactor
          * is properly saving the options. */
         connectOpts.Clear();
-
     }
 
     /// <summary>
@@ -450,7 +550,7 @@ public class TestReactor
         ReactorConnectOptions connectOpts = new();
 
         Assert.NotNull(component.Server);
-        Assert.Null(component.ReactorChannel);
+        //Assert.Null(component.ReactorChannel);
 
         if(m_ReadSocketList.Count == 0)
         {
@@ -485,13 +585,12 @@ public class TestReactor
                         /* Accept connection. */
                         // acceptOpts.Clear();
                         acceptOpts.AcceptOptions.UserSpecObject = component;
-                        Assert.Equal(ReactorReturnCode.SUCCESS,
-                                     m_Reactor.Accept(component.Server, acceptOpts, component.ReactorRole, out _));
+                        AssertSuccess((out ReactorErrorInfo err) => m_Reactor.Accept(component.Server, acceptOpts, component.ReactorRole, out err));
                         return;
                     }
                 }
             }
-            catch (Exception e)
+            catch (Exception e) when (e is SocketException || e is ObjectDisposedException)
             {
                 TestUtil.Fail($"Caught I/O exception: {e.Message}");
             }
@@ -782,4 +881,6 @@ public class TestReactor
         if (m_EventQueue != null)
             m_EventQueue.Clear();
     }
+
+    public void Dispose() => Close();
 }

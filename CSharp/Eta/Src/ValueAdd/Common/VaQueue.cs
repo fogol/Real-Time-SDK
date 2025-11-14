@@ -37,6 +37,12 @@ namespace LSEG.Eta.ValueAdd.Common
             if (node is null)
                 return;
 
+            /* Ensure to remove from the previous VaQueue */
+            if(node.InQueue != null)
+            {
+                node.InQueue.Remove(node);
+            }
+
             if (_tail is null)
             {
                 Debug.Assert(_head is null, "VaQueue.Add(): unexpectedly found _tail null but head was not null!");
@@ -53,6 +59,7 @@ namespace LSEG.Eta.ValueAdd.Common
             _tail = node;
             _tail.Next = null;
             _size++;
+            node.InQueue = this;
         }
 
         /// <summary>
@@ -83,6 +90,7 @@ namespace LSEG.Eta.ValueAdd.Common
                 _head = _head.Next;
             }
 
+            node.InQueue = null;
             return node;
         }
 
@@ -112,13 +120,18 @@ namespace LSEG.Eta.ValueAdd.Common
                 if (_head.Next != null)
                 {
                     _head = _head.Next;
+                    _size--;
+
                 }
                 else
                 {
                     _head = null;
                     _tail = null;
+                    _size = 0;
                 }
-                _size--;
+
+                node.InQueue = null;
+
                 return true;
             }
 
@@ -139,6 +152,9 @@ namespace LSEG.Eta.ValueAdd.Common
                         _tail = previousNode;
                     }
                     _size--;
+
+                    node.InQueue = null;
+
                     return true;
                 }
 

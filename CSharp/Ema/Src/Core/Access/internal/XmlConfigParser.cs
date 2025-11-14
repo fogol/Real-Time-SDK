@@ -349,6 +349,11 @@ namespace LSEG.Ema.Access
                     .Parse(() => tmpConfig.RestProxyPort)
                     .Parse(() => tmpConfig.RestEnableLog)
                     .Parse(() => tmpConfig.RestEnableLogViaCallback)
+                    .Parse(() => tmpConfig.EnablePreferredHostOptions)
+                    .Parse(() => tmpConfig.PHDetectionTimeSchedule)
+                    .Parse(() => tmpConfig.PHDetectionTimeInterval)
+                    .Parse(() => tmpConfig.PreferredChannelName)
+                    .Parse(() => tmpConfig.SessionEnhancedItemRecovery)
                     .Parse(() => tmpConfig.SessionEnhancedItemRecovery)
                     .Parse(() => tmpConfig.UpdateTypeFilter, v => v > 0 ? v : tmpConfig.UpdateTypeFilter)
                     .Parse(() => tmpConfig.NegativeUpdateTypeFilter, v => v > 0 ? v : tmpConfig.NegativeUpdateTypeFilter);
@@ -2100,6 +2105,21 @@ namespace LSEG.Ema.Access
                     sessionChannelInfoNodeParser.Parse(() => tmpConfig.ReconnectMinDelay);
                     tmpConfig.ReconnectMinDelaySet = true;
                 }
+
+                if(sessionChannelInfoNode.SelectSingleNode("PHDetectionTimeSchedule") != null)
+                {
+                    sessionChannelInfoNodeParser.Parse(() => tmpConfig.PHDetectionTimeSchedule);
+                    tmpConfig.PHDetectionTimeScheduleSet = true;
+                }
+
+                if (sessionChannelInfoNode.SelectSingleNode("PHDetectionTimeInterval") != null)
+                {
+                    sessionChannelInfoNodeParser.Parse(() => tmpConfig.PHDetectionTimeInterval);
+                    tmpConfig.PHDetectionTimeIntervalSet = true;
+                }
+
+                sessionChannelInfoNodeParser.Parse(() => tmpConfig.EnablePreferredHostOptions)
+                    .Parse(() => tmpConfig.PreferredChannelName);
 
                 HandleSingleListNode(sessionChannelInfoNode, "SessionChannelInfo", "ChannelSet",  tmpConfig.ChannelSet);
 

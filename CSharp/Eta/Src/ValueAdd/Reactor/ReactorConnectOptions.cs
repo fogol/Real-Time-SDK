@@ -37,6 +37,7 @@ namespace LSEG.Eta.ValueAdd.Reactor
             m_ReconnectMaxDelay = DEFAULT_DELAY;
             m_ReconnectMinDelay = DEFAULT_DELAY;
             m_ReconnectAttemptLimit = 0;
+            PreferredHostOptions = new ReactorPreferredHostOptions();
         }
 
         /// <summary>
@@ -133,6 +134,11 @@ namespace LSEG.Eta.ValueAdd.Reactor
         }
 
         /// <summary>
+        /// Gets preferred host options to fall back to a host in the <see cref="ConnectionList"/>.
+        /// </summary>
+        public ReactorPreferredHostOptions PreferredHostOptions { get; private set; }
+
+        /// <summary>
         /// Clears this object for reuse.
         /// </summary>
         public void Clear()
@@ -141,6 +147,7 @@ namespace LSEG.Eta.ValueAdd.Reactor
             m_ReconnectAttemptLimit = 0;
             m_ReconnectMinDelay = DEFAULT_DELAY;
             m_ReconnectMaxDelay = DEFAULT_DELAY;
+            PreferredHostOptions.Clear();
         }
 
         /// <summary>
@@ -167,7 +174,8 @@ namespace LSEG.Eta.ValueAdd.Reactor
             destOpts.m_ReconnectAttemptLimit = m_ReconnectAttemptLimit;
             destOpts.m_ReconnectMinDelay = m_ReconnectMinDelay;
             destOpts.m_ReconnectMaxDelay = m_ReconnectMaxDelay;
-            return ReactorReturnCode.SUCCESS;
+
+            return PreferredHostOptions.Copy(destOpts.PreferredHostOptions);
         }
     }
 }

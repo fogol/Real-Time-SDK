@@ -8,6 +8,8 @@
 
 using LSEG.Ema.Rdm;
 using LSEG.Eta.Codec;
+using LSEG.Eta.Common;
+using LSEG.Eta.Rdm;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -75,7 +77,8 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
             OmmConsumerConfig consumerConfig = new OmmConsumerConfig();
 
             OmmInvalidUsageException expectedException = Assert.Throws<OmmInvalidUsageException>(()
-                    => { consumerConfig.AddServiceList(serviceList); });
+                    =>
+            { consumerConfig.AddServiceList(serviceList); });
 
             Assert.StartsWith("The ServiceList's name must be non-empty string value.", expectedException.Message);
 
@@ -106,7 +109,8 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
             consumerConfig.AddServiceList(serviceList);
 
             OmmInvalidUsageException expectedException = Assert.Throws<OmmInvalidUsageException>(()
-                => { consumerConfig.AddServiceList(serviceList2); });
+                =>
+            { consumerConfig.AddServiceList(serviceList2); });
 
             Assert.StartsWith("The ServiceGroup name of ServiceList has been added to OmmConsumerConfig.", expectedException.Message);
         }
@@ -188,7 +192,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 ChannelInformation channelInfo = consumerClient.PopChannelInfo();
                 Assert.Equal("Channel_1", channelInfo.ChannelName);
                 Assert.Equal("Connection_1", channelInfo.SessionChannelName);
-                Assert.Equal(ChannelState.INITIALIZING, channelInfo.ChannelState);
+                Assert.Equal(ChannelState.INACTIVE, channelInfo.ChannelState);
 
                 statusMsg = (StatusMsg)consumerClient.PopMessage();
 
@@ -199,7 +203,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 channelInfo = consumerClient.PopChannelInfo();
                 Assert.Equal("Channel_4", channelInfo.ChannelName);
                 Assert.Equal("Connection_2", channelInfo.SessionChannelName);
-                Assert.Equal(ChannelState.INITIALIZING, channelInfo.ChannelState);
+                Assert.Equal(ChannelState.INACTIVE, channelInfo.ChannelState);
 
                 statusMsg = (StatusMsg)consumerClient.PopMessage();
 
@@ -210,7 +214,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 channelInfo = consumerClient.PopChannelInfo();
                 Assert.Equal("Channel_2", channelInfo.ChannelName);
                 Assert.Equal("Connection_1", channelInfo.SessionChannelName);
-                Assert.Equal(ChannelState.INITIALIZING, channelInfo.ChannelState);
+                Assert.Equal(ChannelState.INACTIVE, channelInfo.ChannelState);
 
                 if (queueSize == 4)
                 {
@@ -222,7 +226,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                     channelInfo = consumerClient.PopChannelInfo();
                     Assert.Equal("Channel_5", channelInfo.ChannelName);
                     Assert.Equal("Connection_2", channelInfo.SessionChannelName);
-                    Assert.Equal(ChannelState.INITIALIZING, channelInfo.ChannelState);
+                    Assert.Equal(ChannelState.INACTIVE, channelInfo.ChannelState);
                 }
 
                 if (queueSize == 5)
@@ -280,7 +284,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 channelInfo = consumerClient.PopChannelInfo();
                 Assert.Equal("Channel_4", channelInfo.ChannelName);
                 Assert.Equal("Connection_2", channelInfo.SessionChannelName);
-                Assert.Equal(ChannelState.CLOSED, channelInfo.ChannelState);
+                Assert.Equal(ChannelState.INACTIVE, channelInfo.ChannelState);
 
                 statusMsg = (StatusMsg)consumerClient.PopMessage();
                 Assert.Equal(1, statusMsg.StreamId());
@@ -300,7 +304,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 channelInfo = consumerClient.PopChannelInfo();
                 Assert.Equal("Channel_5", channelInfo.ChannelName);
                 Assert.Equal("Connection_2", channelInfo.SessionChannelName);
-                Assert.Equal(ChannelState.CLOSED, channelInfo.ChannelState);
+                Assert.Equal(ChannelState.INACTIVE, channelInfo.ChannelState);
 
                 refreshMsg = (RefreshMsg)consumerClient.PopMessage();
                 Assert.Equal(1, refreshMsg.StreamId());
@@ -8559,7 +8563,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                     consumer.Submit(postMsg.Clear().PostId(2).ServiceId(serviceId)
                         .Name("IBM.N").SolicitAck(true).Complete(true)
                         .Payload(nestedUpdateMsg.MarkForClear()).MarkForClear(), itemHandle);
-                    });
+                });
 
                 Assert.StartsWith("Failed to submit PostMsg on item stream. Reason: INVALID_USAGE. Error text: "
                     + "Message submitted with unknown service Id 32768", expectedException.Message);
@@ -8580,7 +8584,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                     consumer.Submit(postMsg.PostId(1).ServiceName("UNKNOWN_FEED")
                                                         .Name("IBM.N").SolicitAck(false).Complete(true)
                                                         .Payload(nestedUpdateMsg.MarkForClear()).MarkForClear(), itemHandle);
-                 });
+                });
 
                 Assert.StartsWith("Failed to submit PostMsg on item stream. Reason: INVALID_USAGE. Error text: "
                     + "Message submitted with unknown service name UNKNOWN_FEED", expectedException.Message);
@@ -11068,7 +11072,8 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 ChannelInformation channelInformation = new ChannelInformation();
 
                 OmmInvalidUsageException expectedException = Assert.Throws<OmmInvalidUsageException>(()
-                                        => { consumer.ChannelInformation(channelInformation); });
+                                        =>
+                { consumer.ChannelInformation(channelInformation); });
 
                 Assert.Equal("The request routing feature do not support the ChannelInformation method. The SessionChannelInfo() must be used instead.", expectedException.Message);
 
@@ -12049,10 +12054,10 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 Assert.Equal("DIRECT_FEED", refreshMsg.ServiceName());
                 Assert.Equal(DataType.DataTypes.MAP, refreshMsg.Payload().DataType);
                 Map payload = refreshMsg.Payload().Map();
-                
+
                 var mapIt = payload.GetEnumerator();
                 Assert.True(mapIt.MoveNext());
-                MapEntry mapEntry =mapIt.Current;
+                MapEntry mapEntry = mapIt.Current;
                 Assert.Equal((ulong)serviceId, mapEntry.Key.UInt());
                 Assert.Equal(MapAction.ADD, mapEntry.Action);
 
@@ -12203,7 +12208,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
             ProviderTestClient providerClient = new ProviderTestClient(m_Output, providerTestOptions);
 
-            OmmProvider ommprovider = new (config.Port("19001"), providerClient);
+            OmmProvider ommprovider = new(config.Port("19001"), providerClient);
 
             ProviderTestOptions providerTestOptions2 = new ProviderTestOptions();
             providerTestOptions2.SendRefreshAttrib = true;
@@ -12211,7 +12216,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
             ProviderTestClient providerClient2 = new ProviderTestClient(m_Output, providerTestOptions2);
 
-            OmmProvider ommprovider2 = new (config.Port("19004"), providerClient2);
+            OmmProvider ommprovider2 = new(config.Port("19004"), providerClient2);
 
             OmmConsumer? consumer = null;
             ConsumerTestOptions options = new ConsumerTestOptions();
@@ -12220,7 +12225,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
             try
             {
-                consumer = new (new OmmConsumerConfig(EmaConfigFileLocation).ConsumerName("Consumer_9"), consumerClient);
+                consumer = new(new OmmConsumerConfig(EmaConfigFileLocation).ConsumerName("Consumer_9"), consumerClient);
 
                 Assert.Equal(3, consumerClient.QueueSize()); // Ensure that the callback receives only one login message
 
@@ -12302,7 +12307,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 ommprovider = new OmmProvider(config.Port("19002"), providerClient3);
 
                 /* Waits until the Channel_1 of Connection_1 is closed */
-                Thread.Sleep(3000);
+                Thread.Sleep(3500);
 
                 Assert.Equal(3, consumerClient.QueueSize());
 
@@ -12373,7 +12378,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 Assert.Equal("Open / Ok / None / 'session channel up'", statusMsg.State().ToString());
             }
             catch (OmmException)
-		    {
+            {
                 Assert.False(true);
             }
             finally
@@ -12409,7 +12414,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
             {
                 using var _ = EtaGlobalPoolTestUtil.CreateClearableSection();
 
-                consumer = new (new OmmConsumerConfig(EmaConfigFileLocation).ConsumerName("Consumer_9"), consumerClient);
+                consumer = new(new OmmConsumerConfig(EmaConfigFileLocation).ConsumerName("Consumer_9"), consumerClient);
 
                 Assert.Equal(3, consumerClient.QueueSize()); // Ensure that the callback receives only one login message
 
@@ -12533,11 +12538,11 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 message = consumerClient.PopMessage();
 
-                while(message is not RefreshMsg)
+                while (message is not RefreshMsg)
                 {
-                    if(consumerClient.QueueSize() > 0)
+                    if (consumerClient.QueueSize() > 0)
                         message = consumerClient.PopMessage();
-                    
+
                     Thread.Sleep(500);
                 }
 
@@ -12599,7 +12604,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
             }
             catch (OmmException)
-		    {
+            {
                 Assert.False(true);
             }
             finally
@@ -12668,5 +12673,2231 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 ommprovider2.Uninitialize();
             }
         }
+
+        [Fact]
+        public void SingleConnectionFallbackToPreferredChannelOnChannelListUponDetectionIntervalTest()
+        {
+            OmmConsumer? consumer = null;
+            ConsumerTestOptions consumerOption = new ();
+            ProviderTestOptions providerTestOptions = new ();
+            providerTestOptions.SupportStandby = true;
+            providerTestOptions.SendRefreshAttrib = true;
+
+            ProviderTestClient providerClient = new (m_Output, providerTestOptions);
+            ProviderTestClient providerClient2 = new (m_Output, providerTestOptions);
+            ProviderTestClient providerClient3 = new (m_Output, providerTestOptions);
+
+            OmmIProviderConfig config =new OmmIProviderConfig(EmaConfigFileLocation);
+
+            consumerOption.GetChannelInformation = true;
+            consumerOption.GetSessionChannelInfo = false;
+            ConsumerTestClient consumerClient = new (m_Output, consumerOption);
+
+
+            // Channel_1
+            OmmProvider ommprovider = new (config.Port("19001").ProviderName("Provider_1"), providerClient);
+
+            // Channel_2 /* This is preferred host */
+            OmmProvider? ommprovider2 = null;
+
+            // Channel_3
+            OmmProvider ommprovider3 = new (config.Port("19003").ProviderName("Provider_1"), providerClient3);
+
+            try
+            {
+                ConsumerTestOptions options = new ();
+                options.GetChannelInformation = true;
+
+                consumer = new OmmConsumer(new OmmConsumerConfig(EmaConfigFileLocation).ConsumerName("Consumer_13"), consumerClient);
+
+                String serviceName = "DIRECT_FEED";
+                String itemName = "TRI.N";
+
+                RequestMsg reqMsg = new();
+                long itemHandle = consumer.RegisterClient(reqMsg.Name(itemName).ServiceName(serviceName), consumerClient);
+
+                Thread.Sleep(1000);
+
+                Msg message = consumerClient.PopMessage();
+                StatusMsg statusMsg = (StatusMsg)message;
+
+                Assert.Equal(1, statusMsg.StreamId());
+                Assert.Equal(EmaRdm.MMT_LOGIN, statusMsg.DomainType());
+                Assert.Equal("Open / Suspect / None / 'channel down'", statusMsg.State().ToString());
+                ChannelInformation channelInfo = consumerClient.PopChannelInfo();
+                Assert.Equal("Channel_2", channelInfo.ChannelName);
+                Assert.Equal(ChannelState.INACTIVE, channelInfo.ChannelState);
+
+                message = consumerClient.PopMessage();
+                RefreshMsg refreshMsg = (RefreshMsg)message;
+
+                Assert.Equal(1, refreshMsg.StreamId());
+                Assert.Equal(EmaRdm.MMT_LOGIN, refreshMsg.DomainType());
+                Assert.Equal("Open / Ok / None / 'Login accepted'", refreshMsg.State().ToString());
+                Assert.True(refreshMsg.Solicited());
+                Assert.True(refreshMsg.Complete());
+                Assert.True(refreshMsg.HasMsgKey);
+                Assert.Equal(DataTypes.NO_DATA, refreshMsg.Payload().DataType);
+                Assert.Equal(DataTypes.ELEMENT_LIST, refreshMsg.Attrib().DataType);
+                channelInfo = consumerClient.PopChannelInfo();
+                Assert.Equal("Channel_1", channelInfo.ChannelName);
+                Assert.Equal(ChannelState.ACTIVE, channelInfo.ChannelState);
+                Assert.True(channelInfo.PreferredHostInfo!.IsPreferredHostEnabled);
+                Assert.Equal(7, channelInfo.PreferredHostInfo!.DetectionTimeInterval);
+                Assert.Equal("",channelInfo.PreferredHostInfo!.DetectionTimeSchedule);
+                Assert.Equal("Channel_2", channelInfo.PreferredHostInfo!.ChannelName);
+                Assert.Equal(6, channelInfo.PreferredHostInfo!.RemainingDetectionTime);
+
+
+                Thread.Sleep(1000);
+
+                //Checks the market price item refresh from the Channel_1
+                message = consumerClient.PopMessage();
+                refreshMsg = (RefreshMsg)message;
+
+                Assert.Equal(5, refreshMsg.StreamId());
+                Assert.Equal(EmaRdm.MMT_MARKET_PRICE, refreshMsg.DomainType());
+                Assert.Equal("Open / Ok / None / 'Refresh Completed'", refreshMsg.State().ToString());
+                Assert.True(refreshMsg.Complete());
+                Assert.True(refreshMsg.Solicited());
+                Assert.True(refreshMsg.HasName);
+                Assert.Equal(itemName, refreshMsg.Name());
+                Assert.True(refreshMsg.HasServiceId);
+                Assert.True(refreshMsg.HasServiceName);
+                Assert.Equal(serviceName, refreshMsg.ServiceName());
+                Assert.Equal(DataTypes.FIELD_LIST, refreshMsg.Payload().DataType);
+                channelInfo = consumerClient.PopChannelInfo();
+                Assert.Equal("Channel_1", channelInfo.ChannelName);
+                Assert.Equal(ChannelState.ACTIVE, channelInfo.ChannelState);
+                Assert.True(channelInfo.PreferredHostInfo!.IsPreferredHostEnabled);
+                Assert.Equal(7, channelInfo.PreferredHostInfo!.DetectionTimeInterval);
+                Assert.Equal("", channelInfo.PreferredHostInfo!.DetectionTimeSchedule);
+                Assert.Equal("Channel_2", channelInfo.PreferredHostInfo!.ChannelName);
+                Assert.Equal(6, channelInfo.PreferredHostInfo!.RemainingDetectionTime);
+
+                Thread.Sleep(7000);
+
+                // Checks for PH START and COMPLETE events
+                message = consumerClient.PopMessage();
+
+                /* Checks login status messages */
+                statusMsg = (StatusMsg)message;
+
+                Assert.Equal(1, statusMsg.StreamId());
+                Assert.Equal(EmaRdm.MMT_LOGIN, statusMsg.DomainType());
+                Assert.Equal("Open / Ok / PreferredHostStartingFallback / 'preferred host starting fallback'", statusMsg.State().ToString());
+                Assert.True(statusMsg.HasMsgKey);
+                Assert.Equal(DataTypes.NO_DATA, statusMsg.Payload().DataType);
+                channelInfo = consumerClient.PopChannelInfo();
+                Assert.Equal("Channel_1", channelInfo.ChannelName);
+                Assert.Equal(ChannelState.ACTIVE, channelInfo.ChannelState);
+                Assert.True(channelInfo.PreferredHostInfo!.IsPreferredHostEnabled);
+                Assert.Equal(7, channelInfo.PreferredHostInfo!.DetectionTimeInterval);
+                Assert.Equal("", channelInfo.PreferredHostInfo!.DetectionTimeSchedule);
+                Assert.Equal("Channel_2", channelInfo.PreferredHostInfo!.ChannelName);
+                Assert.Equal(6, channelInfo.PreferredHostInfo!.RemainingDetectionTime);
+
+                message = consumerClient.PopMessage();
+                statusMsg = (StatusMsg)message;
+
+                Assert.Equal(1, statusMsg.StreamId());
+                Assert.Equal(EmaRdm.MMT_LOGIN, statusMsg.DomainType());
+                Assert.Equal("Open / Ok / PreferredHostComplete / 'preferred host complete'", statusMsg.State().ToString());
+                Assert.True(statusMsg.HasMsgKey);
+                Assert.Equal(DataTypes.NO_DATA, statusMsg.Payload().DataType);
+                channelInfo = consumerClient.PopChannelInfo();
+                Assert.Equal("Channel_1", channelInfo.ChannelName);
+                Assert.Equal(ChannelState.ACTIVE, channelInfo.ChannelState);
+                Assert.True(channelInfo.PreferredHostInfo!.IsPreferredHostEnabled);
+                Assert.Equal(7, channelInfo.PreferredHostInfo!.DetectionTimeInterval);
+                Assert.Equal("", channelInfo.PreferredHostInfo!.DetectionTimeSchedule);
+                Assert.Equal("Channel_2", channelInfo.PreferredHostInfo!.ChannelName);
+                Assert.Equal(4, channelInfo.PreferredHostInfo!.RemainingDetectionTime);
+
+                m_Output.WriteLine("Bring up the preferred channel.");
+
+                // Start the provider for Channel_2 */
+                ommprovider2 = new OmmProvider(config.Port("19002").ProviderName("Provider_1"), providerClient2);
+
+                // The fallback should happen by the detection time interval
+                m_Output.WriteLine("Fallback by the detection time interval to connect to the preferred channel.");
+
+                Thread.Sleep(8000);
+
+                message = consumerClient.PopMessage();
+                statusMsg = (StatusMsg)message;
+                Assert.Equal(1, statusMsg.StreamId());
+                Assert.Equal(EmaRdm.MMT_LOGIN, statusMsg.DomainType());
+                Assert.Equal("Open / Ok / PreferredHostStartingFallback / 'preferred host starting fallback'", statusMsg.State().ToString());
+                Assert.True(statusMsg.HasMsgKey);
+                Assert.Equal(DataTypes.NO_DATA, statusMsg.Payload().DataType);
+                Assert.Equal(DataTypes.NO_DATA, statusMsg.Attrib().DataType);
+                channelInfo = consumerClient.PopChannelInfo();
+                Assert.Equal("Channel_1", channelInfo.ChannelName);
+                Assert.Equal(ChannelState.ACTIVE, channelInfo.ChannelState);
+                Assert.True(channelInfo.PreferredHostInfo!.IsPreferredHostEnabled);
+                Assert.Equal(7, channelInfo.PreferredHostInfo!.DetectionTimeInterval);
+                Assert.Equal("", channelInfo.PreferredHostInfo!.DetectionTimeSchedule);
+                Assert.Equal("Channel_2", channelInfo.PreferredHostInfo!.ChannelName);
+                Assert.Equal(6, channelInfo.PreferredHostInfo!.RemainingDetectionTime);
+
+                message = consumerClient.PopMessage();
+                statusMsg = (StatusMsg)message;
+                Assert.Equal(1, statusMsg.StreamId());
+                Assert.Equal(EmaRdm.MMT_LOGIN, statusMsg.DomainType());
+                Assert.Equal("Open / Suspect / None / ''", statusMsg.State().ToString());
+                Assert.False(statusMsg.HasMsgKey);
+                Assert.Equal(DataTypes.NO_DATA, statusMsg.Payload().DataType);
+                Assert.Equal(DataTypes.NO_DATA, statusMsg.Attrib().DataType);
+                channelInfo = consumerClient.PopChannelInfo();
+                Assert.Equal("Channel_1", channelInfo.ChannelName);
+                Assert.Equal(ChannelState.INACTIVE, channelInfo.ChannelState);
+
+                message = consumerClient.PopMessage();
+                statusMsg = (StatusMsg)message;
+                Assert.Equal(5, statusMsg.StreamId());
+                Assert.Equal(EmaRdm.MMT_MARKET_PRICE, statusMsg.DomainType());
+                Assert.True(statusMsg.HasState);
+                Assert.Equal("Open / Suspect / None / 'channel down.'", statusMsg.State().ToString());
+                Assert.True(statusMsg.HasName);
+                Assert.Equal(itemName, statusMsg.Name());
+                Assert.True(statusMsg.HasServiceId);
+                Assert.True(statusMsg.HasServiceName);
+                Assert.Equal(serviceName, statusMsg.ServiceName());
+                Assert.Equal(DataTypes.NO_DATA, statusMsg.Payload().DataType);
+                channelInfo = consumerClient.PopChannelInfo();
+                Assert.Equal("Channel_1", channelInfo.ChannelName);
+                Assert.Equal(ChannelState.INACTIVE, channelInfo.ChannelState);
+
+                message = consumerClient.PopMessage();
+                statusMsg = (StatusMsg)message;
+
+                Assert.Equal(1, statusMsg.StreamId());
+                Assert.Equal(EmaRdm.MMT_LOGIN, statusMsg.DomainType());
+                Assert.Equal("Open / Suspect / PreferredHostComplete / 'preferred host complete'", statusMsg.State().ToString());
+                Assert.True(statusMsg.HasMsgKey);
+                Assert.Equal(DataTypes.NO_DATA, statusMsg.Payload().DataType);
+                channelInfo = consumerClient.PopChannelInfo();
+                Assert.Equal("Channel_2", channelInfo.ChannelName);
+                Assert.Equal(ChannelState.ACTIVE, channelInfo.ChannelState);
+                Assert.True(channelInfo.PreferredHostInfo!.IsPreferredHostEnabled);
+                Assert.Equal(7, channelInfo.PreferredHostInfo!.DetectionTimeInterval);
+                Assert.Equal("", channelInfo.PreferredHostInfo!.DetectionTimeSchedule);
+                Assert.Equal("Channel_2", channelInfo.PreferredHostInfo!.ChannelName);
+                Assert.Equal(6, channelInfo.PreferredHostInfo!.RemainingDetectionTime);
+
+                message = consumerClient.PopMessage();
+                refreshMsg = (RefreshMsg)message;
+
+                Assert.Equal(1, refreshMsg.StreamId());
+                Assert.Equal(EmaRdm.MMT_LOGIN, refreshMsg.DomainType());
+                Assert.Equal("Open / Ok / None / 'Login accepted'", refreshMsg.State().ToString());
+                Assert.True(refreshMsg.Solicited());
+                Assert.True(refreshMsg.Complete());
+                Assert.True(refreshMsg.HasMsgKey);
+                Assert.Equal(DataTypes.NO_DATA, refreshMsg.Payload().DataType);
+                Assert.Equal(DataTypes.ELEMENT_LIST, refreshMsg.Attrib().DataType);
+                channelInfo = consumerClient.PopChannelInfo();
+                Assert.Equal("Channel_2", channelInfo.ChannelName);
+                Assert.Equal(ChannelState.ACTIVE, channelInfo.ChannelState);
+                Assert.True(channelInfo.PreferredHostInfo!.IsPreferredHostEnabled);
+                Assert.Equal("Channel_2", channelInfo.PreferredHostInfo?.ChannelName);
+
+                message = consumerClient.PopMessage();
+                /* Checks login status messages */
+                statusMsg = (StatusMsg)message;
+
+                Assert.Equal(1, statusMsg.StreamId());
+                Assert.Equal(EmaRdm.MMT_LOGIN, statusMsg.DomainType());
+                Assert.Equal("Open / Ok / None / 'channel up'", statusMsg.State().ToString());
+                Assert.True(statusMsg.HasMsgKey);
+                Assert.Equal(DataTypes.NO_DATA, statusMsg.Payload().DataType);
+                channelInfo = consumerClient.PopChannelInfo();
+                Assert.Equal("Channel_2", channelInfo.ChannelName);
+                Assert.Equal(ChannelState.ACTIVE, channelInfo.ChannelState);
+                Assert.True(channelInfo.PreferredHostInfo!.IsPreferredHostEnabled);
+                Assert.Equal(7, channelInfo.PreferredHostInfo!.DetectionTimeInterval);
+                Assert.Equal("", channelInfo.PreferredHostInfo!.DetectionTimeSchedule);
+                Assert.Equal("Channel_2", channelInfo.PreferredHostInfo!.ChannelName);
+                Assert.Equal(6, channelInfo.PreferredHostInfo!.RemainingDetectionTime);
+
+                message = consumerClient.PopMessage();
+
+                //Checks the market price item refresh from the starting channel of WSB-G1 after the fallback is trigger 
+                refreshMsg = (RefreshMsg)message;
+
+                Assert.Equal(5, refreshMsg.StreamId());
+                Assert.Equal(EmaRdm.MMT_MARKET_PRICE, refreshMsg.DomainType());
+                Assert.Equal("Open / Ok / None / 'Refresh Completed'", refreshMsg.State().ToString());
+                Assert.True(refreshMsg.Complete());
+                Assert.True(refreshMsg.Solicited());
+                Assert.True(refreshMsg.HasName);
+                Assert.Equal(itemName, refreshMsg.Name());
+                Assert.True(refreshMsg.HasServiceId);
+                Assert.True(refreshMsg.HasServiceName);
+                Assert.Equal(serviceName, refreshMsg.ServiceName());
+                Assert.Equal(DataTypes.FIELD_LIST, refreshMsg.Payload().DataType);
+                channelInfo = consumerClient.PopChannelInfo();
+                Assert.Equal("Channel_2", channelInfo.ChannelName);
+                Assert.Equal(ChannelState.ACTIVE, channelInfo.ChannelState);
+                Assert.True(channelInfo.PreferredHostInfo!.IsPreferredHostEnabled);
+                Assert.Equal(7, channelInfo.PreferredHostInfo!.DetectionTimeInterval);
+                Assert.Equal("", channelInfo.PreferredHostInfo!.DetectionTimeSchedule);
+                Assert.Equal("Channel_2", channelInfo.PreferredHostInfo!.ChannelName);
+                Assert.Equal(6, channelInfo.PreferredHostInfo!.RemainingDetectionTime);
+
+                Thread.Sleep(7500);
+
+                // Checks for PH NO FALLBACK event
+                message = consumerClient.PopMessage();
+
+                /* Checks login status messages */
+                statusMsg = (StatusMsg)message;
+
+                Assert.Equal(1, statusMsg.StreamId());
+                Assert.Equal(EmaRdm.MMT_LOGIN, statusMsg.DomainType());
+                Assert.Equal("Open / Ok / PreferredHostNoFallback / 'preferred host no fallback'", statusMsg.State().ToString());
+                Assert.True(statusMsg.HasMsgKey);
+                Assert.Equal(DataTypes.NO_DATA, statusMsg.Payload().DataType);
+                channelInfo = consumerClient.PopChannelInfo();
+                Assert.Equal("Channel_2", channelInfo.ChannelName);
+                Assert.Equal(ChannelState.ACTIVE, channelInfo.ChannelState);
+                Assert.True(channelInfo.PreferredHostInfo!.IsPreferredHostEnabled);
+                Assert.Equal(7, channelInfo.PreferredHostInfo!.DetectionTimeInterval);
+                Assert.Equal("", channelInfo.PreferredHostInfo!.DetectionTimeSchedule);
+                Assert.Equal("Channel_2", channelInfo.PreferredHostInfo!.ChannelName);
+                Assert.Equal(6, channelInfo.PreferredHostInfo!.RemainingDetectionTime);
+
+                // There should be a preferred host event
+                Assert.Equal(0, consumerClient.QueueSize());
+
+                consumer.Unregister(itemHandle);
+            }
+            catch(Exception)
+            {
+                throw;
+            }
+            finally
+            {
+                consumer?.Uninitialize();
+                ommprovider?.Uninitialize();
+                ommprovider2?.Uninitialize();
+                ommprovider3?.Uninitialize();
+            }
+        }
+
+        [Fact]
+        public void SingleConnectionsFallbackToPreferredChannelOnChannelListEnabledByFallbackMethod()
+        {
+            OmmConsumer? consumer = null;
+            ConsumerTestOptions consumerOption = new();
+            ProviderTestOptions providerTestOptions = new();
+            providerTestOptions.SupportStandby = true;
+            providerTestOptions.SendRefreshAttrib = true;
+
+            ProviderTestClient providerClient = new(m_Output, providerTestOptions);
+            providerClient.Name = "Provider_1";
+            ProviderTestClient providerClient2 = new(m_Output, providerTestOptions);
+            providerClient2.Name = "Provider_2";
+
+            OmmIProviderConfig config = new OmmIProviderConfig(EmaConfigFileLocation);
+
+            consumerOption.GetChannelInformation = true;
+            consumerOption.GetSessionChannelInfo = true;
+            ConsumerTestClient consumerClient = new(m_Output, consumerOption);
+
+
+            // Channel_1
+            OmmProvider ommprovider = new(config.Port("19001").ProviderName("Provider_1"), providerClient);
+
+            // Channel_2 /* 
+            OmmProvider? ommprovider2 = null;
+
+            try
+            {
+                ConsumerTestOptions options = new();
+                options.GetChannelInformation = true;
+
+                consumer = new OmmConsumer(new OmmConsumerConfig(EmaConfigFileLocation).ConsumerName("Consumer_14"), consumerClient);
+
+                String serviceName = "DIRECT_FEED";
+                String itemName = "TRI.N";
+
+                RequestMsg reqMsg = new();
+                long itemHandle = consumer.RegisterClient(reqMsg.Name(itemName).ServiceName(serviceName), consumerClient);
+
+                Thread.Sleep(60000);
+
+                Msg message = consumerClient.PopMessage();
+                StatusMsg statusMsg = (StatusMsg)message;
+
+                Assert.Equal(1, statusMsg.StreamId());
+                Assert.Equal(EmaRdm.MMT_LOGIN, statusMsg.DomainType());
+                Assert.Equal("Open / Suspect / None / 'channel down'", statusMsg.State().ToString());
+                ChannelInformation channelInfo = consumerClient.PopChannelInfo();
+                Assert.Equal("Channel_2", channelInfo.ChannelName);
+                Assert.Equal(ChannelState.INACTIVE, channelInfo.ChannelState);
+                Assert.Null(channelInfo.PreferredHostInfo);
+
+                message = consumerClient.PopMessage();
+                RefreshMsg refreshMsg = (RefreshMsg)message;
+
+                Assert.Equal(1, refreshMsg.StreamId());
+                Assert.Equal(EmaRdm.MMT_LOGIN, refreshMsg.DomainType());
+                Assert.Equal("Open / Ok / None / 'Login accepted'", refreshMsg.State().ToString());
+                Assert.True(refreshMsg.Solicited());
+                Assert.True(refreshMsg.Complete());
+                Assert.True(refreshMsg.HasMsgKey);
+                Assert.Equal(DataTypes.NO_DATA, refreshMsg.Payload().DataType);
+                Assert.Equal(DataTypes.ELEMENT_LIST, refreshMsg.Attrib().DataType);
+                channelInfo = consumerClient.PopChannelInfo();
+                Assert.Equal("Channel_1", channelInfo.ChannelName);
+                Assert.Equal(ChannelState.ACTIVE, channelInfo.ChannelState);
+                Assert.NotNull(channelInfo.PreferredHostInfo);
+                Assert.True(channelInfo.PreferredHostInfo!.IsPreferredHostEnabled);
+                Assert.Equal(0, channelInfo.PreferredHostInfo!.DetectionTimeInterval);
+                Assert.Equal("", channelInfo.PreferredHostInfo!.DetectionTimeSchedule);
+                Assert.Equal("Channel_2", channelInfo.PreferredHostInfo!.ChannelName);
+                Assert.Equal(0, channelInfo.PreferredHostInfo!.RemainingDetectionTime);
+
+                Thread.Sleep(1000);
+
+                //Checks the market price item refresh from the Channel_1
+                message = consumerClient.PopMessage();
+                refreshMsg = (RefreshMsg)message;
+
+                Assert.Equal(5, refreshMsg.StreamId());
+                Assert.Equal(EmaRdm.MMT_MARKET_PRICE, refreshMsg.DomainType());
+                Assert.Equal("Open / Ok / None / 'Refresh Completed'", refreshMsg.State().ToString());
+                Assert.True(refreshMsg.Complete());
+                Assert.True(refreshMsg.Solicited());
+                Assert.True(refreshMsg.HasName);
+                Assert.Equal(itemName, refreshMsg.Name());
+                Assert.True(refreshMsg.HasServiceId);
+                Assert.True(refreshMsg.HasServiceName);
+                Assert.Equal(serviceName, refreshMsg.ServiceName());
+                Assert.Equal(DataTypes.FIELD_LIST, refreshMsg.Payload().DataType);
+                channelInfo = consumerClient.PopChannelInfo();
+                Assert.Equal("Channel_1", channelInfo.ChannelName);
+                Assert.Equal(ChannelState.ACTIVE, channelInfo.ChannelState);
+                Assert.NotNull(channelInfo.PreferredHostInfo);
+                Assert.True(channelInfo.PreferredHostInfo!.IsPreferredHostEnabled);
+                Assert.Equal(0, channelInfo.PreferredHostInfo!.DetectionTimeInterval);
+                Assert.Equal("", channelInfo.PreferredHostInfo!.DetectionTimeSchedule);
+                Assert.Equal("Channel_2", channelInfo.PreferredHostInfo!.ChannelName);
+                Assert.Equal(0, channelInfo.PreferredHostInfo!.RemainingDetectionTime);
+
+                m_Output.WriteLine("Bring up the preferred channel.");
+
+                // Start the provider for Channel_2 */
+                ommprovider2 = new OmmProvider(config.Port("19002").ProviderName("Provider_1"), providerClient2);
+
+                Thread.Sleep(1000);
+
+                m_Output.WriteLine("Fallback by the FallbackPreferredHost() method to connect to the preferred channel.");
+                consumer.FallbackPreferredHost();
+
+                Thread.Sleep(2000);
+
+                message = consumerClient.PopMessage();
+                statusMsg = (StatusMsg)message;
+                Assert.Equal(1, statusMsg.StreamId());
+                Assert.Equal(EmaRdm.MMT_LOGIN, statusMsg.DomainType());
+                Assert.Equal("Open / Ok / PreferredHostStartingFallback / 'preferred host starting fallback'", statusMsg.State().ToString());
+                Assert.True(statusMsg.HasMsgKey);
+                Assert.Equal(DataTypes.NO_DATA, statusMsg.Payload().DataType);
+                Assert.Equal(DataTypes.NO_DATA, statusMsg.Attrib().DataType);
+                channelInfo = consumerClient.PopChannelInfo();
+                Assert.Equal("Channel_1", channelInfo.ChannelName);
+                Assert.Equal(ChannelState.ACTIVE, channelInfo.ChannelState);
+                Assert.True(channelInfo.PreferredHostInfo!.IsPreferredHostEnabled);
+                Assert.Equal(0, channelInfo.PreferredHostInfo!.DetectionTimeInterval);
+                Assert.Equal("", channelInfo.PreferredHostInfo!.DetectionTimeSchedule);
+                Assert.Equal("Channel_2", channelInfo.PreferredHostInfo!.ChannelName);
+                Assert.Equal(0, channelInfo.PreferredHostInfo!.RemainingDetectionTime);
+
+                message = consumerClient.PopMessage();
+                statusMsg = (StatusMsg)message;
+                Assert.Equal(1, statusMsg.StreamId());
+                Assert.Equal(EmaRdm.MMT_LOGIN, statusMsg.DomainType());
+                Assert.Equal("Open / Suspect / None / ''", statusMsg.State().ToString());
+                Assert.False(statusMsg.HasMsgKey);
+                Assert.Equal(DataTypes.NO_DATA, statusMsg.Payload().DataType);
+                Assert.Equal(DataTypes.NO_DATA, statusMsg.Attrib().DataType);
+                channelInfo = consumerClient.PopChannelInfo();
+                Assert.Equal("Channel_1", channelInfo.ChannelName);
+                Assert.Equal(ChannelState.INACTIVE, channelInfo.ChannelState);
+
+                message = consumerClient.PopMessage();
+                statusMsg = (StatusMsg)message;
+                Assert.Equal(5, statusMsg.StreamId());
+                Assert.Equal(EmaRdm.MMT_MARKET_PRICE, statusMsg.DomainType());
+                Assert.True(statusMsg.HasState);
+                Assert.Equal("Open / Suspect / None / 'channel down.'", statusMsg.State().ToString());
+                Assert.True(statusMsg.HasName);
+                Assert.Equal(itemName, statusMsg.Name());
+                Assert.True(statusMsg.HasServiceId);
+                Assert.True(statusMsg.HasServiceName);
+                Assert.Equal(serviceName, statusMsg.ServiceName());
+                Assert.Equal(DataTypes.NO_DATA, statusMsg.Payload().DataType);
+                channelInfo = consumerClient.PopChannelInfo();
+                Assert.Equal("Channel_1", channelInfo.ChannelName);
+                Assert.Equal(ChannelState.INACTIVE, channelInfo.ChannelState);
+
+                message = consumerClient.PopMessage();
+                statusMsg = (StatusMsg)message;
+
+                Assert.Equal(1, statusMsg.StreamId());
+                Assert.Equal(EmaRdm.MMT_LOGIN, statusMsg.DomainType());
+                Assert.Equal("Open / Suspect / PreferredHostComplete / 'preferred host complete'", statusMsg.State().ToString());
+                Assert.True(statusMsg.HasMsgKey);
+                Assert.Equal(DataTypes.NO_DATA, statusMsg.Payload().DataType);
+                channelInfo = consumerClient.PopChannelInfo();
+                Assert.Equal("Channel_2", channelInfo.ChannelName);
+                Assert.Equal(ChannelState.ACTIVE, channelInfo.ChannelState);
+                Assert.True(channelInfo.PreferredHostInfo!.IsPreferredHostEnabled);
+                Assert.Equal(0, channelInfo.PreferredHostInfo!.DetectionTimeInterval);
+                Assert.Equal("", channelInfo.PreferredHostInfo!.DetectionTimeSchedule);
+                Assert.Equal("Channel_2", channelInfo.PreferredHostInfo!.ChannelName);
+                Assert.Equal(0, channelInfo.PreferredHostInfo!.RemainingDetectionTime);
+
+                message = consumerClient.PopMessage();
+
+                refreshMsg = (RefreshMsg)message;
+
+                Assert.Equal(1, refreshMsg.StreamId());
+                Assert.Equal(EmaRdm.MMT_LOGIN, refreshMsg.DomainType());
+                Assert.Equal("Open / Ok / None / 'Login accepted'", refreshMsg.State().ToString());
+                Assert.True(refreshMsg.Solicited());
+                Assert.True(refreshMsg.Complete());
+                Assert.True(refreshMsg.HasMsgKey);
+                Assert.Equal(DataTypes.NO_DATA, refreshMsg.Payload().DataType);
+                Assert.Equal(DataTypes.ELEMENT_LIST, refreshMsg.Attrib().DataType);
+                channelInfo = consumerClient.PopChannelInfo();
+                Assert.Equal("Channel_2", channelInfo.ChannelName);
+                Assert.Equal(ChannelState.ACTIVE, channelInfo.ChannelState);
+                Assert.True(channelInfo.PreferredHostInfo!.IsPreferredHostEnabled);
+                Assert.Equal(0, channelInfo.PreferredHostInfo!.DetectionTimeInterval);
+                Assert.Equal("", channelInfo.PreferredHostInfo!.DetectionTimeSchedule);
+                Assert.Equal("Channel_2", channelInfo.PreferredHostInfo!.ChannelName);
+                Assert.Equal(0, channelInfo.PreferredHostInfo!.RemainingDetectionTime);
+
+                message = consumerClient.PopMessage();
+                statusMsg = (StatusMsg)message;
+
+                Assert.Equal(1, statusMsg.StreamId());
+                Assert.Equal(EmaRdm.MMT_LOGIN, statusMsg.DomainType());
+                Assert.Equal("Open / Ok / None / 'channel up'", statusMsg.State().ToString());
+                Assert.True(statusMsg.HasMsgKey);
+                Assert.Equal(DataTypes.NO_DATA, statusMsg.Payload().DataType);
+                channelInfo = consumerClient.PopChannelInfo();
+                Assert.Equal("Channel_2", channelInfo.ChannelName);
+                Assert.Equal(ChannelState.ACTIVE, channelInfo.ChannelState);
+                Assert.True(channelInfo.PreferredHostInfo!.IsPreferredHostEnabled);
+                Assert.Equal(0, channelInfo.PreferredHostInfo!.DetectionTimeInterval);
+                Assert.Equal("", channelInfo.PreferredHostInfo!.DetectionTimeSchedule);
+                Assert.Equal("Channel_2", channelInfo.PreferredHostInfo!.ChannelName);
+                Assert.Equal(0, channelInfo.PreferredHostInfo!.RemainingDetectionTime);
+
+                message = consumerClient.PopMessage();
+                refreshMsg = (RefreshMsg)message;
+
+                Assert.Equal(5, refreshMsg.StreamId());
+                Assert.Equal(EmaRdm.MMT_MARKET_PRICE, refreshMsg.DomainType());
+                Assert.Equal("Open / Ok / None / 'Refresh Completed'", refreshMsg.State().ToString());
+                Assert.True(refreshMsg.Complete());
+                Assert.True(refreshMsg.Solicited());
+                Assert.True(refreshMsg.HasName);
+                Assert.Equal(itemName, refreshMsg.Name());
+                Assert.True(refreshMsg.HasServiceId);
+                Assert.True(refreshMsg.HasServiceName);
+                Assert.Equal(serviceName, refreshMsg.ServiceName());
+                Assert.Equal(DataTypes.FIELD_LIST, refreshMsg.Payload().DataType);
+                channelInfo = consumerClient.PopChannelInfo();
+                Assert.Equal("Channel_2", channelInfo.ChannelName);
+                Assert.Equal(ChannelState.ACTIVE, channelInfo.ChannelState);
+                Assert.True(channelInfo.PreferredHostInfo!.IsPreferredHostEnabled);
+                Assert.Equal(0, channelInfo.PreferredHostInfo!.DetectionTimeInterval);
+                Assert.Equal("", channelInfo.PreferredHostInfo!.DetectionTimeSchedule);
+                Assert.Equal("Channel_2", channelInfo.PreferredHostInfo!.ChannelName);
+                Assert.Equal(0, channelInfo.PreferredHostInfo!.RemainingDetectionTime);
+
+                Thread.Sleep(1000);
+
+                // There should be any message and channel events at this time.
+                Assert.Equal(0, consumerClient.QueueSize());
+
+                consumer.Unregister(itemHandle);
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+            finally
+            {
+                consumer?.Uninitialize();
+                ommprovider?.Uninitialize();
+                ommprovider2?.Uninitialize();
+            }
+        }
+
+        [Fact]
+        public void SingleConnectionsFallbackToPreferredChannelOnChannelListEnabledByIOCtlMethod()
+        {
+            OmmConsumer? consumer = null;
+            ConsumerTestOptions consumerOption = new();
+            ProviderTestOptions providerTestOptions = new();
+            providerTestOptions.SupportStandby = true;
+            providerTestOptions.SendRefreshAttrib = true;
+
+            ProviderTestClient providerClient = new(m_Output, providerTestOptions);
+            providerClient.Name = "Provider_1";
+            ProviderTestClient providerClient2 = new(m_Output, providerTestOptions);
+            providerClient2.Name = "Provider_2";
+
+            OmmIProviderConfig config = new OmmIProviderConfig(EmaConfigFileLocation);
+
+            consumerOption.GetChannelInformation = true;
+            consumerOption.GetSessionChannelInfo = true;
+            ConsumerTestClient consumerClient = new(m_Output, consumerOption);
+
+
+            // Channel_1
+            OmmProvider ommprovider = new(config.Port("19001").ProviderName("Provider_1"), providerClient);
+
+            // Channel_2 /* This is preferred host */
+            OmmProvider? ommprovider2 = null;
+
+            try
+            {
+                ConsumerTestOptions options = new();
+                options.GetChannelInformation = true;
+
+                consumer = new OmmConsumer(new OmmConsumerConfig(EmaConfigFileLocation).ConsumerName("Consumer_15"), consumerClient);
+
+                String serviceName = "DIRECT_FEED";
+                String itemName = "TRI.N";
+
+                RequestMsg reqMsg = new();
+                long itemHandle = consumer.RegisterClient(reqMsg.Name(itemName).ServiceName(serviceName), consumerClient);
+
+                Msg message = consumerClient.PopMessage();
+                RefreshMsg refreshMsg = (RefreshMsg)message;
+
+                Assert.Equal(1, refreshMsg.StreamId());
+                Assert.Equal(EmaRdm.MMT_LOGIN, refreshMsg.DomainType());
+                Assert.Equal("Open / Ok / None / 'Login accepted'", refreshMsg.State().ToString());
+                Assert.True(refreshMsg.Solicited());
+                Assert.True(refreshMsg.Complete());
+                Assert.True(refreshMsg.HasMsgKey);
+                Assert.Equal(DataTypes.NO_DATA, refreshMsg.Payload().DataType);
+                Assert.Equal(DataTypes.ELEMENT_LIST, refreshMsg.Attrib().DataType);
+                ChannelInformation channelInfo = consumerClient.PopChannelInfo();
+                Assert.Equal("Channel_1", channelInfo.ChannelName);
+                Assert.Equal(ChannelState.ACTIVE, channelInfo.ChannelState);
+                Assert.NotNull(channelInfo.PreferredHostInfo);
+                Assert.False(channelInfo.PreferredHostInfo!.IsPreferredHostEnabled);
+                Assert.Equal(0, channelInfo.PreferredHostInfo!.DetectionTimeInterval);
+                Assert.Equal("Channel_2", channelInfo.PreferredHostInfo!.ChannelName);
+                Assert.Equal("", channelInfo.PreferredHostInfo!.DetectionTimeSchedule);
+                Assert.Equal(0, channelInfo.PreferredHostInfo!.RemainingDetectionTime);
+
+                Thread.Sleep(2000);
+
+                //Checks the market price item refresh from the Channel_1
+                message = consumerClient.PopMessage();
+                refreshMsg = (RefreshMsg)message;
+
+                Assert.Equal(5, refreshMsg.StreamId());
+                Assert.Equal(EmaRdm.MMT_MARKET_PRICE, refreshMsg.DomainType());
+                Assert.Equal("Open / Ok / None / 'Refresh Completed'", refreshMsg.State().ToString());
+                Assert.True(refreshMsg.Complete());
+                Assert.True(refreshMsg.Solicited());
+                Assert.True(refreshMsg.HasName);
+                Assert.Equal(itemName, refreshMsg.Name());
+                Assert.True(refreshMsg.HasServiceId);
+                Assert.True(refreshMsg.HasServiceName);
+                Assert.Equal(serviceName, refreshMsg.ServiceName());
+                Assert.Equal(DataTypes.FIELD_LIST, refreshMsg.Payload().DataType);
+                channelInfo = consumerClient.PopChannelInfo();
+                Assert.Equal("Channel_1", channelInfo.ChannelName);
+                Assert.Equal(ChannelState.ACTIVE, channelInfo.ChannelState);
+                Assert.NotNull(channelInfo.PreferredHostInfo);
+                Assert.False(channelInfo.PreferredHostInfo!.IsPreferredHostEnabled);
+                Assert.Equal(0, channelInfo.PreferredHostInfo!.DetectionTimeInterval);
+                Assert.Equal("", channelInfo.PreferredHostInfo!.DetectionTimeSchedule);
+                Assert.Equal("Channel_2", channelInfo.PreferredHostInfo!.ChannelName);
+                Assert.Equal(0, channelInfo.PreferredHostInfo!.RemainingDetectionTime);
+
+                m_Output.WriteLine("Bring up the preferred channel.");
+
+                // Start the provider for Channel_2 */
+                ommprovider2 = new OmmProvider(config.Port("19002").ProviderName("Provider_1"), providerClient2);
+
+                Thread.Sleep(1000);
+
+                m_Output.WriteLine("Fallback by the ModifyIOCtl() method to connect to the preferred channel.");
+
+                // Enable the PH fallback process with the modifyIOCtl() method.
+                PreferredHostOptions phOptions = new();
+                phOptions.EnablePreferredHostOptions = true;
+                phOptions.ChannelName = "Channel_2";
+                phOptions.DetectionTimeInterval = 2;
+
+                consumer.ModifyIOCtl(IOCtlCode.FALLBACK_PREFERRED_HOST_OPTIONS, phOptions);
+
+                Thread.Sleep(3000);
+
+                message = consumerClient.PopMessage();
+                StatusMsg statusMsg = (StatusMsg)message;
+                Assert.Equal(1, statusMsg.StreamId());
+                Assert.Equal(EmaRdm.MMT_LOGIN, statusMsg.DomainType());
+                Assert.Equal("Open / Ok / PreferredHostStartingFallback / 'preferred host starting fallback'", statusMsg.State().ToString());
+                Assert.True(statusMsg.HasMsgKey);
+                Assert.Equal(DataTypes.NO_DATA, statusMsg.Payload().DataType);
+                Assert.Equal(DataTypes.NO_DATA, statusMsg.Attrib().DataType);
+                channelInfo = consumerClient.PopChannelInfo();
+                Assert.Equal("Channel_1", channelInfo.ChannelName);
+                Assert.Equal(ChannelState.ACTIVE, channelInfo.ChannelState);
+                Assert.True(channelInfo.PreferredHostInfo!.IsPreferredHostEnabled);
+                Assert.Equal(2, channelInfo.PreferredHostInfo!.DetectionTimeInterval);
+                Assert.Equal("", channelInfo.PreferredHostInfo!.DetectionTimeSchedule);
+                Assert.Equal("Channel_2", channelInfo.PreferredHostInfo!.ChannelName);
+                Assert.Equal(1, channelInfo.PreferredHostInfo!.RemainingDetectionTime);
+
+                message = consumerClient.PopMessage();
+                statusMsg = (StatusMsg)message;
+                Assert.Equal(1, statusMsg.StreamId());
+                Assert.Equal(EmaRdm.MMT_LOGIN, statusMsg.DomainType());
+                Assert.Equal("Open / Suspect / None / 'channel down'", statusMsg.State().ToString());
+                Assert.True(statusMsg.HasMsgKey);
+                Assert.Equal(DataTypes.NO_DATA, statusMsg.Payload().DataType);
+                Assert.Equal(DataTypes.NO_DATA, statusMsg.Attrib().DataType);
+                channelInfo = consumerClient.PopChannelInfo();
+                Assert.Equal("Channel_1", channelInfo.ChannelName);
+                Assert.Equal(ChannelState.INACTIVE, channelInfo.ChannelState);
+
+                message = consumerClient.PopMessage();
+                statusMsg = (StatusMsg)message;
+                Assert.Equal(1, statusMsg.StreamId());
+                Assert.Equal(EmaRdm.MMT_LOGIN, statusMsg.DomainType());
+                Assert.Equal("Open / Suspect / None / ''", statusMsg.State().ToString());
+                Assert.False(statusMsg.HasMsgKey);
+                Assert.Equal(DataTypes.NO_DATA, statusMsg.Payload().DataType);
+                Assert.Equal(DataTypes.NO_DATA, statusMsg.Attrib().DataType);
+                channelInfo = consumerClient.PopChannelInfo();
+                Assert.Equal("Channel_1", channelInfo.ChannelName);
+                Assert.Equal(ChannelState.INACTIVE, channelInfo.ChannelState);
+
+                message = consumerClient.PopMessage();
+                statusMsg = (StatusMsg)message;
+                Assert.Equal(5, statusMsg.StreamId());
+                Assert.Equal(EmaRdm.MMT_MARKET_PRICE, statusMsg.DomainType());
+                Assert.True(statusMsg.HasState);
+                Assert.Equal("Open / Suspect / None / 'channel down.'", statusMsg.State().ToString());
+                Assert.True(statusMsg.HasName);
+                Assert.Equal(itemName, statusMsg.Name());
+                Assert.True(statusMsg.HasServiceId);
+                Assert.True(statusMsg.HasServiceName);
+                Assert.Equal(serviceName, statusMsg.ServiceName());
+                Assert.Equal(DataTypes.NO_DATA, statusMsg.Payload().DataType);
+                channelInfo = consumerClient.PopChannelInfo();
+                Assert.Equal("Channel_1", channelInfo.ChannelName);
+                Assert.Equal(ChannelState.INACTIVE, channelInfo.ChannelState);
+
+                message = consumerClient.PopMessage();
+                statusMsg = (StatusMsg)message;
+
+                Assert.Equal(1, statusMsg.StreamId());
+                Assert.Equal(EmaRdm.MMT_LOGIN, statusMsg.DomainType());
+                Assert.Equal("Open / Suspect / PreferredHostComplete / 'preferred host complete'", statusMsg.State().ToString());
+                Assert.True(statusMsg.HasMsgKey);
+                Assert.Equal(DataTypes.NO_DATA, statusMsg.Payload().DataType);
+                channelInfo = consumerClient.PopChannelInfo();
+                Assert.Equal("Channel_2", channelInfo.ChannelName);
+                Assert.Equal(ChannelState.ACTIVE, channelInfo.ChannelState);
+                Assert.True(channelInfo.PreferredHostInfo!.IsPreferredHostEnabled);
+                Assert.Equal(2, channelInfo.PreferredHostInfo!.DetectionTimeInterval);
+                Assert.Equal("", channelInfo.PreferredHostInfo!.DetectionTimeSchedule);
+                Assert.Equal("Channel_2", channelInfo.PreferredHostInfo!.ChannelName);
+                Assert.Equal(1, channelInfo.PreferredHostInfo!.RemainingDetectionTime);
+
+                message = consumerClient.PopMessage();
+                refreshMsg = (RefreshMsg)message;
+
+                Assert.Equal(1, refreshMsg.StreamId());
+                Assert.Equal(EmaRdm.MMT_LOGIN, refreshMsg.DomainType());
+                Assert.Equal("Open / Ok / None / 'Login accepted'", refreshMsg.State().ToString());
+                Assert.True(refreshMsg.Solicited());
+                Assert.True(refreshMsg.Complete());
+                Assert.True(refreshMsg.HasMsgKey);
+                Assert.Equal(DataTypes.NO_DATA, refreshMsg.Payload().DataType);
+                Assert.Equal(DataTypes.ELEMENT_LIST, refreshMsg.Attrib().DataType);
+                channelInfo = consumerClient.PopChannelInfo();
+                Assert.Equal("Channel_2", channelInfo.ChannelName);
+                Assert.Equal(ChannelState.ACTIVE, channelInfo.ChannelState);
+                Assert.True(channelInfo.PreferredHostInfo!.IsPreferredHostEnabled);
+                Assert.Equal(2, channelInfo.PreferredHostInfo!.DetectionTimeInterval);
+                Assert.Equal("", channelInfo.PreferredHostInfo!.DetectionTimeSchedule);
+                Assert.Equal("Channel_2", channelInfo.PreferredHostInfo!.ChannelName);
+                Assert.Equal(1, channelInfo.PreferredHostInfo!.RemainingDetectionTime);
+
+                message = consumerClient.PopMessage();
+                statusMsg = (StatusMsg)message;
+
+                Assert.Equal(1, statusMsg.StreamId());
+                Assert.Equal(EmaRdm.MMT_LOGIN, statusMsg.DomainType());
+                Assert.Equal("Open / Ok / None / 'channel up'", statusMsg.State().ToString());
+                Assert.True(statusMsg.HasMsgKey);
+                Assert.Equal(DataTypes.NO_DATA, statusMsg.Payload().DataType);
+                channelInfo = consumerClient.PopChannelInfo();
+                Assert.Equal("Channel_2", channelInfo.ChannelName);
+                Assert.Equal(ChannelState.ACTIVE, channelInfo.ChannelState);
+                Assert.True(channelInfo.PreferredHostInfo!.IsPreferredHostEnabled);
+                Assert.Equal(2, channelInfo.PreferredHostInfo!.DetectionTimeInterval);
+                Assert.Equal("", channelInfo.PreferredHostInfo!.DetectionTimeSchedule);
+                Assert.Equal("Channel_2", channelInfo.PreferredHostInfo!.ChannelName);
+                Assert.Equal(1, channelInfo.PreferredHostInfo!.RemainingDetectionTime);
+
+                message = consumerClient.PopMessage();
+
+                refreshMsg = (RefreshMsg)message;
+
+                Assert.Equal(5, refreshMsg.StreamId());
+                Assert.Equal(EmaRdm.MMT_MARKET_PRICE, refreshMsg.DomainType());
+                Assert.Equal("Open / Ok / None / 'Refresh Completed'", refreshMsg.State().ToString());
+                Assert.True(refreshMsg.Complete());
+                Assert.True(refreshMsg.Solicited());
+                Assert.True(refreshMsg.HasName);
+                Assert.Equal(itemName, refreshMsg.Name());
+                Assert.True(refreshMsg.HasServiceId);
+                Assert.True(refreshMsg.HasServiceName);
+                Assert.Equal(serviceName, refreshMsg.ServiceName());
+                Assert.Equal(DataTypes.FIELD_LIST, refreshMsg.Payload().DataType);
+                channelInfo = consumerClient.PopChannelInfo();
+                Assert.Equal("Channel_2", channelInfo.ChannelName);
+                Assert.Equal(ChannelState.ACTIVE, channelInfo.ChannelState);
+                Assert.True(channelInfo.PreferredHostInfo!.IsPreferredHostEnabled);
+                Assert.Equal(2, channelInfo.PreferredHostInfo!.DetectionTimeInterval);
+                Assert.Equal("", channelInfo.PreferredHostInfo!.DetectionTimeSchedule);
+                Assert.Equal("Channel_2", channelInfo.PreferredHostInfo!.ChannelName);
+                Assert.Equal(1, channelInfo.PreferredHostInfo!.RemainingDetectionTime);
+
+                m_Output.WriteLine("Disable the PH feature");
+                phOptions = new();
+                phOptions.EnablePreferredHostOptions = false;
+                phOptions.DetectionTimeInterval = 2;
+
+                consumer.ModifyIOCtl(IOCtlCode.FALLBACK_PREFERRED_HOST_OPTIONS, phOptions);
+
+                Thread.Sleep(2000);
+
+                // There should be any message and channel events at this time.
+                Assert.Equal(0, consumerClient.QueueSize());
+
+                consumer.Unregister(itemHandle);
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+            finally
+            {
+                consumer?.Uninitialize();
+                ommprovider?.Uninitialize();
+                ommprovider2?.Uninitialize();
+            }
+        }
+
+
+        [Fact]
+        public void MultiConnectionsFallbackToPreferredChannelOnChannelListUponDetectionIntervalTest()
+        {
+            OmmConsumer? consumer = null;
+            ConsumerTestOptions consumerOption = new();
+            ProviderTestOptions providerTestOptions = new();
+            providerTestOptions.SupportStandby = true;
+            providerTestOptions.SendRefreshAttrib = true;
+
+            ProviderTestClient providerClient = new(m_Output, providerTestOptions);
+            providerClient.Name = "Provider_1";
+            ProviderTestClient providerClient2 = new(m_Output, providerTestOptions);
+            providerClient2.Name = "Provider_2";
+
+            ProviderTestClient providerClient3 = new(m_Output, providerTestOptions);
+            providerClient3.Name = "Provider_3";
+            ProviderTestClient providerClient4 = new(m_Output, providerTestOptions);
+            providerClient3.Name = "Provider_4";
+
+            OmmIProviderConfig config = new OmmIProviderConfig(EmaConfigFileLocation);
+
+            consumerOption.GetChannelInformation = true;
+            consumerOption.GetSessionChannelInfo = true;
+            ConsumerTestClient consumerClient = new(m_Output, consumerOption);
+
+
+            // Channel_1
+            OmmProvider ommprovider = new(config.Port("19001").ProviderName("Provider_1"), providerClient);
+
+            // Channel_2 /* This is preferred host for Connection_5 */
+            OmmProvider? ommprovider2 = null;
+
+            // Channel_4
+            OmmProvider ommprovider3 = new(config.Port("19004").ProviderName("Provider_1"), providerClient3);
+
+            // Channel_5 /* This is preferred host for Connection_6 */
+            OmmProvider? ommprovider4 = null;
+
+            try
+            {
+                ConsumerTestOptions options = new();
+                options.GetChannelInformation = true;
+
+                consumer = new OmmConsumer(new OmmConsumerConfig(EmaConfigFileLocation).ConsumerName("Consumer_16"), consumerClient);
+
+                String serviceName = "DIRECT_FEED";
+                String itemName = "TRI.N";
+
+                RequestMsg reqMsg = new();
+                long itemHandle = consumer.RegisterClient(reqMsg.Name(itemName).ServiceName(serviceName), consumerClient);
+
+                Thread.Sleep(1000);
+
+                Msg message = consumerClient.PopMessage();
+                StatusMsg statusMsg = (StatusMsg)message;
+
+                Assert.Equal(1, statusMsg.StreamId());
+                Assert.Equal(EmaRdm.MMT_LOGIN, statusMsg.DomainType());
+                Assert.Equal("Open / Suspect / None / 'session channel down reconnecting'", statusMsg.State().ToString());
+                ChannelInformation channelInfo = consumerClient.PopChannelInfo();
+                Assert.Equal("Channel_2", channelInfo.ChannelName);
+                Assert.Equal("Connection_5", channelInfo.SessionChannelName);
+                Assert.Equal(ChannelState.INACTIVE, channelInfo.ChannelState);
+                Assert.Null(channelInfo.PreferredHostInfo);
+
+                message = consumerClient.PopMessage();
+                statusMsg = (StatusMsg)message;
+
+                Assert.Equal(1, statusMsg.StreamId());
+                Assert.Equal(EmaRdm.MMT_LOGIN, statusMsg.DomainType());
+                Assert.Equal("Open / Suspect / None / 'session channel down reconnecting'", statusMsg.State().ToString());
+                channelInfo = consumerClient.PopChannelInfo();
+                Assert.Equal("Channel_5", channelInfo.ChannelName);
+                Assert.Equal("Connection_6", channelInfo.SessionChannelName);
+                Assert.Equal(ChannelState.INACTIVE, channelInfo.ChannelState);
+                Assert.Null(channelInfo.PreferredHostInfo);
+
+                message = consumerClient.PopMessage();
+                statusMsg = (StatusMsg)message;
+                Assert.Equal(1, statusMsg.StreamId());
+                Assert.Equal(EmaRdm.MMT_LOGIN, statusMsg.DomainType());
+                Assert.Equal("Open / Suspect / None / 'session channel up'", statusMsg.State().ToString());
+                channelInfo = consumerClient.PopChannelInfo();
+                Assert.Equal("Channel_1", channelInfo.ChannelName);
+                Assert.Equal("Connection_5", channelInfo.SessionChannelName);
+                Assert.Equal(ChannelState.ACTIVE, channelInfo.ChannelState);
+                Assert.NotNull(channelInfo.PreferredHostInfo);
+                Assert.Equal(7, channelInfo.PreferredHostInfo!.DetectionTimeInterval);
+                Assert.Equal("", channelInfo.PreferredHostInfo!.DetectionTimeSchedule);
+                Assert.Equal("Channel_2", channelInfo.PreferredHostInfo!.ChannelName);
+                Assert.Equal(6, channelInfo.PreferredHostInfo!.RemainingDetectionTime);
+
+
+                message = consumerClient.PopMessage();
+                statusMsg = (StatusMsg)message;
+                Assert.Equal(1, statusMsg.StreamId());
+                Assert.Equal(EmaRdm.MMT_LOGIN, statusMsg.DomainType());
+                Assert.Equal("Open / Suspect / None / 'session channel up'", statusMsg.State().ToString());
+                channelInfo = consumerClient.PopChannelInfo();
+                Assert.Equal("Channel_4", channelInfo.ChannelName);
+                Assert.Equal("Connection_6", channelInfo.SessionChannelName);
+                Assert.Equal(ChannelState.ACTIVE, channelInfo.ChannelState);
+                Assert.NotNull(channelInfo.PreferredHostInfo);
+                Assert.Equal(7, channelInfo.PreferredHostInfo!.DetectionTimeInterval);
+                Assert.Equal("", channelInfo.PreferredHostInfo!.DetectionTimeSchedule);
+                Assert.Equal("Channel_5", channelInfo.PreferredHostInfo!.ChannelName);
+                Assert.Equal(6, channelInfo.PreferredHostInfo!.RemainingDetectionTime);
+
+                message = consumerClient.PopMessage();
+                RefreshMsg refreshMsg = (RefreshMsg)message;
+
+                Assert.Equal(1, refreshMsg.StreamId());
+                Assert.Equal(EmaRdm.MMT_LOGIN, refreshMsg.DomainType());
+                Assert.Equal("Open / Ok / None / 'Login accepted'", refreshMsg.State().ToString());
+                Assert.True(refreshMsg.Solicited());
+                Assert.True(refreshMsg.Complete());
+                Assert.True(refreshMsg.HasMsgKey);
+                Assert.Equal(DataTypes.NO_DATA, refreshMsg.Payload().DataType);
+                Assert.Equal(DataTypes.ELEMENT_LIST, refreshMsg.Attrib().DataType);
+                channelInfo = consumerClient.PopChannelInfo();
+                Assert.Equal("Channel_4", channelInfo.ChannelName);
+                Assert.Equal("Connection_6", channelInfo.SessionChannelName);
+                Assert.Equal(ChannelState.ACTIVE, channelInfo.ChannelState);
+                Assert.NotNull(channelInfo.PreferredHostInfo);
+                Assert.Equal(7, channelInfo.PreferredHostInfo!.DetectionTimeInterval);
+                Assert.Equal("", channelInfo.PreferredHostInfo!.DetectionTimeSchedule);
+                Assert.Equal("Channel_5", channelInfo.PreferredHostInfo!.ChannelName);
+                Assert.Equal(6, channelInfo.PreferredHostInfo!.RemainingDetectionTime);
+
+                Thread.Sleep(1000);
+
+                //Checks the market price item refresh from the Channel_1
+                message = consumerClient.PopMessage();
+                refreshMsg = (RefreshMsg)message;
+
+                Assert.Equal(5, refreshMsg.StreamId());
+                Assert.Equal(EmaRdm.MMT_MARKET_PRICE, refreshMsg.DomainType());
+                Assert.Equal("Open / Ok / None / 'Refresh Completed'", refreshMsg.State().ToString());
+                Assert.True(refreshMsg.Complete());
+                Assert.True(refreshMsg.Solicited());
+                Assert.True(refreshMsg.HasName);
+                Assert.Equal(itemName, refreshMsg.Name());
+                Assert.True(refreshMsg.HasServiceId);
+                Assert.True(refreshMsg.HasServiceName);
+                Assert.Equal(serviceName, refreshMsg.ServiceName());
+                Assert.Equal(DataTypes.FIELD_LIST, refreshMsg.Payload().DataType);
+                channelInfo = consumerClient.PopChannelInfo();
+                Assert.Equal("Channel_1", channelInfo.ChannelName);
+                Assert.Equal("Connection_5", channelInfo.SessionChannelName);
+                Assert.Equal(ChannelState.ACTIVE, channelInfo.ChannelState);
+                Assert.NotNull(channelInfo.PreferredHostInfo);
+                Assert.Equal(7, channelInfo.PreferredHostInfo!.DetectionTimeInterval);
+                Assert.Equal("", channelInfo.PreferredHostInfo!.DetectionTimeSchedule);
+                Assert.Equal("Channel_2", channelInfo.PreferredHostInfo!.ChannelName);
+                Assert.Equal(5, channelInfo.PreferredHostInfo!.RemainingDetectionTime);
+
+                Thread.Sleep(9000);
+
+                // Checks for PH START and COMPLETE events
+                message = consumerClient.PopMessage();
+                /* Checks login status messages */
+                statusMsg = (StatusMsg)message;
+
+                Assert.Equal(1, statusMsg.StreamId());
+                Assert.Equal(EmaRdm.MMT_LOGIN, statusMsg.DomainType());
+                Assert.Equal("Open / Ok / PreferredHostStartingFallback / 'preferred host starting fallback'", statusMsg.State().ToString());
+                Assert.True(statusMsg.HasMsgKey);
+                Assert.Equal(DataTypes.NO_DATA, statusMsg.Payload().DataType);
+                channelInfo = consumerClient.PopChannelInfo();
+                Assert.Equal("Channel_1", channelInfo.ChannelName);
+                Assert.Equal("Connection_5", channelInfo.SessionChannelName);
+                Assert.Equal(ChannelState.ACTIVE, channelInfo.ChannelState);
+                Assert.NotNull(channelInfo.PreferredHostInfo);
+                Assert.Equal(7, channelInfo.PreferredHostInfo!.DetectionTimeInterval);
+                Assert.Equal("", channelInfo.PreferredHostInfo!.DetectionTimeSchedule);
+                Assert.Equal("Channel_2", channelInfo.PreferredHostInfo!.ChannelName);
+                Assert.Equal(6, channelInfo.PreferredHostInfo!.RemainingDetectionTime);
+
+                message = consumerClient.PopMessage();
+                statusMsg = (StatusMsg)message;
+
+                Assert.Equal(1, statusMsg.StreamId());
+                Assert.Equal(EmaRdm.MMT_LOGIN, statusMsg.DomainType());
+                Assert.Equal("Open / Ok / PreferredHostComplete / 'preferred host complete'", statusMsg.State().ToString());
+                Assert.True(statusMsg.HasMsgKey);
+                Assert.Equal(DataTypes.NO_DATA, statusMsg.Payload().DataType);
+                channelInfo = consumerClient.PopChannelInfo();
+                Assert.Equal("Channel_1", channelInfo.ChannelName);
+                Assert.Equal("Connection_5", channelInfo.SessionChannelName);
+                Assert.Equal(ChannelState.ACTIVE, channelInfo.ChannelState);
+                Assert.NotNull(channelInfo.PreferredHostInfo);
+                Assert.Equal(7, channelInfo.PreferredHostInfo!.DetectionTimeInterval);
+                Assert.Equal("", channelInfo.PreferredHostInfo!.DetectionTimeSchedule);
+                Assert.Equal("Channel_2", channelInfo.PreferredHostInfo!.ChannelName);
+                Assert.Equal(4, channelInfo.PreferredHostInfo!.RemainingDetectionTime);
+
+                /* Checks login status messages */
+                message = consumerClient.PopMessage();
+                statusMsg = (StatusMsg)message;
+
+                Assert.Equal(1, statusMsg.StreamId());
+                Assert.Equal(EmaRdm.MMT_LOGIN, statusMsg.DomainType());
+                Assert.Equal("Open / Ok / PreferredHostStartingFallback / 'preferred host starting fallback'", statusMsg.State().ToString());
+                Assert.True(statusMsg.HasMsgKey);
+                Assert.Equal(DataTypes.NO_DATA, statusMsg.Payload().DataType);
+                channelInfo = consumerClient.PopChannelInfo();
+                Assert.Equal("Channel_4", channelInfo.ChannelName);
+                Assert.Equal("Connection_6", channelInfo.SessionChannelName);
+                Assert.Equal(ChannelState.ACTIVE, channelInfo.ChannelState);
+                Assert.NotNull(channelInfo.PreferredHostInfo);
+                Assert.Equal(7, channelInfo.PreferredHostInfo!.DetectionTimeInterval);
+                Assert.Equal("", channelInfo.PreferredHostInfo!.DetectionTimeSchedule);
+                Assert.Equal("Channel_5", channelInfo.PreferredHostInfo!.ChannelName);
+                Assert.Equal(6, channelInfo.PreferredHostInfo!.RemainingDetectionTime);
+
+                message = consumerClient.PopMessage();
+                statusMsg = (StatusMsg)message;
+
+                Assert.Equal(1, statusMsg.StreamId());
+                Assert.Equal(EmaRdm.MMT_LOGIN, statusMsg.DomainType());
+                Assert.Equal("Open / Ok / PreferredHostComplete / 'preferred host complete'", statusMsg.State().ToString());
+                Assert.True(statusMsg.HasMsgKey);
+                Assert.Equal(DataTypes.NO_DATA, statusMsg.Payload().DataType);
+                channelInfo = consumerClient.PopChannelInfo();
+                Assert.Equal("Channel_4", channelInfo.ChannelName);
+                Assert.Equal("Connection_6", channelInfo.SessionChannelName);
+                Assert.Equal(ChannelState.ACTIVE, channelInfo.ChannelState);
+                Assert.Equal(7, channelInfo.PreferredHostInfo!.DetectionTimeInterval);
+                Assert.Equal("", channelInfo.PreferredHostInfo!.DetectionTimeSchedule);
+                Assert.Equal("Channel_5", channelInfo.PreferredHostInfo!.ChannelName);
+                Assert.Equal(4, channelInfo.PreferredHostInfo!.RemainingDetectionTime);
+
+                m_Output.WriteLine("Bring up the preferred channel.");
+
+                // Start the provider for Channel_2 */
+                ommprovider2 = new OmmProvider(config.Port("19002").ProviderName("Provider_1"), providerClient2);
+
+                // Start the provider for Channel_5 */
+                ommprovider4 = new OmmProvider(config.Port("19005").ProviderName("Provider_1"), providerClient2);
+
+                // The fallback should happen by the detection time interval
+                m_Output.WriteLine("Fallback by the detection time interval to connect to the preferred channel.");
+
+                Thread.Sleep(7000);
+
+                message = consumerClient.PopMessage();
+                statusMsg = (StatusMsg)message;
+                Assert.Equal(1, statusMsg.StreamId());
+                Assert.Equal(EmaRdm.MMT_LOGIN, statusMsg.DomainType());
+                Assert.Equal("Open / Ok / PreferredHostStartingFallback / 'preferred host starting fallback'", statusMsg.State().ToString());
+                Assert.True(statusMsg.HasMsgKey);
+                Assert.Equal(DataTypes.NO_DATA, statusMsg.Payload().DataType);
+                Assert.Equal(DataTypes.NO_DATA, statusMsg.Attrib().DataType);
+                channelInfo = consumerClient.PopChannelInfo();
+                Assert.Equal("Channel_1", channelInfo.ChannelName);
+                Assert.Equal("Connection_5", channelInfo.SessionChannelName);
+                Assert.Equal(ChannelState.ACTIVE, channelInfo.ChannelState);
+                Assert.Equal(7, channelInfo.PreferredHostInfo!.DetectionTimeInterval);
+                Assert.Equal("", channelInfo.PreferredHostInfo!.DetectionTimeSchedule);
+                Assert.Equal("Channel_2", channelInfo.PreferredHostInfo!.ChannelName);
+                Assert.Equal(6, channelInfo.PreferredHostInfo!.RemainingDetectionTime);
+
+                message = consumerClient.PopMessage();
+                statusMsg = (StatusMsg)message;
+                Assert.Equal(1, statusMsg.StreamId());
+                Assert.Equal(EmaRdm.MMT_LOGIN, statusMsg.DomainType());
+                Assert.Equal("Open / Ok / None / 'session channel down reconnecting'", statusMsg.State().ToString());
+                Assert.True(statusMsg.HasMsgKey);
+                Assert.Equal(DataTypes.NO_DATA, statusMsg.Payload().DataType);
+                Assert.Equal(DataTypes.NO_DATA, statusMsg.Attrib().DataType);
+                channelInfo = consumerClient.PopChannelInfo();
+                Assert.Equal("Channel_1", channelInfo.ChannelName);
+                Assert.Equal("Connection_5", channelInfo.SessionChannelName);
+                Assert.Equal(ChannelState.INACTIVE, channelInfo.ChannelState);
+
+                message = consumerClient.PopMessage();
+                statusMsg = (StatusMsg)message;
+                Assert.Equal(5, statusMsg.StreamId());
+                Assert.Equal(EmaRdm.MMT_MARKET_PRICE, statusMsg.DomainType());
+                Assert.True(statusMsg.HasState);
+                Assert.Equal("Open / Suspect / None / 'channel down.'", statusMsg.State().ToString());
+                Assert.True(statusMsg.HasName);
+                Assert.Equal(itemName, statusMsg.Name());
+                Assert.True(statusMsg.HasServiceId);
+                Assert.True(statusMsg.HasServiceName);
+                Assert.Equal(serviceName, statusMsg.ServiceName());
+                Assert.Equal(DataTypes.NO_DATA, statusMsg.Payload().DataType);
+                channelInfo = consumerClient.PopChannelInfo();
+                Assert.Equal("Channel_1", channelInfo.ChannelName);
+                Assert.Equal("Connection_5", channelInfo.SessionChannelName);
+                Assert.Equal(ChannelState.INACTIVE, channelInfo.ChannelState);
+
+                message = consumerClient.PopMessage();
+                statusMsg = (StatusMsg)message;
+
+                Assert.Equal(1, statusMsg.StreamId());
+                Assert.Equal(EmaRdm.MMT_LOGIN, statusMsg.DomainType());
+                Assert.Equal("Open / Ok / PreferredHostComplete / 'preferred host complete'", statusMsg.State().ToString());
+                Assert.True(statusMsg.HasMsgKey);
+                Assert.Equal(DataTypes.NO_DATA, statusMsg.Payload().DataType);
+                channelInfo = consumerClient.PopChannelInfo();
+                Assert.Equal("Channel_2", channelInfo.ChannelName);
+                Assert.Equal("Connection_5", channelInfo.SessionChannelName);
+                Assert.Equal(ChannelState.ACTIVE, channelInfo.ChannelState);
+                Assert.Equal(7, channelInfo.PreferredHostInfo!.DetectionTimeInterval);
+                Assert.Equal("", channelInfo.PreferredHostInfo!.DetectionTimeSchedule);
+                Assert.Equal("Channel_2", channelInfo.PreferredHostInfo!.ChannelName);
+                Assert.Equal(6, channelInfo.PreferredHostInfo!.RemainingDetectionTime); ;
+
+                message = consumerClient.PopMessage();
+                refreshMsg = (RefreshMsg)message;
+
+                Assert.Equal(1, refreshMsg.StreamId());
+                Assert.Equal(EmaRdm.MMT_LOGIN, refreshMsg.DomainType());
+                Assert.Equal("Open / Ok / None / 'Login accepted'", refreshMsg.State().ToString());
+                Assert.True(refreshMsg.Solicited());
+                Assert.True(refreshMsg.Complete());
+                Assert.True(refreshMsg.HasMsgKey);
+                Assert.Equal(DataTypes.NO_DATA, refreshMsg.Payload().DataType);
+                Assert.Equal(DataTypes.ELEMENT_LIST, refreshMsg.Attrib().DataType);
+                channelInfo = consumerClient.PopChannelInfo();
+                Assert.Equal("Channel_2", channelInfo.ChannelName);
+                Assert.Equal("Connection_5", channelInfo.SessionChannelName);
+                Assert.Equal(ChannelState.ACTIVE, channelInfo.ChannelState);
+                Assert.Equal(7, channelInfo.PreferredHostInfo!.DetectionTimeInterval);
+                Assert.Equal("", channelInfo.PreferredHostInfo!.DetectionTimeSchedule);
+                Assert.Equal("Channel_2", channelInfo.PreferredHostInfo!.ChannelName);
+                Assert.Equal(6, channelInfo.PreferredHostInfo!.RemainingDetectionTime);
+
+                message = consumerClient.PopMessage();
+                statusMsg = (StatusMsg)message;
+
+                Assert.Equal(1, statusMsg.StreamId());
+                Assert.Equal(EmaRdm.MMT_LOGIN, statusMsg.DomainType());
+                Assert.Equal("Open / Ok / None / 'session channel up'", statusMsg.State().ToString());
+                Assert.True(statusMsg.HasMsgKey);
+                Assert.Equal(DataTypes.NO_DATA, statusMsg.Payload().DataType);
+                channelInfo = consumerClient.PopChannelInfo();
+                Assert.Equal("Channel_2", channelInfo.ChannelName);
+                Assert.Equal("Connection_5", channelInfo.SessionChannelName);
+                Assert.Equal(ChannelState.ACTIVE, channelInfo.ChannelState);
+                Assert.Equal(7, channelInfo.PreferredHostInfo!.DetectionTimeInterval);
+                Assert.Equal("", channelInfo.PreferredHostInfo!.DetectionTimeSchedule);
+                Assert.Equal("Channel_2", channelInfo.PreferredHostInfo!.ChannelName);
+                Assert.Equal(6, channelInfo.PreferredHostInfo!.RemainingDetectionTime);
+
+                message = consumerClient.PopMessage();
+                refreshMsg = (RefreshMsg)message;
+
+                Assert.Equal(5, refreshMsg.StreamId());
+                Assert.Equal(EmaRdm.MMT_MARKET_PRICE, refreshMsg.DomainType());
+                Assert.Equal("Open / Ok / None / 'Refresh Completed'", refreshMsg.State().ToString());
+                Assert.True(refreshMsg.Complete());
+                Assert.True(refreshMsg.Solicited());
+                Assert.True(refreshMsg.HasName);
+                Assert.Equal(itemName, refreshMsg.Name());
+                Assert.True(refreshMsg.HasServiceId);
+                Assert.True(refreshMsg.HasServiceName);
+                Assert.Equal(serviceName, refreshMsg.ServiceName());
+                Assert.Equal(DataTypes.FIELD_LIST, refreshMsg.Payload().DataType);
+                channelInfo = consumerClient.PopChannelInfo();
+                Assert.Equal("Channel_2", channelInfo.ChannelName);
+                Assert.Equal("Connection_5", channelInfo.SessionChannelName);
+                Assert.Equal(ChannelState.ACTIVE, channelInfo.ChannelState);
+                Assert.Equal(7, channelInfo.PreferredHostInfo!.DetectionTimeInterval);
+                Assert.Equal("", channelInfo.PreferredHostInfo!.DetectionTimeSchedule);
+                Assert.Equal("Channel_2", channelInfo.PreferredHostInfo!.ChannelName);
+                Assert.Equal(6, channelInfo.PreferredHostInfo!.RemainingDetectionTime);
+
+                message = consumerClient.PopMessage();
+                statusMsg = (StatusMsg)message;
+                Assert.Equal(1, statusMsg.StreamId());
+                Assert.Equal(EmaRdm.MMT_LOGIN, statusMsg.DomainType());
+                Assert.Equal("Open / Ok / PreferredHostStartingFallback / 'preferred host starting fallback'", statusMsg.State().ToString());
+                Assert.True(statusMsg.HasMsgKey);
+                Assert.Equal(DataTypes.NO_DATA, statusMsg.Payload().DataType);
+                Assert.Equal(DataTypes.NO_DATA, statusMsg.Attrib().DataType);
+                channelInfo = consumerClient.PopChannelInfo();
+                Assert.Equal("Channel_4", channelInfo.ChannelName);
+                Assert.Equal("Connection_6", channelInfo.SessionChannelName);
+                Assert.Equal(ChannelState.ACTIVE, channelInfo.ChannelState);
+                Assert.Equal(7, channelInfo.PreferredHostInfo!.DetectionTimeInterval);
+                Assert.Equal("", channelInfo.PreferredHostInfo!.DetectionTimeSchedule);
+                Assert.Equal("Channel_5", channelInfo.PreferredHostInfo!.ChannelName);
+                Assert.Equal(6, channelInfo.PreferredHostInfo!.RemainingDetectionTime);
+
+                message = consumerClient.PopMessage();
+                statusMsg = (StatusMsg)message;
+                Assert.Equal(1, statusMsg.StreamId());
+                Assert.Equal(EmaRdm.MMT_LOGIN, statusMsg.DomainType());
+                Assert.Equal("Open / Ok / None / 'session channel down reconnecting'", statusMsg.State().ToString());
+                Assert.True(statusMsg.HasMsgKey);
+                Assert.Equal(DataTypes.NO_DATA, statusMsg.Payload().DataType);
+                Assert.Equal(DataTypes.NO_DATA, statusMsg.Attrib().DataType);
+                channelInfo = consumerClient.PopChannelInfo();
+                Assert.Equal("Channel_4", channelInfo.ChannelName);
+                Assert.Equal("Connection_6", channelInfo.SessionChannelName);
+                Assert.Equal(ChannelState.INACTIVE, channelInfo.ChannelState);
+
+                message = consumerClient.PopMessage();
+                statusMsg = (StatusMsg)message;
+
+                Assert.Equal(1, statusMsg.StreamId());
+                Assert.Equal(EmaRdm.MMT_LOGIN, statusMsg.DomainType());
+                Assert.Equal("Open / Ok / PreferredHostComplete / 'preferred host complete'", statusMsg.State().ToString());
+                Assert.True(statusMsg.HasMsgKey);
+                Assert.Equal(DataTypes.NO_DATA, statusMsg.Payload().DataType);
+                channelInfo = consumerClient.PopChannelInfo();
+                Assert.Equal("Channel_5", channelInfo.ChannelName);
+                Assert.Equal("Connection_6", channelInfo.SessionChannelName);
+                Assert.Equal(ChannelState.ACTIVE, channelInfo.ChannelState);
+                Assert.Equal(7, channelInfo.PreferredHostInfo!.DetectionTimeInterval);
+                Assert.Equal("", channelInfo.PreferredHostInfo!.DetectionTimeSchedule);
+                Assert.Equal("Channel_5", channelInfo.PreferredHostInfo!.ChannelName);
+                Assert.Equal(6, channelInfo.PreferredHostInfo!.RemainingDetectionTime);
+
+                message = consumerClient.PopMessage();
+                refreshMsg = (RefreshMsg)message;
+
+                Assert.Equal(1, refreshMsg.StreamId());
+                Assert.Equal(EmaRdm.MMT_LOGIN, refreshMsg.DomainType());
+                Assert.Equal("Open / Ok / None / 'Login accepted'", refreshMsg.State().ToString());
+                Assert.True(refreshMsg.Solicited());
+                Assert.True(refreshMsg.Complete());
+                Assert.True(refreshMsg.HasMsgKey);
+                Assert.Equal(DataTypes.NO_DATA, refreshMsg.Payload().DataType);
+                Assert.Equal(DataTypes.ELEMENT_LIST, refreshMsg.Attrib().DataType);
+                channelInfo = consumerClient.PopChannelInfo();
+                Assert.Equal("Channel_5", channelInfo.ChannelName);
+                Assert.Equal("Connection_6", channelInfo.SessionChannelName);
+                Assert.Equal(ChannelState.ACTIVE, channelInfo.ChannelState);
+                Assert.Equal(7, channelInfo.PreferredHostInfo!.DetectionTimeInterval);
+                Assert.Equal("", channelInfo.PreferredHostInfo!.DetectionTimeSchedule);
+                Assert.Equal("Channel_5", channelInfo.PreferredHostInfo!.ChannelName);
+                Assert.Equal(6, channelInfo.PreferredHostInfo!.RemainingDetectionTime);
+
+                message = consumerClient.PopMessage();
+                /* Checks login status messages */
+                statusMsg = (StatusMsg)message;
+
+                Assert.Equal(1, statusMsg.StreamId());
+                Assert.Equal(EmaRdm.MMT_LOGIN, statusMsg.DomainType());
+                Assert.Equal("Open / Ok / None / 'session channel up'", statusMsg.State().ToString());
+                Assert.True(statusMsg.HasMsgKey);
+                Assert.Equal(DataTypes.NO_DATA, statusMsg.Payload().DataType);
+                channelInfo = consumerClient.PopChannelInfo();
+                Assert.Equal("Channel_5", channelInfo.ChannelName);
+                Assert.Equal("Connection_6", channelInfo.SessionChannelName);
+                Assert.Equal(ChannelState.ACTIVE, channelInfo.ChannelState);
+                Assert.Equal(7, channelInfo.PreferredHostInfo!.DetectionTimeInterval);
+                Assert.Equal("", channelInfo.PreferredHostInfo!.DetectionTimeSchedule);
+                Assert.Equal("Channel_5", channelInfo.PreferredHostInfo!.ChannelName);
+                Assert.Equal(6, channelInfo.PreferredHostInfo!.RemainingDetectionTime);
+
+                Thread.Sleep(5000);
+
+                // Checks for PH NO FALLBACK event
+                message = consumerClient.PopMessage();
+
+                /* Checks login status messages */
+                statusMsg = (StatusMsg)message;
+
+                Assert.Equal(1, statusMsg.StreamId());
+                Assert.Equal(EmaRdm.MMT_LOGIN, statusMsg.DomainType());
+                Assert.Equal("Open / Ok / PreferredHostNoFallback / 'preferred host no fallback'", statusMsg.State().ToString());
+                Assert.True(statusMsg.HasMsgKey);
+                Assert.Equal(DataTypes.NO_DATA, statusMsg.Payload().DataType);
+                channelInfo = consumerClient.PopChannelInfo();
+                Assert.Equal("Channel_2", channelInfo.ChannelName);
+                Assert.Equal("Connection_5", channelInfo.SessionChannelName);
+                Assert.Equal(ChannelState.ACTIVE, channelInfo.ChannelState);
+                Assert.Equal(7, channelInfo.PreferredHostInfo!.DetectionTimeInterval);
+                Assert.Equal("", channelInfo.PreferredHostInfo!.DetectionTimeSchedule);
+                Assert.Equal("Channel_2", channelInfo.PreferredHostInfo!.ChannelName);
+                Assert.Equal(6, channelInfo.PreferredHostInfo!.RemainingDetectionTime);
+
+                message = consumerClient.PopMessage();
+
+                /* Checks login status messages */
+                statusMsg = (StatusMsg)message;
+
+                Assert.Equal(1, statusMsg.StreamId());
+                Assert.Equal(EmaRdm.MMT_LOGIN, statusMsg.DomainType());
+                Assert.Equal("Open / Ok / PreferredHostNoFallback / 'preferred host no fallback'", statusMsg.State().ToString());
+                Assert.True(statusMsg.HasMsgKey);
+                Assert.Equal(DataTypes.NO_DATA, statusMsg.Payload().DataType);
+                channelInfo = consumerClient.PopChannelInfo();
+                Assert.Equal("Channel_5", channelInfo.ChannelName);
+                Assert.Equal("Connection_6", channelInfo.SessionChannelName);
+                Assert.Equal(ChannelState.ACTIVE, channelInfo.ChannelState);
+                Assert.Equal(7, channelInfo.PreferredHostInfo!.DetectionTimeInterval);
+                Assert.Equal("", channelInfo.PreferredHostInfo!.DetectionTimeSchedule);
+                Assert.Equal("Channel_5", channelInfo.PreferredHostInfo!.ChannelName);
+                Assert.Equal(6, channelInfo.PreferredHostInfo!.RemainingDetectionTime);
+
+                // There should be any message and channel events at this time.
+                Assert.Equal(0, consumerClient.QueueSize());
+
+                consumer.Unregister(itemHandle);
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+            finally
+            {
+                consumer?.Uninitialize();
+                ommprovider?.Uninitialize();
+                ommprovider2?.Uninitialize();
+                ommprovider3?.Uninitialize();
+            }
+        }
+
+        [Fact]
+        public void MultiConnectionsFallbackToPreferredChannelOnChannelListEnabledByFallbackMethod()
+        {
+            OmmConsumer? consumer = null;
+            ConsumerTestOptions consumerOption = new();
+            ProviderTestOptions providerTestOptions = new();
+            providerTestOptions.SupportStandby = true;
+            providerTestOptions.SendRefreshAttrib = true;
+
+            ProviderTestClient providerClient = new(m_Output, providerTestOptions);
+            providerClient.Name = "Provider_1";
+            ProviderTestClient providerClient2 = new(m_Output, providerTestOptions);
+            providerClient2.Name = "Provider_2";
+
+            ProviderTestClient providerClient3 = new(m_Output, providerTestOptions);
+            providerClient3.Name = "Provider_3";
+            ProviderTestClient providerClient4 = new(m_Output, providerTestOptions);
+            providerClient3.Name = "Provider_4";
+
+            OmmIProviderConfig config = new OmmIProviderConfig(EmaConfigFileLocation);
+
+            consumerOption.GetChannelInformation = true;
+            consumerOption.GetSessionChannelInfo = true;
+            ConsumerTestClient consumerClient = new(m_Output, consumerOption);
+
+
+            // Channel_1
+            OmmProvider ommprovider = new(config.Port("19001").ProviderName("Provider_1"), providerClient);
+
+            // Channel_2 /* This is preferred host for Connection_5 */
+            OmmProvider? ommprovider2 = null;
+
+            // Channel_4
+            OmmProvider ommprovider3 = new(config.Port("19004").ProviderName("Provider_1"), providerClient3);
+
+            // Channel_5 /* This is preferred host for Connection_6 */
+            OmmProvider? ommprovider4 = null;
+
+            try
+            {
+                ConsumerTestOptions options = new();
+                options.GetChannelInformation = true;
+
+                consumer = new OmmConsumer(new OmmConsumerConfig(EmaConfigFileLocation).ConsumerName("Consumer_17"), consumerClient);
+
+                String serviceName = "DIRECT_FEED";
+                String itemName = "TRI.N";
+
+                RequestMsg reqMsg = new();
+                long itemHandle = consumer.RegisterClient(reqMsg.Name(itemName).ServiceName(serviceName), consumerClient);
+
+                Thread.Sleep(1000);
+
+                Msg message = consumerClient.PopMessage();
+                StatusMsg statusMsg = (StatusMsg)message;
+
+                Assert.Equal(1, statusMsg.StreamId());
+                Assert.Equal(EmaRdm.MMT_LOGIN, statusMsg.DomainType());
+                Assert.Equal("Open / Suspect / None / 'session channel down reconnecting'", statusMsg.State().ToString());
+                ChannelInformation channelInfo = consumerClient.PopChannelInfo();
+                Assert.Equal("Channel_2", channelInfo.ChannelName);
+                Assert.Equal("Connection_7", channelInfo.SessionChannelName);
+                Assert.Equal(ChannelState.INACTIVE, channelInfo.ChannelState);
+                Assert.Null(channelInfo.PreferredHostInfo);
+
+                message = consumerClient.PopMessage();
+                statusMsg = (StatusMsg)message;
+
+                Assert.Equal(1, statusMsg.StreamId());
+                Assert.Equal(EmaRdm.MMT_LOGIN, statusMsg.DomainType());
+                Assert.Equal("Open / Suspect / None / 'session channel down reconnecting'", statusMsg.State().ToString());
+                channelInfo = consumerClient.PopChannelInfo();
+                Assert.Equal("Channel_5", channelInfo.ChannelName);
+                Assert.Equal("Connection_8", channelInfo.SessionChannelName);
+                Assert.Equal(ChannelState.INACTIVE, channelInfo.ChannelState);
+                Assert.Null(channelInfo.PreferredHostInfo);
+
+                message = consumerClient.PopMessage();
+                statusMsg = (StatusMsg)message;
+                Assert.Equal(1, statusMsg.StreamId());
+                Assert.Equal(EmaRdm.MMT_LOGIN, statusMsg.DomainType());
+                Assert.Equal("Open / Suspect / None / 'session channel up'", statusMsg.State().ToString());
+                channelInfo = consumerClient.PopChannelInfo();
+                Assert.Equal("Channel_1", channelInfo.ChannelName);
+                Assert.Equal("Connection_7", channelInfo.SessionChannelName);
+                Assert.Equal(ChannelState.ACTIVE, channelInfo.ChannelState);
+                Assert.NotNull(channelInfo.PreferredHostInfo);
+                Assert.Equal(0, channelInfo.PreferredHostInfo!.DetectionTimeInterval);
+                Assert.Equal("", channelInfo.PreferredHostInfo!.DetectionTimeSchedule);
+                Assert.Equal("Channel_2", channelInfo.PreferredHostInfo!.ChannelName);
+                Assert.Equal(0, channelInfo.PreferredHostInfo!.RemainingDetectionTime);
+
+
+                message = consumerClient.PopMessage();
+                statusMsg = (StatusMsg)message;
+                Assert.Equal(1, statusMsg.StreamId());
+                Assert.Equal(EmaRdm.MMT_LOGIN, statusMsg.DomainType());
+                Assert.Equal("Open / Suspect / None / 'session channel up'", statusMsg.State().ToString());
+                channelInfo = consumerClient.PopChannelInfo();
+                Assert.Equal("Channel_4", channelInfo.ChannelName);
+                Assert.Equal("Connection_8", channelInfo.SessionChannelName);
+                Assert.Equal(ChannelState.ACTIVE, channelInfo.ChannelState);
+                Assert.NotNull(channelInfo.PreferredHostInfo);
+                Assert.Equal(0, channelInfo.PreferredHostInfo!.DetectionTimeInterval);
+                Assert.Equal("", channelInfo.PreferredHostInfo!.DetectionTimeSchedule);
+                Assert.Equal("Channel_5", channelInfo.PreferredHostInfo!.ChannelName);
+                Assert.Equal(0, channelInfo.PreferredHostInfo!.RemainingDetectionTime);
+
+                message = consumerClient.PopMessage();
+                RefreshMsg refreshMsg = (RefreshMsg)message;
+
+                Assert.Equal(1, refreshMsg.StreamId());
+                Assert.Equal(EmaRdm.MMT_LOGIN, refreshMsg.DomainType());
+                Assert.Equal("Open / Ok / None / 'Login accepted'", refreshMsg.State().ToString());
+                Assert.True(refreshMsg.Solicited());
+                Assert.True(refreshMsg.Complete());
+                Assert.True(refreshMsg.HasMsgKey);
+                Assert.Equal(DataTypes.NO_DATA, refreshMsg.Payload().DataType);
+                Assert.Equal(DataTypes.ELEMENT_LIST, refreshMsg.Attrib().DataType);
+                channelInfo = consumerClient.PopChannelInfo();
+                Assert.Equal("Channel_4", channelInfo.ChannelName);
+                Assert.Equal("Connection_8", channelInfo.SessionChannelName);
+                Assert.Equal(ChannelState.ACTIVE, channelInfo.ChannelState);
+                Assert.NotNull(channelInfo.PreferredHostInfo);
+                Assert.Equal(0, channelInfo.PreferredHostInfo!.DetectionTimeInterval);
+                Assert.Equal("", channelInfo.PreferredHostInfo!.DetectionTimeSchedule);
+                Assert.Equal("Channel_5", channelInfo.PreferredHostInfo!.ChannelName);
+                Assert.Equal(0, channelInfo.PreferredHostInfo!.RemainingDetectionTime);
+
+                Thread.Sleep(1000);
+
+                //Checks the market price item refresh from the Channel_1
+                message = consumerClient.PopMessage();
+                refreshMsg = (RefreshMsg)message;
+
+                Assert.Equal(5, refreshMsg.StreamId());
+                Assert.Equal(EmaRdm.MMT_MARKET_PRICE, refreshMsg.DomainType());
+                Assert.Equal("Open / Ok / None / 'Refresh Completed'", refreshMsg.State().ToString());
+                Assert.True(refreshMsg.Complete());
+                Assert.True(refreshMsg.Solicited());
+                Assert.True(refreshMsg.HasName);
+                Assert.Equal(itemName, refreshMsg.Name());
+                Assert.True(refreshMsg.HasServiceId);
+                Assert.True(refreshMsg.HasServiceName);
+                Assert.Equal(serviceName, refreshMsg.ServiceName());
+                Assert.Equal(DataTypes.FIELD_LIST, refreshMsg.Payload().DataType);
+                channelInfo = consumerClient.PopChannelInfo();
+                Assert.Equal("Channel_1", channelInfo.ChannelName);
+                Assert.Equal("Connection_7", channelInfo.SessionChannelName);
+                Assert.Equal(ChannelState.ACTIVE, channelInfo.ChannelState);
+                Assert.NotNull(channelInfo.PreferredHostInfo);
+                Assert.Equal(0, channelInfo.PreferredHostInfo!.DetectionTimeInterval);
+                Assert.Equal("", channelInfo.PreferredHostInfo!.DetectionTimeSchedule);
+                Assert.Equal("Channel_2", channelInfo.PreferredHostInfo!.ChannelName);
+                Assert.Equal(0, channelInfo.PreferredHostInfo!.RemainingDetectionTime);
+
+                m_Output.WriteLine("Bring up the preferred channel.");
+
+                // Start the provider for Channel_2 */
+                ommprovider2 = new OmmProvider(config.Port("19002").ProviderName("Provider_1"), providerClient2);
+
+                // Start the provider for Channel_5 */
+                ommprovider4 = new OmmProvider(config.Port("19005").ProviderName("Provider_1"), providerClient2);
+
+                Thread.Sleep(1000);
+
+                m_Output.WriteLine("Fallback by the FallbackPreferredHost() method to connect to the preferred channel.");
+                consumer.FallbackPreferredHost();
+
+                Thread.Sleep(2000);
+
+                message = consumerClient.PopMessage();
+                statusMsg = (StatusMsg)message;
+                Assert.Equal(1, statusMsg.StreamId());
+                Assert.Equal(EmaRdm.MMT_LOGIN, statusMsg.DomainType());
+                Assert.Equal("Open / Ok / PreferredHostStartingFallback / 'preferred host starting fallback'", statusMsg.State().ToString());
+                Assert.True(statusMsg.HasMsgKey);
+                Assert.Equal(DataTypes.NO_DATA, statusMsg.Payload().DataType);
+                Assert.Equal(DataTypes.NO_DATA, statusMsg.Attrib().DataType);
+                channelInfo = consumerClient.PopChannelInfo();
+                Assert.Equal("Channel_1", channelInfo.ChannelName);
+                Assert.Equal("Connection_7", channelInfo.SessionChannelName);
+                Assert.Equal(ChannelState.ACTIVE, channelInfo.ChannelState);
+                Assert.Equal(0, channelInfo.PreferredHostInfo!.DetectionTimeInterval);
+                Assert.Equal("", channelInfo.PreferredHostInfo!.DetectionTimeSchedule);
+                Assert.Equal("Channel_2", channelInfo.PreferredHostInfo!.ChannelName);
+                Assert.Equal(0, channelInfo.PreferredHostInfo!.RemainingDetectionTime);
+
+                message = consumerClient.PopMessage();
+                statusMsg = (StatusMsg)message;
+                Assert.Equal(1, statusMsg.StreamId());
+                Assert.Equal(EmaRdm.MMT_LOGIN, statusMsg.DomainType());
+                Assert.Equal("Open / Ok / PreferredHostStartingFallback / 'preferred host starting fallback'", statusMsg.State().ToString());
+                Assert.True(statusMsg.HasMsgKey);
+                Assert.Equal(DataTypes.NO_DATA, statusMsg.Payload().DataType);
+                Assert.Equal(DataTypes.NO_DATA, statusMsg.Attrib().DataType);
+                channelInfo = consumerClient.PopChannelInfo();
+                Assert.Equal("Channel_4", channelInfo.ChannelName);
+                Assert.Equal("Connection_8", channelInfo.SessionChannelName);
+                Assert.Equal(ChannelState.ACTIVE, channelInfo.ChannelState);
+                Assert.Equal(0, channelInfo.PreferredHostInfo!.DetectionTimeInterval);
+                Assert.Equal("", channelInfo.PreferredHostInfo!.DetectionTimeSchedule);
+                Assert.Equal("Channel_5", channelInfo.PreferredHostInfo!.ChannelName);
+                Assert.Equal(0, channelInfo.PreferredHostInfo!.RemainingDetectionTime);
+
+                message = consumerClient.PopMessage();
+                statusMsg = (StatusMsg)message;
+                Assert.Equal(1, statusMsg.StreamId());
+                Assert.Equal(EmaRdm.MMT_LOGIN, statusMsg.DomainType());
+                Assert.Equal("Open / Ok / None / 'session channel down reconnecting'", statusMsg.State().ToString());
+                Assert.True(statusMsg.HasMsgKey);
+                Assert.Equal(DataTypes.NO_DATA, statusMsg.Payload().DataType);
+                Assert.Equal(DataTypes.NO_DATA, statusMsg.Attrib().DataType);
+                channelInfo = consumerClient.PopChannelInfo();
+                Assert.Equal("Channel_1", channelInfo.ChannelName);
+                Assert.Equal("Connection_7", channelInfo.SessionChannelName);
+                Assert.Equal(ChannelState.INACTIVE, channelInfo.ChannelState);
+
+                message = consumerClient.PopMessage();
+                statusMsg = (StatusMsg)message;
+                Assert.Equal(5, statusMsg.StreamId());
+                Assert.Equal(EmaRdm.MMT_MARKET_PRICE, statusMsg.DomainType());
+                Assert.True(statusMsg.HasState);
+                Assert.Equal("Open / Suspect / None / 'channel down.'", statusMsg.State().ToString());
+                Assert.True(statusMsg.HasName);
+                Assert.Equal(itemName, statusMsg.Name());
+                Assert.True(statusMsg.HasServiceId);
+                Assert.True(statusMsg.HasServiceName);
+                Assert.Equal(serviceName, statusMsg.ServiceName());
+                Assert.Equal(DataTypes.NO_DATA, statusMsg.Payload().DataType);
+                channelInfo = consumerClient.PopChannelInfo();
+                Assert.Equal("Channel_1", channelInfo.ChannelName);
+                Assert.Equal("Connection_7", channelInfo.SessionChannelName);
+                Assert.Equal(ChannelState.INACTIVE, channelInfo.ChannelState);
+
+                message = consumerClient.PopMessage();
+                statusMsg = (StatusMsg)message;
+
+                Assert.Equal(1, statusMsg.StreamId());
+                Assert.Equal(EmaRdm.MMT_LOGIN, statusMsg.DomainType());
+                Assert.Equal("Open / Ok / PreferredHostComplete / 'preferred host complete'", statusMsg.State().ToString());
+                Assert.True(statusMsg.HasMsgKey);
+                Assert.Equal(DataTypes.NO_DATA, statusMsg.Payload().DataType);
+                channelInfo = consumerClient.PopChannelInfo();
+                Assert.Equal("Channel_2", channelInfo.ChannelName);
+                Assert.Equal("Connection_7", channelInfo.SessionChannelName);
+                Assert.Equal(ChannelState.ACTIVE, channelInfo.ChannelState);
+                Assert.Equal(0, channelInfo.PreferredHostInfo!.DetectionTimeInterval);
+                Assert.Equal("", channelInfo.PreferredHostInfo!.DetectionTimeSchedule);
+                Assert.Equal("Channel_2", channelInfo.PreferredHostInfo!.ChannelName);
+                Assert.Equal(0, channelInfo.PreferredHostInfo!.RemainingDetectionTime);
+
+                message = consumerClient.PopMessage();
+                statusMsg = (StatusMsg)message;
+                Assert.Equal(1, statusMsg.StreamId());
+                Assert.Equal(EmaRdm.MMT_LOGIN, statusMsg.DomainType());
+                Assert.Equal("Open / Ok / None / 'session channel down reconnecting'", statusMsg.State().ToString());
+                Assert.True(statusMsg.HasMsgKey);
+                Assert.Equal(DataTypes.NO_DATA, statusMsg.Payload().DataType);
+                Assert.Equal(DataTypes.NO_DATA, statusMsg.Attrib().DataType);
+                channelInfo = consumerClient.PopChannelInfo();
+                Assert.Equal("Channel_4", channelInfo.ChannelName);
+                Assert.Equal("Connection_8", channelInfo.SessionChannelName);
+                Assert.Equal(ChannelState.INACTIVE, channelInfo.ChannelState);
+
+                message = consumerClient.PopMessage();
+
+                if (message is StatusMsg)
+                {
+                    statusMsg = (StatusMsg)message;
+
+                    Assert.Equal(1, statusMsg.StreamId());
+                    Assert.Equal(EmaRdm.MMT_LOGIN, statusMsg.DomainType());
+                    Assert.Equal("Open / Ok / PreferredHostComplete / 'preferred host complete'", statusMsg.State().ToString());
+                    Assert.True(statusMsg.HasMsgKey);
+                    Assert.Equal(DataTypes.NO_DATA, statusMsg.Payload().DataType);
+                    channelInfo = consumerClient.PopChannelInfo();
+                    Assert.Equal("Channel_5", channelInfo.ChannelName);
+                    Assert.Equal("Connection_8", channelInfo.SessionChannelName);
+                    Assert.Equal(ChannelState.ACTIVE, channelInfo.ChannelState);
+                    Assert.Equal(0, channelInfo.PreferredHostInfo!.DetectionTimeInterval);
+                    Assert.Equal("", channelInfo.PreferredHostInfo!.DetectionTimeSchedule);
+                    Assert.Equal("Channel_5", channelInfo.PreferredHostInfo!.ChannelName);
+                    Assert.Equal(0, channelInfo.PreferredHostInfo!.RemainingDetectionTime);
+
+                    message = consumerClient.PopMessage();
+                    refreshMsg = (RefreshMsg)message;
+
+                    Assert.Equal(1, refreshMsg.StreamId());
+                    Assert.Equal(EmaRdm.MMT_LOGIN, refreshMsg.DomainType());
+                    Assert.Equal("Open / Ok / None / 'Login accepted'", refreshMsg.State().ToString());
+                    Assert.True(refreshMsg.Solicited());
+                    Assert.True(refreshMsg.Complete());
+                    Assert.True(refreshMsg.HasMsgKey);
+                    Assert.Equal(DataTypes.NO_DATA, refreshMsg.Payload().DataType);
+                    Assert.Equal(DataTypes.ELEMENT_LIST, refreshMsg.Attrib().DataType);
+                    channelInfo = consumerClient.PopChannelInfo();
+                    Assert.Equal("Channel_2", channelInfo.ChannelName);
+                    Assert.Equal("Connection_7", channelInfo.SessionChannelName);
+                    Assert.Equal(ChannelState.ACTIVE, channelInfo.ChannelState);
+                    Assert.Equal(0, channelInfo.PreferredHostInfo!.DetectionTimeInterval);
+                    Assert.Equal("", channelInfo.PreferredHostInfo!.DetectionTimeSchedule);
+                    Assert.Equal("Channel_2", channelInfo.PreferredHostInfo!.ChannelName);
+                    Assert.Equal(0, channelInfo.PreferredHostInfo!.RemainingDetectionTime);
+                }
+                else
+                {
+                    refreshMsg = (RefreshMsg)message;
+
+                    Assert.Equal(1, refreshMsg.StreamId());
+                    Assert.Equal(EmaRdm.MMT_LOGIN, refreshMsg.DomainType());
+                    Assert.Equal("Open / Ok / None / 'Login accepted'", refreshMsg.State().ToString());
+                    Assert.True(refreshMsg.Solicited());
+                    Assert.True(refreshMsg.Complete());
+                    Assert.True(refreshMsg.HasMsgKey);
+                    Assert.Equal(DataTypes.NO_DATA, refreshMsg.Payload().DataType);
+                    Assert.Equal(DataTypes.ELEMENT_LIST, refreshMsg.Attrib().DataType);
+                    channelInfo = consumerClient.PopChannelInfo();
+                    Assert.Equal("Channel_2", channelInfo.ChannelName);
+                    Assert.Equal("Connection_7", channelInfo.SessionChannelName);
+                    Assert.Equal(ChannelState.ACTIVE, channelInfo.ChannelState);
+                    Assert.Equal(0, channelInfo.PreferredHostInfo!.DetectionTimeInterval);
+                    Assert.Equal("", channelInfo.PreferredHostInfo!.DetectionTimeSchedule);
+                    Assert.Equal("Channel_2", channelInfo.PreferredHostInfo!.ChannelName);
+                    Assert.Equal(0, channelInfo.PreferredHostInfo!.RemainingDetectionTime);
+
+                    message = consumerClient.PopMessage();
+                    statusMsg = (StatusMsg)message;
+
+                    Assert.Equal(1, statusMsg.StreamId());
+                    Assert.Equal(EmaRdm.MMT_LOGIN, statusMsg.DomainType());
+                    Assert.Equal("Open / Ok / PreferredHostComplete / 'preferred host complete'", statusMsg.State().ToString());
+                    Assert.True(statusMsg.HasMsgKey);
+                    Assert.Equal(DataTypes.NO_DATA, statusMsg.Payload().DataType);
+                    channelInfo = consumerClient.PopChannelInfo();
+                    Assert.Equal("Channel_5", channelInfo.ChannelName);
+                    Assert.Equal("Connection_8", channelInfo.SessionChannelName);
+                    Assert.Equal(ChannelState.ACTIVE, channelInfo.ChannelState);
+                    Assert.Equal(0, channelInfo.PreferredHostInfo!.DetectionTimeInterval);
+                    Assert.Equal("", channelInfo.PreferredHostInfo!.DetectionTimeSchedule);
+                    Assert.Equal("Channel_5", channelInfo.PreferredHostInfo!.ChannelName);
+                    Assert.Equal(0, channelInfo.PreferredHostInfo!.RemainingDetectionTime);
+                }
+
+                message = consumerClient.PopMessage();
+                refreshMsg = (RefreshMsg)message;
+
+                Assert.Equal(1, refreshMsg.StreamId());
+                Assert.Equal(EmaRdm.MMT_LOGIN, refreshMsg.DomainType());
+                Assert.Equal("Open / Ok / None / 'Login accepted'", refreshMsg.State().ToString());
+                Assert.True(refreshMsg.Solicited());
+                Assert.True(refreshMsg.Complete());
+                Assert.True(refreshMsg.HasMsgKey);
+                Assert.Equal(DataTypes.NO_DATA, refreshMsg.Payload().DataType);
+                Assert.Equal(DataTypes.ELEMENT_LIST, refreshMsg.Attrib().DataType);
+                channelInfo = consumerClient.PopChannelInfo();
+                Assert.Equal("Channel_5", channelInfo.ChannelName);
+                Assert.Equal("Connection_8", channelInfo.SessionChannelName);
+                Assert.Equal(ChannelState.ACTIVE, channelInfo.ChannelState);
+                Assert.Equal(0, channelInfo.PreferredHostInfo!.DetectionTimeInterval);
+                Assert.Equal("", channelInfo.PreferredHostInfo!.DetectionTimeSchedule);
+                Assert.Equal("Channel_5", channelInfo.PreferredHostInfo!.ChannelName);
+                Assert.Equal(0, channelInfo.PreferredHostInfo!.RemainingDetectionTime);
+
+                message = consumerClient.PopMessage();
+                statusMsg = (StatusMsg)message;
+
+                Assert.Equal(1, statusMsg.StreamId());
+                Assert.Equal(EmaRdm.MMT_LOGIN, statusMsg.DomainType());
+                Assert.Equal("Open / Ok / None / 'session channel up'", statusMsg.State().ToString());
+                Assert.True(statusMsg.HasMsgKey);
+                Assert.Equal(DataTypes.NO_DATA, statusMsg.Payload().DataType);
+                channelInfo = consumerClient.PopChannelInfo();
+                Assert.Equal("Channel_2", channelInfo.ChannelName);
+                Assert.Equal("Connection_7", channelInfo.SessionChannelName);
+                Assert.Equal(ChannelState.ACTIVE, channelInfo.ChannelState);
+                Assert.Equal(0, channelInfo.PreferredHostInfo!.DetectionTimeInterval);
+                Assert.Equal("", channelInfo.PreferredHostInfo!.DetectionTimeSchedule);
+                Assert.Equal("Channel_2", channelInfo.PreferredHostInfo!.ChannelName);
+                Assert.Equal(0, channelInfo.PreferredHostInfo!.RemainingDetectionTime);
+
+                message = consumerClient.PopMessage();
+                statusMsg = (StatusMsg)message;
+
+                Assert.Equal(1, statusMsg.StreamId());
+                Assert.Equal(EmaRdm.MMT_LOGIN, statusMsg.DomainType());
+                Assert.Equal("Open / Ok / None / 'session channel up'", statusMsg.State().ToString());
+                Assert.True(statusMsg.HasMsgKey);
+                Assert.Equal(DataTypes.NO_DATA, statusMsg.Payload().DataType);
+                channelInfo = consumerClient.PopChannelInfo();
+                Assert.Equal("Channel_5", channelInfo.ChannelName);
+                Assert.Equal("Connection_8", channelInfo.SessionChannelName);
+                Assert.Equal(ChannelState.ACTIVE, channelInfo.ChannelState);
+                Assert.Equal(0, channelInfo.PreferredHostInfo!.DetectionTimeInterval);
+                Assert.Equal("", channelInfo.PreferredHostInfo!.DetectionTimeSchedule);
+                Assert.Equal("Channel_5", channelInfo.PreferredHostInfo!.ChannelName);
+                Assert.Equal(0, channelInfo.PreferredHostInfo!.RemainingDetectionTime);
+
+                message = consumerClient.PopMessage();
+
+                refreshMsg = (RefreshMsg)message;
+
+                Assert.Equal(5, refreshMsg.StreamId());
+                Assert.Equal(EmaRdm.MMT_MARKET_PRICE, refreshMsg.DomainType());
+                Assert.Equal("Open / Ok / None / 'Refresh Completed'", refreshMsg.State().ToString());
+                Assert.True(refreshMsg.Complete());
+                Assert.True(refreshMsg.Solicited());
+                Assert.True(refreshMsg.HasName);
+                Assert.Equal(itemName, refreshMsg.Name());
+                Assert.True(refreshMsg.HasServiceId);
+                Assert.True(refreshMsg.HasServiceName);
+                Assert.Equal(serviceName, refreshMsg.ServiceName());
+                Assert.Equal(DataTypes.FIELD_LIST, refreshMsg.Payload().DataType);
+                channelInfo = consumerClient.PopChannelInfo();
+                Assert.Equal("Channel_2", channelInfo.ChannelName);
+                Assert.Equal("Connection_7", channelInfo.SessionChannelName);
+                Assert.Equal(ChannelState.ACTIVE, channelInfo.ChannelState);
+                Assert.Equal(0, channelInfo.PreferredHostInfo!.DetectionTimeInterval);
+                Assert.Equal("", channelInfo.PreferredHostInfo!.DetectionTimeSchedule);
+                Assert.Equal("Channel_2", channelInfo.PreferredHostInfo!.ChannelName);
+                Assert.Equal(0, channelInfo.PreferredHostInfo!.RemainingDetectionTime);
+
+                Thread.Sleep(1000);
+
+                // There should be any message and channel events at this time.
+                Assert.Equal(0, consumerClient.QueueSize());
+
+                consumer.Unregister(itemHandle);
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+            finally
+            {
+                consumer?.Uninitialize();
+                ommprovider?.Uninitialize();
+                ommprovider2?.Uninitialize();
+                ommprovider3?.Uninitialize();
+            }
+        }
+
+        [Fact]
+        public void MultiConnectionsFallbackToPreferredChannelOnChannelListEnabledByIOCtlMethod()
+        {
+            OmmConsumer? consumer = null;
+            ConsumerTestOptions consumerOption = new();
+            ProviderTestOptions providerTestOptions = new();
+            providerTestOptions.SupportStandby = true;
+            providerTestOptions.SendRefreshAttrib = true;
+
+            ProviderTestClient providerClient = new(m_Output, providerTestOptions);
+            providerClient.Name = "Provider_1";
+            ProviderTestClient providerClient2 = new(m_Output, providerTestOptions);
+            providerClient2.Name = "Provider_2";
+
+            ProviderTestClient providerClient3 = new(m_Output, providerTestOptions);
+            providerClient3.Name = "Provider_3";
+            ProviderTestClient providerClient4 = new(m_Output, providerTestOptions);
+            providerClient3.Name = "Provider_4";
+
+            OmmIProviderConfig config = new OmmIProviderConfig(EmaConfigFileLocation);
+
+            consumerOption.GetChannelInformation = true;
+            consumerOption.GetSessionChannelInfo = true;
+            ConsumerTestClient consumerClient = new(m_Output, consumerOption);
+
+
+            // Channel_1
+            OmmProvider ommprovider = new(config.Port("19001").ProviderName("Provider_1"), providerClient);
+
+            // Channel_2 /* This is preferred host for Connection_5 */
+            OmmProvider? ommprovider2 = null;
+
+            // Channel_4
+            OmmProvider ommprovider3 = new(config.Port("19004").ProviderName("Provider_1"), providerClient3);
+
+            // Channel_5 /* This is preferred host for Connection_6 */
+            OmmProvider? ommprovider4 = null;
+
+            try
+            {
+                ConsumerTestOptions options = new();
+                options.GetChannelInformation = true;
+
+                consumer = new OmmConsumer(new OmmConsumerConfig(EmaConfigFileLocation).ConsumerName("Consumer_18"), consumerClient);
+
+                String serviceName = "DIRECT_FEED";
+                String itemName = "TRI.N";
+
+                RequestMsg reqMsg = new();
+                long itemHandle = consumer.RegisterClient(reqMsg.Name(itemName).ServiceName(serviceName), consumerClient);
+
+                Msg message = consumerClient.PopMessage();
+                StatusMsg statusMsg = (StatusMsg)message;
+
+                Assert.Equal(1, statusMsg.StreamId());
+                Assert.Equal(EmaRdm.MMT_LOGIN, statusMsg.DomainType());
+                Assert.Equal("Open / Suspect / None / 'session channel up'", statusMsg.State().ToString());
+                ChannelInformation channelInfo = consumerClient.PopChannelInfo();
+                Assert.Equal("Channel_1", channelInfo.ChannelName);
+                Assert.Equal("Connection_9", channelInfo.SessionChannelName);
+                Assert.Equal(ChannelState.ACTIVE, channelInfo.ChannelState);
+                Assert.NotNull(channelInfo.PreferredHostInfo);
+                Assert.False(channelInfo.PreferredHostInfo!.IsPreferredHostEnabled);
+                Assert.Equal(0, channelInfo.PreferredHostInfo!.DetectionTimeInterval);
+                Assert.Equal("", channelInfo.PreferredHostInfo!.DetectionTimeSchedule);
+                Assert.Equal("Channel_2", channelInfo.PreferredHostInfo!.ChannelName);
+                Assert.Equal(0, channelInfo.PreferredHostInfo!.RemainingDetectionTime);
+
+                message = consumerClient.PopMessage();
+                statusMsg = (StatusMsg)message;
+
+                Assert.Equal(1, statusMsg.StreamId());
+                Assert.Equal(EmaRdm.MMT_LOGIN, statusMsg.DomainType());
+                Assert.Equal("Open / Suspect / None / 'session channel up'", statusMsg.State().ToString());
+                channelInfo = consumerClient.PopChannelInfo();
+                Assert.Equal("Channel_4", channelInfo.ChannelName);
+                Assert.Equal("Connection_10", channelInfo.SessionChannelName);
+                Assert.Equal(ChannelState.ACTIVE, channelInfo.ChannelState);
+                Assert.NotNull(channelInfo.PreferredHostInfo);
+                Assert.False(channelInfo.PreferredHostInfo!.IsPreferredHostEnabled);
+                Assert.Equal(0, channelInfo.PreferredHostInfo!.DetectionTimeInterval);
+                Assert.Equal("", channelInfo.PreferredHostInfo!.DetectionTimeSchedule);
+                Assert.Equal("Channel_5", channelInfo.PreferredHostInfo!.ChannelName);
+                Assert.Equal(0, channelInfo.PreferredHostInfo!.RemainingDetectionTime);
+
+                message = consumerClient.PopMessage();
+                RefreshMsg refreshMsg = (RefreshMsg)message;
+
+                Assert.Equal(1, refreshMsg.StreamId());
+                Assert.Equal(EmaRdm.MMT_LOGIN, refreshMsg.DomainType());
+                Assert.Equal("Open / Ok / None / 'Login accepted'", refreshMsg.State().ToString());
+                Assert.True(refreshMsg.Solicited());
+                Assert.True(refreshMsg.Complete());
+                Assert.True(refreshMsg.HasMsgKey);
+                Assert.Equal(DataTypes.NO_DATA, refreshMsg.Payload().DataType);
+                Assert.Equal(DataTypes.ELEMENT_LIST, refreshMsg.Attrib().DataType);
+                channelInfo = consumerClient.PopChannelInfo();
+                Assert.Equal(ChannelState.ACTIVE, channelInfo.ChannelState);
+                Assert.NotNull(channelInfo.PreferredHostInfo);
+                Assert.False(channelInfo.PreferredHostInfo!.IsPreferredHostEnabled);
+                Assert.Equal(0, channelInfo.PreferredHostInfo!.DetectionTimeInterval);
+                Assert.Equal("", channelInfo.PreferredHostInfo!.DetectionTimeSchedule);
+                Assert.Equal(0, channelInfo.PreferredHostInfo!.RemainingDetectionTime);
+
+                Thread.Sleep(2000);
+
+                //Checks the market price item refresh from the Channel_1
+                message = consumerClient.PopMessage();
+                refreshMsg = (RefreshMsg)message;
+
+                Assert.Equal(5, refreshMsg.StreamId());
+                Assert.Equal(EmaRdm.MMT_MARKET_PRICE, refreshMsg.DomainType());
+                Assert.Equal("Open / Ok / None / 'Refresh Completed'", refreshMsg.State().ToString());
+                Assert.True(refreshMsg.Complete());
+                Assert.True(refreshMsg.Solicited());
+                Assert.True(refreshMsg.HasName);
+                Assert.Equal(itemName, refreshMsg.Name());
+                Assert.True(refreshMsg.HasServiceId);
+                Assert.True(refreshMsg.HasServiceName);
+                Assert.Equal(serviceName, refreshMsg.ServiceName());
+                Assert.Equal(DataTypes.FIELD_LIST, refreshMsg.Payload().DataType);
+                channelInfo = consumerClient.PopChannelInfo();
+                Assert.Equal("Channel_1", channelInfo.ChannelName);
+                Assert.Equal("Connection_9", channelInfo.SessionChannelName);
+                Assert.Equal(ChannelState.ACTIVE, channelInfo.ChannelState);
+                Assert.NotNull(channelInfo.PreferredHostInfo);
+                Assert.False(channelInfo.PreferredHostInfo!.IsPreferredHostEnabled);
+                Assert.Equal(0, channelInfo.PreferredHostInfo!.DetectionTimeInterval);
+                Assert.Equal("", channelInfo.PreferredHostInfo!.DetectionTimeSchedule);
+                Assert.Equal("Channel_2", channelInfo.PreferredHostInfo!.ChannelName);
+                Assert.Equal(0, channelInfo.PreferredHostInfo!.RemainingDetectionTime);
+
+                m_Output.WriteLine("Bring up the preferred channel.");
+
+                // Start the provider for Channel_2 */
+                ommprovider2 = new OmmProvider(config.Port("19002").ProviderName("Provider_1"), providerClient2);
+
+                // Start the provider for Channel_5 */
+                ommprovider4 = new OmmProvider(config.Port("19005").ProviderName("Provider_1"), providerClient2);
+
+                Thread.Sleep(1000);
+
+                m_Output.WriteLine("Fallback by the ModifyIOCtl() method to connect to the preferred channel for Connection_9.");
+
+                // Enable the PH fallback process with the modifyIOCtl() method.
+                PreferredHostOptions phOptions = new ();
+                phOptions.EnablePreferredHostOptions = true;
+                phOptions.ChannelName = "Channel_2";
+                phOptions.DetectionTimeInterval = 2;
+                phOptions.SessionChannelName = "Connection_9";
+
+                consumer.ModifyIOCtl(IOCtlCode.FALLBACK_PREFERRED_HOST_OPTIONS, phOptions);
+
+                Thread.Sleep(3000);
+
+                message = consumerClient.PopMessage();
+                statusMsg = (StatusMsg)message;
+                Assert.Equal(1, statusMsg.StreamId());
+                Assert.Equal(EmaRdm.MMT_LOGIN, statusMsg.DomainType());
+                Assert.Equal("Open / Ok / PreferredHostStartingFallback / 'preferred host starting fallback'", statusMsg.State().ToString());
+                Assert.True(statusMsg.HasMsgKey);
+                Assert.Equal(DataTypes.NO_DATA, statusMsg.Payload().DataType);
+                Assert.Equal(DataTypes.NO_DATA, statusMsg.Attrib().DataType);
+                channelInfo = consumerClient.PopChannelInfo();
+                Assert.Equal("Channel_1", channelInfo.ChannelName);
+                Assert.Equal("Connection_9", channelInfo.SessionChannelName);
+                Assert.Equal(ChannelState.ACTIVE, channelInfo.ChannelState);
+                Assert.True(channelInfo.PreferredHostInfo!.IsPreferredHostEnabled);
+                Assert.Equal(2, channelInfo.PreferredHostInfo!.DetectionTimeInterval);
+                Assert.Equal("", channelInfo.PreferredHostInfo!.DetectionTimeSchedule);
+                Assert.Equal("Channel_2", channelInfo.PreferredHostInfo!.ChannelName);
+                Assert.Equal(1, channelInfo.PreferredHostInfo!.RemainingDetectionTime);
+
+                message = consumerClient.PopMessage();
+                statusMsg = (StatusMsg)message;
+                Assert.Equal(1, statusMsg.StreamId());
+                Assert.Equal(EmaRdm.MMT_LOGIN, statusMsg.DomainType());
+                Assert.Equal("Open / Ok / None / 'session channel down reconnecting'", statusMsg.State().ToString());
+                Assert.True(statusMsg.HasMsgKey);
+                Assert.Equal(DataTypes.NO_DATA, statusMsg.Payload().DataType);
+                Assert.Equal(DataTypes.NO_DATA, statusMsg.Attrib().DataType);
+                channelInfo = consumerClient.PopChannelInfo();
+                Assert.Equal("Channel_1", channelInfo.ChannelName);
+                Assert.Equal("Connection_9", channelInfo.SessionChannelName);
+                Assert.Equal(ChannelState.INACTIVE, channelInfo.ChannelState);
+
+                message = consumerClient.PopMessage();
+                statusMsg = (StatusMsg)message;
+                Assert.Equal(5, statusMsg.StreamId());
+                Assert.Equal(EmaRdm.MMT_MARKET_PRICE, statusMsg.DomainType());
+                Assert.True(statusMsg.HasState);
+                Assert.Equal("Open / Suspect / None / 'channel down.'", statusMsg.State().ToString());
+                Assert.True(statusMsg.HasName);
+                Assert.Equal(itemName, statusMsg.Name());
+                Assert.True(statusMsg.HasServiceId);
+                Assert.True(statusMsg.HasServiceName);
+                Assert.Equal(serviceName, statusMsg.ServiceName());
+                Assert.Equal(DataTypes.NO_DATA, statusMsg.Payload().DataType);
+                channelInfo = consumerClient.PopChannelInfo();
+                Assert.Equal("Channel_1", channelInfo.ChannelName);
+                Assert.Equal("Connection_9", channelInfo.SessionChannelName);
+                Assert.Equal(ChannelState.INACTIVE, channelInfo.ChannelState);
+
+                message = consumerClient.PopMessage();
+                statusMsg = (StatusMsg)message;
+
+                Assert.Equal(1, statusMsg.StreamId());
+                Assert.Equal(EmaRdm.MMT_LOGIN, statusMsg.DomainType());
+                Assert.Equal("Open / Ok / PreferredHostComplete / 'preferred host complete'", statusMsg.State().ToString());
+                Assert.True(statusMsg.HasMsgKey);
+                Assert.Equal(DataTypes.NO_DATA, statusMsg.Payload().DataType);
+                channelInfo = consumerClient.PopChannelInfo();
+                Assert.Equal("Channel_2", channelInfo.ChannelName);
+                Assert.Equal("Connection_9", channelInfo.SessionChannelName);
+                Assert.Equal(ChannelState.ACTIVE, channelInfo.ChannelState);
+                Assert.True(channelInfo.PreferredHostInfo!.IsPreferredHostEnabled);
+                Assert.Equal(2, channelInfo.PreferredHostInfo!.DetectionTimeInterval);
+                Assert.Equal("", channelInfo.PreferredHostInfo!.DetectionTimeSchedule);
+                Assert.Equal("Channel_2", channelInfo.PreferredHostInfo!.ChannelName);
+                Assert.Equal(1, channelInfo.PreferredHostInfo!.RemainingDetectionTime);
+
+                message = consumerClient.PopMessage();
+                refreshMsg = (RefreshMsg)message;
+
+                Assert.Equal(1, refreshMsg.StreamId());
+                Assert.Equal(EmaRdm.MMT_LOGIN, refreshMsg.DomainType());
+                Assert.Equal("Open / Ok / None / 'Login accepted'", refreshMsg.State().ToString());
+                Assert.True(refreshMsg.Solicited());
+                Assert.True(refreshMsg.Complete());
+                Assert.True(refreshMsg.HasMsgKey);
+                Assert.Equal(DataTypes.NO_DATA, refreshMsg.Payload().DataType);
+                Assert.Equal(DataTypes.ELEMENT_LIST, refreshMsg.Attrib().DataType);
+                channelInfo = consumerClient.PopChannelInfo();
+                Assert.Equal("Channel_2", channelInfo.ChannelName);
+                Assert.Equal("Connection_9", channelInfo.SessionChannelName);
+                Assert.Equal(ChannelState.ACTIVE, channelInfo.ChannelState);
+                Assert.True(channelInfo.PreferredHostInfo!.IsPreferredHostEnabled);
+                Assert.Equal(2, channelInfo.PreferredHostInfo!.DetectionTimeInterval);
+                Assert.Equal("", channelInfo.PreferredHostInfo!.DetectionTimeSchedule);
+                Assert.Equal("Channel_2", channelInfo.PreferredHostInfo!.ChannelName);
+                Assert.Equal(1, channelInfo.PreferredHostInfo!.RemainingDetectionTime);
+
+                message = consumerClient.PopMessage();
+                statusMsg = (StatusMsg)message;
+
+                Assert.Equal(1, statusMsg.StreamId());
+                Assert.Equal(EmaRdm.MMT_LOGIN, statusMsg.DomainType());
+                Assert.Equal("Open / Ok / None / 'session channel up'", statusMsg.State().ToString());
+                Assert.True(statusMsg.HasMsgKey);
+                Assert.Equal(DataTypes.NO_DATA, statusMsg.Payload().DataType);
+                channelInfo = consumerClient.PopChannelInfo();
+                Assert.Equal("Channel_2", channelInfo.ChannelName);
+                Assert.Equal("Connection_9", channelInfo.SessionChannelName);
+                Assert.Equal(ChannelState.ACTIVE, channelInfo.ChannelState);
+                Assert.True(channelInfo.PreferredHostInfo!.IsPreferredHostEnabled);
+                Assert.Equal(2, channelInfo.PreferredHostInfo!.DetectionTimeInterval);
+                Assert.Equal("", channelInfo.PreferredHostInfo!.DetectionTimeSchedule);
+                Assert.Equal("Channel_2", channelInfo.PreferredHostInfo!.ChannelName);
+                Assert.Equal(1, channelInfo.PreferredHostInfo!.RemainingDetectionTime);
+
+                message = consumerClient.PopMessage();
+
+                refreshMsg = (RefreshMsg)message;
+
+                Assert.Equal(5, refreshMsg.StreamId());
+                Assert.Equal(EmaRdm.MMT_MARKET_PRICE, refreshMsg.DomainType());
+                Assert.Equal("Open / Ok / None / 'Refresh Completed'", refreshMsg.State().ToString());
+                Assert.True(refreshMsg.Complete());
+                Assert.True(refreshMsg.Solicited());
+                Assert.True(refreshMsg.HasName);
+                Assert.Equal(itemName, refreshMsg.Name());
+                Assert.True(refreshMsg.HasServiceId);
+                Assert.True(refreshMsg.HasServiceName);
+                Assert.Equal(serviceName, refreshMsg.ServiceName());
+                Assert.Equal(DataTypes.FIELD_LIST, refreshMsg.Payload().DataType);
+                channelInfo = consumerClient.PopChannelInfo();
+                Assert.Equal("Channel_2", channelInfo.ChannelName);
+                Assert.Equal("Connection_9", channelInfo.SessionChannelName);
+                Assert.Equal(ChannelState.ACTIVE, channelInfo.ChannelState);
+                Assert.True(channelInfo.PreferredHostInfo!.IsPreferredHostEnabled);
+                Assert.Equal(2, channelInfo.PreferredHostInfo!.DetectionTimeInterval);
+                Assert.Equal("", channelInfo.PreferredHostInfo!.DetectionTimeSchedule);
+                Assert.Equal("Channel_2", channelInfo.PreferredHostInfo!.ChannelName);
+                Assert.Equal(1, channelInfo.PreferredHostInfo!.RemainingDetectionTime);
+
+                m_Output.WriteLine("Disable the PH feature for Connection_9");
+                phOptions = new();
+                phOptions.EnablePreferredHostOptions = false;
+                phOptions.SessionChannelName = "Connection_9";
+
+                consumer.ModifyIOCtl(IOCtlCode.FALLBACK_PREFERRED_HOST_OPTIONS, phOptions);
+
+                m_Output.WriteLine("Fallback by the ModifyIOCtl() method to connect to the preferred channel for Connection_10.");
+
+                // Enable the PH fallback process with the modifyIOCtl() method.
+                phOptions = new();
+                phOptions.EnablePreferredHostOptions = true;
+                phOptions.ChannelName = "Channel_5";
+                phOptions.DetectionTimeInterval = 2;
+                phOptions.SessionChannelName = "Connection_10";
+
+                consumer.ModifyIOCtl(IOCtlCode.FALLBACK_PREFERRED_HOST_OPTIONS, phOptions);
+
+                Thread.Sleep(3000);
+
+                message = consumerClient.PopMessage();
+                statusMsg = (StatusMsg)message;
+                Assert.Equal(1, statusMsg.StreamId());
+                Assert.Equal(EmaRdm.MMT_LOGIN, statusMsg.DomainType());
+                Assert.Equal("Open / Ok / PreferredHostStartingFallback / 'preferred host starting fallback'", statusMsg.State().ToString());
+                Assert.True(statusMsg.HasMsgKey);
+                Assert.Equal(DataTypes.NO_DATA, statusMsg.Payload().DataType);
+                Assert.Equal(DataTypes.NO_DATA, statusMsg.Attrib().DataType);
+                channelInfo = consumerClient.PopChannelInfo();
+                Assert.Equal("Channel_4", channelInfo.ChannelName);
+                Assert.Equal("Connection_10", channelInfo.SessionChannelName);
+                Assert.Equal(ChannelState.ACTIVE, channelInfo.ChannelState);
+                Assert.True(channelInfo.PreferredHostInfo!.IsPreferredHostEnabled);
+                Assert.Equal(2, channelInfo.PreferredHostInfo!.DetectionTimeInterval);
+                Assert.Equal("", channelInfo.PreferredHostInfo!.DetectionTimeSchedule);
+                Assert.Equal("Channel_5", channelInfo.PreferredHostInfo!.ChannelName);
+                Assert.Equal(1, channelInfo.PreferredHostInfo!.RemainingDetectionTime);
+
+                message = consumerClient.PopMessage();
+                statusMsg = (StatusMsg)message;
+                Assert.Equal(1, statusMsg.StreamId());
+                Assert.Equal(EmaRdm.MMT_LOGIN, statusMsg.DomainType());
+                Assert.Equal("Open / Ok / None / 'session channel down reconnecting'", statusMsg.State().ToString());
+                Assert.True(statusMsg.HasMsgKey);
+                Assert.Equal(DataTypes.NO_DATA, statusMsg.Payload().DataType);
+                Assert.Equal(DataTypes.NO_DATA, statusMsg.Attrib().DataType);
+                channelInfo = consumerClient.PopChannelInfo();
+                Assert.Equal("Channel_4", channelInfo.ChannelName);
+                Assert.Equal("Connection_10", channelInfo.SessionChannelName);
+                Assert.Equal(ChannelState.INACTIVE, channelInfo.ChannelState);
+
+                message = consumerClient.PopMessage();
+                statusMsg = (StatusMsg)message;
+
+                Assert.Equal(1, statusMsg.StreamId());
+                Assert.Equal(EmaRdm.MMT_LOGIN, statusMsg.DomainType());
+                Assert.Equal("Open / Ok / PreferredHostComplete / 'preferred host complete'", statusMsg.State().ToString());
+                Assert.True(statusMsg.HasMsgKey);
+                Assert.Equal(DataTypes.NO_DATA, statusMsg.Payload().DataType);
+                channelInfo = consumerClient.PopChannelInfo();
+                Assert.Equal("Channel_5", channelInfo.ChannelName);
+                Assert.Equal("Connection_10", channelInfo.SessionChannelName);
+                Assert.Equal(ChannelState.ACTIVE, channelInfo.ChannelState);
+                Assert.True(channelInfo.PreferredHostInfo!.IsPreferredHostEnabled);
+                Assert.Equal(2, channelInfo.PreferredHostInfo!.DetectionTimeInterval);
+                Assert.Equal("", channelInfo.PreferredHostInfo!.DetectionTimeSchedule);
+                Assert.Equal("Channel_5", channelInfo.PreferredHostInfo!.ChannelName);
+                Assert.Equal(1, channelInfo.PreferredHostInfo!.RemainingDetectionTime);
+
+                message = consumerClient.PopMessage();
+                refreshMsg = (RefreshMsg)message;
+
+                Assert.Equal(1, refreshMsg.StreamId());
+                Assert.Equal(EmaRdm.MMT_LOGIN, refreshMsg.DomainType());
+                Assert.Equal("Open / Ok / None / 'Login accepted'", refreshMsg.State().ToString());
+                Assert.True(refreshMsg.Solicited());
+                Assert.True(refreshMsg.Complete());
+                Assert.True(refreshMsg.HasMsgKey);
+                Assert.Equal(DataTypes.NO_DATA, refreshMsg.Payload().DataType);
+                Assert.Equal(DataTypes.ELEMENT_LIST, refreshMsg.Attrib().DataType);
+                channelInfo = consumerClient.PopChannelInfo();
+                Assert.Equal("Channel_5", channelInfo.ChannelName);
+                Assert.Equal("Connection_10", channelInfo.SessionChannelName);
+                Assert.Equal(ChannelState.ACTIVE, channelInfo.ChannelState);
+                Assert.True(channelInfo.PreferredHostInfo!.IsPreferredHostEnabled);
+                Assert.Equal(2, channelInfo.PreferredHostInfo!.DetectionTimeInterval);
+                Assert.Equal("", channelInfo.PreferredHostInfo!.DetectionTimeSchedule);
+                Assert.Equal("Channel_5", channelInfo.PreferredHostInfo!.ChannelName);
+                Assert.Equal(1, channelInfo.PreferredHostInfo!.RemainingDetectionTime);
+
+                message = consumerClient.PopMessage();
+                statusMsg = (StatusMsg)message;
+
+                Assert.Equal(1, statusMsg.StreamId());
+                Assert.Equal(EmaRdm.MMT_LOGIN, statusMsg.DomainType());
+                Assert.Equal("Open / Ok / None / 'session channel up'", statusMsg.State().ToString());
+                Assert.True(statusMsg.HasMsgKey);
+                Assert.Equal(DataTypes.NO_DATA, statusMsg.Payload().DataType);
+                channelInfo = consumerClient.PopChannelInfo();
+                Assert.Equal("Channel_5", channelInfo.ChannelName);
+                Assert.Equal("Connection_10", channelInfo.SessionChannelName);
+                Assert.Equal(ChannelState.ACTIVE, channelInfo.ChannelState);
+                Assert.True(channelInfo.PreferredHostInfo!.IsPreferredHostEnabled);
+                Assert.Equal(2, channelInfo.PreferredHostInfo!.DetectionTimeInterval);
+                Assert.Equal("", channelInfo.PreferredHostInfo!.DetectionTimeSchedule);
+                Assert.Equal("Channel_5", channelInfo.PreferredHostInfo!.ChannelName);
+                Assert.Equal(1, channelInfo.PreferredHostInfo!.RemainingDetectionTime);
+
+                Thread.Sleep(2000);
+
+                message = consumerClient.PopMessage();
+
+                /* Checks login status messages */
+                statusMsg = (StatusMsg)message;
+
+                Assert.Equal(1, statusMsg.StreamId());
+                Assert.Equal(EmaRdm.MMT_LOGIN, statusMsg.DomainType());
+                Assert.Equal("Open / Ok / PreferredHostNoFallback / 'preferred host no fallback'", statusMsg.State().ToString());
+                Assert.True(statusMsg.HasMsgKey);
+                Assert.Equal(DataTypes.NO_DATA, statusMsg.Payload().DataType);
+                channelInfo = consumerClient.PopChannelInfo();
+                Assert.Equal("Channel_5", channelInfo.ChannelName);
+                Assert.Equal("Connection_10", channelInfo.SessionChannelName);
+                Assert.Equal(ChannelState.ACTIVE, channelInfo.ChannelState);
+                Assert.True(channelInfo.PreferredHostInfo!.IsPreferredHostEnabled);
+                Assert.Equal(2, channelInfo.PreferredHostInfo!.DetectionTimeInterval);
+                Assert.Equal("", channelInfo.PreferredHostInfo!.DetectionTimeSchedule);
+                Assert.Equal("Channel_5", channelInfo.PreferredHostInfo!.ChannelName);
+                Assert.Equal(1, channelInfo.PreferredHostInfo!.RemainingDetectionTime);
+
+                // There should be any message and channel events at this time.
+                Assert.Equal(0, consumerClient.QueueSize());
+
+                consumer.Unregister(itemHandle);
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+            finally
+            {
+                consumer?.Uninitialize();
+                ommprovider?.Uninitialize();
+                ommprovider2?.Uninitialize();
+                ommprovider3?.Uninitialize();
+            }
+        }
+
+
     }
 }

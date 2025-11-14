@@ -6,9 +6,6 @@
  *|-----------------------------------------------------------------------------
  */
 
-using System.Collections.Generic;
-
-using LSEG.Eta.Codec;
 using LSEG.Eta.Example.VACommon;
 using LSEG.Eta.ValueAdd.Rdm;
 using LSEG.Eta.ValueAdd.Reactor;
@@ -70,7 +67,7 @@ namespace LSEG.Eta.ValueAdd.Consumer
         /// Flag to track if we already made item request(s)
         /// </summary>
         internal bool RequestsSent = false;
-
+        internal bool isChannelClosed;
         internal System.DateTime LoginReissueTime;
         internal bool CanSendLoginReissue;
 
@@ -84,5 +81,10 @@ namespace LSEG.Eta.ValueAdd.Consumer
 
             ConnectOptions.ConnectionList.Add(ConnectInfo);
         }
+    }
+
+    public static class ChannelInfoExtension
+    {
+        public static IEnumerable<ChannelInfo> GetOpen(this IEnumerable<ChannelInfo> channelInfos) => channelInfos.Where(i => !i.isChannelClosed);
     }
 }

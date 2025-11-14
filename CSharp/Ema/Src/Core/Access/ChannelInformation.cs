@@ -9,6 +9,7 @@
 using LSEG.Eta.Transports;
 using LSEG.Eta.ValueAdd.Reactor;
 using System;
+using System.Collections.Generic;
 using System.Security.Authentication;
 using System.Text;
 
@@ -158,6 +159,13 @@ namespace LSEG.Ema.Access
         public SslProtocols EncryptionProtocol { get; internal set; }
 
         /// <summary>
+        /// Gets the preferred host information, see <see cref="PreferredHostInfo"/>.
+        /// </summary>
+        ///
+        /// <value>the preferred host information.</value>
+        public PreferredHostInfo? PreferredHostInfo { get; internal set; }
+
+        /// <summary>
         /// Clears the ChannelInformation. 
         /// Invoking Clear() resets all member variables to their default values.
         /// </summary>
@@ -183,11 +191,12 @@ namespace LSEG.Ema.Access
             CompressionThreshold = 0;
             EncryptedConnectionType = ConnectionType.UNIDENTIFIED;
             EncryptionProtocol = SslProtocols.None;
+            PreferredHostInfo = null;
             SessionChannelName  = string.Empty;
             ChannelName  = string.Empty;
         }
 
-        internal void Set(ReactorChannel reactorChannel)
+        internal void Set(ReactorChannel reactorChannel, SessionChannelConfig? sessionChannelConfig = null)
         {
             Clear();
 
@@ -219,6 +228,35 @@ namespace LSEG.Ema.Access
                     CompressionType = EtaToEmaCompressionType(channelInfo.ChannelInfo.CompressionType);
                     CompressionThreshold = channelInfo.ChannelInfo.CompressionThresHold;
                     EncryptionProtocol = channelInfo.ChannelInfo.EncryptionProtocol;
+
+                    ConsumerConfig? consumerConfig = null;
+                    if (reactorChannel.UserSpecObj is ChannelInfo) {
+                        ChannelInfo chnlInfo = (ChannelInfo)reactorChannel.UserSpecObj;
+
+                        if (chnlInfo != null)
+                        {
+                            if (chnlInfo.ChannelConfig != null)
+                                ChannelName = chnlInfo.ChannelConfig.Name;
+
+                            consumerConfig = chnlInfo.ConsumerConfig;
+
+                            if (chnlInfo.SessionChannelInfo != null)
+                            {
+                                SessionChannelName = chnlInfo.SessionChannelInfo.SessionChannelConfig.Name;
+                            }
+                        }
+                    }
+
+                    if (sessionChannelConfig != null)
+                    {
+                        PreferredHostInfo = ConvertReactorPreferredHostInfoIntoPreferredHostInfo(channelInfo.PreferredHostInfo, sessionChannelConfig.ChannelSet);
+
+                        SessionChannelName = sessionChannelConfig.Name;
+                    }
+                    else if (consumerConfig != null)
+                    {
+                        PreferredHostInfo = ConvertReactorPreferredHostInfoIntoPreferredHostInfo(channelInfo.PreferredHostInfo, consumerConfig.ChannelSet);
+                    }
                 }
             }
 
@@ -249,6 +287,7 @@ namespace LSEG.Ema.Access
             }
             else
             {
+                ChannelState = ChannelState.INACTIVE;
                 ConnectionType = ConnectionType.UNIDENTIFIED;
                 ProtocolType = Access.ProtocolType.UNKNOWN;
                 MajorVersion = MinorVersion = PingTimeout = 0;
@@ -349,6 +388,11 @@ namespace LSEG.Ema.Access
 
             m_stringBuilder.AppendLine().Append("\tcompression threshold: ").Append(CompressionThreshold);
             m_stringBuilder.AppendLine().Append($"\tencryptionProtocol: {EncryptionProtocol}");
+
+            if(PreferredHostInfo != null)
+            {
+                m_stringBuilder.AppendLine().Append($"\tpreferred host info: {PreferredHostInfo}");
+            }
 
             return m_stringBuilder.ToString();
         }
@@ -457,6 +501,27 @@ namespace LSEG.Ema.Access
                 default:
                     return 0;
             }
+        }
+
+        internal static string GetPreferredChannelName(int channelSetIndex, List<String> channelSet)
+        {
+            if (channelSetIndex < 0 || channelSetIndex >= channelSet.Count)
+                return string.Empty;
+            return channelSet[channelSetIndex];
+        }
+
+        internal static PreferredHostInfo ConvertReactorPreferredHostInfoIntoPreferredHostInfo(
+            ReactorPreferredHostInfo reactorPreferredHostInfo,
+            List<String> channelSet)
+        {
+            PreferredHostInfo preferredHostInfo = new PreferredHostInfo();
+            preferredHostInfo.IsPreferredHostEnabled = reactorPreferredHostInfo.IsPreferredHostEnabled;
+            preferredHostInfo.DetectionTimeSchedule = reactorPreferredHostInfo.DetectionTimeSchedule;
+            preferredHostInfo.DetectionTimeInterval = reactorPreferredHostInfo.DetectionTimeInterval;
+            preferredHostInfo.ChannelName = GetPreferredChannelName(reactorPreferredHostInfo.ConnectionListIndex, channelSet);
+            preferredHostInfo.RemainingDetectionTime = reactorPreferredHostInfo.RemainingDetectionTime;
+
+            return preferredHostInfo;
         }
     }
 }

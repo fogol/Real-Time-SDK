@@ -50,12 +50,32 @@ namespace LSEG.Eta.ValueAdd.Reactor
             TOKEN_MGNT = 18,
 
             // sent from Reactor to itself for dispatching to the application
-            TOKEN_CREDENTIAL_RENEWAL = 19
+            TOKEN_CREDENTIAL_RENEWAL = 19,
+
+            // sent from ReactorChannel to Worker
+            PREFERRED_HOST_OPTIONS_CHANGED = 20,
+            // sent from Worker to Reactor
+            PREFERRED_HOST_OPTIONS_APPLIED = 21,
+            // sent from Reactor to Worker
+            PREFERRED_HOST_START_FALLBACK = 22,
+            // sent from Worker to Reactor
+            PREFERRED_HOST_STARTING_FALLBACK = 23,
+            // sent from Worker to Reactor
+            PREFERRED_HOST_RECONNECT_COMPLETE = 24,
+            // sent from Reactor to Worker
+            PREFERRED_HOST_SWITCHOVER_COMPLETE = 25,
+            // sent from Worker to Reactor
+            PREFERRED_HOST_COMPLETE = 26,
+
+            // The preferred host operation has determined that no fallback will be performed on this channel.
+            PREFERRED_HOST_NO_FALLBACK = 27
         }
 
         internal ImplType EventImplType { get; set; }
 
         internal ReactorTokenSession? TokenSession {get; set; }
+
+        internal object? AdditonalPayload { get; set; }
 
         public ReactorEventImpl()
         {
@@ -67,6 +87,7 @@ namespace LSEG.Eta.ValueAdd.Reactor
             Type = ReactorEventType.REACTOR;
             EventImplType = ImplType.INIT;
             TokenSession = null;
+            AdditonalPayload = null;
         }
     }
 }

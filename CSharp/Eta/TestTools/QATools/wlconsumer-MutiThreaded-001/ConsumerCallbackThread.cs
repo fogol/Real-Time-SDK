@@ -7,21 +7,8 @@
  */
 
 //APIQA
-namespace LSEG.Eta.ValueAdd.WatchlistConsumer;
 
-using LSEG.Eta.Codec;
-using LSEG.Eta.Common;
-using LSEG.Eta.Example.Common;
-using LSEG.Eta.Rdm;
-using LSEG.Eta.Transports;
-using LSEG.Eta.ValueAdd.Rdm;
-using LSEG.Eta.ValueAdd.Reactor;
-using System;
-using System.IO;
-using System.Net;
-using System.Net.Sockets;
-using static LSEG.Eta.Rdm.Dictionary;
-using static Rdm.LoginMsgType;
+namespace LSEG.Eta.ValueAdd.WatchlistConsumer;
 
 /**
  * <p>
@@ -37,35 +24,27 @@ class ConsumerCallbackThread : IConsumerCallback, IReactorServiceEndpointEventCa
 {
     private const string FIELD_DICTIONARY_DOWNLOAD_NAME = "RWFFld";
     private const string ENUM_TABLE_DOWNLOAD_NAME = "RWFEnum";
-    private const string FIX_FIELD_DICTIONARY_FILE_NAME = "FDMFixFieldDictionary";
-    private const string FIX_ENUM_TABLE_FILE_NAME = "FDMenumtypes.def";
 
     private const int FIELD_DICTIONARY_STREAM_ID = 3;
     private const int ENUM_DICTIONARY_STREAM_ID = 4;
-    private const int MAX_MSG_SIZE = 1024;
-    private const int TRANSPORT_BUFFER_SIZE_CLOSE = MAX_MSG_SIZE;
 
-    private Reactor? m_Reactor;
+    private Reactor.Reactor? m_Reactor;
     private FileStream? m_FileStream;
     private ChannelInfo? m_ChnlInfo;
     private WatchlistConsumer? m_WatchlistConsumer;
     public WatchlistConsumerConfig? m_WatchlistConsumerConfig;
     public ConsumerRequestThread? m_ConsumerRequestThread;
-    private DataDictionary m_Dictionary;
 
     private ReactorOptions m_ReactorOptions = new ReactorOptions();
-    private ReactorErrorInfo m_errorInfo = new ReactorErrorInfo();
     private ReactorDispatchOptions m_DispatchOptions = new ReactorDispatchOptions();
     private readonly ReactorServiceDiscoveryOptions m_ReactorServiceDiscoveryOptions = new();
     private readonly ReactorOAuthCredential m_ReactorOAuthCredential = new();
     private readonly ItemDecoder m_ItemDecoder = new();
-    //private List<ChannelInfo> m_ChnlInfoList = new();
     private ReactorSubmitOptions m_SubmitOptions = new();
     private ICloseMsg m_CloseMsg = new Msg();
     private readonly List<Socket> m_Sockets = new();
     private readonly Dictionary<int, ReactorChannel> m_SocketFdValueMap = new();
 
-    private bool m_CloseHandled = false;
     public bool m_ShutDown = false;
     public bool m_ItemsRequested = false;
     private bool m_FieldDictionaryLoaded;
@@ -73,8 +52,6 @@ class ConsumerCallbackThread : IConsumerCallback, IReactorServiceEndpointEventCa
 
     public ConsumerCallbackThread(ChannelInfo channelInfo, WatchlistConsumer consumer)
     {
-        m_Dictionary = new();
-
         m_DispatchOptions.SetMaxMessages(1);
 
         m_ItemsRequested = false;
@@ -124,7 +101,7 @@ class ConsumerCallbackThread : IConsumerCallback, IReactorServiceEndpointEventCa
         }
 
         // create reactor
-        m_Reactor = Reactor.CreateReactor(m_ReactorOptions, out var errorInfo);
+        m_Reactor = Reactor.Reactor.CreateReactor(m_ReactorOptions, out var errorInfo);
         if (m_Reactor == null)
         {
             Console.WriteLine("createReactor() failed: " + errorInfo!.ToString());
@@ -220,7 +197,7 @@ class ConsumerCallbackThread : IConsumerCallback, IReactorServiceEndpointEventCa
                 }
             }
 
-            if (m_ShutDown && !m_CloseHandled)
+            if (m_ShutDown)
             {
                 HandlePosting();
 
@@ -243,8 +220,10 @@ class ConsumerCallbackThread : IConsumerCallback, IReactorServiceEndpointEventCa
                 }
             }
 
-            if (m_CloseHandled)
+            if(m_ChnlInfo?.isChannelClosed ?? false)
+            {
                 break;
+            }
         }
     }
 
@@ -434,8 +413,8 @@ class ConsumerCallbackThread : IConsumerCallback, IReactorServiceEndpointEventCa
         chnlInfo.ConnectOptions.SetReconnectAttempLimit(-1); // attempt to recover forever
         chnlInfo.ConnectOptions.SetReconnectMinDelay(500); // 0.5 second minimum
         chnlInfo.ConnectOptions.SetReconnectMaxDelay(3000); // 3 second maximum
-        chnlInfo.ConnectOptions.ConnectionList[0].ConnectOptions.MajorVersion = Codec.MajorVersion();
-        chnlInfo.ConnectOptions.ConnectionList[0].ConnectOptions.MinorVersion = Codec.MinorVersion();
+        chnlInfo.ConnectOptions.ConnectionList[0].ConnectOptions.MajorVersion = Codec.Codec.MajorVersion();
+        chnlInfo.ConnectOptions.ConnectionList[0].ConnectOptions.MinorVersion = Codec.Codec.MinorVersion();
         chnlInfo.ConnectOptions.ConnectionList[0].ConnectOptions.ConnectionType = chnlInfo.ConnectionArg.ConnectionType;
         chnlInfo.ConnectOptions.ConnectionList[0].ConnectOptions.UserSpecObject = chnlInfo;
         chnlInfo.ConnectOptions.ConnectionList[0].ConnectOptions.GuaranteedOutputBuffers = 1000;
@@ -659,18 +638,7 @@ class ConsumerCallbackThread : IConsumerCallback, IReactorServiceEndpointEventCa
                     if (reactorEvent.ReactorErrorInfo != null && reactorEvent.ReactorErrorInfo.Error.Text != null)
                         Console.WriteLine("    Error text: " + reactorEvent.ReactorErrorInfo.Error.Text + "\n");
 
-                    // unregister selectableChannel from Selector
-                    if (reactorEvent.ReactorChannel!.Socket != null)
-                    {
-                        m_Sockets.Remove(reactorEvent.ReactorChannel.Socket);
-                        m_SocketFdValueMap.Remove(reactorEvent.ReactorChannel.Socket.Handle.ToInt32());
-                    }
-
-                    // close ReactorChannel
-                    if (chnlInfo.ReactorChannel != null)
-                    {
-                        chnlInfo.ReactorChannel.Close(out _);
-                    }
+                    CloseConnection(chnlInfo);
                     break;
                 }
             case ReactorChannelEventType.WARNING:
@@ -709,11 +677,7 @@ class ConsumerCallbackThread : IConsumerCallback, IReactorServiceEndpointEventCa
 
             Console.Write("defaultMsgCallback: {0}({1})\n", reactorEvent.ReactorErrorInfo.Error.Text, reactorEvent.ReactorErrorInfo.Location);
 
-            // close ReactorChannel
-            if (chnlInfo?.ReactorChannel != null)
-            {
-                chnlInfo.ReactorChannel.Close(out _);
-            }
+            CloseConnection(chnlInfo, reactorEvent.ReactorChannel);
             return ReactorCallbackReturnCode.SUCCESS;
         }
 
@@ -875,7 +839,11 @@ class ConsumerCallbackThread : IConsumerCallback, IReactorServiceEndpointEventCa
                     chnlInfo.LoginReissueTime = DateTimeOffset.FromUnixTimeSeconds(chnlInfo.LoginRefresh.AuthenticationTTReissue).DateTime;
                     chnlInfo.CanSendLoginReissue = m_WatchlistConsumerConfig!.EnableSessionManagement ? false : true;
                 }
-
+                if (reactorEvent.LoginMsg.LoginRefresh.State.StreamState() != StreamStates.OPEN)
+                {
+                    Console.WriteLine("Login attempt failed");
+                    CloseConnection(chnlInfo);
+                }
                 break;
 
             case STATUS:
@@ -889,7 +857,11 @@ class ConsumerCallbackThread : IConsumerCallback, IReactorServiceEndpointEventCa
                 }
                 if (loginStatus.HasUserName)
                     Console.WriteLine(" UserName: " + loginStatus.UserName.ToString());
-
+                if (loginStatus.State.StreamState() != StreamStates.OPEN)
+                {
+                    Console.WriteLine("Login attempt failed");
+                    CloseConnection(chnlInfo);
+                }
                 break;
 
             case RTT:
@@ -1077,7 +1049,7 @@ class ConsumerCallbackThread : IConsumerCallback, IReactorServiceEndpointEventCa
 
                         default:
                             Console.WriteLine($"Unknown dictionary type {dictionaryRefresh.DictionaryType} from message on stream {dictionaryRefresh.StreamId}");
-                            chnlInfo?.ReactorChannel?.Close(out _);
+                            CloseConnection(chnlInfo);
                             return ReactorCallbackReturnCode.SUCCESS;
                     }
                 }
@@ -1109,10 +1081,7 @@ class ConsumerCallbackThread : IConsumerCallback, IReactorServiceEndpointEventCa
                     else
                     {
                         Console.WriteLine("Decoding Field Dictionary failed: " + decodeFieldError.Text);
-                        if (chnlInfo!.ReactorChannel!.Close(out var closeError) != ReactorReturnCode.SUCCESS)
-                        {
-                            Console.WriteLine("ReactorChannel.Close() failed: " + closeError?.Error.Text);
-                        }
+                        CloseConnection(chnlInfo);
                     }
                 }
                 else if (dictionaryRefresh.StreamId == chnlInfo.EnumDictionaryStreamId)
@@ -1131,10 +1100,7 @@ class ConsumerCallbackThread : IConsumerCallback, IReactorServiceEndpointEventCa
                     {
                         Console.WriteLine("Decoding EnumType Dictionary failed: " + decodeEnumError.Text);
 
-                        if (chnlInfo!.ReactorChannel!.Close(out var closeError) != ReactorReturnCode.SUCCESS)
-                        {
-                            Console.WriteLine("ReactorChannel.Close() failed: " + closeError?.Error.Text);
-                        }
+                        CloseConnection(chnlInfo);
                     }
                 }
                 else
@@ -1172,6 +1138,30 @@ class ConsumerCallbackThread : IConsumerCallback, IReactorServiceEndpointEventCa
         Console.WriteLine("");
 
         return ReactorCallbackReturnCode.SUCCESS;
+    }
+
+    private void CloseConnection(ChannelInfo? chnlInfo, ReactorChannel? reactorChannel = null)
+    {
+        ReactorChannel? reactorChannelToClose = chnlInfo?.ReactorChannel ?? reactorChannel;
+        // unregister selectableChannel from Selector
+        if (reactorChannelToClose?.Socket != null)
+        {
+            UnregisterSocket(reactorChannelToClose.Socket);
+        }
+        if (chnlInfo is not null)
+        {
+            Console.WriteLine("Consumer closes streams...");
+            CloseItemStreams(chnlInfo);
+        }
+        // close ReactorChannel
+        if (reactorChannelToClose is not null && reactorChannelToClose.Close(out var closeError) != ReactorReturnCode.SUCCESS)
+        {
+            Console.WriteLine("ReactorChannel.Close() failed: " + closeError!.Error.Text);
+        }
+        if (chnlInfo is not null)
+        {
+            chnlInfo.isChannelClosed = true;
+        }
     }
 
     private void RequestDictionaries(ReactorChannel channel, ChannelInfo chnlInfo)
@@ -1344,14 +1334,7 @@ class ConsumerCallbackThread : IConsumerCallback, IReactorServiceEndpointEventCa
     {
         Console.WriteLine("Consumer unitializing and exiting...");
 
-        // close items streams
-        CloseItemStreams(m_ChnlInfo);
-
-        // close ReactorChannel
-        if (m_ChnlInfo!.ReactorChannel != null)
-        {
-            m_ChnlInfo?.ReactorChannel?.Close(out _);
-        }
+        CloseConnection(m_ChnlInfo);
 
         m_FileStream?.Dispose();
 

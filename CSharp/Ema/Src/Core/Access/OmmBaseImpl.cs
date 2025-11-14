@@ -927,6 +927,52 @@ namespace LSEG.Ema.Access
             }
         }
 
+        protected void ModifyIOCtl(IOCtlCode code, object val, ReactorChannel? reactorChannel, SessionChannelConfig? sessionChannelConfig = null)
+        {
+            if (reactorChannel is null)
+            {
+                HandleInvalidUsage("No active channel to modify I/O option.",
+                    OmmInvalidUsageException.ErrorCodes.NO_ACTIVE_CHANNEL);
+                return;
+            }
+
+            object? etaConfigValue = null;
+            if (val is PreferredHostOptions phOptions) {
+                etaConfigValue = ConvertEmaPreferredHostOptionsIntoReactorPreferredHostOptions(phOptions, sessionChannelConfig);
+            }
+
+            ReactorReturnCode ret = reactorChannel.IOCtl((ReactorChannelIOCtlCode)(int)code, etaConfigValue, out var error);
+
+            if (ret != ReactorReturnCode.SUCCESS)
+            {
+                StringBuilder strBuilder = GetStrBuilder();
+
+                strBuilder.Append("Failed to modify I/O option = ")
+                    .Append(code).Append(". Reason: ")
+                    .Append(ret.ToString())
+                    .Append(". Error text: ")
+                    .Append(error?.Error?.Text ?? string.Empty);
+
+                HandleInvalidUsage(strBuilder.ToString(), OmmInvalidUsageException.ErrorCodes.FAILURE);
+            }
+        }
+
+        private ReactorPreferredHostOptions ConvertEmaPreferredHostOptionsIntoReactorPreferredHostOptions(PreferredHostOptions emaPreferredHostOptions, SessionChannelConfig? sessionChannelConfig = null)
+        {
+            int listIndex = sessionChannelConfig != null ? sessionChannelConfig.ChannelSet.FindIndex((channelName) => channelName.Equals(emaPreferredHostOptions.ChannelName, StringComparison.InvariantCultureIgnoreCase)) :
+                ((OmmConsumerConfigImpl)OmmConfigBaseImpl).ConsumerConfig.ChannelSet.FindIndex((channelName) => channelName.Equals(emaPreferredHostOptions.ChannelName, StringComparison.InvariantCultureIgnoreCase));
+
+            ReactorPreferredHostOptions reactorPreferredHostOptions = new()
+            {
+                EnablePreferredHostOptions = emaPreferredHostOptions.EnablePreferredHostOptions,
+                DetectionTimeSchedule = emaPreferredHostOptions.DetectionTimeSchedule,
+                DetectionTimeInterval = (uint)emaPreferredHostOptions.DetectionTimeInterval,
+                ConnectionListIndex = listIndex < 0 ? 0 : listIndex
+            };
+
+            return reactorPreferredHostOptions;
+        }
+
         /// <summary>
         /// Checks whether the client is null.
         /// </summary>
@@ -1045,8 +1091,21 @@ namespace LSEG.Ema.Access
                     .Append($"DictionaryRequestTimeOut: {configImpl.ConsumerConfig.DictionaryRequestTimeOut}{ILoggerClient.CR}")
                     .Append($"RestRequestTimeOut: {configImpl.ConsumerConfig.RestRequestTimeOut}{ILoggerClient.CR}")
                     .Append($"LoginRequestTimeOut: {configImpl.ConsumerConfig.LoginRequestTimeOut}")
+                    .Append($"LoginRequestTimeOut: {configImpl.ConsumerConfig.LoginRequestTimeOut}")
                     .Append($"UpdateTypeFilter: {configImpl.ConsumerConfig.UpdateTypeFilter}")
                     .Append($"NegativeUpdateTypeFilter: {configImpl.ConsumerConfig.NegativeUpdateTypeFilter}");
+
+                if (configImpl.ConsumerConfig.EnablePreferredHostOptions)
+                {
+                    strBuilder.Append($"{ILoggerClient.CR}EnablePreferredHostOptions: true{ILoggerClient.CR}")
+                        .Append($"PreferredChannelName: {configImpl.ConsumerConfig.PreferredChannelName}{ILoggerClient.CR}")
+                        .Append($"PHDetectionTimeInterval: {configImpl.ConsumerConfig.PHDetectionTimeInterval}{ILoggerClient.CR}")
+                        .Append($"PHDetectionTimeSchedule: {configImpl.ConsumerConfig.PHDetectionTimeSchedule}");
+                }
+                else
+                {
+                    strBuilder.Append($"{ILoggerClient.CR}EnablePreferredHostOptions: false");
+                }
             }
             else
             {

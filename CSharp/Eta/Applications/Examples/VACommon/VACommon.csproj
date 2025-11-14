@@ -4,6 +4,7 @@
     <Nullable>enable</Nullable>
     <BaseOutputPath>$(SolutionDir)Eta\Executables\VACommon</BaseOutputPath>
     <AssemblyName>VACommon</AssemblyName>
+    <RootNamespace>LSEG.Eta.Example.VACommon</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>

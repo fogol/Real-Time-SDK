@@ -9,7 +9,9 @@
 using LSEG.Ema.Rdm;
 using LSEG.Eta.Codec;
 using LSEG.Eta.Common;
+using System;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using Xunit.Abstractions;
@@ -36,6 +38,8 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
         Queue<Msg> m_MessageQueue = new(30);
         private Dictionary<string, RequestAttributes> m_ItemNameToHandleDict = new(10);
 
+        private Dictionary<long, List<String>> m_ServiceIdToItemNamesMap = new(5);
+
         /* This is service Id from the request message. -1 indicates that the service Id is not set */
         private int m_ServiceId = -1;
 
@@ -52,6 +56,8 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
         public long LoginHandle;
 
         readonly ITestOutputHelper m_Output;
+
+        public string Name { get; set; } = string.Empty; // Name of this provider instance.
 
         public ProviderTestClient(ITestOutputHelper output, ProviderTestOptions providerTestOptions)
         {
@@ -176,9 +182,23 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
             m_Series.MarkForClear();
         }
 
+        public void ProcessServiceDown(long serviceId)
+        {
+            if (m_ServiceIdToItemNamesMap.ContainsKey(serviceId))
+            {
+               m_ServiceIdToItemNamesMap.TryGetValue(serviceId, out var itemsToGetRidOf);
+
+                foreach (var item in itemsToGetRidOf!)
+                {
+                    m_ItemNameToHandleDict.Remove(item);
+                }
+            }
+        }
+
         public void OnReqMsg(RequestMsg reqMsg, IOmmProviderEvent providerEvent)
         {
-            m_Output.WriteLine($"OnReqMsg({providerEvent.Provider.ProviderName})");
+            m_Output.WriteLine($"---- Provider {Name} ----");
+            m_Output.WriteLine($"OnReqMsg()");
 
             using var _ = EtaGlobalPoolTestUtil.CreateClearableSection();
 
@@ -280,6 +300,15 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                             break;
                         }
 
+                        if (reqMsg.HasServiceId)
+                        {
+                            if (!m_ServiceIdToItemNamesMap.ContainsKey(reqMsg.ServiceId()))
+                                m_ServiceIdToItemNamesMap.Add(reqMsg.ServiceId(), new List<string>());
+
+                            m_ServiceIdToItemNamesMap.TryGetValue(reqMsg.ServiceId(), out var itemNames);
+                            itemNames!.Add(reqMsg.Name());
+                        }
+
                         FieldList fieldList = new ();
                         fieldList.AddReal(22, 3990, OmmReal.MagnitudeTypes.EXPONENT_NEG_2);
                         fieldList.AddReal(25, 3994, OmmReal.MagnitudeTypes.EXPONENT_NEG_2);
@@ -288,7 +317,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                         fieldList.MarkForClear().Complete();
 
                         RefreshMsg refreshMsg = new RefreshMsg().Name(reqMsg.Name()).ServiceId(reqMsg.ServiceId()).Solicited(true).DomainType(reqMsg.DomainType()).
-                            State(OmmState.StreamStates.OPEN, OmmState.DataStates.OK, OmmState.StatusCodes.NONE, "Refresh Completed").Complete(true);
+                            State(OmmState.StreamStates.OPEN, OmmState.DataStates.OK, OmmState.StatusCodes.NONE, "Refresh Completed").Complete(true).Payload(fieldList);
 
                         if(m_ProviderTestOptions.SupportStandby)
                         {
@@ -428,7 +457,8 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
         {
             RequestMsg cloneMsg = new (reqMsg);
 
-            m_Output.WriteLine($"OnClose({providerEvent.Provider.ProviderName}) {cloneMsg}");
+            m_Output.WriteLine($"---- Provider {Name} ----");
+            m_Output.WriteLine($"OnClose() {cloneMsg}");
 
             AccessLock.Enter();
             try
@@ -447,7 +477,8 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
             PostMsg cloneMsg = new(postMsg.MarkForClear());
 
-            m_Output.WriteLine($"OnPost({providerEvent.Provider.ProviderName}) {cloneMsg}");
+            m_Output.WriteLine($"---- Provider {Name} ----");
+            m_Output.WriteLine($"OnPost() {cloneMsg}");
 
             AccessLock.Enter();
             try
@@ -486,7 +517,8 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
         {
             GenericMsg cloneMsg = new(genericMsg);
 
-            m_Output.WriteLine($"OnGeneric({providerEvent.Provider.ProviderName}) {cloneMsg}");
+            m_Output.WriteLine($"---- Provider {Name} ----");
+            m_Output.WriteLine($"OnGeneric({cloneMsg}");
 
             AccessLock.Enter();
             try
@@ -522,7 +554,8 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
         {
             RequestMsg cloneMsg = new(reqMsg);
 
-            m_Output.WriteLine($"OnReissue({providerEvent.Provider.ProviderName}) {cloneMsg}");
+            m_Output.WriteLine($"---- Provider {Name} ----");
+            m_Output.WriteLine($"OnReissue() {cloneMsg}");
 
             AccessLock.Enter();
             try

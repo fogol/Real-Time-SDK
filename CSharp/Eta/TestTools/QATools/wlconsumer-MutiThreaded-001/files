@@ -5,5 +5,5 @@ ConsumerCallbackThread.cs,Applications/Examples/WatchlistConsumer/ConsumerCallba
 ConsumerRequestThread.cs,Applications/Examples/WatchlistConsumer/ConsumerRequestThread.cs
 Program.cs,Applications/Examples/WatchlistConsumer/Program.cs
 20k.xml,Applications/Examples/WatchlistConsumer/20k.xml
-WatchlistConsumer_NET6.0.csproj,Applications/Examples/WatchlistConsumer/WatchlistConsumer_NET6.0.csproj
+WatchlistConsumer.csproj,Applications/Examples/WatchlistConsumer/WatchlistConsumer.csproj
 

@@ -12,5 +12,6 @@ WatchlistConsumer consumer = new();
 consumer.Init(args);
 consumer.Run();
 //APIQA
+//consumer.Uninitialize();
 consumer.Shutdown();
 //END APIQA

@@ -6,13 +6,9 @@
  *|-----------------------------------------------------------------------------
  */
 
-namespace LSEG.Eta.ValueAdd.WatchlistConsumer;
-
-using LSEG.Eta.Codec;
 using LSEG.Eta.Example.VACommon;
-using LSEG.Eta.Transports;
-using LSEG.Eta.ValueAdd.Rdm;
-using LSEG.Eta.ValueAdd.Reactor;
+
+namespace LSEG.Eta.ValueAdd.WatchlistConsumer;
 
 /// <summary>
 /// Contains information associated with each open channel in the Watchlist Consumer.
@@ -37,6 +33,7 @@ internal class ChannelInfo
     public bool HasServiceInfo { get; set; }
     public Service ServiceInfo { get; set; } = new();
     public ReactorChannel? ReactorChannel { get; set; }
+    internal bool isChannelClosed;
 
     /// <summary>
     /// Represented by epoch time in milliseconds.
@@ -50,4 +47,9 @@ internal class ChannelInfo
     {
         ConnectOptions.ConnectionList.Add(ConnectInfo);
     }
+}
+
+internal static class ChannelInfoExtension
+{
+    public static IEnumerable<ChannelInfo> GetOpen(this IEnumerable<ChannelInfo> channelInfos) => channelInfos.Where(i => !i.isChannelClosed);
 }

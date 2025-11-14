@@ -12,12 +12,12 @@ using LSEG.Eta.Rdm;
 
 namespace LSEG.Eta.Example.VACommon
 {
-    internal class ItemArgsParser
+    internal class ItemArgsParser: IArgsParser
     {
-        const int ERROR_RETURN_CODE = -1;
         public List<ItemArg> ItemList { get; private set; } = new List<ItemArg>();
 
-        internal bool IsStart(string[] args, int argOffset)
+        /// <inheritdoc/>
+        public bool IsStart(string[] args, int argOffset)
         {
             if (args[argOffset].StartsWith("mp:"))
             {
@@ -63,17 +63,17 @@ namespace LSEG.Eta.Example.VACommon
             return false;
         }
 
-        // returns offset past item arguments or -1 if error
-        internal int Parse(string[] args, int argOffset)
+        /// <inheritdoc/>
+        public int Parse(string[] args, int argOffset)
         {
-            int retCode = ERROR_RETURN_CODE;
+            int retCode = IArgsParser.ERROR_RETURN_CODE;
 
             string[] commaTokens = args[argOffset].Split(",");
             for (int i = 0; i < commaTokens.Length; i++)
             {
-                if (ParseItem(commaTokens[i]) < 0)
+                if (ParseItem(commaTokens[i]) == IArgsParser.ERROR_RETURN_CODE)
                 {
-                    return ERROR_RETURN_CODE;
+                    return IArgsParser.ERROR_RETURN_CODE;
                 }
             }
             retCode = argOffset + 1;
@@ -83,7 +83,7 @@ namespace LSEG.Eta.Example.VACommon
 
         private int ParseItem(string itemStr)
         {
-            int retCode = ERROR_RETURN_CODE;
+            int retCode = IArgsParser.ERROR_RETURN_CODE;
 
             string[] tokens = itemStr.Split(":");
             if (tokens.Length == 2)

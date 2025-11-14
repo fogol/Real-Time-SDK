@@ -1,0 +1,6 @@
+<Project>
+	<Import Project="WatchlistConsumerNoCommon.props"/>
+	<ItemGroup>
+		<ProjectReference Include="..\..\..\Applications\Examples\VACommon\VACommon.csproj" />
+	</ItemGroup>
+</Project>

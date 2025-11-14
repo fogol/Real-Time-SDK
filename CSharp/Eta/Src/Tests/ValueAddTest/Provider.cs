@@ -6,20 +6,38 @@
  *|-----------------------------------------------------------------------------
  */
 
+using System;
 using System.Collections.Generic;
 
 using LSEG.Eta.Codec;
 using LSEG.Eta.Rdm;
 using LSEG.Eta.ValueAdd.Rdm;
 using LSEG.Eta.ValueAdd.Reactor;
+using Xunit;
 
 namespace LSEG.Eta.ValuedAdd.Tests;
 
 public class Provider : TestReactorComponent, IProviderCallback
 {
-    public Provider(TestReactor testReactor) : base(testReactor)
+    public Provider(TestReactor testReactor, bool disposeReactor = false) : base(testReactor, disposeReactor)
     {
         ReactorRole = new ProviderRole();
+    }
+
+    public Provider() : this(new TestReactor(), true)
+    { }
+
+    public ProviderRole Role => (ProviderRole)ReactorRole;
+
+    public Provider WithDefaultRole()
+    {
+        Role.ChannelEventCallback = this;
+        Role.LoginMsgCallback = this;
+        Role.DirectoryMsgCallback = this;
+        Role.DictionaryMsgCallback = this;
+        Role.DefaultMsgCallback = this;
+
+        return this;
     }
 
     public virtual ReactorCallbackReturnCode ReactorChannelEventCallback(ReactorChannelEvent evt)
@@ -45,6 +63,88 @@ public class Provider : TestReactorComponent, IProviderCallback
     public virtual ReactorCallbackReturnCode RdmDictionaryMsgCallback(RDMDictionaryMsgEvent evt)
     {
         return TestReactor.HandleDictionaryMsgEvent(evt);
+    }
+
+    public void Accept(ConsumerProviderSessionOptions opts, TimeSpan timeout) =>
+        TestReactor.Accept(opts, this, timeout);
+
+    public void Accept(ConsumerProviderSessionOptions opts) =>
+        TestReactor.Accept(opts, this);
+
+    public Provider RespondToLoginRequest(Action<LoginRefresh> customizeResponse = null, ReactorSubmitOptions submitOptions = null)
+    {
+        var loginMsgEvent = TestReactor.PollReactorEvent<RDMLoginMsgEvent>();
+        Assert.Equal(LoginMsgType.REQUEST, loginMsgEvent.LoginMsg.LoginMsgType);
+
+        // send default login refresh
+        var loginRequest = loginMsgEvent.LoginMsg.LoginRequest;
+        var loginRefresh = new LoginRefresh()
+        {
+            Solicited = true,
+            UserName = loginRequest.UserName,
+            StreamId = loginRequest.StreamId,
+            HasAttrib = true,
+            HasFeatures = true,
+            SupportedFeatures = {
+                HasSupportOptimizedPauseResume = true,
+                SupportOptimizedPauseResume = 1,
+                HasSupportViewRequests = true,
+                SupportViewRequests = 1,
+                HasSupportPost = true,
+                SupportOMMPost = 1,
+                // is this relevant for C# implementation?
+                HasSupportStandby = true,
+                SupportStandby = 1,
+                HasSupportStandbyMode = true,
+                SupportStandbyMode = 3,
+            },
+        };
+        SetStateText(loginRefresh.State, "Login OK");
+        customizeResponse?.Invoke(loginRefresh);
+
+        SubmitAndDispatch(loginRefresh, submitOptions ?? new ReactorSubmitOptions());
+
+        // Save the stream ID used by each component to open the login stream (may be
+        // different if the watchlist is enabled).
+        DefaultSessionLoginStreamId = loginRequest.StreamId;
+
+        return this;
+    }
+
+    public Provider RespondToDirectoryRequest(Action<DirectoryRefresh> customizeResponse = null, ReactorSubmitOptions submitOptions = null)
+    {
+        var directoryRequestMsg = TestReactor.PollReactorEvent<RDMDirectoryMsgEvent>().DirectoryMsg;
+        Assert.Equal(DirectoryMsgType.REQUEST, directoryRequestMsg.DirectoryMsgType);
+
+        // send a default directory refresh.
+        var directoryRequest = directoryRequestMsg.DirectoryRequest;
+        var directoryRefresh = new DirectoryRefresh()
+        {
+            StreamId = directoryRequest.StreamId,
+            Filter = directoryRequest.Filter,
+            Solicited = true,
+            ClearCache = true,
+        };
+        SetStateText(directoryRefresh.State, "Source Directory Refresh Complete");
+        var service = new Service();
+        DefaultService.Copy(service);
+        directoryRefresh.ServiceList.Add(service);
+        customizeResponse?.Invoke(directoryRefresh);
+
+        SubmitAndDispatch(directoryRefresh, submitOptions ?? new ReactorSubmitOptions());
+
+        // Save the stream ID used by each component to open the directory stream (may be different if the watchlist is enabled).
+        DefaultSessionDirectoryStreamId = directoryRequest.StreamId;
+
+        return this;
+    }
+
+    private static void SetStateText(State state, string text)
+    {
+        state.StreamState(StreamStates.OPEN);
+        state.DataState(DataStates.OK);
+        state.Code(StateCodes.NONE);
+        state.Text().Data(text);
     }
 
     /* A default service that can be used when setting up a connection. */

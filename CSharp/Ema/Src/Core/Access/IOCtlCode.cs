@@ -70,5 +70,10 @@ public enum IOCtlCode : int
     /// When compression is on, this value is the smallest size packet that will be
     /// compressed.
     /// </summary>
-    COMPRESSION_THRESHOLD = 9
+    COMPRESSION_THRESHOLD = 9,
+
+    /// <summary>
+    /// Used to dynamically change the preferred host options.
+    /// </summary>
+    FALLBACK_PREFERRED_HOST_OPTIONS = 201
 }

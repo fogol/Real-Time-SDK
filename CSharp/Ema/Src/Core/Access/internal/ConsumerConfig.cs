@@ -61,6 +61,11 @@ namespace LSEG.Ema.Access
             RestProxyHostName = oldConfig.RestProxyHostName;
             RestProxyPort = oldConfig.RestProxyPort;
             ServiceCountHint = oldConfig.ServiceCountHint;
+            EnablePreferredHostOptions = oldConfig.EnablePreferredHostOptions;
+            PHDetectionTimeSchedule = oldConfig.PHDetectionTimeSchedule;
+            PHDetectionTimeInterval = oldConfig.PHDetectionTimeInterval;
+            PreferredChannelName = oldConfig.PreferredChannelName;
+
             XmlTraceToStdout = oldConfig.XmlTraceToStdout;
             XmlTraceToFile = oldConfig.XmlTraceToFile;
             XmlTraceMaxFileSize = oldConfig.XmlTraceMaxFileSize;
@@ -140,6 +145,16 @@ namespace LSEG.Ema.Access
         public string RestProxyPort { get; set; } = string.Empty;
 
         public int ServiceCountHint { get; set; }
+
+        #region Preferred Host parameters
+
+        public bool EnablePreferredHostOptions { get; set; } = false;
+        public string PHDetectionTimeSchedule { get; set; } = string.Empty;
+        public uint PHDetectionTimeInterval { get; set; } = 0;
+        public string PreferredChannelName { get; set; } = string.Empty;
+
+        #endregion
+
         public bool XmlTraceToFile { get; set; }
         public bool XmlTraceToStdout { get; set; }
         public string XmlTraceFileName { get; set; } = string.Empty;
@@ -188,7 +203,10 @@ namespace LSEG.Ema.Access
             RestProxyHostName = string.Empty;
             RestProxyPort = string.Empty;
             ServiceCountHint = 513;
-
+            EnablePreferredHostOptions = false;
+            PHDetectionTimeSchedule = string.Empty;
+            PHDetectionTimeInterval = 0;
+            PreferredChannelName = string.Empty;
             XmlTraceToFile = false;
             XmlTraceMaxFileSize = 100_000_000;
             XmlTraceFileName = "EmaTrace";
@@ -237,6 +255,10 @@ namespace LSEG.Ema.Access
             DestConfig.RestProxyHostName = RestProxyHostName;
             DestConfig.RestProxyPort = RestProxyPort;
             DestConfig.ServiceCountHint = ServiceCountHint;
+            DestConfig.EnablePreferredHostOptions = EnablePreferredHostOptions;
+            DestConfig.PHDetectionTimeSchedule = PHDetectionTimeSchedule;
+            DestConfig.PHDetectionTimeInterval = PHDetectionTimeInterval;
+            DestConfig.PreferredChannelName = PreferredChannelName;
 
             DestConfig.XmlTraceToStdout = XmlTraceToStdout;
             DestConfig.XmlTraceToFile = XmlTraceToFile;

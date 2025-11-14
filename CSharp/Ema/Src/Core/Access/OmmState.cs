@@ -182,6 +182,17 @@ public sealed class OmmState : Data
 
         /// <summary> Application Authorization Failed </summary>
         public const int APP_AUTHORIZATION_FAILED = 35;
+
+        /// <summary> Preferred host switchover began </summary>
+        public const int PREFERRED_HOST_STARTING_FALLBACK = 201;
+
+        /// <summary> Preferred host switchover completed </summary>
+        public const int PREFERRED_HOST_COMPLETE = 202;
+
+        /// <summary>
+        /// Preferred host no fallback
+        /// </summary>
+        public const int PREFERRED_HOST_NO_FALLBACK = 203;
     }
 
     /// <summary>
@@ -242,7 +253,7 @@ public sealed class OmmState : Data
             StatusCodes.NONE => NONE_STRING,
             StatusCodes.NOT_FOUND => NOTFOUND_STRING,
             StatusCodes.TIMEOUT => TIMEOUT_STRING,
-            StatusCodes.NOT_AUTHORIZED => NOTAUTHORIZED_STRING,
+            StatusCodes.NOT_AUTHORIZED => NOTENTITLED_STRING,
             StatusCodes.INVALID_ARGUMENT => INVALIDARGUMENT_STRING,
             StatusCodes.USAGE_ERROR => USAGEERROR_STRING,
             StatusCodes.PREEMPTED => PREEMPTED_STRING,
@@ -270,6 +281,9 @@ public sealed class OmmState : Data
             StatusCodes.DACS_USER_ACCESS_TO_APP_DENIED => DACSUSERACCESSTOAPPDENIED_STRING,
             StatusCodes.GAP_FILL => GAPFILL_STRING,
             StatusCodes.APP_AUTHORIZATION_FAILED => APPAUTHORIZATIONFAILED_STRING,
+            StatusCodes.PREFERRED_HOST_STARTING_FALLBACK => PREFERRED_HOST_STARTING_FALLBACK_STRING,
+            StatusCodes.PREFERRED_HOST_COMPLETE => PREFERRED_HOSTCOMPLETE_STRING,
+            StatusCodes.PREFERRED_HOST_NO_FALLBACK => PREFERRED_HOST_NO_FALLBACK_STRING,
             _ => DEFAULTSC_STRING + StatusCode
         };
     }
@@ -303,7 +317,7 @@ public sealed class OmmState : Data
                 .Append(" / ")
                 .Append(Eta.Codec.DataStates.Info(m_State.DataState()))
                 .Append(" / ")
-                .Append(Eta.Codec.StateCodes.Info(m_State.Code()))
+                .Append(StatusCodeAsString())
                 .Append(" / '")
                 .Append(StatusText)
                 .Append("'");
@@ -386,6 +400,7 @@ public sealed class OmmState : Data
     internal const string NOTFOUND_STRING = "NotFound";
     internal const string TIMEOUT_STRING = "Timeout";
     internal const string NOTAUTHORIZED_STRING = "NotAuthorized";
+    internal const string NOTENTITLED_STRING = "Not entitled";
     internal const string INVALIDARGUMENT_STRING = "InvalidArgument";
     internal const string USAGEERROR_STRING = "UsageError";
     internal const string PREEMPTED_STRING = "Preempted";
@@ -413,6 +428,9 @@ public sealed class OmmState : Data
     internal const string DACSUSERACCESSTOAPPDENIED_STRING = "DacsUserAccessToAppDenied";
     internal const string GAPFILL_STRING = "GapFill";
     internal const string APPAUTHORIZATIONFAILED_STRING = "AppAuthorizationFailed";
+    internal const string PREFERRED_HOST_STARTING_FALLBACK_STRING = "PreferredHostStartingFallback";
+    internal const string PREFERRED_HOSTCOMPLETE_STRING = "PreferredHostComplete";
+    internal const string PREFERRED_HOST_NO_FALLBACK_STRING = "PreferredHostNoFallback";
 
     private const string DEFAULTSS_STRING = "Unknown StreamState value ";
     private const string DEFAULTDS_STRING = "Unknown DataState value ";

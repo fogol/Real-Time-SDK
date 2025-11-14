@@ -1,0 +1,4 @@
+# file,location
+ItemHandler.cs,Applications/Examples/VAProvider/ItemHandler.cs
+ProviderCmdLineParser.cs,Applications/Examples/VAProvider/ProviderCmdLineParser.cs
+VAProvider.cs,Applications/Examples/VAProvider/VAProvider.cs

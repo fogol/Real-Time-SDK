@@ -527,7 +527,10 @@ namespace LSEG.Ema.Access
         protected OmmBaseImpl<T> m_OmmBaseImpl;
         private LoginRefresh? m_LoginRefresh;
         private State? m_EtaState;
+        /// Tracks current DataState for the Login stream
+        private int m_CurrentDataState = DataStates.NO_CHANGE;
 
+        /// <summary>Clients registered to receive LOGIN domain messages.</summary>
         internal List<LoginItem<T>>? LoginItems { get => m_LoginItemList; }
 
         public LoginRequest CurrentLoginRequest { get; internal set; }
@@ -731,6 +734,15 @@ namespace LSEG.Ema.Access
                         loginMsg.LoginRefresh!.Copy(loginRefresh);
                         State state = loginMsg.LoginRefresh.State;
 
+                        if (consumerSession != null)
+                        {
+                            consumerSession.CurrentRsslDataState = state.DataState();
+                        }
+                        else
+                        {
+                            m_CurrentDataState = state.DataState();
+                        }
+
                         bool closeChannel = false;
 
                         if (state.StreamState() != StreamStates.OPEN)
@@ -750,6 +762,8 @@ namespace LSEG.Ema.Access
                                 {
                                     m_OmmBaseImpl.SetOmmImplState(OmmBaseImpl<T>.OmmImplState.CHANNEL_UP_STREAM_NOT_OPEN);
                                 }
+
+                                consumerSession.CurrentRsslDataState = state.DataState();
                             }
                             else
                             {
@@ -781,13 +795,15 @@ namespace LSEG.Ema.Access
                                 m_OmmBaseImpl.LoggerClient.Warn(CLIENT_NAME, strBuilder.ToString());
                             }
 
-                            if (sessionChannelInfo != null)
+                            if (consumerSession != null)
                             {
-                                if (sessionChannelInfo.State >= OmmBaseImpl<T>.OmmImplState.CHANNEL_UP)
+                                if (sessionChannelInfo!.State >= OmmBaseImpl<T>.OmmImplState.CHANNEL_UP)
                                     sessionChannelInfo.State = OmmBaseImpl<T>.OmmImplState.LOGIN_STREAM_OPEN_SUSPECT;
 
                                 sessionChannelInfo.LoginRefresh().State.StreamState(state.StreamState());
                                 sessionChannelInfo.LoginRefresh().State.DataState(state.DataState());
+
+                                consumerSession.CurrentRsslDataState = state.DataState();
                             }
                             else
                             {
@@ -814,6 +830,8 @@ namespace LSEG.Ema.Access
                                     loginMsg = (LoginMsg)consumerSession.LoginRefresh();
                                     msg = null;
                                     consumerSession.SendInitialLoginRefresh = true;
+
+                                    consumerSession.CurrentRsslDataState = state.DataState();
                                 }
                                 else
                                 {
@@ -871,7 +889,9 @@ namespace LSEG.Ema.Access
                         {
                             State state = loginStatus.State;
 
-                            if(state.StreamState() != StreamStates.OPEN)
+                            m_CurrentDataState = state.DataState();
+
+                            if (state.StreamState() != StreamStates.OPEN)
                             {
                                 StringBuilder strBuilder = m_OmmBaseImpl.GetStrBuilder();
                                 strBuilder.AppendLine($"RDMLogin stream was closed with status message");
@@ -899,6 +919,8 @@ namespace LSEG.Ema.Access
                                     if (consumerSession.CheckAllSessionChannelHasState(OmmBaseImpl<T>.OmmImplState.CHANNEL_UP_STREAM_NOT_OPEN))
                                     {
                                         m_OmmBaseImpl.SetOmmImplState(OmmBaseImpl<T>.OmmImplState.CHANNEL_UP_STREAM_NOT_OPEN);
+
+                                        consumerSession.CurrentRsslDataState = state.DataState();
                                     }
                                     else
                                     {
@@ -943,6 +965,8 @@ namespace LSEG.Ema.Access
                                     if (consumerSession.CheckAllSessionChannelHasState(OmmBaseImpl<T>.OmmImplState.LOGIN_STREAM_OPEN_SUSPECT))
                                     {
                                         m_OmmBaseImpl.SetOmmImplState(OmmBaseImpl<T>.OmmImplState.LOGIN_STREAM_OPEN_SUSPECT);
+
+                                        consumerSession.CurrentRsslDataState = state.DataState();
                                     }
                                     else
                                     {
@@ -987,6 +1011,8 @@ namespace LSEG.Ema.Access
                                         ProcessRefreshMsg(msg, reactorChannel!, loginMsg);
                                         consumerSession.SendInitialLoginRefresh = true;
                                         notifyStatusMsg = false;
+
+                                        consumerSession.CurrentRsslDataState = state.DataState();
                                     }
                                 }
                                 else
@@ -1450,6 +1476,9 @@ namespace LSEG.Ema.Access
                         state.DataState(DataStates.OK);
                         state.Code(StateCodes.NONE);
                         state.Text().Data("channel up");
+
+                        m_CurrentDataState = state.DataState();
+
                         codecStatusMsg!.State = state;
                         codecStatusMsg.ApplyHasState();
 
@@ -1478,10 +1507,15 @@ namespace LSEG.Ema.Access
                         state.DataState(DataStates.SUSPECT);
                         state.Code(StateCodes.NONE);
                         state.Text().Data("channel down");
+
+                        m_CurrentDataState = state.DataState();
+
                         codecStatusMsg!.State = state;
                         codecStatusMsg.ApplyHasState();
 
                         m_StatusMsg.Decode(codecStatusMsg, evt.ReactorChannel!.MajorVersion, evt.ReactorChannel.MinorVersion, null!);
+
+                        EventImpl.ReactorChannel = evt.ReactorChannel;
 
                         foreach (var item in m_LoginItemList)
                         {
@@ -1503,8 +1537,86 @@ namespace LSEG.Ema.Access
                         state.DataState(DataStates.SUSPECT);
                         state.Code(StateCodes.NONE);
                         state.Text().Data("channel closed");
+
+                        m_CurrentDataState = state.DataState();
+
                         codecStatusMsg!.State = state;
                         codecStatusMsg.ApplyHasState();
+
+                        m_StatusMsg.Decode(codecStatusMsg, evt.ReactorChannel!.MajorVersion, evt.ReactorChannel.MinorVersion, null!);
+
+                        EventImpl.ReactorChannel = evt.ReactorChannel;
+
+                        foreach (var item in m_LoginItemList)
+                        {
+                            EventImpl.Item = item;
+
+                            NotifyOnAllMsg(m_StatusMsg);
+                            NotifyOnStatusMsg();
+                        }
+
+                        break;
+                    }
+                case ReactorChannelEventType.PREFERRED_HOST_STARTING_FALLBACK:
+                    {
+                        PopulateStatusMsg();
+
+                        state.StreamState(StreamStates.OPEN);
+                        state.DataState(m_CurrentDataState);
+                        state.Code(OmmState.StatusCodes.PREFERRED_HOST_STARTING_FALLBACK);
+                        state.Text().Data("preferred host starting fallback");
+
+                        codecStatusMsg!.ApplyHasState();
+                        codecStatusMsg.State = state;
+
+                        m_StatusMsg.Decode(codecStatusMsg, evt.ReactorChannel!.MajorVersion, evt.ReactorChannel.MinorVersion, null!);
+
+                        foreach (var item in m_LoginItemList)
+                        {
+                            EventImpl.Item = item;
+
+                            NotifyOnAllMsg(m_StatusMsg);
+                            NotifyOnStatusMsg();
+                        }
+
+                        break;
+                    }
+                case ReactorChannelEventType.PREFERRED_HOST_COMPLETE:
+                    {
+                        PopulateStatusMsg();
+
+
+                        state.StreamState(StreamStates.OPEN);
+                        state.DataState(m_CurrentDataState);
+                        state.Code(OmmState.StatusCodes.PREFERRED_HOST_COMPLETE);
+                        state.Text().Data("preferred host complete");
+
+                        codecStatusMsg!.ApplyHasState();
+                        codecStatusMsg.State = state;
+
+                        m_StatusMsg.Decode(codecStatusMsg, evt.ReactorChannel!.MajorVersion, evt.ReactorChannel.MinorVersion, null!);
+
+                        foreach (var item in m_LoginItemList)
+                        {
+                            EventImpl.Item = item;
+
+                            NotifyOnAllMsg(m_StatusMsg);
+                            NotifyOnStatusMsg();
+                        }
+
+                        break;
+                    }
+                case ReactorChannelEventType.PREFERRED_HOST_NO_FALLBACK:
+                    {
+                        PopulateStatusMsg();
+
+                        state.StreamState(StreamStates.OPEN);
+                        state.DataState(m_CurrentDataState);
+                        state.Code(OmmState.StatusCodes.PREFERRED_HOST_NO_FALLBACK);
+                        state.Text().Data("preferred host no fallback");
+
+                        codecStatusMsg!.ApplyHasState();
+                        codecStatusMsg.State = state;
 
                         m_StatusMsg.Decode(codecStatusMsg, evt.ReactorChannel!.MajorVersion, evt.ReactorChannel.MinorVersion, null!);
 

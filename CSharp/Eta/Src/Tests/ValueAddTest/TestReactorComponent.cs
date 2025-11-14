@@ -12,11 +12,12 @@ using LSEG.Eta.Codec;
 using LSEG.Eta.Transports;
 using LSEG.Eta.ValueAdd.Rdm;
 using LSEG.Eta.ValueAdd.Reactor;
+using System;
 
 namespace LSEG.Eta.ValuedAdd.Tests;
 
 /** A component represents a consumer, provider, etc. on the network (note the Consumer and Provider subclasses). */
-public abstract class TestReactorComponent
+public abstract class TestReactorComponent : IDisposable
 {
     /// <summary>
     /// Reactor channel associated with this component, if connected.
@@ -60,6 +61,9 @@ public abstract class TestReactorComponent
     int m_DefaultSessionDirectoryStreamId;
     bool m_DefaultSessionDirectoryStreamIdIsSet;
 
+    private readonly bool m_DisposeReactor;
+    private bool m_IsDisposed;
+
     /// <summary>
     /// A port to use when binding servers. Incremented with each bind.
     /// </summary>
@@ -78,9 +82,14 @@ public abstract class TestReactorComponent
     }
 
     protected TestReactorComponent(TestReactor testReactor)
+        : this(testReactor, false)
+    { }
+
+    protected TestReactorComponent(TestReactor testReactor, bool disposeReactor)
     {
         TestReactor = testReactor;
         TestReactor.AddComponent(this);
+        m_DisposeReactor = disposeReactor;
     }
 
     public ReactorChannel ReactorChannel
@@ -215,6 +224,20 @@ public abstract class TestReactorComponent
 
 
     /// <summary>
+    /// Sends an RDM message to the component's channel.
+    /// </summary>
+    public ReactorReturnCode Submit(MsgBase msg, ReactorSubmitOptions submitOptions)
+    {
+        ReactorReturnCode ret = m_ReactorChannel.Submit(msg, submitOptions, out var errorInfo);
+
+        Assert.True(ret >= ReactorReturnCode.SUCCESS,
+            $"submit failed: {ret} ({errorInfo?.Location} -- {errorInfo?.Error?.Text})");
+
+        return ret;
+    }
+
+
+    /// <summary>
     /// Sends a Msg to the component's channel, and dispatches to ensure no events are
     /// received and any internal flush events are processed.
     /// </summary>
@@ -232,20 +255,6 @@ public abstract class TestReactorComponent
     {
         ReactorReturnCode ret = Submit(msg, submitOptions, expectFailures);
         TestReactor.Dispatch(expectFailures ? -1 : 0);
-        return ret;
-    }
-
-
-    /// <summary>
-    /// Sends an RDM message to the component's channel.
-    /// </summary>
-    public ReactorReturnCode Submit(MsgBase msg, ReactorSubmitOptions submitOptions)
-    {
-        ReactorReturnCode ret = m_ReactorChannel.Submit(msg, submitOptions, out var errorInfo);
-
-        Assert.True(ret >= ReactorReturnCode.SUCCESS,
-            $"submit failed: {ret} ({errorInfo?.Location} -- {errorInfo?.Error?.Text})");
-
         return ret;
     }
 
@@ -313,7 +322,17 @@ public abstract class TestReactorComponent
             CloseChannel();
 
         TestReactor.RemoveComponent(this);
+        if (m_DisposeReactor)
+            TestReactor.Dispose();
         TestReactor = null;
+    }
+
+    public void Dispose()
+    {
+        if (m_IsDisposed)
+            return;
+        Close();
+        m_IsDisposed = true;
     }
 
     public ReactorReturnCode GetChannelInfo(ReactorChannelInfo reactorChannelInfo)

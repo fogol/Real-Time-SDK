@@ -6,14 +6,8 @@
  *|-----------------------------------------------------------------------------
  */
 
-using System;
-using System.Collections.Generic;
-
-using LSEG.Eta.Codec;
-using LSEG.Eta.Example.Common;
 using LSEG.Eta.Example.VACommon;
-using LSEG.Eta.Rdm;
-using LSEG.Eta.Transports;
+
 using static LSEG.Eta.Example.Common.CommandLine;
 
 //APIQA
@@ -24,11 +18,13 @@ namespace LSEG.Eta.ValueAdd.WatchlistConsumer;
 
 internal class WatchlistConsumerConfig
 {
+    /*APIQA
     // default server host name
     private const string DEFAULT_SRVR_HOSTNAME = "localhost";
 
     // default server port number
     private const string DEFAULT_SRVR_PORT_NO = "14002";
+    END APIQA*/
 
     // default service name
     private const string DEFAULT_SERVICE_NAME = "DIRECT_FEED";
@@ -248,48 +244,57 @@ internal class WatchlistConsumerConfig
             if (ConnectionList.Count == 0)
                 ConnectionList.Add(new ConnectionArg());
 
-            ConnectionArg ConnectionArg = ConnectionList[0];
+            ConnectionArg connectionArg = ConnectionList[0];
             //END APIQA
             string? connectionType = Value("c");
             if (connectionType?.Equals("socket") ?? false)
             {
-                ConnectionArg.ConnectionType = ConnectionType.SOCKET;
+                connectionArg.ConnectionType = ConnectionType.SOCKET;
             }
             else if (connectionType?.Equals("encrypted") ?? false)
             {
-                ConnectionArg.ConnectionType = ConnectionType.ENCRYPTED;
+                connectionArg.ConnectionType = ConnectionType.ENCRYPTED;
                 EnableEncrypted = true;
             }
+
+            EncryptionProtocolFlags EncryptionProtocol = EncryptionProtocolFlags.ENC_NONE;
+            if (CommandLine.BoolValue("spTLSv1.2"))
+                EncryptionProtocol |= EncryptionProtocolFlags.ENC_TLSV1_2;
+            if (CommandLine.BoolValue("spTLSv1.3"))
+                EncryptionProtocol |= EncryptionProtocolFlags.ENC_TLSV1_3;
+
+            if (EncryptionProtocol != EncryptionProtocolFlags.ENC_NONE)
+                connectionArg.EncryptionProtocolFlags = EncryptionProtocol;
 
             if (HasArg("encryptedProtocolType"))
             {
                 string? encryptedProtocolType = Value("encryptedProtocolType");
                 if (encryptedProtocolType?.Equals("socket") ?? false)
                 {
-                    ConnectionArg.ConnectionType = ConnectionType.SOCKET;
+                    connectionArg.ConnectionType = ConnectionType.SOCKET;
                 }
             }
             else
             {
-                if (ConnectionArg.ConnectionType == ConnectionType.ENCRYPTED)
+                if (connectionArg.ConnectionType == ConnectionType.ENCRYPTED)
                 {
                     throw new NotSupportedException("Use encryptedProtocolType");
                 }
             }
 
-            ConnectionArg.Service = ServiceName!;
+            connectionArg.Service = ServiceName!;
             //APIQA
-            if(ConnectionArg.Hostname == null)
+            if(connectionArg.Hostname == null)
             {
-                ConnectionArg.Hostname = Value("h") ?? string.Empty;
+                connectionArg.Hostname = Value("h") ?? string.Empty;
             }
 
-            if (ConnectionArg.Port == null)
+            if (connectionArg.Port == null)
             {
-                ConnectionArg.Port = Value("p") ?? string.Empty;
+                connectionArg.Port = Value("p") ?? string.Empty;
             }
             //END APIQA
-            ConnectionArg.InterfaceName = Value("if");
+            connectionArg.InterfaceName = Value("if");
 
             List<ItemArg> itemList = new();
 
@@ -323,9 +328,9 @@ internal class WatchlistConsumerConfig
                 itemList.Add(itemArg);
             }
 
-            ConnectionArg.ItemList = itemList;
+            connectionArg.ItemList = itemList;
             //APIQA
-            //ConnectionList.Add(ConnectionArg);
+            //ConnectionList.Add(connectionArg);
             //END APIQA
             string? value = Value("publisherInfo") ?? string.Empty;
             if (value != null)
@@ -432,7 +437,7 @@ internal class WatchlistConsumerConfig
 
     public string? ClientSecret => Value("clientSecret");
 
-    public string? TokenUrlV2 => Value("tokenURL");
+    public string? TokenUrlV2 => Value("tokenURLV2");
 
     public string? TokenScope => Value("tokenScope");
 
@@ -451,6 +456,14 @@ internal class WatchlistConsumerConfig
     public string? ProxyUsername => Value("plogin");
 
     public string? ProxyPassword => Value("ppasswd");
+
+    public string? RestProxyHostname => Value("restProxyHostname");
+
+    public string? RestProxyPort => Value("restProxyPort");
+
+    public string? RestProxyUsername => Value("restProxyUsername");
+
+    public string? RestProxyPassword => Value("restProxyPasswd");
 
     public string? AuthenticationToken => Value("at");
 
@@ -580,6 +593,11 @@ internal class WatchlistConsumerConfig
         AddOption("plogin", "", "User Name on proxy server");
         AddOption("ppasswd", "", "Password on proxy server");
 
+        AddOption("restProxyHostname", "", "Proxy server host name for REST requests");
+        AddOption("restProxyPort", "", "Proxy port number for REST requests");
+        AddOption("restProxyUsername", "", "User Name on proxy server for REST requests");
+        AddOption("restProxyPasswd", "", "Password on proxy server for REST requests");
+
         AddOption("at", "", "Specifies the Authentication Token. If this is present, the login user name type will be Login.UserIdTypes.AUTHN_TOKEN.");
         AddOption("ax", "", "Specifies the Authentication Extended information.");
         AddOption("aid", "", "Specifies the Application ID.");
@@ -590,7 +608,7 @@ internal class WatchlistConsumerConfig
         AddOption("clientId", "Specifies the client Id for V2 authentication OR specifies a unique ID, also known as AppKey generated by an AppGenerator, for V1 authentication usedwhen connecting to Real-Time Optimized.");
         AddOption("clientSecret", "Specifies the associated client Secret with a provided clientId for V2 logins.");
         AddOption("jwkFile", "Specifies the file location containing the JWK encoded private key for V2 logins.");
-        AddOption("tokenURL", "Specifies the token URL for V2 token oauthclientcreds grant type.");
+        AddOption("tokenURLV2", "Specifies the token URL for V2 token oauthclientcreds grant type.");
         AddOption("tokenScope", "", "Specifies the token scope.");
         AddOption("audience", "", "Optionally specifies the audience used with V2 JWT logins");
         AddOption("serviceDiscoveryURL", "Specifies the service discovery URL.");
@@ -599,6 +617,8 @@ internal class WatchlistConsumerConfig
         
         AddOption("rtt", false, "(optional) Enable RTT support in the WatchList");
 
+        AddOption("spTLSv1.2", false, "Specifies that TLSv1.2 can be used for an encrypted connection");
+        AddOption("spTLSv1.3", false, "Specifies that TLSv1.3 can be used for an encrypted connection");
         //APIQA
         AddOption("itemFile", "", "Specified a file path for reading item requests");
         AddOption("itemCount", 0, "Specified how many items the app should read from the item request file");

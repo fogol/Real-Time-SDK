@@ -6,11 +6,7 @@
  *|-----------------------------------------------------------------------------
  */
 
-using System;
 using System.Text;
-
-using LSEG.Eta.Codec;
-using LSEG.Eta.Example.Common;
 using LSEG.Eta.Rdm;
 
 

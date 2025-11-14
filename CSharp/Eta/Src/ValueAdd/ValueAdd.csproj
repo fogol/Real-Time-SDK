@@ -4,6 +4,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AssemblyName>LSEG.Eta.ValueAdd</AssemblyName>
+    <RootNamespace>LSEG.Eta.ValueAdd</RootNamespace>
     <BaseOutputPath>$(SolutionDir)Eta\Libs\</BaseOutputPath>
     <Version>3.4.0.0</Version>
     <AssemblyVersion>3.4.0.0</AssemblyVersion>
@@ -23,6 +24,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Cronos" Version="0.8.4" />
     <PackageReference Include="Microsoft.IdentityModel.Tokens" Version="8.9.0" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.9.0" />
   </ItemGroup>

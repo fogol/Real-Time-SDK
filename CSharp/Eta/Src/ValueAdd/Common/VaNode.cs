@@ -28,6 +28,11 @@ namespace LSEG.Eta.ValueAdd.Common
         public bool InPool { get; internal set; }
 
         /// <summary>
+        /// Returns the VaQueue which contains this node, or null if this node is not part of a VaQueue.
+        /// </summary>
+        public VaQueue? InQueue { get; internal set; }
+
+        /// <summary>
         /// Returns this node to the pool.
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveOptimization | MethodImplOptions.AggressiveInlining)]
