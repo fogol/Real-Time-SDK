@@ -28,11 +28,6 @@ internal class AppClient : IOmmConsumerClient
 	{
 		Console.WriteLine(statusMsg);
 	}
-
-	public void OnError(string errorText, ServiceEndpointDiscoveryEvent _)
-	{
-		Console.WriteLine("Failed to query RDP service discovery. Error text: " + errorText);
-	}
 }
 
     /// <summary>
@@ -224,8 +219,6 @@ public class Consumer
 	
 	public static void Main(string[] args)
 	{
-		OmmConsumer? consumer = null;
-		ServiceEndpointDiscovery? serviceDiscovery = null;
 		try
 		{
 			AppClient appClient = new();
@@ -235,23 +228,19 @@ public class Consumer
 			if (!readCommandlineArgs(args, config)) return;
 
 			CreateProgramaticConfig(configDb);
-			
-			if ( (proxyHostName == null) && (proxyPort == "") )
-			{
-				consumer  = new(config.ConsumerName("Consumer_1").ClientSecret(credentials.ClientSecret!)
-					.ClientId(credentials.ClientId!).TokenUrlV2(tokenUrlV2).Config(configDb), oAuthCallback, credentials);
-			}
-			else
-			{
-				consumer  = new(config.ConsumerName("Consumer_1").ClientSecret(credentials.ClientSecret!)
-					.ClientId(credentials.ClientId!).Config(configDb).TokenUrlV2(tokenUrlV2)
-					.ProxyHost(proxyHostName!).ProxyPort(proxyPort)
-					.ProxyUserName(proxyUserName!).ProxyPassword(proxyPassword!), oAuthCallback, credentials);
-			}
-			
-			/* Set the consumer on the credential structure for the callback */
-			credentials.Consumer = consumer;
-			
+
+            using OmmConsumer consumer =
+                ((proxyHostName == null) && (proxyPort == ""))
+                ? new(config.ConsumerName("Consumer_1").ClientSecret(credentials.ClientSecret!)
+                    .ClientId(credentials.ClientId!).TokenUrlV2(tokenUrlV2).Config(configDb), oAuthCallback, credentials)
+                : new(config.ConsumerName("Consumer_1").ClientSecret(credentials.ClientSecret!)
+                    .ClientId(credentials.ClientId!).Config(configDb).TokenUrlV2(tokenUrlV2)
+                    .ProxyHost(proxyHostName!).ProxyPort(proxyPort)
+                    .ProxyUserName(proxyUserName!).ProxyPassword(proxyPassword!), oAuthCallback, credentials);
+
+            /* Set the consumer on the credential structure for the callback */
+            credentials.Consumer = consumer;
+
 			consumer.RegisterClient(new RequestMsg().ServiceName("ELEKTRON_DD").Name(ItemName), appClient);
 			
 			Thread.Sleep(900000);			// API calls OnRefreshMsg(), OnUpdateMsg() and OnStatusMsg()
@@ -259,11 +248,6 @@ public class Consumer
 		catch (OmmException excp)
 		{
 			Console.WriteLine(excp.Message);
-		}
-		finally 
-		{
-			consumer?.Uninitialize();
-			serviceDiscovery?.Uninitialize();
 		}
 	}
 }

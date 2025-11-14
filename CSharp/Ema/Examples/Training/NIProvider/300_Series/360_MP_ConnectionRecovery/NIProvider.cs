@@ -72,12 +72,11 @@ public class NIProvider
         AppClient appClient = new AppClient();
         bool sendRefreshMsg = false;
 
-        OmmProvider? provider = null;
         try
         {
             OmmNiProviderConfig config = new OmmNiProviderConfig();
 
-            provider = new OmmProvider(config.OperationModel(OmmNiProviderConfig.OperationModelMode.USER_DISPATCH)
+            using OmmProvider provider = new OmmProvider(config.OperationModel(OmmNiProviderConfig.OperationModelMode.USER_DISPATCH)
                     .UserName("user"), appClient);
 
             provider.Dispatch(1000000);
@@ -134,10 +133,6 @@ public class NIProvider
         catch (OmmException excp)
         {
             Console.WriteLine(excp.Message);
-        }
-        finally
-        {
-            provider?.Uninitialize();
         }
     }
 }

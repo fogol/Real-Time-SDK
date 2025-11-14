@@ -52,12 +52,11 @@ public class Consumer
 {
 	public static void Main()
 	{
-		OmmConsumer? consumer = null;
 		try 
 		{
 			AppClient appClient = new();
 			OmmConsumerConfig config = new();
-			consumer  = new(config.ConsumerName("Consumer_7"));
+			using OmmConsumer consumer  = new(config.ConsumerName("Consumer_7"));
             LoginReq loginReq = new();
             consumer.RegisterClient(loginReq.Message(), appClient);
 			consumer.RegisterClient(new RequestMsg().ServiceName("DIRECT_FEED").Name("IBM.N"), appClient, 0);
@@ -67,10 +66,6 @@ public class Consumer
         {
             Console.WriteLine(excp.Message);
         }
-        finally 
-		{
-			consumer?.Uninitialize();
-		}
 	}
 }
 

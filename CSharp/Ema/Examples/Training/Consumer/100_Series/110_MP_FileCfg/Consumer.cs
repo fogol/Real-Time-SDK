@@ -37,20 +37,15 @@ public class Consumer
 {
     static void Main()
     {
-        OmmConsumer? consumer = null;
         try
         {
-            consumer = new OmmConsumer(new OmmConsumerConfig().ConsumerName("Consumer_2"));
+            using OmmConsumer consumer = new OmmConsumer(new OmmConsumerConfig().ConsumerName("Consumer_2"));
             consumer.RegisterClient(new RequestMsg().ServiceName("DIRECT_FEED").Name("LSEG.L"), new AppClient());
             Thread.Sleep(60000); // API calls OnRefreshMsg(), OnUpdateMsg() and OnStatusMsg()
         }
         catch(OmmException excp)
         {
             Console.WriteLine(excp.Message);
-        }
-        finally
-        {
-            consumer?.Uninitialize();
         }
     }
 }

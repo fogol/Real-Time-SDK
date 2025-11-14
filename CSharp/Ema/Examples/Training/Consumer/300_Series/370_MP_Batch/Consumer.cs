@@ -101,12 +101,11 @@ public class Consumer
 {
 	public static void Main()
 	{
-		OmmConsumer? consumer = null;
 		try
 		{
 			AppClient appClient = new();
 			
-			consumer  = new(new OmmConsumerConfig().Host("localhost:14002").UserName("user"));
+			using OmmConsumer consumer  = new(new OmmConsumerConfig().Host("localhost:14002").UserName("user"));
 			
 			var array = new OmmArray()
 				.AddAscii("TRI.N")
@@ -125,10 +124,6 @@ public class Consumer
         {
             Console.WriteLine(ommException.Message);
         }
-        finally 
-		{
-			consumer?.Uninitialize();
-		}
 	}
 }
 

@@ -106,13 +106,12 @@ public class NIProvider
 {
     public static void Main(string[] args)
     {
-        OmmProvider? provider = null;
         try
         {
             AppClient appClient = new AppClient(args);
             OmmNiProviderConfig config = new OmmNiProviderConfig();
 
-            provider = new OmmProvider(config.UserName("user"));
+            using OmmProvider provider = new OmmProvider(config.UserName("user"));
 
             provider.RegisterClient(new RequestMsg().Name("RWFFld").Filter(EmaRdm.DICTIONARY_NORMAL)
                     .ServiceName("TEST_NI_PUB").DomainType(EmaRdm.MMT_DICTIONARY), appClient);
@@ -148,10 +147,6 @@ public class NIProvider
         catch (Exception excp)
         {
             Console.WriteLine(excp.Message);
-        }
-        finally
-        {
-            provider?.Uninitialize();
         }
     }
 }

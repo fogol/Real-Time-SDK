@@ -79,11 +79,10 @@ public class Consumer
 {
     public static void Main()
     {
-        OmmConsumer? consumer = null;
         try
         {
             AppClient appClient = new();
-            consumer = new(new OmmConsumerConfig().OperationModel(OperationModelMode.USER_DISPATCH).Host("localhost:14002").UserName("user"));
+            using OmmConsumer consumer = new(new OmmConsumerConfig().OperationModel(OperationModelMode.USER_DISPATCH).Host("localhost:14002").UserName("user"));
             consumer.RegisterClient(new RequestMsg().ServiceName("DIRECT_FEED").Name("NFCP_UBMS"), appClient, 0);
             var endTime = DateTime.Now + TimeSpan.FromMilliseconds(60000);
             while (DateTime.Now < endTime)
@@ -94,10 +93,6 @@ public class Consumer
         catch (OmmException excp)
         {
             Console.WriteLine(excp);
-        }
-        finally
-        {
-            consumer?.Uninitialize();
         }
     }
 }

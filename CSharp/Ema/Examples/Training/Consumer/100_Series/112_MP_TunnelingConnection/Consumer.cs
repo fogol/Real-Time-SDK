@@ -93,7 +93,6 @@ public class Consumer
 	
 	public static void Main(string[] args)
 	{
-		OmmConsumer? consumer = null;
 		try
 		{
 			OmmConsumerConfig config = new();
@@ -103,7 +102,7 @@ public class Consumer
 			
 			AppClient appClient = new();
 			
-			consumer = new OmmConsumer(config.ConsumerName("Consumer_3"));
+			using OmmConsumer consumer = new OmmConsumer(config.ConsumerName("Consumer_3"));
 			
 			consumer.RegisterClient(new RequestMsg().ServiceName("DIRECT_FEED").Name("IBM.N"), appClient, 0);
 			
@@ -112,10 +111,6 @@ public class Consumer
         catch (OmmException ommException)
         {
             Console.WriteLine(ommException.Message);
-        }
-        finally
-        {
-            consumer?.Uninitialize();
         }
     }
 }

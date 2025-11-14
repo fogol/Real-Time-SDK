@@ -276,12 +276,11 @@ public class Consumer
 {
     public static void Main(String[] args)
     {
-        OmmConsumer? consumer = null;
         try
         {
             AppClient appClient = new AppClient();
 
-            consumer = new(new OmmConsumerConfig().Host("localhost:14002").UserName("user"));
+            using OmmConsumer consumer = new(new OmmConsumerConfig().Host("localhost:14002").UserName("user"));
 
             RequestMsg reqMsg = new RequestMsg();
 
@@ -293,10 +292,6 @@ public class Consumer
         catch (OmmException ommException)
         {
             Console.WriteLine(ommException.Message);
-        }
-        finally
-        {
-            consumer?.Uninitialize();
         }
     }
 }

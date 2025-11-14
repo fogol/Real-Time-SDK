@@ -17,10 +17,9 @@ public class NIProvider
 {
     static void Main()
     {
-        OmmProvider? provider = null;
         try
         {
-            provider = new OmmProvider(new OmmNiProviderConfig().UserName("user"));
+            using OmmProvider provider = new OmmProvider(new OmmNiProviderConfig().UserName("user"));
             long itemHandle = 5;
 
             provider.Submit(new RefreshMsg().ServiceName("NI_PUB").Name("IBM.N")
@@ -50,10 +49,6 @@ public class NIProvider
         catch (OmmException excp)
         {
             Console.WriteLine(excp.Message);
-        }
-        finally
-        {
-            provider?.Uninitialize();
         }
     }
 }

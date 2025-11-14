@@ -180,24 +180,18 @@ public class Consumer
 
 	public static void Main(string[] args)
 	{
-		OmmConsumer? consumer = null;
         try
 		{
 			OmmConsumerConfig config = new();
 			if (!ReadCommandlineArgs(args, config))
 				return;
-            consumer = new (config.ConsumerName("Consumer_4"));
+            using OmmConsumer consumer = new (config.ConsumerName("Consumer_4"));
 			consumer.RegisterClient(new RequestMsg().ServiceName("ELEKTRON_DD").Name(itemName), new AppClient());
 			Thread.Sleep(900000);			// API calls OnRefreshMsg(), OnUpdateMsg() and OnStatusMsg()
 		}
         catch (OmmException ommException)
         {
             Console.WriteLine(ommException.Message);
-        }
-		finally
-		{
-			consumer?.Uninitialize();
-
         }
     }
 }

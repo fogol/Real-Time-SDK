@@ -262,10 +262,9 @@ public class Consumer
 {
     public static void Main()
     {
-        OmmConsumer? consumer = null;
         try
         {
-            consumer = new OmmConsumer(new OmmConsumerConfig().Host("localhost:14002").UserName("user"));
+            using OmmConsumer consumer = new OmmConsumer(new OmmConsumerConfig().Host("localhost:14002").UserName("user"));
             // request a custom domain (133) item IBM.XYZ
             consumer.RegisterClient(new RequestMsg().DomainType(133).ServiceName("DIRECT_FEED").Name("IBM.XYZ"), new AppClient(), 1);
 
@@ -274,10 +273,6 @@ public class Consumer
         catch (OmmException ommException)
         {
             Console.WriteLine(ommException.Message);
-        }
-        finally
-        {
-            consumer?.Uninitialize();
         }
     }
 }

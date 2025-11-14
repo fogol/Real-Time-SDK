@@ -56,20 +56,15 @@ public class Consumer
 {
 	public static void Main()
 	{
-		OmmConsumer? consumer = null;
 		try
 		{
-			consumer = new (new OmmConsumerConfig().Host("localhost:14002").UserName("user"));
+			using OmmConsumer consumer = new (new OmmConsumerConfig().Host("localhost:14002").UserName("user"));
 			consumer.RegisterClient(new RequestMsg().DomainType(200).ServiceName("DIRECT_FEED").Name("IBM.XYZ"), new AppClient(), 0);
 			Thread.Sleep(60000);            // API calls OnRefreshMsg(), OnUpdateMsg() and OnStatusMsg()
         }
         catch (OmmException ommException)
         {
             Console.WriteLine(ommException.Message);
-        }
-        finally
-        {
-            consumer?.Uninitialize();
         }
     }
 }

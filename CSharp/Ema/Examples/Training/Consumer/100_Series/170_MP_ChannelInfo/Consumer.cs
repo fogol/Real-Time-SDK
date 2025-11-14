@@ -42,13 +42,12 @@ public class Consumer
 {
     public static void Main()
     {
-        OmmConsumer? consumer = null;
         try
         {
             AppClient appClient = new();
             ChannelInformation ci = new();
 
-            consumer = new OmmConsumer(new OmmConsumerConfig("EmaConfig.xml").UserName("user"));
+            using OmmConsumer consumer = new OmmConsumer(new OmmConsumerConfig("EmaConfig.xml").UserName("user"));
             consumer.ChannelInformation(ci);
             Console.WriteLine("channel information (consumer):\n\t" + ci);
 
@@ -59,10 +58,6 @@ public class Consumer
         catch (OmmException excp)
         {
             Console.WriteLine(excp.Message);
-        }
-        finally
-        {
-            consumer?.Uninitialize();
         }
     }
 }

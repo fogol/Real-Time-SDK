@@ -54,7 +54,6 @@ public class Consumer
 {
     static void Main()
     {
-        OmmConsumer? consumer = null;
         try
         {
             AppClient appClient = new();
@@ -65,7 +64,7 @@ public class Consumer
             serviceList.ConcreteServiceList.Add("DIRECT_FEED");
             serviceList.ConcreteServiceList.Add("DIRECT_FEED_2");
 
-            consumer = new OmmConsumer(new OmmConsumerConfig().ConsumerName("Consumer_10").AddServiceList(serviceList), appClient);
+            using OmmConsumer consumer = new OmmConsumer(new OmmConsumerConfig().ConsumerName("Consumer_10").AddServiceList(serviceList), appClient);
 
             consumer.RegisterClient(new RequestMsg().ServiceListName("SVG1").Name("LSEG.L"), appClient);
 
@@ -74,10 +73,6 @@ public class Consumer
         catch (OmmException excp)
         {
             Console.WriteLine(excp.Message);
-        }
-        finally
-        {
-            consumer?.Uninitialize();
         }
     }
 }

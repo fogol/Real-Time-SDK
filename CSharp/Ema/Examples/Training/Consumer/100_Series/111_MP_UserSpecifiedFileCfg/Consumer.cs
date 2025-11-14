@@ -36,21 +36,16 @@ public class Consumer
     public static void Main(string[] args)
     {
         var configFile = args.FirstOrDefault(string.Empty);
-        OmmConsumer? consumer = null;
         try
         {
             AppClient appClient = new();
-            consumer = new(new OmmConsumerConfig(configFile).ConsumerName("Consumer_2"));
+            using OmmConsumer consumer = new(new OmmConsumerConfig(configFile).ConsumerName("Consumer_2"));
             consumer.RegisterClient(new RequestMsg().ServiceName("DIRECT_FEED").Name("IBM.N"), appClient, 0);
             Thread.Sleep(60000);// API calls OnRefreshMsg(), OnUpdateMsg() and OnStatusMsg()
         }
         catch (OmmException ommException)
         {
             Console.WriteLine(ommException.Message);
-        }
-        finally
-        {
-            consumer?.Uninitialize();
         }
     }
 }

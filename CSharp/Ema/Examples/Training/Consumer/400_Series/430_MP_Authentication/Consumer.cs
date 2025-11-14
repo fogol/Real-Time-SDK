@@ -164,7 +164,6 @@ public class Consumer
 	
 	public static void Main(string[] args)
 	{
-		OmmConsumer? consumer = null;
 		try
 		{
 			if ( !Init(args) ) return;
@@ -184,7 +183,7 @@ public class Consumer
 			}
 
             config.AddAdminMsg(loginReq.Message());
-			consumer = new(config, appLoginClient);
+			using OmmConsumer consumer = new(config, appLoginClient);
 			
 			RequestMsg reqMsg = new();
 			reqMsg.ServiceName("DIRECT_FEED").Name("TRI.N");
@@ -209,10 +208,6 @@ public class Consumer
 		catch (OmmException excp)
 		{
 			Console.WriteLine(excp.Message);
-		}
-		finally 
-		{
-			consumer?.Uninitialize();
 		}
 	}
 }

@@ -175,11 +175,10 @@ public class Consumer
 
     static void Main()
     {
-        OmmConsumer? consumer = null;
         try
         {
             AppClient appClient = new();
-            consumer = new OmmConsumer(new OmmConsumerConfig().Config(CreateProgramaticConfig()), appClient); // use programmatic configuration parameters
+            using OmmConsumer consumer = new OmmConsumer(new OmmConsumerConfig().Config(CreateProgramaticConfig()), appClient); // use programmatic configuration parameters
 
             consumer.RegisterClient(new RequestMsg().ServiceName("DIRECT_FEED").Name("LSEG.L"), appClient);
 
@@ -188,10 +187,6 @@ public class Consumer
         catch (OmmException excp)
         {
             Console.WriteLine(excp.Message);
-        }
-        finally
-        {
-            consumer?.Uninitialize();
         }
     }
 }

@@ -127,9 +127,6 @@ public class IProvider
 {
     public static void Main(string[] args)
     {
-        OmmProvider? provider = null;
-        int clientCount = 0;
-
         try
         {
             AppClient appClient = new AppClient();
@@ -137,7 +134,7 @@ public class IProvider
 
             OmmIProviderConfig config = new OmmIProviderConfig("EmaConfig.xml");
 
-            provider = new OmmProvider(config.OperationModel(OmmIProviderConfig.OperationModelMode.USER_DISPATCH).Port("14002"), appClient);
+            using OmmProvider provider = new OmmProvider(config.OperationModel(OmmIProviderConfig.OperationModelMode.USER_DISPATCH).Port("14002"), appClient);
 
             List<ChannelInformation> ci = new List<ChannelInformation>();
 
@@ -149,6 +146,7 @@ public class IProvider
             DateTime startTime = DateTime.Now;
             DateTime nextPublishTime = startTime + TimeSpan.FromMilliseconds(1000);
             int i = 0;
+            int clientCount = 0;
 
             while (startTime + TimeSpan.FromMilliseconds(60_000) > DateTime.Now)
             {
@@ -216,10 +214,6 @@ public class IProvider
         catch (OmmException excp)
         {
             Console.WriteLine(excp.Message);
-        }
-        finally
-        {
-            provider?.Uninitialize();
         }
     }
 }

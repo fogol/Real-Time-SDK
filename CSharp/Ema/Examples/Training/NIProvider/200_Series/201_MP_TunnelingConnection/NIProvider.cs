@@ -81,7 +81,6 @@ public class NIProvider
 
     public static void Main(string[] args)
     {
-        OmmProvider? provider = null;
         try
         {
             OmmNiProviderConfig config = new OmmNiProviderConfig();
@@ -89,7 +88,7 @@ public class NIProvider
             if (!ReadCommandlineArgs(args, config))
                 return;
 
-            provider = new OmmProvider(config.UserName("user").ProviderName("Provider_4"));
+            using OmmProvider provider = new OmmProvider(config.UserName("user").ProviderName("Provider_4"));
 
             long ibmHandle = 5;
             long triHandle = 6;
@@ -137,10 +136,6 @@ public class NIProvider
         catch (OmmException excp)
         {
             Console.WriteLine(excp.Message);
-        }
-        finally
-        {
-            provider?.Uninitialize();
         }
     }
 }

@@ -137,7 +137,6 @@ public class NIProvider
 
     public static void Main(string[] args)
     {
-        OmmProvider? provider = null;
         try
         {
             AppLoginClient appLoginClient = new AppLoginClient();
@@ -157,7 +156,7 @@ public class NIProvider
 
             config.AddAdminMsg(loginReq.Message());
 
-            provider = new OmmProvider(config, appLoginClient);
+            using OmmProvider provider = new OmmProvider(config, appLoginClient);
 
             long itemHandle = 5;
 
@@ -198,11 +197,6 @@ public class NIProvider
         catch (Exception excp)
         {
             Console.WriteLine(excp.Message);
-        }
-
-        finally
-        {
-            provider?.Uninitialize();
         }
     }
 }

@@ -94,12 +94,11 @@ public class IProvider
 {
     public static void Main(string[] args)
     {
-        OmmProvider? provider = null;
         try
         {
             AppClient appClient = new AppClient();
 
-            provider = new OmmProvider(new OmmIProviderConfig(), appClient);
+            using OmmProvider provider = new OmmProvider(new OmmIProviderConfig(), appClient);
 
             while (appClient.ItemHandle == 0)
             {
@@ -127,10 +126,6 @@ public class IProvider
         catch (OmmException excp)
         {
             Console.WriteLine(excp.Message);
-        }
-        finally
-        {
-            provider?.Uninitialize();
         }
     }
 }

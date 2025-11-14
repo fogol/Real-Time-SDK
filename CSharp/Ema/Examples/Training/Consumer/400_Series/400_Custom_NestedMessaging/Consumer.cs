@@ -273,11 +273,10 @@ public class Consumer
 {
     public static void Main()
     {
-        OmmConsumer? consumer = null;
         try
         {
             AppClient appClient = new();
-            consumer = new(new OmmConsumerConfig().UserName("user"));
+            using OmmConsumer consumer = new(new OmmConsumerConfig().UserName("user"));
             consumer.RegisterClient(new RequestMsg().DomainType(200).ServiceName("DIRECT_FEED")
                                                                             .Name("IBM.XYZ")
                                                                             .PrivateStream(true), appClient, 1);
@@ -287,10 +286,6 @@ public class Consumer
         catch (OmmException excp)
         {
             Console.WriteLine(excp.Message);
-        }
-        finally
-        {
-            consumer?.Uninitialize();
         }
     }
 }

@@ -139,10 +139,9 @@ public class Consumer
 {
 	public static void Main()
 	{
-		OmmConsumer? consumer = null;
 		try
 		{			
-			consumer = new(new OmmConsumerConfig()
+			using OmmConsumer consumer = new(new OmmConsumerConfig()
 													.OperationModel(OperationModelMode.USER_DISPATCH)
 													.Host("localhost:14002").UserName("user"));
 			
@@ -159,10 +158,6 @@ public class Consumer
 		catch (OmmException excp)
 		{
 			Console.WriteLine(excp);
-		}
-		finally 
-		{
-			consumer?.Uninitialize();
 		}
 	}
 }

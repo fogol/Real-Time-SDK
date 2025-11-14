@@ -230,14 +230,13 @@ public class IProvider
     {
 
         DateTime nextRequestTime = DateTime.Now + DELTA;
-        OmmProvider? provider = null;
 
         try
         {
             OmmIProviderConfig config = new OmmIProviderConfig();
             AppClient appClient = new AppClient(true);
 
-            provider = new OmmProvider(config.OperationModel(OmmIProviderConfig.OperationModelMode.USER_DISPATCH).Port("14002"),
+            using OmmProvider provider = new OmmProvider(config.OperationModel(OmmIProviderConfig.OperationModelMode.USER_DISPATCH).Port("14002"),
                 appClient);
             FieldList fieldList = new FieldList();
 
@@ -271,10 +270,6 @@ public class IProvider
         catch (OmmException excp)
         {
             Console.WriteLine(excp.Message);
-        }
-        finally
-        {
-            provider?.Uninitialize();
         }
     }
 }

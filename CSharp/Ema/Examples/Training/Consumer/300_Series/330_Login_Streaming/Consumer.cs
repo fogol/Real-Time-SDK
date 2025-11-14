@@ -236,12 +236,11 @@ public class Consumer
 {
     public static void Main()
     {
-        OmmConsumer? consumer = null;
         try
         {
             AppClient appClient = new();
 
-            consumer = new(new OmmConsumerConfig().Host("localhost:14002").UserName("user"), appClient);
+            using OmmConsumer consumer = new(new OmmConsumerConfig().Host("localhost:14002").UserName("user"), appClient);
             RequestMsg reqMsg = new();
 
             consumer.RegisterClient(reqMsg.Clear().ServiceName("DIRECT_FEED").Name("IBM.N"), appClient);
@@ -251,10 +250,6 @@ public class Consumer
         catch (OmmException ommException)
         {
             Console.WriteLine(ommException.Message);
-        }
-        finally
-        {
-            consumer?.Uninitialize();
         }
     }
 }

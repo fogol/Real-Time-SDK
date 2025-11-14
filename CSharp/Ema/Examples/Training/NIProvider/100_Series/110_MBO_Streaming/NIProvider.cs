@@ -19,12 +19,11 @@ public class NIProvider
 {
     public static void Main()
     {
-        OmmProvider? provider = null;
         try
         {
             OmmNiProviderConfig config = new OmmNiProviderConfig();
 
-            provider = new OmmProvider(config.Host("localhost:14003").UserName("user"));
+            using OmmProvider provider = new OmmProvider(config.Host("localhost:14003").UserName("user"));
 
             long itemHandle = 5;
 
@@ -74,10 +73,6 @@ public class NIProvider
         catch (OmmException excp)
         {
             Console.WriteLine(excp.Message);
-        }
-        finally
-        {
-            provider?.Uninitialize();
         }
     }
 }

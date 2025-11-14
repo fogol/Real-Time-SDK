@@ -31,11 +31,6 @@ internal class AppClient : IOmmConsumerClient
 	{
 		Console.WriteLine(statusMsg);
 	}
-
-	public void OnError(string errorText, ServiceEndpointDiscoveryEvent _)
-	{
-		Console.WriteLine("Failed to query RDP service discovery. Error text: " + errorText);
-	}
 }
 
 /// <summary>
@@ -255,8 +250,6 @@ public class Consumer
 	
 	public static void Main(string[] args)
 	{
-		OmmConsumer? consumer = null;
-		ServiceEndpointDiscovery? serviceDiscovery = null;
         try
 		{
 			AppClient appClient = new();
@@ -267,24 +260,20 @@ public class Consumer
 
             CreateProgramaticConfig(configDb);
 
-            if ( (proxyHostName == null) && (proxyPort == "") )
-			{
-				consumer  = new(config.ConsumerName("Consumer_1")
-					.TokenUrlV2(TokenUrlV2).Config(configDb), oAuthCallback, credentials);
-			}
-			else
-			{
-				consumer  = new (config.ConsumerName("Consumer_1")
-					.TokenUrlV2(TokenUrlV2).Config(configDb)
-					.ProxyHost(proxyHostName!)
-					.ProxyPort(proxyPort!)
-					.ProxyUserName(proxyUserName!)
-					.ProxyPassword(proxyPassword!)
-					, oAuthCallback, credentials);
-			}
-			
-			/* Set the consumer on the credential structure for the callback */
-			credentials.Consumer = consumer;
+            using OmmConsumer consumer =
+                ((proxyHostName == null) && (proxyPort == ""))
+                ? new(config.ConsumerName("Consumer_1")
+                        .TokenUrlV2(TokenUrlV2).Config(configDb), oAuthCallback, credentials)
+                : new(config.ConsumerName("Consumer_1")
+                        .TokenUrlV2(TokenUrlV2).Config(configDb)
+                        .ProxyHost(proxyHostName!)
+                        .ProxyPort(proxyPort!)
+                        .ProxyUserName(proxyUserName!)
+                        .ProxyPassword(proxyPassword!)
+                        , oAuthCallback, credentials);
+
+            /* Set the consumer on the credential structure for the callback */
+            credentials.Consumer = consumer;
 			
 			consumer.RegisterClient(new RequestMsg().ServiceName("ELEKTRON_DD").Name(ItemName), appClient);
 			
@@ -294,10 +283,5 @@ public class Consumer
             {
                 Console.WriteLine(ommException.Message);
             }
-            finally 
-		{
-			consumer?.Uninitialize();
-			if (serviceDiscovery != null) serviceDiscovery.Uninitialize();
-		}
 	}
 }

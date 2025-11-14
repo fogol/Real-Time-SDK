@@ -136,12 +136,11 @@ public class NIProvider
 
     public static void Main()
     {
-        OmmProvider? provider = null;
         try
         {
             OmmNiProviderConfig config = new OmmNiProviderConfig().Config(CreateProgrammaticConfig());
 
-            provider = new OmmProvider(config.UserName("user"));
+            using OmmProvider provider = new OmmProvider(config.UserName("user"));
 
             long ibmHandle = 5;
             long triHandle = 6;
@@ -189,11 +188,6 @@ public class NIProvider
         catch (Exception excp)
         {
             Console.WriteLine(excp.Message);
-        }
-
-        finally
-        {
-            provider?.Uninitialize();
         }
     }
 }

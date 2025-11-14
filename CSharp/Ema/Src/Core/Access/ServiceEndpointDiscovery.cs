@@ -82,9 +82,10 @@ internal class QueryServiceDiscoveryProvider : IQueryServiceDiscoveryProvider
 /// <summary>
 /// ServiceEndpointDiscovery provides the functionality to query endpoints from RDP service discovery.
 /// </summary>
-public sealed class ServiceEndpointDiscovery : IReactorServiceEndpointEventCallback
+public sealed class ServiceEndpointDiscovery : IReactorServiceEndpointEventCallback, IDisposable
 {
     private IQueryServiceDiscoveryProvider? _queryServiceDiscoveryProvider;
+    private bool _disposed;
     private ReactorErrorInfo? _reactorErrorInfo = new();
     private ReactorServiceDiscoveryOptions _reactorServiceDiscoveryOptions = new();
     private ServiceEndpointDiscoveryResp _serviceEndpointDiscoveryResp = new();
@@ -275,6 +276,27 @@ public sealed class ServiceEndpointDiscovery : IReactorServiceEndpointEventCallb
     public void Uninitialize()
     {
         _queryServiceDiscoveryProvider?.Dispose();
+    }
+
+    /// <summary>
+    /// Same as <see cref="Uninitialize"/>, but allows apply <c>using</c> statement to the instance of this class.
+    /// </summary>
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+    private void Dispose(bool disposing)
+    {
+        if (_disposed)
+        {
+            return;
+        }
+        if (disposing)
+        {
+            Uninitialize();
+        }
+        _disposed = true;
     }
 
     private StringBuilder GetStringBuilder()

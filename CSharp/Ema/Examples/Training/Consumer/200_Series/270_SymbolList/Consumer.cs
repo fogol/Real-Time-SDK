@@ -154,21 +154,16 @@ public class Consumer
 {
 	public static void Main()
 	{
-		OmmConsumer? consumer = null;
         try
 		{
 			AppClient appClient = new ();
-			consumer = new(new OmmConsumerConfig().Host("localhost:14002").UserName("user"));
+			using OmmConsumer consumer = new(new OmmConsumerConfig().Host("localhost:14002").UserName("user"));
 			consumer.RegisterClient(new RequestMsg().DomainType(EmaRdm.MMT_SYMBOL_LIST).ServiceName("ELEKTRON_DD").Name(".AV.N"), appClient, 0);
 			Thread.Sleep(60000);			// API calls OnRefreshMsg(), OnUpdateMsg() and OnStatusMsg()
 		}
         catch (OmmException ommException)
         {
             Console.WriteLine(ommException.Message);
-        }
-        finally
-        {
-            consumer?.Uninitialize();
         }
     }
 }

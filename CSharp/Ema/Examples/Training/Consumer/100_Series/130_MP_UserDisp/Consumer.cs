@@ -62,10 +62,9 @@ public class Consumer
 {
 	public static void Main()
 	{
-		OmmConsumer? consumer = null;
         try
 		{
-            consumer = new(new OmmConsumerConfig().OperationModel(OperationModelMode.USER_DISPATCH)
+            using OmmConsumer consumer = new(new OmmConsumerConfig().OperationModel(OperationModelMode.USER_DISPATCH)
 													.Host("localhost:14002").UserName("user"));
 			consumer.RegisterClient(new RequestMsg().ServiceName("DIRECT_FEED").Name("IBM.N"), new AppClient(), 0);
             var endTime = System.DateTime.Now + TimeSpan.FromMilliseconds(60000);
@@ -77,10 +76,6 @@ public class Consumer
 		catch (OmmException excp)
 		{
 			Console.WriteLine(excp);
-        }
-        finally
-        {
-            consumer?.Uninitialize();
         }
     }
 }

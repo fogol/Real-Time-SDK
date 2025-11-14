@@ -18,12 +18,11 @@ public class NIProvider
 
     public static void Main(string[] args)
     {
-        OmmProvider? provider = null;
         try
         {
             OmmNiProviderConfig config = new OmmNiProviderConfig();
 
-            provider = new OmmProvider(config.AdminControlDirectory(OmmNiProviderConfig.AdminControlMode.USER_CONTROL).UserName("user"));
+            using OmmProvider provider = new OmmProvider(config.AdminControlDirectory(OmmNiProviderConfig.AdminControlMode.USER_CONTROL).UserName("user"));
 
             long sourceDirectoryHandle = 1;
 
@@ -82,11 +81,6 @@ public class NIProvider
         catch (Exception excp)
 		{
             Console.WriteLine(excp.Message);
-        }
-
-        finally
-        {
-            provider?.Uninitialize();
         }
     }
 

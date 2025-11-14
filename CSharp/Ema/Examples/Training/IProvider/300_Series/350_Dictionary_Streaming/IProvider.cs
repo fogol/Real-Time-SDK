@@ -174,15 +174,13 @@ public class IProvider
 {
     public static void Main(string[] args)
     {
-        OmmProvider? provider = null;
-
         try
         {
             AppClient appClient = new AppClient(args);
             FieldList fieldList = new FieldList();
             UpdateMsg updateMsg = new UpdateMsg();
 
-            provider = new OmmProvider(new OmmIProviderConfig(), appClient);
+            using OmmProvider provider = new OmmProvider(new OmmIProviderConfig(), appClient);
 
             while (appClient.LoginHandle == 0)
             {
@@ -216,10 +214,6 @@ public class IProvider
         catch (OmmException excp)
         {
             Console.WriteLine(excp.Message);
-        }
-        finally
-        {
-            provider?.Uninitialize();
         }
     }
 }

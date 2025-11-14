@@ -32,14 +32,13 @@ public class NIProvider
 {
     public static void Main()
     {
-        OmmProvider? provider = null;
         try
         {
             AppClient appClient = new AppClient();
             OmmNiProviderConfig config = new OmmNiProviderConfig("EmaConfig.xml");
             ChannelInformation ci = new ChannelInformation();
 
-            provider = new OmmProvider(config.UserName("user"));
+            using OmmProvider provider = new OmmProvider(config.UserName("user"));
             provider.ChannelInformation(ci);
             Console.WriteLine("channel information (niprovider): " + ci);
 
@@ -83,10 +82,6 @@ public class NIProvider
         catch (OmmException excp)
         {
             Console.WriteLine(excp.Message);
-        }
-        finally
-        {
-            provider?.Uninitialize();
         }
     }
 }

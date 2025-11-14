@@ -6,6 +6,7 @@
  *|-----------------------------------------------------------------------------
  */
 
+using System;
 using System.Collections.Generic;
 
 namespace LSEG.Ema.Access
@@ -56,14 +57,13 @@ namespace LSEG.Ema.Access
     /// {
     ///     public static void Main(string[] args)
     ///     {
-    ///         OmmConsumer? consumer;
     ///         try
     ///         {
     ///             AppClient appClient = new AppClient();
     ///             OmmConsumerConfig config = new OmmConsumerConfig();
     ///
     ///             // instantiate OmmConsumer object and connect it to a server
-    ///             consumer = new OmmConsumer(config.Host("localhost:14002"));
+    ///             using OmmConsumer consumer = new OmmConsumer(config.Host("localhost:14002"));
     ///
     ///             // open an item of interest
     ///             ReqMsg reqMsg = new ReqMsg();
@@ -75,18 +75,15 @@ namespace LSEG.Ema.Access
     ///         {
     ///             Console.WriteLine(excp);
     ///         }
-    ///         finally
-    ///         {
-    ///             consumer?.Uninitialize();
-    ///         }
     ///     }
     /// }
     /// </code>
     /// </example>
     /// </remarks>
-    public sealed class OmmConsumer
+    public sealed class OmmConsumer : IDisposable
     {
         internal OmmConsumerImpl? m_OmmConsumerImpl;
+        private bool m_IsDisposed;
 
         private void Initialize()
         {
@@ -200,6 +197,28 @@ namespace LSEG.Ema.Access
         {
             m_OmmConsumerImpl?.Uninitialize();
             m_OmmConsumerImpl = null;
+        }
+
+        /// <summary>
+        /// Same as <see cref="Uninitialize"/>, but allows apply <c>using</c> statement to the instance of this class.
+        /// </summary>
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        private void Dispose(bool disposing)
+        {
+            if (m_IsDisposed)
+            {
+                return;
+            }
+            if (disposing)
+            {
+                Uninitialize();
+            }
+            m_IsDisposed = true;
         }
 
         /// <summary>

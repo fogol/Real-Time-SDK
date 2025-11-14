@@ -17,12 +17,11 @@ public class NIProvider
 { 
     public static void Main()
     {
-		OmmProvider? provider = null;
         try
         {
             OmmNiProviderConfig config = new();
 
-            provider = new(config.UserName("user"));
+            using OmmProvider provider = new(config.UserName("user"));
 
             int itemNumber = 1000;
             int sleepTime = 1000;
@@ -103,10 +102,6 @@ public class NIProvider
 		catch (OmmException excp)
 		{
             Console.WriteLine(excp.Message);
-		}
-		finally 
-		{
-			provider?.Uninitialize();
 		}
 	}
 }

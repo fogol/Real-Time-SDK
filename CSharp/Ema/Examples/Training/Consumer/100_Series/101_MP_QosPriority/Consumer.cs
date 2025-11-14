@@ -34,10 +34,9 @@ public class Consumer
 {
     public static void Main()
     {
-        OmmConsumer? consumer = null;
         try
         {
-            consumer = new(new OmmConsumerConfig().Host("localhost:14002").UserName("user"));
+            using OmmConsumer consumer = new(new OmmConsumerConfig().Host("localhost:14002").UserName("user"));
             consumer.RegisterClient(new RequestMsg().ServiceName("DIRECT_FEED").Name("IBM.N")
                 .Qos(RequestMsg.Timeliness.REALTIME, RequestMsg.Rate.TICK_BY_TICK).Priority(2, 1), new AppClient());
             Thread.Sleep(60000);// API calls OnRefreshMsg(), OnUpdateMsg() and OnStatusMsg()
@@ -45,10 +44,6 @@ public class Consumer
         catch (OmmException ommException)
         {
             Console.WriteLine(ommException.Message);
-        }
-        finally
-        {
-            consumer?.Uninitialize();
         }
     }
 }

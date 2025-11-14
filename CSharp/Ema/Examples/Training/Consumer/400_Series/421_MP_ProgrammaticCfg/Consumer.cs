@@ -192,12 +192,11 @@ public class Consumer
 	
 	public static void Main()
 	{
-		OmmConsumer? consumer = null;
 		try
 		{
 			AppClient appClient = new();
 			
-			consumer  = new(new OmmConsumerConfig().Config( CreateProgramaticConfig())); // use programmatic configuration parameters
+			using OmmConsumer consumer  = new(new OmmConsumerConfig().Config( CreateProgramaticConfig())); // use programmatic configuration parameters
 			
 			consumer.RegisterClient(new RequestMsg().ServiceName("DIRECT_FEED").Name("IBM.N"), appClient);
 			
@@ -206,10 +205,6 @@ public class Consumer
 		catch (OmmException excp)
 		{
 			Console.WriteLine(excp.Message);
-		}
-		finally 
-		{
-			consumer?.Uninitialize();
 		}
 	}
 }

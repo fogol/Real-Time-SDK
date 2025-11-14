@@ -120,7 +120,6 @@ public class Consumer
 {
     public static void Main(string[] args)
     {
-        OmmConsumer? consumer = null;
         try
         {
             AppClient appClient = new AppClient();
@@ -134,7 +133,7 @@ public class Consumer
             // Specify DataDictionary inside of our OmmConsumerConfig
             config.DataDictionary(dictionary, false);
 
-            consumer = new OmmConsumer(config);
+            using OmmConsumer consumer = new OmmConsumer(config);
 
             RequestMsg reqMsg = new();
             reqMsg.ServiceName("DIRECT_FEED").Name("IBM.N");
@@ -146,10 +145,6 @@ public class Consumer
         catch (Exception excp)
         {
             Console.WriteLine(excp.Message);
-        }
-        finally
-        {
-            consumer?.Uninitialize();
         }
     }
 }

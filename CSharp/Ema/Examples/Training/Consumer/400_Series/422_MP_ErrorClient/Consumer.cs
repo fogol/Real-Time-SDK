@@ -117,13 +117,12 @@ public class Consumer
 {
 	public static void Main()
 	{
-		OmmConsumer? consumer = null;
 		AppClient appClient = new();
 		AppErrorClient appErrorClient = new();
 
 		try
 		{
-			consumer = new(new OmmConsumerConfig().OperationModel(OperationModelMode.USER_DISPATCH)
+			using OmmConsumer consumer = new(new OmmConsumerConfig().OperationModel(OperationModelMode.USER_DISPATCH)
 										.UserName("user"), appErrorClient);
 
 			long invalidHandle = 0;
@@ -140,10 +139,6 @@ public class Consumer
 		catch (OmmException excp)
 		{
 			Console.WriteLine(excp);
-		}
-		finally
-		{
-			consumer?.Uninitialize();
 		}
 	}
 }

@@ -103,7 +103,6 @@ public class Consumer
 {
 	public static void Main()
 	{
-		OmmConsumer? consumer = null;
 		try
 		{
 			AppClient appClient = new();
@@ -115,7 +114,7 @@ public class Consumer
 			elementList.AddUInt(EmaRdm.ENAME_ALLOW_SUSPECT_DATA, 1);
 			elementList.Complete();
 			
-            consumer = new(new OmmConsumerConfig().OperationModel(OmmConsumerConfig.OperationModelMode.USER_DISPATCH)
+            using OmmConsumer consumer = new(new OmmConsumerConfig().OperationModel(OmmConsumerConfig.OperationModelMode.USER_DISPATCH)
 					.AddAdminMsg(reqMsg.DomainType(EmaRdm.MMT_LOGIN).Name("user").NameType(EmaRdm.USER_NAME).Attrib(elementList))
 					.AddAdminMsg(reqMsg.Clear().DomainType(EmaRdm.MMT_DIRECTORY).Filter(EmaRdm.SERVICE_INFO_FILTER  | EmaRdm.SERVICE_STATE_FILTER | EmaRdm.SERVICE_GROUP_FILTER))
 					.AddAdminMsg(reqMsg.Clear().DomainType(EmaRdm.MMT_DICTIONARY).Filter(EmaRdm.DICTIONARY_VERBOSE).Name("RWFFld").ServiceId(1))
@@ -131,10 +130,6 @@ public class Consumer
 		catch (OmmException excp)
 		{
 			Console.WriteLine(excp);
-		}
-		finally 
-		{
-			consumer?.Uninitialize();
 		}
 	}
 }

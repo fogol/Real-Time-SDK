@@ -6,6 +6,7 @@
  *|-----------------------------------------------------------------------------
  */
 
+using System;
 using System.Collections.Generic;
 
 namespace LSEG.Ema.Access
@@ -55,13 +56,12 @@ namespace LSEG.Ema.Access
     /// {
     ///     static void Main(string[] args)
     ///     {
-    ///         OmmProvider provider;
     ///         try
     ///         {
     ///             OmmNiProviderConfig config = new();
     ///
     ///             // instantiate OmmProvider object and connect it to an ADH
-    ///             provider = new OmmProvider(config.Host("localhost:14003").UserName("user"));
+    ///             using OmmProvider provider = new OmmProvider(config.Host("localhost:14003").UserName("user"));
     ///
     ///             long itemHandle = 5;
     ///
@@ -77,10 +77,6 @@ namespace LSEG.Ema.Access
     ///         catch(OmmException excp)
     ///         {
     ///             Console.WriteLine(excp.Message);
-    ///         }
-    ///         finally
-    ///         {
-    ///             provider?.Uninitialize();
     ///         }
     ///     }
     /// }
@@ -99,7 +95,7 @@ namespace LSEG.Ema.Access
     /// <seealso cref="IOmmProviderClient"/>
     /// <seealso cref="IOmmProviderErrorClient"/>
     /// <seealso cref="OmmException"/>
-    public sealed class OmmProvider
+    public sealed class OmmProvider : IDisposable
     {
         private void Initialize()
         {
@@ -201,6 +197,28 @@ namespace LSEG.Ema.Access
         {
             m_OmmProviderImpl?.Uninitialize();
             m_OmmProviderImpl = null;
+        }
+
+        /// <summary>
+        /// Same as <see cref="Uninitialize"/>, but allows apply <c>using</c> statement to the instance of this class.
+        /// </summary>
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        private void Dispose(bool disposing)
+        {
+            if (m_IsDisposed)
+            {
+                return;
+            }
+            if (disposing)
+            {
+                Uninitialize();
+            }
+            m_IsDisposed = true;
         }
 
         /// <summary>
@@ -407,5 +425,6 @@ namespace LSEG.Ema.Access
 
 
         internal IOmmProviderImpl? m_OmmProviderImpl;
+        private bool m_IsDisposed;
     }
 }

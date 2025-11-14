@@ -34,22 +34,17 @@ public class Consumer
 {
     static void Main()
     {
-        OmmConsumer? consumer = null;
         try
         {
             AppClient appClient = new();
             OmmConsumerConfig config = new OmmConsumerConfig().Host("localhost:14002").UserName("user");
-            consumer = new OmmConsumer(config);
+            using OmmConsumer consumer = new OmmConsumer(config);
             consumer.RegisterClient(new RequestMsg().ServiceName("DIRECT_FEED").Name("IBM.N"), appClient);
             Thread.Sleep(60000); // API calls OnRefreshMsg(), OnUpdateMsg() and OnStatusMsg()
         }
         catch (OmmException excp)
         {
             Console.WriteLine(excp.Message);
-        }
-        finally
-        {
-            consumer?.Uninitialize();
         }
     }
 }

@@ -28,13 +28,12 @@ public class NIProvider
 {
     public static void Main()
     {
-        OmmProvider? provider = null;
         try
         {
             AppClient appClient = new AppClient();
             OmmNiProviderConfig config = new OmmNiProviderConfig();
 
-            provider = new OmmProvider(config.UserName("user"));
+            using OmmProvider provider = new OmmProvider(config.UserName("user"));
 
             provider.RegisterClient(new RequestMsg().DomainType(EmaRdm.MMT_LOGIN), appClient);
 
@@ -68,10 +67,6 @@ public class NIProvider
         catch (Exception excp)
         {
             Console.WriteLine(excp.Message);
-        }
-        finally
-        {
-            provider?.Uninitialize();
         }
     }
 }

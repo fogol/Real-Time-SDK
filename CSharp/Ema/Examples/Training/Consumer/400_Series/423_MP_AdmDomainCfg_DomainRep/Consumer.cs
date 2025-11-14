@@ -114,14 +114,13 @@ public class Consumer
 {
     public static void Main()
     {
-        OmmConsumer? consumer = null;
         try
         {
             AppClient appClient = new();
             LoginReq loginReq = new();
             RequestMsg reqMsg = new();
 
-            consumer = new(new OmmConsumerConfig().OperationModel(OmmConsumerConfig.OperationModelMode.USER_DISPATCH)
+            using OmmConsumer consumer = new(new OmmConsumerConfig().OperationModel(OmmConsumerConfig.OperationModelMode.USER_DISPATCH)
                     .AddAdminMsg(loginReq.Name("user")
                         .NameType(EmaRdm.USER_NAME)
                         .ApplicationId("127")
@@ -143,10 +142,6 @@ public class Consumer
         catch (OmmException excp)
         {
             Console.WriteLine(excp);
-        }
-        finally
-        {
-            consumer?.Uninitialize();
         }
     }
 }

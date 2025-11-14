@@ -19,7 +19,6 @@ public class NIProvider
 {
     public static void Main()
     {
-        OmmProvider? provider = null;
         try
         {
             OmmNiProviderConfig config = new OmmNiProviderConfig();
@@ -29,7 +28,7 @@ public class NIProvider
             long aaoHandle = 5;
             long aggHandle = 6;
 
-            provider = new OmmProvider(config.UserName("user"));
+            using OmmProvider provider = new OmmProvider(config.UserName("user"));
             summary.AddEnumValue(15, 840);
             summary.AddEnumValue(53, 1);
             summary.AddEnumValue(3423, 1);
@@ -112,10 +111,6 @@ public class NIProvider
         catch (OmmException excp)
         {
             Console.WriteLine(excp.Message);
-        }
-        finally
-        {
-            provider?.Uninitialize();
         }
     }
 }

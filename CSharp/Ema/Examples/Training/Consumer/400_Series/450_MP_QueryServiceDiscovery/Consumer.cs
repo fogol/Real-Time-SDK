@@ -262,8 +262,6 @@ public class Consumer
 	
 	public static void Main(string[] args)
 	{
-		OmmConsumer? consumer = null;
-		ServiceEndpointDiscovery? serviceDiscovery = null;
 		try
 		{
 			AppClient appClient = new();
@@ -272,7 +270,7 @@ public class Consumer
 			
 			if (!ReadCommandlineArgs(args, config)) return;
 
-			serviceDiscovery = new ServiceEndpointDiscovery(tokenUrlV2!, serviceDiscoveryUrl!);
+			using ServiceEndpointDiscovery serviceDiscovery = new ServiceEndpointDiscovery(tokenUrlV2!, serviceDiscoveryUrl!);
 
             ServiceEndpointDiscoveryOption options = new()
             {
@@ -345,18 +343,13 @@ public class Consumer
             {
                 config.ServiceDiscoveryUrl(serviceDiscoveryUrl);
             }
-            consumer = new(config.Config(configDb));
+            using OmmConsumer consumer = new(config.Config(configDb));
             consumer.RegisterClient(new RequestMsg().ServiceName("ELEKTRON_DD").Name(itemName), appClient);
 			Thread.Sleep(900000);			// API calls OnRefreshMsg(), OnUpdateMsg() and OnStatusMsg()
 		} 
 		catch (OmmException excp)
 		{
 			Console.WriteLine(excp.Message);
-		}
-		finally 
-		{
-			consumer?.Uninitialize();
-			serviceDiscovery?.Uninitialize();
 		}
 	}
 }
