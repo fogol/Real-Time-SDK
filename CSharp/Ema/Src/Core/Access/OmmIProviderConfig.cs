@@ -96,7 +96,7 @@ namespace LSEG.Ema.Access
         }
 
         /// <summary>
-        /// <inheritdoc/>
+        /// Gets Provider's role of this <see cref="OmmProviderConfig"/> instance.
         /// </summary>
         public override ProviderRoleEnum ProviderRole => OmmProviderConfig.ProviderRoleEnum.INTERACTIVE;
 

@@ -23,8 +23,7 @@ namespace LSEG.Ema.Access
     /// </remarks>
     public abstract class StructuredTextData : ComplexType
     {
-        /// <inheritdoc/>
-        protected OmmBuffer m_buffer = new();
+        private OmmBuffer m_buffer = new();
         private OmmNonRwfEncoder m_nonRWFEncoder = new();
 
         /// <summary>
@@ -52,9 +51,15 @@ namespace LSEG.Ema.Access
         public string? GetString() => m_buffer.Value?.ToString();
 
 
-        /// <inheritdoc/>
+        /// <summary>
+        /// Sets a string representation of the class instance.
+        /// </summary>
+        /// <param name="value"> specifies data using string</param>
         protected void SetString(string value) => m_nonRWFEncoder.EncodeBuffer(value);
-        /// <inheritdoc/>
+        /// <summary>
+        /// Sets a text buffer representation of the class instance.
+        /// </summary>
+        /// <param name="value"> specifies data using <see cref="EmaBuffer"/></param>
         protected void SetBuffer(EmaBuffer value) => m_nonRWFEncoder.EncodeBuffer(value);
 
         internal CodecReturnCode DecodeOmmPrimitive(DecodeIterator dIter)

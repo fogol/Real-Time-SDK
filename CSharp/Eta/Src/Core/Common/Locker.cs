@@ -200,13 +200,21 @@ namespace LSEG.Eta.Common
         /// <returns>Returns disposable object that releases read lock on <see cref="LockerScope.Dispose"/> method call.</returns>
         public static LockerScope EnterLockScope(this Locker locker, bool noLockIfAlreadyLocked = true) => new LockerScope(locker, noLockIfAlreadyLocked);
 
-        /// <inheritdoc/>
+        /// <summary>
+        /// Disposable object that will release lock on its Dispose().
+        /// With <c>using</c> statement this guarantees unlocking even in case of exception without <c>try/finally</c> construct.
+        /// Note that the object is allocated on stack, so there is no additional heap allocation performed.
+        /// </summary>
         public ref struct LockerScope
         {
             private readonly Locker m_Locker;
             private readonly bool m_ShouldUnlock;
 
-            /// <inheritdoc/>
+            /// <summary>
+            /// Constructor of <see cref="LockerScope"/> object.
+            /// </summary>
+            /// <param name="locker">Lock object to be acquired.</param>
+            /// <param name="noLockIfAlreadyLocked">If <c>true</c> is passed and <paramref name="locker"/> already locked then do nothing.</param>
             public LockerScope(Locker locker, bool noLockIfAlreadyLocked)
             {
                 m_Locker = locker;
@@ -221,7 +229,10 @@ namespace LSEG.Eta.Common
                 }
             }
 
-            /// <inheritdoc/>
+            /// <summary>
+            /// Disposable object will release lock on its Dispose().
+            /// With <c>using</c> statement this guarantees unlocking even in case of exception without <c>try/finally</c> construct.
+            /// </summary>
             public void Dispose()
             {
                 if (m_ShouldUnlock && m_Locker.Locked)
@@ -232,4 +243,3 @@ namespace LSEG.Eta.Common
         }
     }
 }
-
