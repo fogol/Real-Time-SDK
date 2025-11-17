@@ -118,6 +118,8 @@ namespace LSEG.Eta.Rdm
         /// <returns>String representation</returns>
         public static string UpdateTypeFilterToString(ulong value)
         {
+            if (value == 0) return "None";
+
             StringBuilder resBuilder = new StringBuilder();
 
             for (int i = 0; i < TYPE_FILTER_ENTRIES.Length; i++)

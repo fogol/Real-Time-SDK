@@ -1,0 +1,7 @@
+# file,location
+rsslWatchlistConsumer.c,Applications/Examples/WatchlistConsumer
+watchlistConsumerConfig.c,Applications/Examples/WatchlistConsumer
+watchlistConsumerConfig.h,Applications/Examples/WatchlistConsumer
+postHandler.c,Applications/Examples/WatchlistConsumer
+postHandler.h,Applications/Examples/WatchlistConsumer
+CMakeLists.txt,Applications/Examples/WatchlistConsumer

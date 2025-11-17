@@ -1,0 +1,5 @@
+# file,location
+ChannelInfo.cs,Applications/Examples/VAConsumer/ChannelInfo.cs
+PostHandler.cs,Applications/Examples/VAConsumer/PostHandler.cs
+ConsumerCmdLineParser.cs,Applications/Examples/VAConsumer/ConsumerCmdLineParser.cs
+VAConsumer.cs,Applications/Examples/VAConsumer/VAConsumer.cs

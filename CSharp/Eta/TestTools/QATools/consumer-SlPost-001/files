@@ -1,0 +1,3 @@
+#file,location
+Consumer.cs,Applications/Examples/Consumer/Consumer.cs
+PostHandler.cs,Applications/Examples/EtaAppCommon/ConsumerHandlers/PostHandler.cs

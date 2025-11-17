@@ -1,0 +1,5 @@
+# file,location
+ChannelInfo.cs,Applications/Examples/WatchlistConsumer/ChannelInfo.cs
+PostHandler.cs,Applications/Examples/WatchlistConsumer/PostHandler.cs
+WatchlistConsumerConfig.cs,Applications/Examples/WatchlistConsumer/WatchlistConsumerConfig.cs
+WatchlistConsumer.cs,Applications/Examples/WatchlistConsumer/WatchlistConsumer.cs

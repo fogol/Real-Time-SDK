@@ -1,0 +1,6 @@
+# file,location
+rsslConsumer.c,Applications/Examples/Consumer
+rsslPostHandler.c,Applications/Examples/Consumer
+rsslPostHandler.h,Applications/Examples/Consumer
+rsslSymbolListItems.h,Applications/Examples/Common
+CMakeLists.txt,Applications/Examples/Consumer

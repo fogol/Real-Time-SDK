@@ -1,0 +1,5 @@
+# file,location
+rsslConsumer.c,Applications/Examples/VAConsumer
+rsslChannelCommand.h,Applications/Examples/VAConsumer
+rsslPostHandler.c,Applications/Examples/VAConsumer
+CMakeLists.txt,Applications/Examples/VAConsumer
