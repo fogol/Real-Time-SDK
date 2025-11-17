@@ -193,6 +193,7 @@ public class LoginJunit
         encLoginRTTMsg.rdmMsgType(LoginMsgType.RTT);
         LoginRTT decLoginRTTMsg = (LoginRTT)LoginMsgFactory.createMsg();
         decLoginRTTMsg.rdmMsgType(LoginMsgType.RTT);
+        LoginRTT decLoginRTTMsgNoTypeSet = (LoginRTT)LoginMsgFactory.createMsg();
         int flagsBase[] = {
                 LoginRTTFlags.ROUND_TRIP_LATENCY,
                 LoginRTTFlags.HAS_TCP_RETRANS,
@@ -241,6 +242,33 @@ public class LoginJunit
                 assertEquals(decLoginRTTMsg.tcpRetrans(), retrans);
             }
         }
+
+        //check decoding with type not set before calling decode
+        dIter.clear();
+        encIter.clear();
+        Buffer membuf = CodecFactory.createBuffer();
+        membuf.data(ByteBuffer.allocate(1024));
+        encIter.setBufferAndRWFVersion(membuf, Codec.majorVersion(), Codec.minorVersion());
+        int ret = encLoginRTTMsg.encode(encIter);
+        assertEquals(CodecReturnCodes.SUCCESS, ret);
+        dIter.setBufferAndRWFVersion(membuf, Codec.majorVersion(),
+                Codec.minorVersion());
+        ret = msg.decode(dIter);
+        assertEquals(CodecReturnCodes.SUCCESS, ret);
+        ret = decLoginRTTMsgNoTypeSet.decode(dIter, msg);
+        assertEquals(CodecReturnCodes.SUCCESS, ret);
+        assertEquals(LoginMsgType.RTT, decLoginRTTMsg.rdmMsgType());
+        assertEquals(encLoginRTTMsg.streamId(), decLoginRTTMsg.streamId());
+        assertEquals(encLoginRTTMsg.flags(), decLoginRTTMsg.flags());
+        assertEquals(encLoginRTTMsg.rdmMsgType(), decLoginRTTMsg.rdmMsgType());
+        assertEquals(decLoginRTTMsg.ticks(), ticks);
+        if (encLoginRTTMsg.checkHasRTLatency()) {
+            assertEquals(decLoginRTTMsg.rtLatency(), rtLatency);
+        }
+        if (encLoginRTTMsg.checkHasTCPRetrans()) {
+            assertEquals(decLoginRTTMsg.tcpRetrans(), retrans);
+        }
+
         System.out.println("Done.");
     }
 
@@ -316,7 +344,8 @@ public class LoginJunit
         encRDMMsg.rdmMsgType(LoginMsgType.CONSUMER_CONNECTION_STATUS);
         LoginConsumerConnectionStatus decRDMMsg = (LoginConsumerConnectionStatus)LoginMsgFactory.createMsg();
         decRDMMsg.rdmMsgType(LoginMsgType.CONSUMER_CONNECTION_STATUS);
-        int flagsBase[] = 
+        LoginConsumerConnectionStatus decRDMMsgNoTypeSet = (LoginConsumerConnectionStatus)LoginMsgFactory.createMsg();
+        int flagsBase[] =
             {
                 LoginConsumerConnectionStatusFlags.HAS_WARM_STANDBY_INFO
             };
@@ -405,7 +434,37 @@ public class LoginJunit
         
         //Check parameters
         assertEquals(encRDMMsg.warmStandbyInfo().action(), MapEntryActions.DELETE);
-        
+
+        //check decoding when no type is set before calling decode()
+        dIter.clear();
+        encIter.clear();
+        encRDMMsg.clear();
+        encRDMMsg.rdmMsgType(LoginMsgType.CONSUMER_CONNECTION_STATUS);
+        encRDMMsg.streamId(streamId);
+        encRDMMsg.flags(LoginConsumerConnectionStatusFlags.HAS_WARM_STANDBY_INFO);
+        encRDMMsg.warmStandbyInfo().action(MapEntryActions.DELETE);
+
+        Buffer buf = CodecFactory.createBuffer();
+        buf.data(ByteBuffer.allocate(1024));
+
+        encIter.setBufferAndRWFVersion(buf, Codec.majorVersion(), Codec.minorVersion());
+        ret = encRDMMsg.encode(encIter);
+        assertEquals(CodecReturnCodes.SUCCESS, ret);
+
+        dIter.setBufferAndRWFVersion(buf, Codec.majorVersion(),
+                Codec.minorVersion());
+        ret = msg.decode(dIter);
+        assertEquals(CodecReturnCodes.SUCCESS, ret);
+        ret = decRDMMsgNoTypeSet.decode(dIter, msg);
+        assertEquals(CodecReturnCodes.SUCCESS, ret);
+
+        assertEquals(decRDMMsgNoTypeSet.rdmMsgType(),
+                LoginMsgType.CONSUMER_CONNECTION_STATUS);
+
+        assertEquals(encRDMMsg.streamId(), decRDMMsgNoTypeSet.streamId());
+        assertEquals(encRDMMsg.flags(), decRDMMsgNoTypeSet.flags());
+        assertEquals(encRDMMsg.rdmMsgType(), decRDMMsgNoTypeSet.rdmMsgType());
+
         System.out.println("Done.");
     }
     
@@ -1004,6 +1063,7 @@ public class LoginJunit
         LoginRequest decRDMMsg = (LoginRequest)LoginMsgFactory.createMsg();
         encRDMMsg.rdmMsgType(LoginMsgType.REQUEST);
         decRDMMsg.rdmMsgType(LoginMsgType.REQUEST);
+        LoginRequest decRDMMsgNoTypeSet = (LoginRequest)LoginMsgFactory.createMsg();
 
         for (int userNameType : userNameTypeList)
         {   // loop over all the userNameTypes
@@ -1135,6 +1195,24 @@ public class LoginJunit
                 }
             }
         }
+
+        //check decoding with type not set before calling decode
+        dIter.clear();
+        encIter.clear();
+        Buffer membuf = CodecFactory.createBuffer();
+        membuf.data(ByteBuffer.allocate(1024));
+        encIter.setBufferAndRWFVersion(membuf, Codec.majorVersion(), Codec.minorVersion());
+        int ret = encRDMMsg.encode(encIter);
+        assertEquals(CodecReturnCodes.SUCCESS, ret);
+        dIter.setBufferAndRWFVersion(membuf, Codec.majorVersion(),
+                Codec.minorVersion());
+        ret = msg.decode(dIter);
+        assertEquals(CodecReturnCodes.SUCCESS, ret);
+        ret = decRDMMsgNoTypeSet.decode(dIter, msg);
+        assertEquals(CodecReturnCodes.SUCCESS, ret);
+        assertEquals(decRDMMsgNoTypeSet.rdmMsgType(), LoginMsgType.REQUEST);
+        assertEquals(encRDMMsg.flags(), decRDMMsgNoTypeSet.flags());
+
         System.out.println(test + " Done (Ran " + flagsList.length * (userNameTypeList.length + 1)
                 + " tests: using " + flagsBase.length + " flags producing " + flagsList.length
                 + " flag combinations with " + userNameTypeList.length
@@ -1181,6 +1259,7 @@ public class LoginJunit
     {
         LoginClose encRDMMsg = (LoginClose)LoginMsgFactory.createMsg();
         LoginClose decRDMMsg = (LoginClose)LoginMsgFactory.createMsg();
+        LoginClose decRDMMsgNoTypeSet = (LoginClose)LoginMsgFactory.createMsg();
         decRDMMsg.rdmMsgType(LoginMsgType.CLOSE);
         int streamId = -5;
 
@@ -1209,6 +1288,23 @@ public class LoginJunit
 
         assertEquals(streamId, decRDMMsg.streamId());
 
+        //Check decoding with no type set
+        dIter.clear();
+        encIter.clear();
+        Buffer buf = CodecFactory.createBuffer();
+        buf.data(ByteBuffer.allocate(1024));
+        encIter.setBufferAndRWFVersion(buf, Codec.majorVersion(), Codec.minorVersion());
+        ret = encRDMMsg.encode(encIter);
+        assertEquals(CodecReturnCodes.SUCCESS, ret);
+        dIter.setBufferAndRWFVersion(buf, Codec.majorVersion(),
+                Codec.minorVersion());
+        ret = msg.decode(dIter);
+        assertEquals(CodecReturnCodes.SUCCESS, ret);
+        ret = decRDMMsgNoTypeSet.decode(dIter, msg);
+        assertEquals(CodecReturnCodes.SUCCESS, ret);
+        assertEquals(streamId, decRDMMsgNoTypeSet.streamId());
+        assertEquals(LoginMsgType.CLOSE, decRDMMsgNoTypeSet.rdmMsgType());
+
         System.out.println("Done.");
     }
 
@@ -1223,7 +1319,7 @@ public class LoginJunit
         postRDMMsg1.streamId(streamId);
 
         System.out.println("LoginPost copy test...");
-
+        
         //deep copy
         int ret = postRDMMsg1.copy(postRDMMsg2);
         assertEquals(CodecReturnCodes.SUCCESS, ret);
@@ -1233,7 +1329,7 @@ public class LoginJunit
 
         System.out.println("Done.");
     }
-
+    
     @Test
     public void loginPostToStringTest()
     {
@@ -1243,7 +1339,7 @@ public class LoginJunit
         postRDMMsg1.streamId(streamId);
 
         System.out.println("LoginPost toString test...");
-
+        
         postRDMMsg1.toString();
 
         System.out.println("Done.");
@@ -1255,6 +1351,7 @@ public class LoginJunit
         LoginPost encRDMMsg = (LoginPost)LoginMsgFactory.createMsg();
         LoginPost decRDMMsg = (LoginPost)LoginMsgFactory.createMsg();
         decRDMMsg.rdmMsgType(LoginMsgType.POST);
+        LoginPost decRDMMsgNoTypeSet = (LoginPost)LoginMsgFactory.createMsg();
         int streamId = -5;
 
         dIter.clear();
@@ -1281,6 +1378,22 @@ public class LoginJunit
 
         assertEquals(streamId, decRDMMsg.streamId());
 
+        //Check decoding without type set
+        dIter.clear();
+        encIter.clear();
+        Buffer buf = CodecFactory.createBuffer();
+        buf.data(ByteBuffer.allocate(1024));
+        encIter.setBufferAndRWFVersion(buf, Codec.majorVersion(), Codec.minorVersion());
+        ret = encRDMMsg.encode(encIter);
+        assertEquals(CodecReturnCodes.SUCCESS, ret);
+        dIter.setBufferAndRWFVersion(buf, Codec.majorVersion(),
+                Codec.minorVersion());
+        ret = msg.decode(dIter);
+        assertEquals(CodecReturnCodes.SUCCESS, ret);
+        ret = decRDMMsgNoTypeSet.decode(dIter, msg);
+        assertEquals(CodecReturnCodes.SUCCESS, ret);
+        assertEquals(LoginMsgType.POST, decRDMMsgNoTypeSet.rdmMsgType());
+
         System.out.println("Done.");
     }
 
@@ -1292,7 +1405,7 @@ public class LoginJunit
         refRDMMsg1.rdmMsgType(LoginMsgType.REFRESH);
         refRDMMsg2.rdmMsgType(LoginMsgType.REFRESH);
         System.out.println("LoginRefresh copy test...");
-
+        
         //parameters to test with
         int streamId = -5;
         long allowSuspectData = 2;
@@ -1334,20 +1447,20 @@ public class LoginJunit
         serverInfo.port(14444);
         serverInfo.serverIndex(1);
         serverInfo.serverType(ServerTypes.ACTIVE);
-
+        
         LoginConnectionConfig connectionConfig = LoginMsgFactory.createConnectionConfig();
         connectionConfig.numStandbyServers(1);
         connectionConfig.serverList().add(serverInfo);
-
+        
         refRDMMsg1.rdmMsgType(LoginMsgType.REFRESH);
 
         refRDMMsg1.streamId(streamId);
-
+      
         refRDMMsg1.state().code(state.code());
         refRDMMsg1.state().dataState(state.dataState());
         refRDMMsg1.state().text().data("state");
         refRDMMsg1.state().streamState(state.streamState());
-
+        
         refRDMMsg1.applyClearCache();
         refRDMMsg1.applySolicited();
         refRDMMsg1.userName().data(userName);
@@ -1357,15 +1470,15 @@ public class LoginJunit
 
         refRDMMsg1.applyHasConnectionConfig();
         refRDMMsg1.connectionConfig(connectionConfig);
-
+        
         refRDMMsg1.applyHasAttrib();
         refRDMMsg1.attrib().applyHasAllowSuspectData();
         refRDMMsg1.attrib().allowSuspectData(allowSuspectData);
 
-        refRDMMsg1.attrib().applyHasApplicationId();
+        refRDMMsg1.attrib().applyHasApplicationId();        
         refRDMMsg1.attrib().applicationId().data(applicationId);
 
-        refRDMMsg1.attrib().applyHasPosition();
+        refRDMMsg1.attrib().applyHasPosition();        
         refRDMMsg1.attrib().position().data(position);
 
         refRDMMsg1.attrib().applyHasApplicationName();
@@ -1373,10 +1486,10 @@ public class LoginJunit
 
         refRDMMsg1.attrib().applyHasProvidePermissionProfile();
         refRDMMsg1.attrib().providePermissionProfile(providePermissionProfile);
-
+        
         refRDMMsg1.attrib().applyHasProvidePermissionExpressions();
         refRDMMsg1.attrib().providePermissionExpressions(providePermissionExpressions);
-
+        
         refRDMMsg1.attrib().applyHasSingleOpen();
         refRDMMsg1.attrib().singleOpen(singleOpen);
 
@@ -1395,13 +1508,13 @@ public class LoginJunit
 
         refRDMMsg1.features().applyHasSupportStandby();
         refRDMMsg1.features().supportStandby(supportStandby);
-
+        
         refRDMMsg1.features().applyHasSupportStandbyMode();
         refRDMMsg1.features().supportStandbyMode(supportStandbyMode);
 
         refRDMMsg1.applyHasSequenceNumber();
         refRDMMsg1.sequenceNumber(seqNum);
-
+        
         refRDMMsg1.applyHasAuthenticationTTReissue();
         refRDMMsg1.authenticationTTReissue(authenticationTTReissue);
 
@@ -1459,7 +1572,7 @@ public class LoginJunit
         assertEquals(serverInfo.port(), serverInfo2.port());
         assertEquals(serverInfo.serverIndex(), serverInfo2.serverIndex());
         assertEquals(serverInfo.serverType(), serverInfo2.serverType());
-
+        
         assertEquals(refRDMMsg1.sequenceNumber(), refRDMMsg2.sequenceNumber());
 
         assertEquals(refRDMMsg1.authenticationTTReissue(), refRDMMsg2.authenticationTTReissue());
@@ -1469,7 +1582,7 @@ public class LoginJunit
 
         System.out.println("Done.");
     }
-
+    
     @Test
     public void loginRefreshBlankTest()
     {
@@ -1478,7 +1591,7 @@ public class LoginJunit
         LoginRefresh refreshDec = (LoginRefresh)LoginMsgFactory.createMsg();
         refreshDec.rdmMsgType(LoginMsgType.REFRESH);
         zeroLengthBuf.data("");
-
+        
         Buffer name = CodecFactory.createBuffer();
         name.data("user");
 
@@ -1500,7 +1613,7 @@ public class LoginJunit
         refreshEnc.clear();
         refreshEnc.flags(flags);
         refreshEnc.streamId(streamId);
-
+        
         refreshEnc.applyHasAttrib();
         refreshEnc.attrib().applyHasApplicationId();
         refreshEnc.attrib().applicationId().data("");
@@ -1512,47 +1625,47 @@ public class LoginJunit
         refreshEnc.authenticationErrorCode(404);
         refreshEnc.applyHasAuthenticationErrorText();
         refreshEnc.authenticationErrorText().data("");
-
-
+        
+        
         dIter.clear();
         encIter.clear();
-
+        
         Buffer membuf = CodecFactory.createBuffer();
         membuf.data(ByteBuffer.allocate(1024));
-
+        
         encIter.setBufferAndRWFVersion(membuf, Codec.majorVersion(), Codec.minorVersion());
         int ret = refreshEnc.encode(encIter);
         assertEquals(CodecReturnCodes.SUCCESS, ret);
-
+        
         dIter.setBufferAndRWFVersion(membuf, Codec.majorVersion(),
                 Codec.minorVersion());
-        ret = msg.decode(dIter);
-        assertEquals(CodecReturnCodes.SUCCESS, ret);
-        ret = refreshDec.decode(dIter, msg);
-        assertEquals(CodecReturnCodes.SUCCESS, ret);
-
-        assertTrue(refreshDec.flags() == LoginRefreshFlags.HAS_AUTHENTICATION_ERROR_CODE);
-        assertTrue(refreshDec.attrib().flags() == 0);
-
-        /* Test 2: decode side is properly erroring out on blank inputs */
-        /* Authentication Error Text */
-        RefreshMsg refreshMsg = (RefreshMsg)CodecFactory.createMsg();
-        refreshMsg.clear();
-        membuf.data(ByteBuffer.allocate(1024));
-
-        refreshMsg.containerType(DataTypes.NO_DATA);
+		ret = msg.decode(dIter);
+		assertEquals(CodecReturnCodes.SUCCESS, ret);
+		ret = refreshDec.decode(dIter, msg);
+		assertEquals(CodecReturnCodes.SUCCESS, ret);
+		
+		assertTrue(refreshDec.flags() == LoginRefreshFlags.HAS_AUTHENTICATION_ERROR_CODE);
+		assertTrue(refreshDec.attrib().flags() == 0);
+		
+		/* Test 2: decode side is properly erroring out on blank inputs */
+		/* Authentication Error Text */
+		RefreshMsg refreshMsg = (RefreshMsg)CodecFactory.createMsg();
+		refreshMsg.clear();
+		membuf.data(ByteBuffer.allocate(1024));
+		
+		refreshMsg.containerType(DataTypes.NO_DATA);
         refreshMsg.msgClass(MsgClasses.REFRESH);
         refreshMsg.domainType(DomainTypes.LOGIN);
         refreshMsg.applyHasMsgKey();
-
-        refreshMsg.msgKey().applyHasAttrib();
+		
+        refreshMsg.msgKey().applyHasAttrib();            
         refreshMsg.msgKey().attribContainerType(DataTypes.ELEMENT_LIST);
         refreshMsg.msgKey().applyHasName();
         refreshMsg.msgKey().name(name);
-
+        
         state.copy(refreshMsg.state());
 
-
+        
         encIter.setBufferAndRWFVersion(membuf, Codec.majorVersion(), Codec.minorVersion());
         ret = refreshMsg.encodeInit(encIter, 0);
         assertEquals(CodecReturnCodes.ENCODE_MSG_KEY_ATTRIB, ret);
@@ -1568,40 +1681,40 @@ public class LoginJunit
 
         ret = elementList.encodeComplete(encIter, true);
         assertEquals(CodecReturnCodes.SUCCESS, ret);
-
+       
         ret = refreshMsg.encodeKeyAttribComplete(encIter, true);
         assertEquals(CodecReturnCodes.SUCCESS, ret);
 
         ret = refreshMsg.encodeComplete(encIter, true);
         assertEquals(CodecReturnCodes.SUCCESS, ret);
-
+        
         dIter.setBufferAndRWFVersion(membuf, Codec.majorVersion(),
                 Codec.minorVersion());
         refreshDec.clear();
-        ret = msg.decode(dIter);
-
-        assertEquals(CodecReturnCodes.SUCCESS, ret);
-        ret = refreshDec.decode(dIter, msg);
-        assertEquals(CodecReturnCodes.SUCCESS, ret);
-        assertTrue(refreshDec.checkHasAuthenticationErrorText());
-        assertEquals(0, refreshDec.authenticationErrorText().length());
-
-        /* Authentication Extended Resp Text */
-        refreshMsg.clear();
-        membuf.data(ByteBuffer.allocate(1024));
-
-        refreshMsg.containerType(DataTypes.NO_DATA);
+		ret = msg.decode(dIter);
+		
+		assertEquals(CodecReturnCodes.SUCCESS, ret);
+		ret = refreshDec.decode(dIter, msg);
+		assertEquals(CodecReturnCodes.SUCCESS, ret);
+		assertTrue(refreshDec.checkHasAuthenticationErrorText());
+		assertEquals(0, refreshDec.authenticationErrorText().length());
+		
+		/* Authentication Extended Resp Text */
+		refreshMsg.clear();
+		membuf.data(ByteBuffer.allocate(1024));
+		
+		refreshMsg.containerType(DataTypes.NO_DATA);
         refreshMsg.msgClass(MsgClasses.REFRESH);
         refreshMsg.domainType(DomainTypes.LOGIN);
         refreshMsg.applyHasMsgKey();
-
-        refreshMsg.msgKey().applyHasAttrib();
+		
+        refreshMsg.msgKey().applyHasAttrib();            
         refreshMsg.msgKey().attribContainerType(DataTypes.ELEMENT_LIST);
         refreshMsg.msgKey().applyHasName();
         refreshMsg.msgKey().name(name);
         state.copy(refreshMsg.state());
 
-
+        
         encIter.setBufferAndRWFVersion(membuf, Codec.majorVersion(), Codec.minorVersion());
         ret = refreshMsg.encodeInit(encIter, 0);
         assertEquals(CodecReturnCodes.ENCODE_MSG_KEY_ATTRIB, ret);
@@ -1617,41 +1730,41 @@ public class LoginJunit
 
         ret = elementList.encodeComplete(encIter, true);
         assertEquals(CodecReturnCodes.SUCCESS, ret);
-
+       
         ret = refreshMsg.encodeKeyAttribComplete(encIter, true);
         assertEquals(CodecReturnCodes.SUCCESS, ret);
 
         ret = refreshMsg.encodeComplete(encIter, true);
         assertEquals(CodecReturnCodes.SUCCESS, ret);
-
+        
         dIter.setBufferAndRWFVersion(membuf, Codec.majorVersion(),
                 Codec.minorVersion());
         refreshDec.clear();
-        ret = msg.decode(dIter);
+		ret = msg.decode(dIter);
+		
+		assertEquals(CodecReturnCodes.SUCCESS, ret);
+		ret = refreshDec.decode(dIter, msg);
+		assertEquals(CodecReturnCodes.SUCCESS, ret);
+		assertTrue(refreshDec.checkHasAuthenticationExtendedResp());
+		assertEquals(0, refreshDec.authenticationExtendedResp().length());
+		
 
-        assertEquals(CodecReturnCodes.SUCCESS, ret);
-        ret = refreshDec.decode(dIter, msg);
-        assertEquals(CodecReturnCodes.SUCCESS, ret);
-        assertTrue(refreshDec.checkHasAuthenticationExtendedResp());
-        assertEquals(0, refreshDec.authenticationExtendedResp().length());
-
-
-        /* AppId */
-        refreshMsg.clear();
-        membuf.data(ByteBuffer.allocate(1024));
-
-        refreshMsg.containerType(DataTypes.NO_DATA);
+		/* AppId */
+		refreshMsg.clear();
+		membuf.data(ByteBuffer.allocate(1024));
+		
+		refreshMsg.containerType(DataTypes.NO_DATA);
         refreshMsg.msgClass(MsgClasses.REFRESH);
         refreshMsg.domainType(DomainTypes.LOGIN);
         refreshMsg.applyHasMsgKey();
-
-        refreshMsg.msgKey().applyHasAttrib();
+		
+        refreshMsg.msgKey().applyHasAttrib();            
         refreshMsg.msgKey().attribContainerType(DataTypes.ELEMENT_LIST);
         refreshMsg.msgKey().applyHasName();
         refreshMsg.msgKey().name(name);
         state.copy(refreshMsg.state());
 
-
+        
         encIter.setBufferAndRWFVersion(membuf, Codec.majorVersion(), Codec.minorVersion());
         ret = refreshMsg.encodeInit(encIter, 0);
         assertEquals(CodecReturnCodes.ENCODE_MSG_KEY_ATTRIB, ret);
@@ -1667,41 +1780,41 @@ public class LoginJunit
 
         ret = elementList.encodeComplete(encIter, true);
         assertEquals(CodecReturnCodes.SUCCESS, ret);
-
+       
         ret = refreshMsg.encodeKeyAttribComplete(encIter, true);
         assertEquals(CodecReturnCodes.SUCCESS, ret);
 
         ret = refreshMsg.encodeComplete(encIter, true);
         assertEquals(CodecReturnCodes.SUCCESS, ret);
-
+        
         dIter.setBufferAndRWFVersion(membuf, Codec.majorVersion(),
                 Codec.minorVersion());
         refreshDec.clear();
-        ret = msg.decode(dIter);
-
-        assertEquals(CodecReturnCodes.SUCCESS, ret);
-        ret = refreshDec.decode(dIter, msg);
-        assertEquals(CodecReturnCodes.SUCCESS, ret);
-        assertTrue(refreshDec.checkHasAttrib());
-        assertTrue(refreshDec.attrib().checkHasApplicationId());
-        assertEquals(0, refreshDec.attrib().applicationId().length());
-
-        /* AppName */
-        refreshMsg.clear();
-        membuf.data(ByteBuffer.allocate(1024));
-
-        refreshMsg.containerType(DataTypes.NO_DATA);
+		ret = msg.decode(dIter);
+		
+		assertEquals(CodecReturnCodes.SUCCESS, ret);
+		ret = refreshDec.decode(dIter, msg);
+		assertEquals(CodecReturnCodes.SUCCESS, ret);
+		assertTrue(refreshDec.checkHasAttrib());
+		assertTrue(refreshDec.attrib().checkHasApplicationId());
+		assertEquals(0, refreshDec.attrib().applicationId().length());
+		
+		/* AppName */
+		refreshMsg.clear();
+		membuf.data(ByteBuffer.allocate(1024));
+		
+		refreshMsg.containerType(DataTypes.NO_DATA);
         refreshMsg.msgClass(MsgClasses.REFRESH);
         refreshMsg.domainType(DomainTypes.LOGIN);
         refreshMsg.applyHasMsgKey();
-
-        refreshMsg.msgKey().applyHasAttrib();
+		
+        refreshMsg.msgKey().applyHasAttrib();            
         refreshMsg.msgKey().attribContainerType(DataTypes.ELEMENT_LIST);
         refreshMsg.msgKey().applyHasName();
         refreshMsg.msgKey().name(name);
         state.copy(refreshMsg.state());
 
-
+        
         encIter.setBufferAndRWFVersion(membuf, Codec.majorVersion(), Codec.minorVersion());
         ret = refreshMsg.encodeInit(encIter, 0);
         assertEquals(CodecReturnCodes.ENCODE_MSG_KEY_ATTRIB, ret);
@@ -1717,41 +1830,41 @@ public class LoginJunit
 
         ret = elementList.encodeComplete(encIter, true);
         assertEquals(CodecReturnCodes.SUCCESS, ret);
-
+       
         ret = refreshMsg.encodeKeyAttribComplete(encIter, true);
         assertEquals(CodecReturnCodes.SUCCESS, ret);
 
         ret = refreshMsg.encodeComplete(encIter, true);
         assertEquals(CodecReturnCodes.SUCCESS, ret);
-
+        
         dIter.setBufferAndRWFVersion(membuf, Codec.majorVersion(),
                 Codec.minorVersion());
         refreshDec.clear();
-        ret = msg.decode(dIter);
-
-        assertEquals(CodecReturnCodes.SUCCESS, ret);
-        ret = refreshDec.decode(dIter, msg);
-        assertEquals(CodecReturnCodes.SUCCESS, ret);
-        assertTrue(refreshDec.checkHasAttrib());
-        assertTrue(refreshDec.attrib().checkHasApplicationName());
-        assertEquals(0, refreshDec.attrib().applicationName().length());
-
-        /* Position */
-        refreshMsg.clear();
-        membuf.data(ByteBuffer.allocate(1024));
-
-        refreshMsg.containerType(DataTypes.NO_DATA);
+		ret = msg.decode(dIter);
+		
+		assertEquals(CodecReturnCodes.SUCCESS, ret);
+		ret = refreshDec.decode(dIter, msg);
+		assertEquals(CodecReturnCodes.SUCCESS, ret);
+		assertTrue(refreshDec.checkHasAttrib());
+		assertTrue(refreshDec.attrib().checkHasApplicationName());
+		assertEquals(0, refreshDec.attrib().applicationName().length());
+		
+		/* Position */
+		refreshMsg.clear();
+		membuf.data(ByteBuffer.allocate(1024));
+		
+		refreshMsg.containerType(DataTypes.NO_DATA);
         refreshMsg.msgClass(MsgClasses.REFRESH);
         refreshMsg.domainType(DomainTypes.LOGIN);
         refreshMsg.applyHasMsgKey();
-
-        refreshMsg.msgKey().applyHasAttrib();
+		
+        refreshMsg.msgKey().applyHasAttrib();            
         refreshMsg.msgKey().attribContainerType(DataTypes.ELEMENT_LIST);
         refreshMsg.msgKey().applyHasName();
         refreshMsg.msgKey().name(name);
         state.copy(refreshMsg.state());
 
-
+        
         encIter.setBufferAndRWFVersion(membuf, Codec.majorVersion(), Codec.minorVersion());
         ret = refreshMsg.encodeInit(encIter, 0);
         assertEquals(CodecReturnCodes.ENCODE_MSG_KEY_ATTRIB, ret);
@@ -1767,25 +1880,25 @@ public class LoginJunit
 
         ret = elementList.encodeComplete(encIter, true);
         assertEquals(CodecReturnCodes.SUCCESS, ret);
-
+       
         ret = refreshMsg.encodeKeyAttribComplete(encIter, true);
         assertEquals(CodecReturnCodes.SUCCESS, ret);
 
         ret = refreshMsg.encodeComplete(encIter, true);
         assertEquals(CodecReturnCodes.SUCCESS, ret);
-
+        
         dIter.setBufferAndRWFVersion(membuf, Codec.majorVersion(),
                 Codec.minorVersion());
         refreshDec.clear();
-        ret = msg.decode(dIter);
-
-        assertEquals(CodecReturnCodes.SUCCESS, ret);
-        ret = refreshDec.decode(dIter, msg);
-        assertEquals(CodecReturnCodes.SUCCESS, ret);
-        assertTrue(refreshDec.checkHasAttrib());
-        assertTrue(refreshDec.attrib().checkHasPosition());
-        assertEquals(0, refreshDec.attrib().position().length());
-
+		ret = msg.decode(dIter);
+		
+		assertEquals(CodecReturnCodes.SUCCESS, ret);
+		ret = refreshDec.decode(dIter, msg);
+		assertEquals(CodecReturnCodes.SUCCESS, ret);
+		assertTrue(refreshDec.checkHasAttrib());
+		assertTrue(refreshDec.attrib().checkHasPosition());
+		assertEquals(0, refreshDec.attrib().position().length());
+		
 
         System.out.println("Done.");
     }
@@ -1795,9 +1908,9 @@ public class LoginJunit
     {
         LoginRefresh refRDMMsg1 = (LoginRefresh)LoginMsgFactory.createMsg();
         refRDMMsg1.rdmMsgType(LoginMsgType.REFRESH);
-
+      
         System.out.println("LoginRefresh toString test...");
-
+        
         //parameters to test with
         int streamId = -5;
         long allowSuspectData = 2;
@@ -1842,7 +1955,7 @@ public class LoginJunit
         LoginConnectionConfig connectionConfig = LoginMsgFactory.createConnectionConfig();
         connectionConfig.numStandbyServers(1);
         connectionConfig.serverList().add(serverInfo);
-
+        
         refRDMMsg1.rdmMsgType(LoginMsgType.REFRESH);
         refRDMMsg1.flags(allRefreshMsgFlags);
 
@@ -1854,10 +1967,10 @@ public class LoginJunit
 
         refRDMMsg1.userName().data(userName);
         refRDMMsg1.userNameType(userNameType);
-
+        
         refRDMMsg1.applyHasConnectionConfig();
         refRDMMsg1.connectionConfig(connectionConfig);
-
+        
         refRDMMsg1.applyHasAttrib();
         refRDMMsg1.attrib().applyHasAllowSuspectData();
         refRDMMsg1.attrib().allowSuspectData(allowSuspectData);
@@ -1873,7 +1986,7 @@ public class LoginJunit
         refRDMMsg1.attrib().providePermissionExpressions(providePermissionExpressions);
         refRDMMsg1.attrib().applyHasSingleOpen();
         refRDMMsg1.attrib().singleOpen(singleOpen);
-
+        
         refRDMMsg1.applyHasFeatures();
         refRDMMsg1.features().applyHasSupportBatchRequests();
         refRDMMsg1.features().supportBatchRequests(supportBatchRequests);
@@ -1910,6 +2023,7 @@ public class LoginJunit
         LoginRefresh decRDMMsg = (LoginRefresh)LoginMsgFactory.createMsg();
         encRDMMsg.rdmMsgType(LoginMsgType.REFRESH);
         decRDMMsg.rdmMsgType(LoginMsgType.REFRESH);
+        LoginRefresh decRDMMsgNoTypeSet = (LoginRefresh)LoginMsgFactory.createMsg();
 
         int flagsBase[] = { LoginRefreshFlags.CLEAR_CACHE, LoginRefreshFlags.HAS_CONN_CONFIG,
                 LoginRefreshFlags.HAS_ATTRIB, LoginRefreshFlags.HAS_SEQ_NUM,
@@ -2161,6 +2275,22 @@ public class LoginJunit
             }
             }
 
+        //Check decoding without type set
+        dIter.clear();
+        encIter.clear();
+        Buffer buf = CodecFactory.createBuffer();
+        buf.data(ByteBuffer.allocate(1024));
+        encIter.setBufferAndRWFVersion(buf, Codec.majorVersion(), Codec.minorVersion());
+        int ret = encRDMMsg.encode(encIter);
+        assertEquals(CodecReturnCodes.SUCCESS, ret);
+        dIter.setBufferAndRWFVersion(buf, Codec.majorVersion(),
+                Codec.minorVersion());
+        ret = msg.decode(dIter);
+        assertEquals(CodecReturnCodes.SUCCESS, ret);
+        ret = decRDMMsgNoTypeSet.decode(dIter, msg);
+        assertEquals(CodecReturnCodes.SUCCESS, ret);
+        assertEquals(LoginMsgType.REFRESH, decRDMMsgNoTypeSet.rdmMsgType());
+
         System.out.println(test + " Done (Ran " + flagsList.length + " tests: using "
                         + flagsBase.length + " flags producing " + flagsList.length
                         + " flag combinations)");
@@ -2175,6 +2305,7 @@ public class LoginJunit
         encRDMMsg.rdmMsgType(LoginMsgType.STATUS);              
         LoginStatus decRDMMsg = (LoginStatus)LoginMsgFactory.createMsg();
         decRDMMsg.rdmMsgType(LoginMsgType.STATUS);
+        LoginStatus decRDMMsgNoTypeSet = (LoginStatus)LoginMsgFactory.createMsg();
 
         System.out.println(test + "...");
 
@@ -2277,6 +2408,23 @@ public class LoginJunit
                 assertEquals(state.text().toString(), decState.text().toString());
             }
         }
+
+        //Check decoding without type set
+        dIter.clear();
+        encIter.clear();
+        Buffer buf = CodecFactory.createBuffer();
+        buf.data(ByteBuffer.allocate(1024));
+        encIter.setBufferAndRWFVersion(buf, Codec.majorVersion(), Codec.minorVersion());
+        int ret = encRDMMsg.encode(encIter);
+        assertEquals(CodecReturnCodes.SUCCESS, ret);
+        dIter.setBufferAndRWFVersion(buf, Codec.majorVersion(),
+                Codec.minorVersion());
+        ret = msg.decode(dIter);
+        assertEquals(CodecReturnCodes.SUCCESS, ret);
+        ret = decRDMMsgNoTypeSet.decode(dIter, msg);
+        assertEquals(CodecReturnCodes.SUCCESS, ret);
+        assertEquals(LoginMsgType.STATUS, decRDMMsgNoTypeSet.rdmMsgType());
+
         System.out.println("Done.");
     }
 
@@ -2558,42 +2706,57 @@ public class LoginJunit
     @Test
     public void loginAckTests()
     {
-         LoginAck encRDMMsg =
-         (LoginAck)LoginMsgFactory.createMsg();
-         LoginAck decRDMMsg =
-         (LoginAck)LoginMsgFactory.createMsg();
-         decRDMMsg.rdmMsgType(LoginMsgType.ACK);
-         int streamId = -5;
-        
-         dIter.clear();
-         encIter.clear();
-         msg.clear();
-         
-         //allocate a ByteBuffer and associate it with a Buffer
-         ByteBuffer bb = ByteBuffer.allocate(1024);
-         Buffer membuf = CodecFactory.createBuffer();
-         membuf.data(bb);
-         
-         System.out.println("LoginAck Tests...");
-         encRDMMsg.clear();
-        
-         encRDMMsg.rdmMsgType(LoginMsgType.ACK);
-         encRDMMsg.streamId(streamId);
-         encIter.setBufferAndRWFVersion(membuf, Codec.majorVersion(),
-         Codec.minorVersion());
-        
-         int ret = encRDMMsg.encode(encIter);
-         assertEquals(CodecReturnCodes.SUCCESS, ret);
-        
-         dIter.setBufferAndRWFVersion(membuf, Codec.majorVersion(),
-         Codec.minorVersion());
-         ret = msg.decode(dIter);
-         assertEquals(CodecReturnCodes.SUCCESS, ret);
-         ret = decRDMMsg.decode(dIter, msg);
-         assertEquals(CodecReturnCodes.SUCCESS, ret);
-        
-         assertEquals(streamId, decRDMMsg.streamId());
-        
-         System.out.println("Done.\n");
+        LoginAck encRDMMsg = (LoginAck)LoginMsgFactory.createMsg();
+        LoginAck decRDMMsg = (LoginAck)LoginMsgFactory.createMsg();
+        decRDMMsg.rdmMsgType(LoginMsgType.ACK);
+        LoginAck decRDMMsgNoTypeSet = (LoginAck)LoginMsgFactory.createMsg();
+        int streamId = -5;
+
+        dIter.clear();
+        encIter.clear();
+        msg.clear();
+
+        //allocate a ByteBuffer and associate it with a Buffer
+        ByteBuffer bb = ByteBuffer.allocate(1024);
+        Buffer membuf = CodecFactory.createBuffer();
+        membuf.data(bb);
+
+        System.out.println("LoginAck Tests...");
+        encRDMMsg.clear();
+
+        encRDMMsg.rdmMsgType(LoginMsgType.ACK);
+        encRDMMsg.streamId(streamId);
+        encIter.setBufferAndRWFVersion(membuf, Codec.majorVersion(),
+                Codec.minorVersion());
+
+        int ret = encRDMMsg.encode(encIter);
+        assertEquals(CodecReturnCodes.SUCCESS, ret);
+
+        dIter.setBufferAndRWFVersion(membuf, Codec.majorVersion(),
+                Codec.minorVersion());
+        ret = msg.decode(dIter);
+        assertEquals(CodecReturnCodes.SUCCESS, ret);
+        ret = decRDMMsg.decode(dIter, msg);
+        assertEquals(CodecReturnCodes.SUCCESS, ret);
+
+        assertEquals(streamId, decRDMMsg.streamId());
+
+        //Check decoding without type set
+        dIter.clear();
+        encIter.clear();
+        Buffer buf = CodecFactory.createBuffer();
+        buf.data(ByteBuffer.allocate(1024));
+        encIter.setBufferAndRWFVersion(buf, Codec.majorVersion(), Codec.minorVersion());
+        ret = encRDMMsg.encode(encIter);
+        assertEquals(CodecReturnCodes.SUCCESS, ret);
+        dIter.setBufferAndRWFVersion(buf, Codec.majorVersion(),
+                Codec.minorVersion());
+        ret = msg.decode(dIter);
+        assertEquals(CodecReturnCodes.SUCCESS, ret);
+        ret = decRDMMsgNoTypeSet.decode(dIter, msg);
+        assertEquals(CodecReturnCodes.SUCCESS, ret);
+        assertEquals(LoginMsgType.ACK, decRDMMsgNoTypeSet.rdmMsgType());
+
+        System.out.println("Done.\n");
     }
 }

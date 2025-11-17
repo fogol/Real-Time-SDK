@@ -2,7 +2,7 @@
  *|            This source code is provided under the Apache 2.0 license
  *|  and is provided AS IS with no warranty or guarantee of fit for purpose.
  *|                See the project's LICENSE.md for details.
- *|           Copyright (C) 2020,2022,2024 LSEG. All rights reserved.
+ *|           Copyright (C) 2020,2022,2024-2025 LSEG. All rights reserved.
  *|-----------------------------------------------------------------------------
  */
 
@@ -382,6 +382,7 @@ public class DirectoryJunit
         encRDMMsg.rdmMsgType(DirectoryMsgType.CONSUMER_STATUS);
         DirectoryConsumerStatus decRDMMsg = (DirectoryConsumerStatus)DirectoryMsgFactory.createMsg();
         decRDMMsg.rdmMsgType(DirectoryMsgType.CONSUMER_STATUS);
+        DirectoryConsumerStatus decRDMMsgNoTypeSet = (DirectoryConsumerStatus)DirectoryMsgFactory.createMsg();
 
         /* Parameters to test with */
         int streamId = -5;
@@ -464,6 +465,24 @@ public class DirectoryJunit
 
             }
         }
+
+        //Check decoding without type set
+        dIter.clear();
+        encIter.clear();
+        Buffer membuf = CodecFactory.createBuffer();
+        membuf.data(ByteBuffer.allocate(1024));
+
+        encIter.setBufferAndRWFVersion(membuf, Codec.majorVersion(), Codec.minorVersion());
+        int ret = encRDMMsg.encode(encIter);
+        assertEquals(CodecReturnCodes.SUCCESS, ret);
+
+        dIter.setBufferAndRWFVersion(membuf, Codec.majorVersion(),
+                Codec.minorVersion());
+        ret = msg.decode(dIter);
+        assertEquals(CodecReturnCodes.SUCCESS, ret);
+        ret = decRDMMsgNoTypeSet.decode(dIter, msg);
+        assertEquals(CodecReturnCodes.SUCCESS, ret);
+        assertEquals(encRDMMsg.rdmMsgType(), decRDMMsgNoTypeSet.rdmMsgType());
     }
 
     @Test
@@ -1840,6 +1859,7 @@ public class DirectoryJunit
         DirectoryClose decRDMMsg = (DirectoryClose)DirectoryMsgFactory.createMsg();
         decRDMMsg.rdmMsgType(DirectoryMsgType.CLOSE);
         encRDMMsg.rdmMsgType(DirectoryMsgType.CLOSE);
+        DirectoryClose decRDMMsgNoTypeSet = (DirectoryClose)DirectoryMsgFactory.createMsg();
         int streamId = -5;
 
         dIter.clear();
@@ -1866,6 +1886,25 @@ public class DirectoryJunit
 
         assertEquals(streamId, decRDMMsg.streamId());
 
+        //Check decoding without type set
+        dIter.clear();
+        encIter.clear();
+        Buffer buf = CodecFactory.createBuffer();
+        buf.data(ByteBuffer.allocate(1024));
+
+        encIter.setBufferAndRWFVersion(buf, Codec.majorVersion(), Codec.minorVersion());
+        ret = encRDMMsg.encode(encIter);
+        assertEquals(CodecReturnCodes.SUCCESS, ret);
+
+        dIter.setBufferAndRWFVersion(buf, Codec.majorVersion(),
+                Codec.minorVersion());
+        ret = msg.decode(dIter);
+        assertEquals(CodecReturnCodes.SUCCESS, ret);
+        ret = decRDMMsgNoTypeSet.decode(dIter, msg);
+        assertEquals(CodecReturnCodes.SUCCESS, ret);
+        assertEquals(encRDMMsg.rdmMsgType(), decRDMMsgNoTypeSet.rdmMsgType());
+
+
         System.out.println("Done.");
     }
 
@@ -1876,6 +1915,7 @@ public class DirectoryJunit
         encRDMMsg.rdmMsgType(DirectoryMsgType.UPDATE);
         DirectoryUpdate decRDMMsg = (DirectoryUpdate)DirectoryMsgFactory.createMsg();
         decRDMMsg.rdmMsgType(DirectoryMsgType.UPDATE);
+        DirectoryUpdate decRDMMsgNoTypeSet = (DirectoryUpdate)DirectoryMsgFactory.createMsg();
 
         System.out.println("Directory update tests...");
 
@@ -1960,6 +2000,25 @@ public class DirectoryJunit
                 }
             }
         }
+
+        //Check decoding without type set
+        dIter.clear();
+        encIter.clear();
+        Buffer buf = CodecFactory.createBuffer();
+        buf.data(ByteBuffer.allocate(1024));
+
+        encIter.setBufferAndRWFVersion(buf, Codec.majorVersion(), Codec.minorVersion());
+        int ret = encRDMMsg.encode(encIter);
+        assertEquals(CodecReturnCodes.SUCCESS, ret);
+
+        dIter.setBufferAndRWFVersion(buf, Codec.majorVersion(),
+                Codec.minorVersion());
+        ret = msg.decode(dIter);
+        assertEquals(CodecReturnCodes.SUCCESS, ret);
+        ret = decRDMMsgNoTypeSet.decode(dIter, msg);
+        assertEquals(CodecReturnCodes.SUCCESS, ret);
+        assertEquals(encRDMMsg.rdmMsgType(), decRDMMsgNoTypeSet.rdmMsgType());
+
         System.out.println("Done.");
     }
 
@@ -2166,6 +2225,7 @@ public class DirectoryJunit
         encRDMMsg.rdmMsgType(DirectoryMsgType.REFRESH);
         DirectoryRefresh decRDMMsg = (DirectoryRefresh)DirectoryMsgFactory.createMsg();
         decRDMMsg.rdmMsgType(DirectoryMsgType.REFRESH);
+        DirectoryRefresh decRDMMsgNoTypeSet = (DirectoryRefresh)DirectoryMsgFactory.createMsg();
 
         System.out.println("Directory refresh tests...");
 
@@ -2278,6 +2338,25 @@ public class DirectoryJunit
                 assertEquals(state.text().toString(), decState.text().toString());
             }
         }
+
+        //Check decoding without type set
+        dIter.clear();
+        encIter.clear();
+        Buffer buf = CodecFactory.createBuffer();
+        buf.data(ByteBuffer.allocate(1024));
+
+        encIter.setBufferAndRWFVersion(buf, Codec.majorVersion(), Codec.minorVersion());
+        int ret = encRDMMsg.encode(encIter);
+        assertEquals(CodecReturnCodes.SUCCESS, ret);
+
+        dIter.setBufferAndRWFVersion(buf, Codec.majorVersion(),
+                Codec.minorVersion());
+        ret = msg.decode(dIter);
+        assertEquals(CodecReturnCodes.SUCCESS, ret);
+        ret = decRDMMsgNoTypeSet.decode(dIter, msg);
+        assertEquals(CodecReturnCodes.SUCCESS, ret);
+        assertEquals(encRDMMsg.rdmMsgType(), decRDMMsgNoTypeSet.rdmMsgType());
+
         System.out.println("Done.");
     }
 
@@ -2288,6 +2367,7 @@ public class DirectoryJunit
         encRDMMsg.rdmMsgType(DirectoryMsgType.STATUS);
         DirectoryStatus decRDMMsg = (DirectoryStatus)DirectoryMsgFactory.createMsg();
         decRDMMsg.rdmMsgType(DirectoryMsgType.STATUS);
+        DirectoryStatus decRDMMsgNoTypeSet = (DirectoryStatus)DirectoryMsgFactory.createMsg();
 
         System.out.println("DirectoryStatus tests...");
 
@@ -2377,6 +2457,25 @@ public class DirectoryJunit
                 assertEquals(state.text().toString(), decState.text().toString());
             }
         }
+
+        //Check decoding without type set
+        dIter.clear();
+        encIter.clear();
+        Buffer buf = CodecFactory.createBuffer();
+        buf.data(ByteBuffer.allocate(1024));
+
+        encIter.setBufferAndRWFVersion(buf, Codec.majorVersion(), Codec.minorVersion());
+        int ret = encRDMMsg.encode(encIter);
+        assertEquals(CodecReturnCodes.SUCCESS, ret);
+
+        dIter.setBufferAndRWFVersion(buf, Codec.majorVersion(),
+                Codec.minorVersion());
+        ret = msg.decode(dIter);
+        assertEquals(CodecReturnCodes.SUCCESS, ret);
+        ret = decRDMMsgNoTypeSet.decode(dIter, msg);
+        assertEquals(CodecReturnCodes.SUCCESS, ret);
+        assertEquals(encRDMMsg.rdmMsgType(), decRDMMsgNoTypeSet.rdmMsgType());
+
         System.out.println("Done.");
     }
 
@@ -2501,6 +2600,7 @@ public class DirectoryJunit
         encRDMMsg.rdmMsgType(DirectoryMsgType.REQUEST);
         DirectoryRequest decRDMMsg = (DirectoryRequest)DirectoryMsgFactory.createMsg();
         decRDMMsg.rdmMsgType(DirectoryMsgType.REQUEST);
+        DirectoryRequest decRDMMsgNoTypeSet = (DirectoryRequest)DirectoryMsgFactory.createMsg();
 
         System.out.println("DirectoryRequest tests...");
 
@@ -2562,6 +2662,25 @@ public class DirectoryJunit
             if (decRDMMsg.checkHasServiceId())
                 assertEquals(serviceId, decRDMMsg.serviceId());
         }
+
+        //Check decoding without type set
+        dIter.clear();
+        encIter.clear();
+        Buffer buf = CodecFactory.createBuffer();
+        buf.data(ByteBuffer.allocate(1024));
+
+        encIter.setBufferAndRWFVersion(buf, Codec.majorVersion(), Codec.minorVersion());
+        int ret = encRDMMsg.encode(encIter);
+        assertEquals(CodecReturnCodes.SUCCESS, ret);
+
+        dIter.setBufferAndRWFVersion(buf, Codec.majorVersion(),
+                Codec.minorVersion());
+        ret = msg.decode(dIter);
+        assertEquals(CodecReturnCodes.SUCCESS, ret);
+        ret = decRDMMsgNoTypeSet.decode(dIter, msg);
+        assertEquals(CodecReturnCodes.SUCCESS, ret);
+        assertEquals(encRDMMsg.rdmMsgType(), decRDMMsgNoTypeSet.rdmMsgType());
+
         System.out.println("Done.");
     }
 

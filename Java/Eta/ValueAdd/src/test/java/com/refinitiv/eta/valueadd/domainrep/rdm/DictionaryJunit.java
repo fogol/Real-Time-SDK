@@ -1,10 +1,9 @@
-/*|-----------------------------------------------------------------------------
- *|            This source code is provided under the Apache 2.0 license
- *|  and is provided AS IS with no warranty or guarantee of fit for purpose.
- *|                See the project's LICENSE.md for details.
- *|           Copyright (C) 2020,2024 LSEG. All rights reserved.
- *|-----------------------------------------------------------------------------
- */
+///*|-----------------------------------------------------------------------------
+// *|            This source code is provided under the Apache 2.0 license
+// *|  and is provided AS IS with no warranty or guarantee of fit for purpose.
+// *|                See the project's LICENSE.md for details.
+// *|           Copyright (C) 2019,2024-2025 LSEG. All rights reserved.
+///*|-----------------------------------------------------------------------------
 
 package com.refinitiv.eta.valueadd.domainrep.rdm;
 
@@ -62,6 +61,7 @@ public class DictionaryJunit
         DictionaryRefresh decRDMMsg = (DictionaryRefresh)DictionaryMsgFactory.createMsg();
         decRDMMsg.rdmMsgType(DictionaryMsgType.REFRESH);
         encRDMMsg.rdmMsgType(DictionaryMsgType.REFRESH);
+        DictionaryRefresh decRDMMsgNoTypeSet = (DictionaryRefresh)DictionaryMsgFactory.createMsg();
         int streamId = -5;
         long sequenceNumber = 11152011;
         State state = CodecFactory.createState();
@@ -158,6 +158,24 @@ public class DictionaryJunit
             assertEquals(CodecReturnCodes.SUCCESS, ret);
         }
 
+        //Decode without type set
+        dIter.clear();
+        encIter.clear();
+        Buffer buf = CodecFactory.createBuffer();
+        buf.data(ByteBuffer.allocate(1024));
+
+        encIter.setBufferAndRWFVersion(buf, Codec.majorVersion(), Codec.minorVersion());
+        int ret = encRDMMsg.encode(encIter);
+        assertEquals(CodecReturnCodes.SUCCESS, ret);
+
+        dIter.setBufferAndRWFVersion(buf, Codec.majorVersion(),
+                Codec.minorVersion());
+        ret = msg.decode(dIter);
+        assertEquals(CodecReturnCodes.SUCCESS, ret);
+        ret = decRDMMsgNoTypeSet.decode(dIter, msg);
+        assertEquals(CodecReturnCodes.SUCCESS, ret);
+        assertEquals(encRDMMsg.rdmMsgType(), decRDMMsgNoTypeSet.rdmMsgType());
+
         System.out.println("Done.");
     }
 
@@ -191,6 +209,7 @@ public class DictionaryJunit
         DictionaryClose decRDMMsg = (DictionaryClose)DictionaryMsgFactory.createMsg();
         decRDMMsg.rdmMsgType(DictionaryMsgType.CLOSE);
         encRDMMsg.rdmMsgType(DictionaryMsgType.CLOSE);
+        DictionaryClose decRDMMsgNoTypeSet = (DictionaryClose)DictionaryMsgFactory.createMsg();
 
         int streamId = -5;
 
@@ -217,6 +236,24 @@ public class DictionaryJunit
         assertEquals(CodecReturnCodes.SUCCESS, ret);
 
         assertEquals(streamId, decRDMMsg.streamId());
+
+        //Decode without type set
+        dIter.clear();
+        encIter.clear();
+        Buffer buf = CodecFactory.createBuffer();
+        buf.data(ByteBuffer.allocate(1024));
+
+        encIter.setBufferAndRWFVersion(buf, Codec.majorVersion(), Codec.minorVersion());
+        ret = encRDMMsg.encode(encIter);
+        assertEquals(CodecReturnCodes.SUCCESS, ret);
+
+        dIter.setBufferAndRWFVersion(buf, Codec.majorVersion(),
+                Codec.minorVersion());
+        ret = msg.decode(dIter);
+        assertEquals(CodecReturnCodes.SUCCESS, ret);
+        ret = decRDMMsgNoTypeSet.decode(dIter, msg);
+        assertEquals(CodecReturnCodes.SUCCESS, ret);
+        assertEquals(encRDMMsg.rdmMsgType(), decRDMMsgNoTypeSet.rdmMsgType());
 
         System.out.println("Done.");
     }
@@ -308,6 +345,7 @@ public class DictionaryJunit
         DictionaryStatus decRDMMsg = (DictionaryStatus)DictionaryMsgFactory.createMsg();
         decRDMMsg.rdmMsgType(DictionaryMsgType.STATUS);
         encRDMMsg.rdmMsgType(DictionaryMsgType.STATUS);
+        DictionaryStatus decRDMMsgNoTypeSet = (DictionaryStatus)DictionaryMsgFactory.createMsg();
 
         System.out.println("RsslRDMLoginStatus tests...");
 
@@ -361,6 +399,24 @@ public class DictionaryJunit
             assertEquals(state.streamState(), decState.streamState());
             assertEquals(state.text().toString(), decState.text().toString());
         }
+
+        //Decode without type set
+        dIter.clear();
+        encIter.clear();
+        Buffer buf = CodecFactory.createBuffer();
+        buf.data(ByteBuffer.allocate(1024));
+
+        encIter.setBufferAndRWFVersion(buf, Codec.majorVersion(), Codec.minorVersion());
+        ret = encRDMMsg.encode(encIter);
+        assertEquals(CodecReturnCodes.SUCCESS, ret);
+
+        dIter.setBufferAndRWFVersion(buf, Codec.majorVersion(),
+                Codec.minorVersion());
+        ret = msg.decode(dIter);
+        assertEquals(CodecReturnCodes.SUCCESS, ret);
+        ret = decRDMMsgNoTypeSet.decode(dIter, msg);
+        assertEquals(CodecReturnCodes.SUCCESS, ret);
+        assertEquals(encRDMMsg.rdmMsgType(), decRDMMsgNoTypeSet.rdmMsgType());
 
         System.out.println("Done.");
     }
@@ -420,6 +476,7 @@ public class DictionaryJunit
         encRDMMsg.rdmMsgType(DictionaryMsgType.REQUEST);
         DictionaryRequest decRDMMsg = (DictionaryRequest)DictionaryMsgFactory.createMsg();
         decRDMMsg.rdmMsgType(DictionaryMsgType.REQUEST);
+        DictionaryRequest decRDMMsgNoTypeSet = (DictionaryRequest)DictionaryMsgFactory.createMsg();
 
         /* Parameters to test with */
         int streamId = -5;
@@ -473,6 +530,24 @@ public class DictionaryJunit
             assertTrue(encRDMMsg.dictionaryName().equals(decRDMMsg.dictionaryName()));
             assertEquals(encRDMMsg.flags(), decRDMMsg.flags());
         }
+
+        //Decode without type set
+        dIter.clear();
+        encIter.clear();
+        Buffer buf = CodecFactory.createBuffer();
+        buf.data(ByteBuffer.allocate(1024));
+
+        encIter.setBufferAndRWFVersion(buf, Codec.majorVersion(), Codec.minorVersion());
+        int ret = encRDMMsg.encode(encIter);
+        assertEquals(CodecReturnCodes.SUCCESS, ret);
+
+        dIter.setBufferAndRWFVersion(buf, Codec.majorVersion(),
+                Codec.minorVersion());
+        ret = msg.decode(dIter);
+        assertEquals(CodecReturnCodes.SUCCESS, ret);
+        ret = decRDMMsgNoTypeSet.decode(dIter, msg);
+        assertEquals(CodecReturnCodes.SUCCESS, ret);
+        assertEquals(encRDMMsg.rdmMsgType(), decRDMMsgNoTypeSet.rdmMsgType());
 
         System.out.println("Done.");
     }

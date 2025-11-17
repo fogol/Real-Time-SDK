@@ -10,16 +10,13 @@ package com.refinitiv.eta.valueadd.domainrep.rdm.directory;
 
 import java.util.List;
 
-import com.refinitiv.eta.codec.CodecReturnCodes;
-import com.refinitiv.eta.codec.DecodeIterator;
-import com.refinitiv.eta.codec.EncodeIterator;
-import com.refinitiv.eta.codec.Msg;
-import com.refinitiv.eta.codec.State;
+import com.refinitiv.eta.codec.*;
 import com.refinitiv.eta.rdm.DomainTypes;
 
 class DirectoryMsgImpl implements DirectoryMsg, DirectoryClose, DirectoryStatus, DirectoryRequest, DirectoryConsumerStatus, DirectoryUpdate, DirectoryRefresh
 {
     private DirectoryMsgType rdmMsgType;
+
     private DirectoryCloseImpl directoryClose;
     private DirectoryStatusImpl directoryStatus;
     private DirectoryRequestImpl directoryRequest;
@@ -101,7 +98,7 @@ class DirectoryMsgImpl implements DirectoryMsg, DirectoryClose, DirectoryStatus,
                     directoryRefresh = new DirectoryRefreshImpl();        	
                 break;
             default:
-                assert (false);
+                clear();
                 break;
         }
     }
@@ -205,23 +202,63 @@ class DirectoryMsgImpl implements DirectoryMsg, DirectoryClose, DirectoryStatus,
     @Override
     public int decode(DecodeIterator dIter, Msg msg)
     {
-        switch (rdmMsgType())
-        {
-            case REQUEST:
-                return rdmDirectoryRequest().decode(dIter, msg);
-            case CLOSE:
-                return rdmDirectoryClose().decode(dIter, msg);
-            case CONSUMER_STATUS:
-                return rdmDirectoryConsumerStatus().decode(dIter, msg);
-            case STATUS:
-                return rdmDirectoryStatus().decode(dIter, msg);
-            case UPDATE:
-                return rdmDirectoryUpdate().decode(dIter, msg);
-            case REFRESH:
-                return rdmDirectoryRefresh().decode(dIter, msg);
-            default:
-                assert (false);
-                return CodecReturnCodes.FAILURE;
+        if (rdmMsgType() == DirectoryMsgType.UNKNOWN) {
+            switch (msg.msgClass())
+            {
+                case MsgClasses.REQUEST:
+                    this.rdmMsgType = DirectoryMsgType.REQUEST;
+                    if (directoryRequest == null)
+                        directoryRequest = new DirectoryRequestImpl();
+                    return rdmDirectoryRequest().decode(dIter, msg);
+                case MsgClasses.REFRESH:
+                    this.rdmMsgType = DirectoryMsgType.REFRESH;
+                    if (directoryRefresh == null)
+                        directoryRefresh = new DirectoryRefreshImpl();
+                    return rdmDirectoryRefresh().decode(dIter, msg);
+                case MsgClasses.STATUS:
+                    this.rdmMsgType = DirectoryMsgType.STATUS;
+                    if (directoryStatus == null)
+                        directoryStatus = new DirectoryStatusImpl();
+                    return rdmDirectoryStatus().decode(dIter, msg);
+                case MsgClasses.CLOSE:
+                    this.rdmMsgType = DirectoryMsgType.CLOSE;
+                    if (directoryClose == null)
+                        directoryClose = new DirectoryCloseImpl();
+                    return rdmDirectoryClose().decode(dIter, msg);
+                case MsgClasses.GENERIC:
+                    this.rdmMsgType = DirectoryMsgType.CONSUMER_STATUS;
+                    if (directoryConsumerStatus == null)
+                        directoryConsumerStatus = new DirectoryConsumerStatusImpl();
+                    return rdmDirectoryConsumerStatus().decode(dIter, msg);
+                case MsgClasses.UPDATE:
+                    this.rdmMsgType = DirectoryMsgType.UPDATE;
+                    if (directoryUpdate == null)
+                        directoryUpdate = new DirectoryUpdateImpl();
+                    return rdmDirectoryUpdate().decode(dIter, msg);
+                default:
+                    assert(false);
+                    return CodecReturnCodes.FAILURE;
+            }
+        }
+        else {
+            switch (rdmMsgType())
+            {
+                case REQUEST:
+                    return rdmDirectoryRequest().decode(dIter, msg);
+                case CLOSE:
+                    return rdmDirectoryClose().decode(dIter, msg);
+                case CONSUMER_STATUS:
+                    return rdmDirectoryConsumerStatus().decode(dIter, msg);
+                case STATUS:
+                    return rdmDirectoryStatus().decode(dIter, msg);
+                case UPDATE:
+                    return rdmDirectoryUpdate().decode(dIter, msg);
+                case REFRESH:
+                    return rdmDirectoryRefresh().decode(dIter, msg);
+                default:
+                    assert (false);
+                    return CodecReturnCodes.FAILURE;
+            }
         }
     }
 

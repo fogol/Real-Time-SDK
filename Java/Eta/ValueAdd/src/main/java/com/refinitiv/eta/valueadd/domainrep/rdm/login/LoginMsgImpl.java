@@ -8,15 +8,12 @@
 
 package com.refinitiv.eta.valueadd.domainrep.rdm.login;
 
-import com.refinitiv.eta.codec.Buffer;
-import com.refinitiv.eta.codec.CodecReturnCodes;
-import com.refinitiv.eta.codec.DecodeIterator;
-import com.refinitiv.eta.codec.EncodeIterator;
-import com.refinitiv.eta.codec.Msg;
-import com.refinitiv.eta.codec.State;
+import com.refinitiv.eta.codec.*;
 import com.refinitiv.eta.rdm.DomainTypes;
 
 import java.util.concurrent.TimeUnit;
+
+import static com.refinitiv.eta.codec.DataTypes.ELEMENT_LIST;
 
 @SuppressWarnings("deprecation")
 class LoginMsgImpl implements LoginMsg, LoginRefresh, LoginRequest, LoginAck, LoginPost, LoginStatus, LoginConsumerConnectionStatus, LoginClose, LoginRTT
@@ -118,7 +115,7 @@ class LoginMsgImpl implements LoginMsg, LoginRefresh, LoginRequest, LoginAck, Lo
                     loginRTT = new LoginRTTImpl();
                 break;
             default:
-                assert (false);
+                clear();
                 break;
         }
     }
@@ -212,27 +209,78 @@ class LoginMsgImpl implements LoginMsg, LoginRefresh, LoginRequest, LoginAck, Lo
 
     public int decode(DecodeIterator dIter, Msg msg)
     {
-        switch (rdmLoginMsgType)
-        {
-            case REQUEST:
-                return rdmLoginRequest().decode(dIter, msg);
-            case REFRESH:
-                return rdmLoginRefresh().decode(dIter, msg);
-            case STATUS:
-                return rdmLoginStatus().decode(dIter, msg);
-            case CLOSE:
-                return rdmLoginClose().decode(dIter, msg);
-            case POST:
-                return rdmLoginPost().decode(dIter, msg);
-            case ACK:
-                return rdmLoginAck().decode(dIter, msg);
-            case CONSUMER_CONNECTION_STATUS:
-                return rdmLoginConnStatus().decode(dIter, msg);
-            case RTT:
-                return rdmLoginRTT().decode(dIter, msg);
-            default:
-                assert (false); // not supported on this message class
-                return CodecReturnCodes.FAILURE;
+        if (rdmMsgType() == LoginMsgType.UNKNOWN) {
+            switch (msg.msgClass())
+            {
+                case MsgClasses.REQUEST:
+                    rdmLoginMsgType = LoginMsgType.REQUEST;
+                    if (loginRequest == null)
+                        loginRequest = new LoginRequestImpl();
+                    return rdmLoginRequest().decode(dIter, msg);
+                case MsgClasses.REFRESH:
+                    rdmLoginMsgType = LoginMsgType.REFRESH;
+                    if (loginRefresh == null)
+                        loginRefresh = new LoginRefreshImpl();
+                    return rdmLoginRefresh().decode(dIter, msg);
+                case MsgClasses.STATUS:
+                    rdmLoginMsgType = LoginMsgType.STATUS;
+                    if (loginStatus == null)
+                        loginStatus = new LoginStatusImpl();
+                    return rdmLoginStatus().decode(dIter, msg);
+                case MsgClasses.CLOSE:
+                    rdmLoginMsgType = LoginMsgType.CLOSE;
+                    if (loginClose == null)
+                        loginClose = new LoginCloseImpl();
+                    return rdmLoginClose().decode(dIter, msg);
+                case MsgClasses.GENERIC:
+                    if (msg.containerType() == ELEMENT_LIST) {
+                        rdmLoginMsgType = LoginMsgType.RTT;
+                        if (loginRTT == null)
+                            loginRTT = new LoginRTTImpl();
+                        return rdmLoginRTT().decode(dIter, msg);
+                    } else {
+                        rdmLoginMsgType = LoginMsgType.CONSUMER_CONNECTION_STATUS;
+                        if (loginConnStatus == null)
+                            loginConnStatus = new LoginConsumerConnectionStatusImpl();
+                        return rdmLoginConnStatus().decode(dIter, msg);
+                    }
+                case MsgClasses.POST:
+                    rdmLoginMsgType = LoginMsgType.POST;
+                    if (loginPost == null)
+                        loginPost = new LoginPostImpl();
+                    return rdmLoginPost().decode(dIter, msg);
+                case MsgClasses.ACK:
+                    rdmLoginMsgType = LoginMsgType.ACK;
+                    if (loginAck == null)
+                        loginAck = new LoginAckImpl();
+                    return rdmLoginAck().decode(dIter, msg);
+                default:
+                    return CodecReturnCodes.FAILURE;
+            }
+        }
+        else {
+            switch (rdmLoginMsgType)
+            {
+                case REQUEST:
+                    return rdmLoginRequest().decode(dIter, msg);
+                case REFRESH:
+                    return rdmLoginRefresh().decode(dIter, msg);
+                case STATUS:
+                    return rdmLoginStatus().decode(dIter, msg);
+                case CLOSE:
+                    return rdmLoginClose().decode(dIter, msg);
+                case POST:
+                    return rdmLoginPost().decode(dIter, msg);
+                case ACK:
+                    return rdmLoginAck().decode(dIter, msg);
+                case CONSUMER_CONNECTION_STATUS:
+                    return rdmLoginConnStatus().decode(dIter, msg);
+                case RTT:
+                    return rdmLoginRTT().decode(dIter, msg);
+                default:
+                    assert (false); // not supported on this message class
+                    return CodecReturnCodes.FAILURE;
+            }
         }
     }
     

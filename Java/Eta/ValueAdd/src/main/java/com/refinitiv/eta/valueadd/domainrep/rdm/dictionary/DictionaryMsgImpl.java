@@ -8,12 +8,7 @@
 
 package com.refinitiv.eta.valueadd.domainrep.rdm.dictionary;
 
-import com.refinitiv.eta.codec.Buffer;
-import com.refinitiv.eta.codec.DataDictionary;
-import com.refinitiv.eta.codec.DecodeIterator;
-import com.refinitiv.eta.codec.EncodeIterator;
-import com.refinitiv.eta.codec.Msg;
-import com.refinitiv.eta.codec.State;
+import com.refinitiv.eta.codec.*;
 import com.refinitiv.eta.rdm.DomainTypes;
 
 class DictionaryMsgImpl implements DictionaryMsg, DictionaryRequest, DictionaryClose, DictionaryStatus, DictionaryRefresh
@@ -133,19 +128,49 @@ class DictionaryMsgImpl implements DictionaryMsg, DictionaryRequest, DictionaryC
     @Override
     public int decode(DecodeIterator dIter, Msg msg)
     {
-        switch (rdmMsgType())
-        {
-            case REQUEST:
-                return rdmDictionaryRequest().decode(dIter, msg);
-            case CLOSE:
-                return rdmDictionaryClose().decode(dIter, msg);
-            case STATUS:
-                return rdmDictionaryStatus().decode(dIter, msg);
-            case REFRESH:
-                return rdmDictionaryRefresh().decode(dIter, msg);
-            default:
-                assert (false);
-                return 0;
+        if (rdmMsgType == DictionaryMsgType.UNKNOWN) {
+            switch (msg.msgClass())
+            {
+                case MsgClasses.REQUEST:
+                    this.rdmMsgType = DictionaryMsgType.REQUEST;
+                    if (dictionaryRequest == null)
+                        dictionaryRequest = new DictionaryRequestImpl();
+                    return rdmDictionaryRequest().decode(dIter, msg);
+                case MsgClasses.REFRESH:
+                    this.rdmMsgType = DictionaryMsgType.REFRESH;
+                    if (dictionaryRefresh == null)
+                        dictionaryRefresh = new DictionaryRefreshImpl();
+                    return rdmDictionaryRefresh().decode(dIter, msg);
+                case MsgClasses.STATUS:
+                    this.rdmMsgType = DictionaryMsgType.STATUS;
+                    if (dictionaryStatus == null)
+                        dictionaryStatus = new DictionaryStatusImpl();
+                    return rdmDictionaryStatus().decode(dIter, msg);
+                case MsgClasses.CLOSE:
+                    this.rdmMsgType = DictionaryMsgType.CLOSE;
+                    if (dictionaryClose == null)
+                        dictionaryClose = new DictionaryCloseImpl();
+                    return rdmDictionaryClose().decode(dIter, msg);
+                default:
+                    assert(false);
+                    return CodecReturnCodes.FAILURE;
+            }
+        }
+        else {
+            switch (rdmMsgType())
+            {
+                case REQUEST:
+                    return rdmDictionaryRequest().decode(dIter, msg);
+                case CLOSE:
+                    return rdmDictionaryClose().decode(dIter, msg);
+                case STATUS:
+                    return rdmDictionaryStatus().decode(dIter, msg);
+                case REFRESH:
+                    return rdmDictionaryRefresh().decode(dIter, msg);
+                default:
+                    assert (false);
+                    return 0;
+            }
         }
     }
 
@@ -192,7 +217,7 @@ class DictionaryMsgImpl implements DictionaryMsg, DictionaryRequest, DictionaryC
                     dictionaryRefresh = new DictionaryRefreshImpl();
                 break;
             default:
-                assert (false);
+                clear(); // UNKNOWN type, clear the message
                 break;
         }
     }
