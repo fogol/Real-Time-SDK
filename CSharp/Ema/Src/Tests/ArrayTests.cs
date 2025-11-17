@@ -1458,7 +1458,7 @@ public class ArrayTests
         Assert.True(ae3.OmmStateValue().DataState == OmmState.DataStates.SUSPECT, "OmmArrayEntry.OmmStateValue().dataState()");
         Assert.True(ae3.OmmStateValue().StatusCode == OmmState.StatusCodes.USAGE_ERROR, "OmmArrayEntry.OmmStateValue().statusCode()");
         Assert.Equal("Usage Error", ae3.OmmStateValue().StatusText);
-        Assert.Equal("Closed / Suspect / Usage error / 'Usage Error'", ae3.OmmStateValue().ToString());
+        Assert.Equal("Closed / Suspect / UsageError / 'Usage Error'", ae3.OmmStateValue().ToString());
 
         Assert.False(arIter.MoveNext());
 
@@ -1495,7 +1495,7 @@ public class ArrayTests
             Assert.True(ae3.OmmStateValue().DataState == OmmState.DataStates.SUSPECT, "OmmArrayEntry.OmmStateValue().dataState()");
             Assert.True(ae3.OmmStateValue().StatusCode == OmmState.StatusCodes.USAGE_ERROR, "OmmArrayEntry.OmmStateValue().statusCode()");
             Assert.Equal("Usage Error", ae3.OmmStateValue().StatusText);
-            Assert.Equal("Closed / Suspect / Usage error / 'Usage Error'", ae3.OmmStateValue().ToString());
+            Assert.Equal("Closed / Suspect / UsageError / 'Usage Error'", ae3.OmmStateValue().ToString());
 
             Assert.True(!arIter.MoveNext(), "OmmArray with three State - fourth next()");
         }
@@ -4144,7 +4144,7 @@ public class ArrayTests
         Assert.Equal(OmmState.DataStates.SUSPECT, ae3.OmmStateValue().DataState);
         Assert.Equal(OmmState.StatusCodes.USAGE_ERROR, ae3.OmmStateValue().StatusCode);
         Assert.Equal("Usage Error", ae3.OmmStateValue().StatusText);
-        Assert.Equal("Closed / Suspect / Usage error / 'Usage Error'", ae3.OmmStateValue().ToString());
+        Assert.Equal("Closed / Suspect / UsageError / 'Usage Error'", ae3.OmmStateValue().ToString());
 
         Assert.False(iter.MoveNext());
 
@@ -4183,7 +4183,7 @@ public class ArrayTests
             Assert.Equal(OmmState.DataStates.SUSPECT, ae3.OmmStateValue().DataState);
             Assert.Equal(OmmState.StatusCodes.USAGE_ERROR, ae3.OmmStateValue().StatusCode);
             Assert.Equal("Usage Error", ae3.OmmStateValue().StatusText);
-            Assert.Equal("Closed / Suspect / Usage error / 'Usage Error'", ae3.OmmStateValue().ToString());
+            Assert.Equal("Closed / Suspect / UsageError / 'Usage Error'", ae3.OmmStateValue().ToString());
 
             Assert.False(iter.MoveNext());
         }
@@ -4252,7 +4252,7 @@ public class ArrayTests
         Assert.Equal(OmmState.DataStates.SUSPECT, ae3.OmmStateValue().DataState);
         Assert.Equal(OmmState.StatusCodes.USAGE_ERROR, ae3.OmmStateValue().StatusCode);
         Assert.Equal("Usage Error", ae3.OmmStateValue().StatusText);
-        Assert.Equal("Closed / Suspect / Usage error / 'Usage Error'", ae3.OmmStateValue().ToString());
+        Assert.Equal("Closed / Suspect / UsageError / 'Usage Error'", ae3.OmmStateValue().ToString());
 
         Assert.False(iter.MoveNext());
 
@@ -4300,7 +4300,7 @@ public class ArrayTests
             Assert.Equal(OmmState.DataStates.SUSPECT, ae3.OmmStateValue().DataState);
             Assert.Equal(OmmState.StatusCodes.USAGE_ERROR, ae3.OmmStateValue().StatusCode);
             Assert.Equal("Usage Error", ae3.OmmStateValue().StatusText);
-            Assert.Equal("Closed / Suspect / Usage error / 'Usage Error'", ae3.OmmStateValue().ToString());
+            Assert.Equal("Closed / Suspect / UsageError / 'Usage Error'", ae3.OmmStateValue().ToString());
 
             Assert.False(iter.MoveNext());
         }

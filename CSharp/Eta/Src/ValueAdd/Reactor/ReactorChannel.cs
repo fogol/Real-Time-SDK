@@ -786,17 +786,44 @@ namespace LSEG.Eta.ValueAdd.Reactor
         {
             errorInfo = null;
 
-            if (!IsPreferredHostEnabled)
-                return Reactor.PopulateErrorInfo(out errorInfo, ReactorReturnCode.INVALID_USAGE,
-                    "ReactorChannel.FallbackPreferredHost",
-                    "Preferred host fallback is disabled.");
-            if (!ShouldFallbackToPreferredHost)
+            if (Reactor == null)
             {
-                m_ReactorEventSender!.SendPreferredHostNoFallback(this);
-                return ReactorReturnCode.SUCCESS;
+                return Reactor.PopulateErrorInfo(out errorInfo, ReactorReturnCode.FAILURE, "ReactorChannel.FallbackPreferredHost", "Reactor cannot be null");
             }
 
-            return m_ReactorEventSender!.SendWorkerImplEvent(ReactorEventImpl.ImplType.PREFERRED_HOST_START_FALLBACK, this);
+            Reactor.ReactorLock.Enter();
+
+            try
+            {
+                if (Reactor.IsShutdown)
+                {
+                    return Reactor.PopulateErrorInfo(out errorInfo, ReactorReturnCode.SHUTDOWN, "ReactorChannel.FallbackPreferredHost", "Reactor is shutdown, FallbackPreferredHost aborted.");
+                }
+
+                if(Role!.Type != ReactorRoleType.CONSUMER)
+                {
+                    return Reactor.PopulateErrorInfo(out errorInfo, ReactorReturnCode.FAILURE, "ReactorChannel.FallbackPreferredHost", 
+                        "Preferred host feature is not enabled for Interactive and Non-interactive Provider.");
+                }
+
+                if (!IsPreferredHostEnabled)
+                    return Reactor.PopulateErrorInfo(out errorInfo, ReactorReturnCode.INVALID_USAGE,
+                        "ReactorChannel.FallbackPreferredHost",
+                        "Preferred host feature is not enabled for the specified ReactorChannel: fallback is not feasible.");
+
+                if (!ShouldFallbackToPreferredHost)
+                {
+                    m_ReactorEventSender!.SendPreferredHostNoFallback(this);
+                    return ReactorReturnCode.SUCCESS;
+                }
+
+                return m_ReactorEventSender!.SendWorkerImplEvent(ReactorEventImpl.ImplType.PREFERRED_HOST_START_FALLBACK, this);
+            }
+            finally
+            {
+                Reactor.ReactorLock.Exit();
+
+            }
         }
 
         internal void OnFallbackStarted()

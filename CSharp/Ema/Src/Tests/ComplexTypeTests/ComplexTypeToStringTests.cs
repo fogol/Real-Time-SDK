@@ -1284,7 +1284,7 @@ namespace LSEG.Ema.Access.Tests.ComplexTypeTests
             if (msgParameters.Streaming) Assert.Contains($"{GetIndent(indent + 1)}streaming", msgString);
             if (msgParameters.Pause) Assert.Contains($"{GetIndent(indent + 1)}pause", msgString);
             if (msgParameters.HasPermData) Assert.Contains($"{GetIndent(indent + 1)}permissionData=\"0x70\"", msgString); else Assert.DoesNotContain($"{GetIndent(indent + 1)}permissionData=\"0x70\"", msgString);
-            if (msgParameters.HasState) Assert.Contains($"{GetIndent(indent + 1)}state=\"Closed / No Change / Invalid view / \'Something went wrong\'\"", msgString);
+            if (msgParameters.HasState) Assert.Contains($"{GetIndent(indent + 1)}state=\"Closed / No Change / InvalidView / \'Something went wrong\'\"", msgString);
             if (msgParameters.ClearCache) Assert.Contains($"{GetIndent(indent + 1)}clearCache", msgString); else Assert.DoesNotContain($"{GetIndent(indent + 1)}clearCache", msgString);
 
             CheckExtendedHeader(msgString, msgParameters, indent);
