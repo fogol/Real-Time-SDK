@@ -18,7 +18,8 @@ RSSL_API char *rsslCopyBufferMemory(RsslBuffer *pOutBuf, RsslBuffer *pInBuf, Rss
 
 	if (pBufferMem)
 	{
-		memcpy(pBufferMem, pInBuf->data, pInBuf->length);
+		if (pInBuf->length)
+			memcpy(pBufferMem, pInBuf->data, pInBuf->length);
 		pOutBuf->data = pBufferMem;
 		pOutBuf->length = pInBuf->length;
 	}
