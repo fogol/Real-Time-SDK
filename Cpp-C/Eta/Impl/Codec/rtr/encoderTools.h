@@ -146,8 +146,11 @@ RTR_C_INLINE char * _rsslEncodeBuffer15(char *position, const RsslBuffer * buffe
 {
 	RsslUInt16 tlen = (RsslUInt16)buffer->length;
 	position += rwfPutResBitU15( position, tlen);
-	MemCopyByInt( position, buffer->data, tlen );
-	position += tlen;
+	if (tlen)
+	{
+		MemCopyByInt(position, buffer->data, tlen);
+		position += tlen;
+	}
 	return position;
 }
 

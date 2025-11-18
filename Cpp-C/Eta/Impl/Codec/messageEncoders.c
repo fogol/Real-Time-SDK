@@ -1570,7 +1570,8 @@ RSSL_API RsslRet rsslEncodeMsg(RsslEncodeIterator		*pIter,
 		return RSSL_RET_BUFFER_TOO_SMALL;
 	}
 
-	pIter->_curBufPtr =_rsslEncodeCopyData(pIter->_curBufPtr, &pMsg->msgBase.encDataBody);
+	if (pMsg->msgBase.encDataBody.length)
+		pIter->_curBufPtr = _rsslEncodeCopyData(pIter->_curBufPtr, &pMsg->msgBase.encDataBody);
 
 	--pIter->_encodingLevel;
 
