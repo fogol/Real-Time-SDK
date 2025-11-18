@@ -57,6 +57,16 @@ namespace LSEG.Ema.Access
             m_dataType = Access.DataType.DataTypes.GENERIC_MSG;
         }
 
+        /// <summary>
+        /// Constuctor that preallocates buffer which is used to copy message encoded buffer.
+        /// </summary>
+        /// <param name="initialSize">Initial size of preallocated buffer.</param>
+        public GenericMsg(int initialSize)
+            : this()
+        {
+            InitByteBuffer(initialSize);
+        }
+
         internal GenericMsg(EmaObjectManager objectManager) : base(objectManager)
         {
             m_msgClass = MsgClasses.GENERIC;
@@ -202,6 +212,7 @@ namespace LSEG.Ema.Access
         public GenericMsg DomainType(int domainType)
         {
             m_genericMsgEncoder.DomainType(domainType);
+            m_isUpdatedAfterCopying = true;
             return this;
         }
 
@@ -213,6 +224,7 @@ namespace LSEG.Ema.Access
         public GenericMsg Name(string name)
         {
             m_genericMsgEncoder.Name(name);
+            m_isUpdatedAfterCopying = true;
             return this;
         }
 
@@ -224,6 +236,7 @@ namespace LSEG.Ema.Access
         public GenericMsg NameType(int nameType)
         {
             m_genericMsgEncoder.NameType(nameType);
+            m_isUpdatedAfterCopying = true;
             return this;
         }
 
@@ -235,6 +248,7 @@ namespace LSEG.Ema.Access
         public GenericMsg ServiceId(int serviceId)
         {
             m_genericMsgEncoder.ServiceId(serviceId);
+            m_isUpdatedAfterCopying = true;
             return this;
         }
 
@@ -246,6 +260,7 @@ namespace LSEG.Ema.Access
         public GenericMsg Id(int id)
         {
             m_genericMsgEncoder.Identifier(id);
+            m_isUpdatedAfterCopying = true;
             return this;
         }
 
@@ -257,6 +272,7 @@ namespace LSEG.Ema.Access
         public GenericMsg Filter(long filter)
         {
             m_genericMsgEncoder.Filter(filter);
+            m_isUpdatedAfterCopying = true;
             return this;
         }
 
@@ -301,6 +317,7 @@ namespace LSEG.Ema.Access
         public GenericMsg PermissionData(EmaBuffer permissionData)
         {
             m_genericMsgEncoder.PermissionData(permissionData);
+            m_isUpdatedAfterCopying = true;
             return this;
         }
 
@@ -336,6 +353,7 @@ namespace LSEG.Ema.Access
         public GenericMsg ExtendedHeader(EmaBuffer buffer)
         {
             m_genericMsgEncoder.ExtendedHeader(buffer);
+            m_isUpdatedAfterCopying = true;
             return this;
         }
 
@@ -348,6 +366,7 @@ namespace LSEG.Ema.Access
         public GenericMsg Complete(bool complete)
         {
             m_genericMsgEncoder.MsgComplete(complete);
+            m_isUpdatedAfterCopying = true;
             return this;
         }
 
@@ -387,7 +406,7 @@ namespace LSEG.Ema.Access
         public GenericMsg Clone()
         {
             var copy = new GenericMsg();
-            CopyMsg(copy);
+            CopyTo(copy);
             return copy;
         }
 
@@ -395,6 +414,64 @@ namespace LSEG.Ema.Access
         {
             return Clone();
         }
+
+        /// <summary>
+        /// Performs a deep copy of <see cref="GenericMsg"/> into the passed in object.
+        /// </summary>
+        /// <param name="destGenericMsg">object to copy <see cref="GenericMsg"/> into.</param>
+        public void Copy(GenericMsg destGenericMsg) =>
+            CopyTo(destGenericMsg);
+
+        /// <inheritdoc />
+        protected override void CopyAttributesTo(Msg dest)
+        {
+            base.CopyAttributesTo(dest);
+            var decodeAttribPayload = false;
+            var destGenericMsg = (GenericMsg)dest;
+            if (HasMsgKey)
+            {
+                if (HasNameType)
+                    destGenericMsg.NameType(NameType());
+                if (HasServiceId)
+                    destGenericMsg.ServiceId(ServiceId());
+                if (HasId)
+                    destGenericMsg.Id(Id());
+                if (HasFilter)
+                    destGenericMsg.Filter(Filter());
+                var msgKey = m_rsslMsg.MsgKey;
+                if (msgKey.AttribContainerType != DataTypes.NO_DATA)
+                {
+                    var destMsgKey = destGenericMsg.m_rsslMsg.MsgKey;
+                    destMsgKey.AttribContainerType = msgKey.AttribContainerType;
+                    decodeAttribPayload = msgKey.EncodedAttrib.Overwrite(destMsgKey.EncodedAttrib) == CodecReturnCode.SUCCESS;
+                }
+            }
+            destGenericMsg.DomainType(DomainType());
+            if (HasExtendedHeader)
+            {
+                destGenericMsg.m_rsslMsg.ExtendedHeader = new Eta.Codec.Buffer();
+                destGenericMsg.ExtendedHeader(ExtendedHeader());
+            }
+            if (HasPermissionData)
+            {
+                destGenericMsg.m_rsslMsg.PermData = new Eta.Codec.Buffer();
+                destGenericMsg.PermissionData(PermissionData());
+            }
+            destGenericMsg.Complete(Complete());
+            if (m_rsslMsg.ContainerType != Eta.Codec.DataTypes.NO_DATA)
+            {
+                destGenericMsg.m_rsslMsg.EncodedDataBody = new Eta.Codec.Buffer();
+                destGenericMsg.m_rsslMsg.ContainerType = m_rsslMsg.ContainerType;
+                decodeAttribPayload = m_rsslMsg.EncodedDataBody.Overwrite(destGenericMsg.m_rsslMsg.EncodedDataBody) == CodecReturnCode.SUCCESS;
+            }
+
+            if (decodeAttribPayload && m_dataDictionary != null)
+            {
+                destGenericMsg.DecodeAttribAndPayload(m_dataDictionary, null);
+            }
+        }
+
+        internal override void SetName(string name) => Name(name);
 
         [MethodImpl(MethodImplOptions.AggressiveOptimization | MethodImplOptions.AggressiveInlining)]
         internal override string FillString(int indent)

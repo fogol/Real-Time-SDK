@@ -301,6 +301,15 @@ namespace LSEG.Eta.Codec
             }
         }
 
+        /// <summary>
+        /// Overwrites destination buffer with contents of current buffer.
+        /// </summary>
+        /// <param name="destBuffer">Destination buffer to overwrite.</param>
+        /// <returns></returns>
+		[MethodImpl(MethodImplOptions.AggressiveOptimization | MethodImplOptions.AggressiveInlining)]
+        public CodecReturnCode Overwrite(Buffer destBuffer) =>
+            CopyWithOrWithoutByteBuffer(destBuffer);
+
         [MethodImpl(MethodImplOptions.AggressiveOptimization | MethodImplOptions.AggressiveInlining)]
         internal CodecReturnCode CopyWithOrWithoutByteBuffer(Buffer buffer)
         {

@@ -63,6 +63,16 @@ namespace LSEG.Ema.Access
             m_dataType = Access.DataType.DataTypes.STATUS_MSG;
         }
 
+        /// <summary>
+        /// Constuctor that preallocates buffer which is used to copy message encoded buffer.
+        /// </summary>
+        /// <param name="initialSize">Initial size of preallocated buffer.</param>
+        public StatusMsg(int initialSize)
+            : this()
+        {
+            InitByteBuffer(initialSize);
+        }
+
         internal StatusMsg(EmaObjectManager objectManager) : base(objectManager)
         {
             m_msgClass = MsgClasses.STATUS;
@@ -251,6 +261,7 @@ namespace LSEG.Ema.Access
         public StatusMsg DomainType(int domainType)
         {
             m_statusMsgEncoder.DomainType(domainType);
+            m_isUpdatedAfterCopying = true;
             return this;
         }
 
@@ -262,6 +273,7 @@ namespace LSEG.Ema.Access
         public StatusMsg Name(string name)
         {
             m_statusMsgEncoder.Name(name);
+            m_isUpdatedAfterCopying = true;
             return this;
         }
 
@@ -273,6 +285,7 @@ namespace LSEG.Ema.Access
         public StatusMsg NameType(int nameType)
         {
             m_statusMsgEncoder.NameType(nameType);
+            m_isUpdatedAfterCopying = true;
             return this;
         }
 
@@ -285,6 +298,7 @@ namespace LSEG.Ema.Access
         public StatusMsg ServiceName(string serviceName)
         {
             SetMsgServiceName(serviceName);
+            m_isUpdatedAfterCopying = true;
             return this;
         }
 
@@ -297,6 +311,7 @@ namespace LSEG.Ema.Access
         public StatusMsg ServiceId(int serviceId)
         {
             m_statusMsgEncoder.ServiceId(serviceId);
+            m_isUpdatedAfterCopying = true;
             return this;
         }
 
@@ -308,6 +323,7 @@ namespace LSEG.Ema.Access
         public StatusMsg Id(int id)
         {
             m_statusMsgEncoder.Identifier(id);
+            m_isUpdatedAfterCopying = true;
             return this;
         }
 
@@ -319,6 +335,7 @@ namespace LSEG.Ema.Access
         public StatusMsg Filter(long filter)
         {
             m_statusMsgEncoder.Filter(filter);
+            m_isUpdatedAfterCopying = true;
             return this;
         }
 
@@ -333,6 +350,7 @@ namespace LSEG.Ema.Access
         public StatusMsg State(int streamState, int dataState, int statusCode = 0, string statusText = "")
         {
             m_statusMsgEncoder.State(streamState, dataState, statusCode, statusText);
+            m_isUpdatedAfterCopying = true;
             return this;
         }
 
@@ -344,6 +362,7 @@ namespace LSEG.Ema.Access
         public StatusMsg ItemGroup(EmaBuffer itemGroup)
         {
             m_statusMsgEncoder.ItemGroup(itemGroup);
+            m_isUpdatedAfterCopying = true;
             return this;
         }
 
@@ -355,6 +374,7 @@ namespace LSEG.Ema.Access
         public StatusMsg PermissionData(EmaBuffer permissionData)
         {
             m_statusMsgEncoder.PermissionData(permissionData);
+            m_isUpdatedAfterCopying = true;
             return this;
         }
 
@@ -402,6 +422,7 @@ namespace LSEG.Ema.Access
         public StatusMsg ExtendedHeader(EmaBuffer buffer)
         {
             m_statusMsgEncoder.ExtendedHeader(buffer);
+            m_isUpdatedAfterCopying = true;
             return this;
         }
 
@@ -443,7 +464,7 @@ namespace LSEG.Ema.Access
         public StatusMsg Clone()
         {
             var copy = new StatusMsg();
-            CopyMsg(copy);
+            CopyTo(copy);
             return copy;
         }
 
@@ -451,6 +472,72 @@ namespace LSEG.Ema.Access
         {
             return Clone();
         }
+
+        /// <summary>
+        /// Performs a deep copy of <see cref="StatusMsg"/> into the passed in object.
+        /// </summary>
+        /// <param name="destStatusMsg">object to copy <see cref="StatusMsg"/> into.</param>
+        public void Copy(StatusMsg destStatusMsg) =>
+            CopyTo(destStatusMsg);
+
+        /// <inheritdoc />
+        protected override void CopyAttributesTo(Msg dest)
+        {
+            base.CopyAttributesTo(dest);
+            var decodeAttribPayload = false;
+            var destStatusMsg = (StatusMsg)dest;
+            if (HasMsgKey)
+            {
+                if (HasNameType)
+                    destStatusMsg.NameType(NameType());
+                if (HasServiceId)
+                    destStatusMsg.ServiceId(ServiceId());
+                if (HasId)
+                    destStatusMsg.Id(Id());
+                if (HasFilter)
+                    destStatusMsg.Filter(Filter());
+                var msgKey = m_rsslMsg.MsgKey;
+                if (msgKey.AttribContainerType != DataTypes.NO_DATA)
+                {
+                    var destMsgKey = destStatusMsg.m_rsslMsg.MsgKey;
+                    destMsgKey.AttribContainerType = msgKey.AttribContainerType;
+                    decodeAttribPayload = msgKey.EncodedAttrib.Overwrite(destMsgKey.EncodedAttrib) == CodecReturnCode.SUCCESS;
+                }
+            }
+            destStatusMsg.DomainType(DomainType());
+            if (HasExtendedHeader)
+            {
+                destStatusMsg.m_rsslMsg.ExtendedHeader = new Eta.Codec.Buffer();
+                destStatusMsg.ExtendedHeader(ExtendedHeader());
+            }
+            if (HasServiceName)
+                destStatusMsg.ServiceName(ServiceName());
+            if (HasPermissionData)
+            {
+                destStatusMsg.m_rsslMsg.PermData = new Eta.Codec.Buffer();
+                destStatusMsg.PermissionData(PermissionData());
+            }
+            if (HasItemGroup)
+            {
+                destStatusMsg.m_rsslMsg.GroupId = new Eta.Codec.Buffer();
+                destStatusMsg.ItemGroup(ItemGroup());
+            }
+            if (HasState)
+                destStatusMsg.State(State().StreamState, State().DataState, State().StatusCode, State().StatusText);
+            if (m_rsslMsg.ContainerType != Eta.Codec.DataTypes.NO_DATA)
+            {
+                destStatusMsg.m_rsslMsg.EncodedDataBody = new Eta.Codec.Buffer();
+                destStatusMsg.m_rsslMsg.ContainerType = m_rsslMsg.ContainerType;
+                decodeAttribPayload = m_rsslMsg.EncodedDataBody.Overwrite(destStatusMsg.m_rsslMsg.EncodedDataBody) == CodecReturnCode.SUCCESS;
+            }
+
+            if (decodeAttribPayload && m_dataDictionary != null)
+            {
+                destStatusMsg.DecodeAttribAndPayload(m_dataDictionary, null);
+            }
+        }
+
+        internal override void SetName(string name) => Name(name);
 
         /// <summary>
         /// Completes encoding current StatusMsg

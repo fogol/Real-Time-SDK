@@ -72,6 +72,16 @@ namespace LSEG.Ema.Access
             m_dataType = Access.DataType.DataTypes.ACK_MSG;
         }
 
+        /// <summary>
+        /// Constuctor that preallocates buffer which is used to copy message encoded buffer.
+        /// </summary>
+        /// <param name="initialSize">Initial size of preallocated buffer.</param>
+        public AckMsg(int initialSize)
+            : this()
+        {
+            InitByteBuffer(initialSize);
+        }
+
         internal AckMsg(EmaObjectManager objectManager) : base(objectManager)
         {
             m_msgClass = MsgClasses.ACK;
@@ -231,6 +241,7 @@ namespace LSEG.Ema.Access
         public AckMsg DomainType(int domainType)
         {
             m_ackMsgEncoder.DomainType(domainType);
+            m_isUpdatedAfterCopying = true;
             return this;
         }
 
@@ -242,6 +253,7 @@ namespace LSEG.Ema.Access
         public AckMsg Name(string name)
         {
             m_ackMsgEncoder.Name(name);
+            m_isUpdatedAfterCopying = true;
             return this;
         }
 
@@ -253,6 +265,7 @@ namespace LSEG.Ema.Access
         public AckMsg NameType(int nameType)
         {
             m_ackMsgEncoder.NameType(nameType);
+            m_isUpdatedAfterCopying = true;
             return this;
         }
 
@@ -265,6 +278,7 @@ namespace LSEG.Ema.Access
         public AckMsg ServiceName(string serviceName)
         {
             SetMsgServiceName(serviceName);
+            m_isUpdatedAfterCopying = true;
             return this;
         }
 
@@ -277,6 +291,7 @@ namespace LSEG.Ema.Access
         public AckMsg ServiceId(int serviceId)
         {
             m_ackMsgEncoder.ServiceId(serviceId);
+            m_isUpdatedAfterCopying = true;
             return this;
         }
 
@@ -288,6 +303,7 @@ namespace LSEG.Ema.Access
         public AckMsg Id(int id)
         {
             m_ackMsgEncoder.Identifier(id);
+            m_isUpdatedAfterCopying = true;
             return this;
         }
 
@@ -299,6 +315,7 @@ namespace LSEG.Ema.Access
         public AckMsg Filter(long filter)
         {
             m_ackMsgEncoder.Filter(filter);
+            m_isUpdatedAfterCopying = true;
             return this;
         }
 
@@ -356,6 +373,7 @@ namespace LSEG.Ema.Access
         public AckMsg Text(string text)
         {
             m_ackMsgEncoder.Text(text);
+            m_isUpdatedAfterCopying = true;
             return this;
         }
 
@@ -391,6 +409,7 @@ namespace LSEG.Ema.Access
         public AckMsg ExtendedHeader(EmaBuffer buffer)
         {
             m_ackMsgEncoder.ExtendedHeader(buffer);
+            m_isUpdatedAfterCopying = true;
             return this;
         }
 
@@ -434,7 +453,7 @@ namespace LSEG.Ema.Access
         public AckMsg Clone()
         {
             var copy = new AckMsg();
-            CopyMsg(copy);
+            CopyTo(copy);
             return copy;
         }
 
@@ -442,6 +461,62 @@ namespace LSEG.Ema.Access
         {
             return Clone();
         }
+
+        /// <summary>
+        /// Performs a deep copy of <see cref="AckMsg"/> into the passed in object.
+        /// </summary>
+        /// <param name="destAckMsg">object to copy <see cref="AckMsg"/> into.</param>
+        public void Copy(AckMsg destAckMsg) =>
+            CopyTo(destAckMsg);
+
+        /// <inheritdoc />
+        protected override void CopyAttributesTo(Msg dest)
+        {
+            base.CopyAttributesTo(dest);
+            var decodeAttribPayload = false;
+            var destAckMsg = (AckMsg)dest;
+            if (HasMsgKey)
+            {
+                if (HasNameType)
+                    destAckMsg.NameType(NameType());
+                if (HasServiceId)
+                    destAckMsg.ServiceId(ServiceId());
+                if (HasId)
+                    destAckMsg.Id(Id());
+                if (HasFilter)
+                    destAckMsg.Filter(Filter());
+                var msgKey = m_rsslMsg.MsgKey;
+                if (msgKey.AttribContainerType != DataTypes.NO_DATA)
+                {
+                    var destMsgKey = destAckMsg.m_rsslMsg.MsgKey;
+                    destMsgKey.AttribContainerType = msgKey.AttribContainerType;
+                    decodeAttribPayload = msgKey.EncodedAttrib.Overwrite(destMsgKey.EncodedAttrib) == CodecReturnCode.SUCCESS;
+                }
+            }
+            destAckMsg.DomainType(DomainType());
+            if (HasExtendedHeader)
+            {
+                destAckMsg.m_rsslMsg.ExtendedHeader = new Eta.Codec.Buffer();
+                destAckMsg.ExtendedHeader(ExtendedHeader());
+            }
+            if (HasServiceName)
+                destAckMsg.ServiceName(ServiceName());
+            if (HasText)
+                destAckMsg.Text(Text());
+            if (m_rsslMsg.ContainerType != Eta.Codec.DataTypes.NO_DATA)
+            {
+                destAckMsg.m_rsslMsg.EncodedDataBody = new Eta.Codec.Buffer();
+                destAckMsg.m_rsslMsg.ContainerType = m_rsslMsg.ContainerType;
+                decodeAttribPayload = m_rsslMsg.EncodedDataBody.Overwrite(destAckMsg.m_rsslMsg.EncodedDataBody) == CodecReturnCode.SUCCESS;
+            }
+
+            if (decodeAttribPayload && m_dataDictionary != null)
+            {
+                destAckMsg.DecodeAttribAndPayload(m_dataDictionary, null);
+            }
+        }
+
+        internal override void SetName(string name) => Name(name);
 
         [MethodImpl(MethodImplOptions.AggressiveOptimization | MethodImplOptions.AggressiveInlining)]
         internal override string FillString(int indent)

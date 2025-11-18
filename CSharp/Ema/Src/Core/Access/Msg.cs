@@ -6,11 +6,14 @@
  *|-----------------------------------------------------------------------------
  */
 
-using LSEG.Eta.Codec;
 using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+
+using LSEG.Eta.Codec;
+
 using Buffer = LSEG.Eta.Codec.Buffer;
+using ByteBuffer = LSEG.Eta.Common.ByteBuffer;
 
 namespace LSEG.Ema.Access
 {
@@ -43,6 +46,11 @@ namespace LSEG.Ema.Access
         protected bool m_isClonedMsg = false;
 
         private string? m_serviceName = null;
+
+        /// <inheritdoc />
+        protected bool m_isUpdatedAfterCopying = false;
+        /// <inheritdoc />
+        protected Buffer m_copiedBuffer = new();
 
 #pragma warning disable CS8618
 
@@ -298,6 +306,8 @@ namespace LSEG.Ema.Access
             return m_serviceName!;
         }
 
+        internal abstract void SetName(string name);
+
         /// <summary>
         /// Clear current Msg instance.
         /// </summary>
@@ -317,6 +327,11 @@ namespace LSEG.Ema.Access
             m_rsslMsg.MsgClass = m_msgClass;
 
             m_rsslMsg = m_internalRsslMsg;
+
+            if (m_copiedBuffer.Data() != null)
+            {
+                m_copiedBuffer.Data().Clear();
+            }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveOptimization | MethodImplOptions.AggressiveInlining)]
@@ -367,6 +382,37 @@ namespace LSEG.Ema.Access
             {
                 destMsg.SetServiceName(m_serviceName);
             }
+            if (HasName)
+            {
+                destMsg.SetName(Name());
+            }
+        }
+
+        /// <inheritdoc />
+        protected void CopyTo(Msg dest)
+        {
+            CopyMsg(dest);
+            if (m_isUpdatedAfterCopying)
+            {
+                CopyAttributesTo(dest);
+            }
+        }
+
+        /// <inheritdoc />
+        protected virtual void CopyAttributesTo(Msg dest)
+        {}
+
+        /// <summary>
+        /// Allocates the ByteBuffer only when the <paramref name="size"/> is more than zero
+        /// </summary>
+        /// <param name="size"></param>
+        protected void InitByteBuffer(int size)
+        {
+            if (size > 0)
+            {
+                var byteBuffer = new ByteBuffer(size);
+                m_copiedBuffer.Data(byteBuffer);
+            }
         }
 
         #region Internal methods
@@ -374,16 +420,21 @@ namespace LSEG.Ema.Access
         [MethodImpl(MethodImplOptions.AggressiveOptimization | MethodImplOptions.AggressiveInlining)]
         internal void CopyFromInternalRsslMsg(IMsg sourceRsslMsg, Msg destMsg)
         {
-            sourceRsslMsg.Copy(destMsg.m_rsslMsg, CopyMsgFlags.ALL_FLAGS);
-
-            if (sourceRsslMsg.MsgKey != null && m_rsslMsg.MsgKey.CheckHasAttrib())
+            if (m_rsslMsg.EncodedMsgBuffer?.Length > 0)
             {
-                DecodeComplexTypeInternal(sourceRsslMsg.MsgKey!.AttribContainerType, destMsg.m_rsslMsg.MsgKey.EncodedAttrib, m_dataDictionary, null, destMsg.m_attrib);
+                m_rsslMsg.EncodedMsgBuffer.Overwrite(destMsg.m_copiedBuffer);
+                destMsg.Decode(destMsg.m_copiedBuffer, m_MajorVersion, m_MinorVersion, m_dataDictionary, null);
+                destMsg.m_rsslMsg.StreamId = m_rsslMsg.StreamId;
             }
-
-            if (destMsg.m_rsslMsg.EncodedDataBody != null && destMsg.m_rsslMsg.EncodedDataBody.Length > 0)
+            else
             {
-                DecodeComplexTypeInternal(sourceRsslMsg.ContainerType, destMsg.m_rsslMsg.EncodedDataBody, m_dataDictionary, null, destMsg.m_payload);
+                EncodeComplete();  // encode the entire message of current instance.
+
+                var encodedMsgBuffer = m_msgEncoder.GetEncodedBuffer(false);  // Get the encoded message buffer from the message.
+
+                encodedMsgBuffer.Overwrite(destMsg.m_copiedBuffer);
+                destMsg.Decode(destMsg.m_copiedBuffer, m_MajorVersion, m_MinorVersion, m_dataDictionary, null);
+                destMsg.m_rsslMsg.StreamId = m_rsslMsg.StreamId;
             }
         }
 

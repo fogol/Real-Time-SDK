@@ -130,6 +130,16 @@ namespace LSEG.Ema.Access
             m_dataType = Access.DataType.DataTypes.REQ_MSG;
         }
 
+        /// <summary>
+        /// Constuctor that preallocates buffer which is used to copy message encoded buffer.
+        /// </summary>
+        /// <param name="initialSize">Initial size of preallocated buffer.</param>
+        public RequestMsg(int initialSize)
+            : this()
+        {
+            InitByteBuffer(initialSize);
+        }
+
         internal RequestMsg(EmaObjectManager manager) : base(manager)
         {
             m_rsslMsg.MsgClass = MsgClasses.REQUEST;
@@ -351,6 +361,7 @@ namespace LSEG.Ema.Access
         public RequestMsg DomainType(int domainType)
         {
             m_requestMsgEncoder.DomainType(domainType);
+            m_isUpdatedAfterCopying = true;
             return this;
         }
 
@@ -363,6 +374,7 @@ namespace LSEG.Ema.Access
         public RequestMsg Name(string name)
         {
             m_requestMsgEncoder.Name(name);
+            m_isUpdatedAfterCopying = true;
             return this;
         }
 
@@ -375,6 +387,7 @@ namespace LSEG.Ema.Access
         public RequestMsg NameType(int nameType)
         {
             m_requestMsgEncoder.NameType(nameType);
+            m_isUpdatedAfterCopying = true;
             return this;
         }
 
@@ -388,6 +401,7 @@ namespace LSEG.Ema.Access
         public RequestMsg ServiceName(string serviceName)
         {
             SetMsgServiceName(serviceName);
+            m_isUpdatedAfterCopying = true;
             return this;
         }
 
@@ -401,6 +415,7 @@ namespace LSEG.Ema.Access
         public RequestMsg ServiceId(int serviceId)
         {
             m_requestMsgEncoder.ServiceId(serviceId);
+            m_isUpdatedAfterCopying = true;
             return this;
         }
 
@@ -444,6 +459,7 @@ namespace LSEG.Ema.Access
         public RequestMsg Id(int id)
         {
             m_requestMsgEncoder.Identifier(id);
+            m_isUpdatedAfterCopying = true;
             return this;
         }
 
@@ -456,6 +472,7 @@ namespace LSEG.Ema.Access
         public RequestMsg Filter(long filter)
         {
             m_requestMsgEncoder.Filter(filter);
+            m_isUpdatedAfterCopying = true;
             return this;
         }
 
@@ -520,6 +537,7 @@ namespace LSEG.Ema.Access
         public RequestMsg ExtendedHeader(EmaBuffer buffer)
         {
             m_requestMsgEncoder.ExtendedHeader(buffer);
+            m_isUpdatedAfterCopying = true;
             return this;
         }
 
@@ -835,7 +853,7 @@ namespace LSEG.Ema.Access
         public RequestMsg Clone()
         {
             var copy = new RequestMsg();
-            CopyMsg(copy);
+            CopyTo(copy);
 
             /* Set the service list name if the service name is not set. */
             if (!m_msgEncoder!.m_serviceNameSet && m_ServiceListName != null)
@@ -851,6 +869,60 @@ namespace LSEG.Ema.Access
         {
             return Clone();
         }
+
+        /// <summary>
+        /// Performs a deep copy of <see cref="RequestMsg"/> into the passed in object.
+        /// </summary>
+        /// <param name="destRequestMsg">object to copy <see cref="RequestMsg"/> into.</param>
+        public void Copy(RequestMsg destRequestMsg) =>
+            CopyTo(destRequestMsg);
+
+        /// <inheritdoc />
+        protected override void CopyAttributesTo(Msg dest)
+        {
+            base.CopyAttributesTo(dest);
+            var decodeAttribPayload = false;
+            var destStatusMsg = (RequestMsg)dest;
+            if (HasMsgKey)
+            {
+                if (HasNameType)
+                    destStatusMsg.NameType(NameType());
+                if (HasServiceId)
+                    destStatusMsg.ServiceId(ServiceId());
+                if (HasId)
+                    destStatusMsg.Id(Id());
+                if (HasFilter)
+                    destStatusMsg.Filter(Filter());
+                var msgKey = m_rsslMsg.MsgKey;
+                if (msgKey.AttribContainerType != DataTypes.NO_DATA)
+                {
+                    var destMsgKey = destStatusMsg.m_rsslMsg.MsgKey;
+                    destMsgKey.AttribContainerType = msgKey.AttribContainerType;
+                    decodeAttribPayload = msgKey.EncodedAttrib.Overwrite(destMsgKey.EncodedAttrib) == CodecReturnCode.SUCCESS;
+                }
+            }
+            destStatusMsg.DomainType(DomainType());
+            if (HasExtendedHeader)
+            {
+                destStatusMsg.m_rsslMsg.ExtendedHeader = new Eta.Codec.Buffer();
+                destStatusMsg.ExtendedHeader(ExtendedHeader());
+            }
+            if (HasServiceName)
+                destStatusMsg.ServiceName(ServiceName());
+            if (m_rsslMsg.ContainerType != Eta.Codec.DataTypes.NO_DATA)
+            {
+                destStatusMsg.m_rsslMsg.EncodedDataBody = new Eta.Codec.Buffer();
+                destStatusMsg.m_rsslMsg.ContainerType = m_rsslMsg.ContainerType;
+                decodeAttribPayload = m_rsslMsg.EncodedDataBody.Overwrite(destStatusMsg.m_rsslMsg.EncodedDataBody) == CodecReturnCode.SUCCESS;
+            }
+
+            if (decodeAttribPayload && m_dataDictionary != null)
+            {
+                destStatusMsg.DecodeAttribAndPayload(m_dataDictionary, null);
+            }
+        }
+
+        internal override void SetName(string name) => Name(name);
 
         /// <summary>
         /// Completes the encoding of Request message

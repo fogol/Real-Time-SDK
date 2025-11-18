@@ -667,5 +667,90 @@ namespace CodecTestProject
             //capacity remains the same
             Assert.Equal(8, buf1.Capacity);
         }
+
+        [Fact]
+        [Category("Unit")]
+        public void OverwriteSameSizeDestinationTest()
+        {
+            // Arrange
+            var srcBuf = CreateBufferFromBytes(new byte[] { 1, 2, 3 });
+            var dstBuf = CreateBufferFromBytes(new byte[] { 4, 5, 6 });
+
+            // Act
+            srcBuf.Overwrite(dstBuf);
+
+            // Assert
+            Assert.Equal(3, dstBuf.Capacity);
+            var dstBytes = dstBuf.Data().Contents;
+            Assert.Equal(1, dstBytes[0]);
+            Assert.Equal(2, dstBytes[1]);
+            Assert.Equal(3, dstBytes[2]);
+        }
+
+        [Fact]
+        [Category("Unit")]
+        public void OverwriteLessSizeDestinationTest()
+        {
+            // Arrange
+            var srcBuf = CreateBufferFromBytes(new byte[] { 1, 2, 3 });
+            var dstBuf = CreateBufferFromBytes(new byte[] { 4, 5 });
+
+            // Act
+            srcBuf.Overwrite(dstBuf);
+
+            // Assert
+            Assert.Equal(3, dstBuf.Capacity);
+            var dstBytes = dstBuf.Data().Contents;
+            Assert.Equal(1, dstBytes[0]);
+            Assert.Equal(2, dstBytes[1]);
+            Assert.Equal(3, dstBytes[2]);
+        }
+
+        [Fact]
+        [Category("Unit")]
+        public void OverwriteBlankDestinationTest()
+        {
+            // Arrange
+            var srcBuf = CreateBufferFromBytes(new byte[] { 1, 2, 3 });
+            var dstBuf = new Buffer();
+
+            // Act
+            srcBuf.Overwrite(dstBuf);
+
+            // Assert
+            Assert.Equal(3, dstBuf.Capacity);
+            var dstBytes = dstBuf.Data().Contents;
+            Assert.Equal(1, dstBytes[0]);
+            Assert.Equal(2, dstBytes[1]);
+            Assert.Equal(3, dstBytes[2]);
+        }
+
+        [Fact]
+        [Category("Unit")]
+        public void OverwriteBiggerSizeDestinationTest()
+        {
+            // Arrange
+            var srcBuf = CreateBufferFromBytes(new byte[] { 1, 2, 3 });
+            var dstBuf = CreateBufferFromBytes(new byte[] { 4, 5, 6, 7 });
+
+            // Act
+            srcBuf.Overwrite(dstBuf);
+
+            // Assert
+            Assert.Equal(4, dstBuf.Capacity);
+            var dstBytes = dstBuf.Data().Contents;
+            Assert.Equal(1, dstBytes[0]);
+            Assert.Equal(2, dstBytes[1]);
+            Assert.Equal(3, dstBytes[2]);
+        }
+
+        private Buffer CreateBufferFromBytes(byte[] bytes)
+        {
+            var buffer = new Buffer();
+            var byteBuffer = new ByteBuffer(bytes.Length);
+            buffer.Data(byteBuffer);
+            byteBuffer.Put(bytes);
+            return buffer;
+        }
     }
 }

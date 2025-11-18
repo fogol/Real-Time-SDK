@@ -6,9 +6,10 @@
  *|-----------------------------------------------------------------------------
  */
 
-using LSEG.Eta.Codec;
 using System;
 using System.Runtime.CompilerServices;
+
+using LSEG.Eta.Codec;
 
 namespace LSEG.Ema.Access
 {
@@ -68,6 +69,16 @@ namespace LSEG.Ema.Access
             ClearTypeSpecific_All = ClearRefresh_All;
             ClearTypeSpecific_Decode = ClearRefresh_Decode;
             m_dataType = Access.DataType.DataTypes.REFRESH_MSG;
+        }
+
+        /// <summary>
+        /// Constuctor that preallocates buffer which is used to copy message encoded buffer.
+        /// </summary>
+        /// <param name="initialSize">Initial size of preallocated buffer.</param>
+        public RefreshMsg(int initialSize)
+            : this()
+        {
+            InitByteBuffer(initialSize);
         }
 
         internal RefreshMsg(EmaObjectManager objectManager) : base(objectManager)
@@ -341,6 +352,7 @@ namespace LSEG.Ema.Access
         public RefreshMsg StreamId(int streamId)
         {
             m_refreshMsgEncoder.StreamId(streamId);
+            m_isUpdatedAfterCopying = true;
             return this;
         }
 
@@ -353,6 +365,7 @@ namespace LSEG.Ema.Access
         public RefreshMsg DomainType(int domainType)
         {
             m_refreshMsgEncoder.DomainType(domainType);
+            m_isUpdatedAfterCopying = true;
             return this;
         }
 
@@ -365,6 +378,7 @@ namespace LSEG.Ema.Access
         public RefreshMsg Name(string name)
         {
             m_refreshMsgEncoder.Name(name);
+            m_isUpdatedAfterCopying = true;
             return this;
         }
 
@@ -377,6 +391,7 @@ namespace LSEG.Ema.Access
         public RefreshMsg NameType(int nameType)
         {
             m_refreshMsgEncoder.NameType(nameType);
+            m_isUpdatedAfterCopying = true;
             return this;
         }
 
@@ -389,6 +404,7 @@ namespace LSEG.Ema.Access
         public RefreshMsg ServiceId(int serviceId)
         {
             m_refreshMsgEncoder.ServiceId(serviceId);
+            m_isUpdatedAfterCopying = true;
             return this;
         }
 
@@ -401,6 +417,7 @@ namespace LSEG.Ema.Access
         public RefreshMsg ServiceName(string serviceName)
         {
             SetMsgServiceName(serviceName);
+            m_isUpdatedAfterCopying = true;
             return this;
         }
 
@@ -413,6 +430,7 @@ namespace LSEG.Ema.Access
         public RefreshMsg Id(int id)
         {
             m_refreshMsgEncoder.Identifier(id);
+            m_isUpdatedAfterCopying = true;
             return this;
         }
 
@@ -425,6 +443,7 @@ namespace LSEG.Ema.Access
         public RefreshMsg Filter(long filter)
         {
             m_refreshMsgEncoder.Filter(filter);
+            m_isUpdatedAfterCopying = true;
             return this;
         }
 
@@ -438,6 +457,7 @@ namespace LSEG.Ema.Access
         public RefreshMsg Qos(uint timeliness, uint rate)
         {
             m_refreshMsgEncoder.Qos(timeliness, rate);
+            m_isUpdatedAfterCopying = true;
             return this;
         }
 
@@ -453,6 +473,7 @@ namespace LSEG.Ema.Access
         public RefreshMsg State(int streamState, int dataState, int statusCode = 0, string statusText = "")
         {
             m_refreshMsgEncoder.State(streamState, dataState, statusCode, statusText);
+            m_isUpdatedAfterCopying = true;
             return this;
         }
 
@@ -466,6 +487,7 @@ namespace LSEG.Ema.Access
         public RefreshMsg SeqNum(long seqNum)
         {
             m_refreshMsgEncoder.SeqNum(seqNum);
+            m_isUpdatedAfterCopying = true;
             return this;
         }
 
@@ -478,6 +500,7 @@ namespace LSEG.Ema.Access
         public RefreshMsg PartNum(int partNum)
         {
             m_refreshMsgEncoder.PartNum(partNum);
+            m_isUpdatedAfterCopying = true;
             return this;
         }
 
@@ -490,6 +513,7 @@ namespace LSEG.Ema.Access
         public RefreshMsg ItemGroup(EmaBuffer itemGroup)
         {
             m_refreshMsgEncoder.ItemGroup(itemGroup);
+            m_isUpdatedAfterCopying = true;
             return this;
         }
 
@@ -502,6 +526,7 @@ namespace LSEG.Ema.Access
         public RefreshMsg PermissionData(EmaBuffer permissionData)
         {
             m_refreshMsgEncoder.PermissionData(permissionData);
+            m_isUpdatedAfterCopying = true;
             return this;
         }
 
@@ -515,6 +540,7 @@ namespace LSEG.Ema.Access
         public RefreshMsg PublisherId(long userId, long userAddress)
         {
             m_refreshMsgEncoder.PublisherId(userId, userAddress);
+            m_isUpdatedAfterCopying = true;
             return this;
         }
 
@@ -553,6 +579,7 @@ namespace LSEG.Ema.Access
         public RefreshMsg ExtendedHeader(EmaBuffer buffer)
         {
             m_refreshMsgEncoder.ExtendedHeader(buffer);
+            m_isUpdatedAfterCopying = true;
             return this;
         }
 
@@ -565,6 +592,7 @@ namespace LSEG.Ema.Access
         public RefreshMsg Solicited(bool solicited)
         {
             m_refreshMsgEncoder.Solicited(solicited);
+            m_isUpdatedAfterCopying = true;
             return this;
         }
 
@@ -577,6 +605,7 @@ namespace LSEG.Ema.Access
         public RefreshMsg DoNotCache(bool doNotCache)
         {
             m_refreshMsgEncoder.DoNotCache(doNotCache);
+            m_isUpdatedAfterCopying = true;
             return this;
         }
 
@@ -589,6 +618,7 @@ namespace LSEG.Ema.Access
         public RefreshMsg ClearCache(bool clearCache)
         {
             m_refreshMsgEncoder.ClearCache(clearCache);
+            m_isUpdatedAfterCopying = true;
             return this;
         }
 
@@ -602,6 +632,7 @@ namespace LSEG.Ema.Access
         public RefreshMsg Complete(bool complete)
         {
             m_refreshMsgEncoder.Complete(complete);
+            m_isUpdatedAfterCopying = true;
             return this;
         }
 
@@ -614,6 +645,7 @@ namespace LSEG.Ema.Access
         public RefreshMsg PrivateStream(bool privateStream)
         {
             m_refreshMsgEncoder.PrivateStream(privateStream);
+            m_isUpdatedAfterCopying = true;
             return this;
         }
 
@@ -634,7 +666,7 @@ namespace LSEG.Ema.Access
         public RefreshMsg Clone()
         {
             var copy = new RefreshMsg();
-            CopyMsg(copy);
+            CopyTo(copy);
             return copy;
         }
 
@@ -642,6 +674,81 @@ namespace LSEG.Ema.Access
         {
             return Clone();
         }
+
+        /// <summary>
+        /// Performs a deep copy of <see cref="RefreshMsg"/> into the passed in object.
+        /// </summary>
+        /// <param name="destRefreshMsg">object to copy <see cref="RefreshMsg"/> into.</param>
+        public void Copy(RefreshMsg destRefreshMsg) =>
+            CopyTo(destRefreshMsg);
+
+        /// <inheritdoc />
+        protected override void CopyAttributesTo(Msg dest)
+        {
+            base.CopyAttributesTo(dest);
+            bool decodeAttribPayload = false;
+            var destRefreshMsg = (RefreshMsg)dest;
+            if (HasMsgKey)
+            {
+                if (HasNameType)
+                    destRefreshMsg.NameType(NameType());
+                if (HasServiceId)
+                    destRefreshMsg.ServiceId(ServiceId());
+                if (HasId)
+                    destRefreshMsg.Id(Id());
+                if (HasFilter)
+                    destRefreshMsg.Filter(Filter());
+                var msgKey = m_rsslMsg.MsgKey;
+                if (msgKey.AttribContainerType != DataTypes.NO_DATA)
+                {
+                    var destMsgKey = destRefreshMsg.m_rsslMsg.MsgKey;
+                    destMsgKey.AttribContainerType = msgKey.AttribContainerType;
+                    destMsgKey.EncodedAttrib = new Eta.Codec.Buffer();
+                    decodeAttribPayload = msgKey.EncodedAttrib.Overwrite(destMsgKey.EncodedAttrib) == CodecReturnCode.SUCCESS;
+                }
+            }
+            destRefreshMsg.DomainType(DomainType());
+            destRefreshMsg.StreamId(StreamId());
+            if (HasExtendedHeader)
+            {
+                destRefreshMsg.m_rsslMsg.ExtendedHeader = new Eta.Codec.Buffer();
+                destRefreshMsg.ExtendedHeader(ExtendedHeader());
+            }
+            if (HasQos)
+                destRefreshMsg.Qos(Qos().Timeliness, Qos().Rate);
+            if (HasServiceName)
+                destRefreshMsg.ServiceName(ServiceName());
+            if (HasSeqNum)
+                destRefreshMsg.SeqNum(SeqNum());
+            if (HasPermissionData)
+            {
+                destRefreshMsg.m_rsslMsg.PermData = new Eta.Codec.Buffer();
+                destRefreshMsg.PermissionData(PermissionData());
+            }
+            if (HasPartNum)
+                destRefreshMsg.PartNum(PartNum());
+            if (HasPublisherId)
+                destRefreshMsg.PublisherId(PublisherIdUserId(), PublisherIdUserAddress());
+            destRefreshMsg.State(State().StreamState, State().DataState, State().StatusCode, State().StatusText);
+            destRefreshMsg.m_rsslMsg.GroupId = new Eta.Codec.Buffer();
+            destRefreshMsg.ItemGroup(ItemGroup());
+            destRefreshMsg.Solicited(Solicited());
+            destRefreshMsg.Complete(Complete());
+            destRefreshMsg.ClearCache(ClearCache());
+            destRefreshMsg.PrivateStream(PrivateStream());
+            destRefreshMsg.DoNotCache(DoNotCache());
+            if (m_rsslMsg.ContainerType != DataTypes.NO_DATA)
+            {
+                destRefreshMsg.m_rsslMsg.ContainerType = m_rsslMsg.ContainerType;
+                destRefreshMsg.m_rsslMsg.EncodedDataBody = new Eta.Codec.Buffer();
+                var copyResult = m_rsslMsg.EncodedDataBody.Overwrite(destRefreshMsg.m_rsslMsg.EncodedDataBody);
+                decodeAttribPayload = copyResult == CodecReturnCode.SUCCESS;
+            }
+            if (decodeAttribPayload && m_dataDictionary != null)
+                destRefreshMsg.DecodeAttribAndPayload(m_dataDictionary, null);
+        }
+
+        internal override void SetName(string name) => Name(name);
 
         /* This is used to override the data state from the ETA State */
         internal void SetDataState(int dataState)
