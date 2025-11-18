@@ -36,7 +36,7 @@
         - DictionaryGroup
         - DirectoryGroup
         - ServerGroup
-		
+
       Any configuration may contain the following elements below the EmaConfig root:
 	    - SessionChannelGroup
 
@@ -581,6 +581,24 @@
                           <xs:element name="ItemCountHint" minOccurs="0" maxOccurs="1">
                             <xs:complexType>
                               <xs:attribute name="value" type="xs:unsignedLong" use="required" />
+                            </xs:complexType>
+                          </xs:element>
+
+                          <xs:element name="ClientSessionCountHint" minOccurs="0" maxOccurs="1">
+                            <xs:complexType>
+                              <xs:attribute name="value" type="xs:unsignedLong" use="required" />
+                            </xs:complexType>
+                          </xs:element>
+
+                          <xs:element name="ClientSessionPoolLimit" minOccurs="0" maxOccurs="1">
+                            <xs:complexType>
+                              <xs:attribute name="value" type="xs:int" use="required" />
+                            </xs:complexType>
+                          </xs:element>
+
+                          <xs:element name="ItemInfoPoolLimit" minOccurs="0" maxOccurs="1">
+                            <xs:complexType>
+                              <xs:attribute name="value" type="xs:int" use="required" />
                             </xs:complexType>
                           </xs:element>
 
@@ -1584,7 +1602,7 @@
             </xs:sequence>
           </xs:complexType>
         </xs:element> <!-- end DictionaryGroup -->
-		
+
 		<!-- SessionChannelGroup configuration -->
         <xs:element name="SessionChannelGroup" minOccurs="0" maxOccurs="1">
           <xs:complexType>

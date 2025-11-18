@@ -947,6 +947,51 @@ namespace LSEG.Ema.Access
                                         }
 
                                         break;
+                                    // ClientSessionCountHint ulong
+                                    case "ClientSessionCountHint":
+                                        if (iProviderEntry.Load == null || iProviderEntry.Load.Code == DataCode.BLANK || iProviderEntry.LoadType != DataTypes.UINT)
+                                        {
+                                            throw new OmmInvalidConfigurationException("Invalid entry payload type for IProvider element ClientSessionCountHint. This element entry must contain an UINT and cannot be blank");
+                                        }
+
+                                        tmpConfig.ClientSessionCountHint = Utilities.Convert_ulong_uint(iProviderEntry.UIntValue());
+
+                                        if (tmpConfig.ClientSessionCountHint == 0)
+                                        {
+                                            tmpConfig.ClientSessionCountHint = 10;
+                                        }
+
+                                        break;
+                                    // ItemInfoPoolLimit int
+                                    case "ItemInfoPoolLimit":
+                                        if (iProviderEntry.Load == null || iProviderEntry.Load.Code == DataCode.BLANK || iProviderEntry.LoadType != DataTypes.INT)
+                                        {
+                                            throw new OmmInvalidConfigurationException("Invalid entry payload type for IProvider element ItemInfoPoolLimit. This element entry must contain an INT and cannot be blank");
+                                        }
+
+                                        tmpConfig.ItemInfoPoolLimit = (int)iProviderEntry.IntValue();
+
+                                        if (tmpConfig.ItemInfoPoolLimit < -1)
+                                        {
+                                            tmpConfig.ItemInfoPoolLimit = -1;
+                                        }
+
+                                        break;
+                                    // ClientSessionPoolLimit int
+                                    case "ClientSessionPoolLimit":
+                                        if (iProviderEntry.Load == null || iProviderEntry.Load.Code == DataCode.BLANK || iProviderEntry.LoadType != DataTypes.INT)
+                                        {
+                                            throw new OmmInvalidConfigurationException("Invalid entry payload type for IProvider element ClientSessionPoolLimit. This element entry must contain an INT and cannot be blank");
+                                        }
+
+                                        tmpConfig.ClientSessionPoolLimit = (int)iProviderEntry.IntValue();
+
+                                        if (tmpConfig.ClientSessionPoolLimit < -1)
+                                        {
+                                            tmpConfig.ClientSessionPoolLimit = -1;
+                                        }
+
+                                        break;
                                     // Logger string
                                     case "Logger":
                                         if (iProviderEntry.Load == null || iProviderEntry.Load.Code == DataCode.BLANK || iProviderEntry.LoadType != DataTypes.ASCII_STRING)

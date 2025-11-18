@@ -6,6 +6,7 @@
  *|-----------------------------------------------------------------------------
  */
 
+using System;
 using LSEG.Eta.Common;
 using LSEG.Eta.ValueAdd.Common;
 
@@ -13,8 +14,8 @@ namespace LSEG.Ema.Access
 {
     internal class ServerPool
     {
-        internal VaPool m_ClientSessionPool = new VaPool(false);
-        internal VaPool m_ItemInfoPool = new VaPool(false);
+        internal VaLimitedPool m_ClientSessionPool = new VaLimitedPool(false);
+        internal VaLimitedPool m_ItemInfoPool = new VaLimitedPool(false);
         long m_ClientHandle = 0;
         long m_ItemHandle = 0;
         MonitorWriteLocker ClientHandlerLock { get; set; } = new MonitorWriteLocker(new object());
@@ -25,14 +26,23 @@ namespace LSEG.Ema.Access
             m_OmmServerBaseImpl = ommServerBaseImpl;
         }
 
-        public void Initialize(uint initClientSession, uint initItemInfo)
+        public void Initialize(ulong initClientSession, 
+            ulong initItemInfo, 
+            int clientSessionPoolLimit, 
+            int itemInfoPoolLimit)
         {
+            SetPoolLimit(m_ClientSessionPool, itemInfoPoolLimit);
+            SetPoolLimit(m_ItemInfoPool, clientSessionPoolLimit);
+
+            if (clientSessionPoolLimit > 0) initClientSession = Math.Min(initClientSession, (ulong)clientSessionPoolLimit);
+
             for (uint index = 0; index < initClientSession; index++)
             {
                 m_ClientSessionPool.Add(new ClientSession(m_OmmServerBaseImpl));
             }
 
-            ulong numOfItemInfo = (ulong)initClientSession * initItemInfo;
+            ulong numOfItemInfo = initClientSession * initItemInfo;
+            if (itemInfoPoolLimit > 0) numOfItemInfo = Math.Min(numOfItemInfo, (ulong)itemInfoPoolLimit);
 
             for (ulong index = 0; index < numOfItemInfo; index++)
             {
@@ -47,7 +57,7 @@ namespace LSEG.Ema.Access
 
             try
             {
-                if(clientSession == null)
+                if (clientSession == null)
                 {
                     clientSession = new ClientSession(serverBaseImpl);
                     m_ClientSessionPool.UpdatePool(clientSession);
@@ -64,6 +74,11 @@ namespace LSEG.Ema.Access
             {
                 ClientHandlerLock.Exit();
             }
+        }
+
+        void SetPoolLimit(VaLimitedPool pool, int limit)
+        {
+            if (limit > 0 || limit == -1) pool.SetLimit(limit);
         }
 
         public ItemInfo GetItemInfo()

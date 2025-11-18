@@ -164,7 +164,8 @@ namespace LSEG.Ema.Access
             m_OperationModel = (OmmIProviderConfig.OperationModelMode)ConfigImpl.DispatchModel;
 
             ServerPool = new ServerPool(this);
-            ServerPool.Initialize(1000, 1000);
+            ServerPool.Initialize(ConfigImpl.IProviderConfig.ClientSessionCountHint, ConfigImpl.IProviderConfig.ItemCountHint, 
+                ConfigImpl.IProviderConfig.ClientSessionPoolLimit, ConfigImpl.IProviderConfig.ItemInfoPoolLimit);
 
             m_EmaRequestMsg = new RequestMsg(m_EmaObjectManager);
             m_EmaRefreshMsg = new RefreshMsg(m_EmaObjectManager);
@@ -201,7 +202,8 @@ namespace LSEG.Ema.Access
             m_OperationModel = (OmmIProviderConfig.OperationModelMode)ConfigImpl.DispatchModel;
 
             ServerPool = new ServerPool(this);
-            ServerPool.Initialize(1000, 1000);
+            ServerPool.Initialize(ConfigImpl.IProviderConfig.ClientSessionCountHint, ConfigImpl.IProviderConfig.ItemCountHint,
+                ConfigImpl.IProviderConfig.ClientSessionPoolLimit, ConfigImpl.IProviderConfig.ItemInfoPoolLimit);
 
             m_EmaRequestMsg = new RequestMsg(m_EmaObjectManager);
             m_EmaRefreshMsg = new RefreshMsg(m_EmaObjectManager);
@@ -631,6 +633,9 @@ namespace LSEG.Ema.Access
                 .Append($"ConfiguredName: {configImpl.IProviderConfig.Name}{ILoggerClient.CR}")
                 .Append($"InstanceName: {InstanceName}{ILoggerClient.CR}")
                 .Append($"ItemCountHint: {configImpl.IProviderConfig.ItemCountHint}{ILoggerClient.CR}")
+                .Append($"ItemInfoPoolLimit: {configImpl.IProviderConfig.ItemInfoPoolLimit}{ILoggerClient.CR}")
+                .Append($"ClientSessionCountHint: {configImpl.IProviderConfig.ClientSessionCountHint}{ILoggerClient.CR}")
+                .Append($"ClientSessionPoolLimit: {configImpl.IProviderConfig.ClientSessionPoolLimit}{ILoggerClient.CR}")
                 .Append($"ServiceCountHint: {configImpl.IProviderConfig.ServiceCountHint}{ILoggerClient.CR}")
                 .Append($"MaxDispatchCountApiThread: {configImpl.IProviderConfig.MaxDispatchCountApiThread}{ILoggerClient.CR}")
                 .Append($"MaxDispatchCountUserThread: {configImpl.IProviderConfig.MaxDispatchCountUserThread}{ILoggerClient.CR}")

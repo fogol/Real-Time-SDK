@@ -4169,6 +4169,9 @@ public class OmmConfigTests
         Assert.Equal("TestDirectory_1", testIProvConfig.Directory);
         Assert.Equal((long)20, testIProvConfig.DispatchTimeoutApiThread);
         Assert.Equal((ulong)30, testIProvConfig.ItemCountHint);
+        Assert.Equal(55, testIProvConfig.ItemInfoPoolLimit);
+        Assert.Equal((ulong)12, testIProvConfig.ClientSessionCountHint);
+        Assert.Equal(15, testIProvConfig.ClientSessionPoolLimit);
         Assert.Equal((int)40, testIProvConfig.MaxDispatchCountApiThread);
         Assert.Equal((int)50, testIProvConfig.MaxDispatchCountUserThread);
         Assert.False(testIProvConfig.RefreshFirstRequired);
@@ -4884,6 +4887,9 @@ public class OmmConfigTests
             .AddAscii("Directory", "ProgDirectory_1")
             .AddInt("DispatchTimeoutApiThread", 2020)
             .AddUInt("ItemCountHint", 2030)
+            .AddUInt("ClientSessionCountHint", 15)
+            .AddInt("ItemInfoPoolLimit", 3500)
+            .AddInt("ClientSessionPoolLimit", 255)
             .AddUInt("MaxDispatchCountApiThread", 2040)
             .AddUInt("MaxDispatchCountUserThread", 2050)
             .AddUInt("RefreshFirstRequired", 0)
@@ -5187,6 +5193,9 @@ public class OmmConfigTests
         Assert.Equal("ProgDirectory_1", testIProvConfig.Directory);
         Assert.Equal((long)2020, testIProvConfig.DispatchTimeoutApiThread);
         Assert.Equal((ulong)2030, testIProvConfig.ItemCountHint);
+        Assert.Equal((ulong)15, testIProvConfig.ClientSessionCountHint);
+        Assert.Equal(3500, testIProvConfig.ItemInfoPoolLimit);
+        Assert.Equal(255, testIProvConfig.ClientSessionPoolLimit);
         Assert.Equal((int)2040, testIProvConfig.MaxDispatchCountApiThread);
         Assert.Equal((int)2050, testIProvConfig.MaxDispatchCountUserThread);
         Assert.False(testIProvConfig.RefreshFirstRequired);

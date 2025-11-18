@@ -24,6 +24,9 @@ namespace LSEG.Ema.Access
         public bool EnforceAckIDValidation { get; set; }
         public int EnumTypeFragmentSize { get; set; }
         public int FieldDictionaryFragmentSize { get; set; }
+        public ulong ClientSessionCountHint { get; set; }
+        public int ClientSessionPoolLimit { get; set; }
+        public int ItemInfoPoolLimit { get; set; }
 
         internal IProviderConfig()
         {
@@ -43,6 +46,9 @@ namespace LSEG.Ema.Access
             EnforceAckIDValidation = oldConfig.EnforceAckIDValidation;
             EnumTypeFragmentSize = oldConfig.EnumTypeFragmentSize;
             FieldDictionaryFragmentSize = oldConfig.FieldDictionaryFragmentSize;
+            ClientSessionCountHint = oldConfig.ClientSessionCountHint;
+            ClientSessionPoolLimit = oldConfig.ClientSessionPoolLimit;
+            ItemInfoPoolLimit = oldConfig.ItemInfoPoolLimit;
         }
 
         internal void Copy(IProviderConfig destConfig)
@@ -58,6 +64,9 @@ namespace LSEG.Ema.Access
             destConfig.EnforceAckIDValidation = EnforceAckIDValidation;
             destConfig.EnumTypeFragmentSize = EnumTypeFragmentSize;
             destConfig.FieldDictionaryFragmentSize = FieldDictionaryFragmentSize;
+            destConfig.ClientSessionCountHint = ClientSessionCountHint;
+            destConfig.ClientSessionPoolLimit = ClientSessionPoolLimit;
+            destConfig.ItemInfoPoolLimit = ItemInfoPoolLimit;
         }
 
         internal new void Clear()
@@ -73,6 +82,9 @@ namespace LSEG.Ema.Access
             EnforceAckIDValidation = false;
             EnumTypeFragmentSize = 12800;
             FieldDictionaryFragmentSize = 8192;
+            ClientSessionCountHint = 10;
+            ClientSessionPoolLimit = -1;
+            ItemInfoPoolLimit = -1;
         }
     }
 }

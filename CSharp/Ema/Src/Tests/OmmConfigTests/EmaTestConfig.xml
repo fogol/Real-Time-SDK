@@ -109,6 +109,9 @@
 				<Directory value="TestDirectory_1"/>
 				<DispatchTimeoutApiThread value="20"/>
 				<ItemCountHint value="30"/>
+				<ItemInfoPoolLimit value="55"/>
+				<ClientSessionCountHint value="12"/>
+				<ClientSessionPoolLimit value="15"/>
 				<MaxDispatchCountApiThread value="40"/>
 				<MaxDispatchCountUserThread value="50"/>
 				<RequestTimeout value="70"/>
