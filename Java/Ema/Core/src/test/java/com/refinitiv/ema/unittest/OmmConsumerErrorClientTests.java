@@ -338,7 +338,6 @@ public class OmmConsumerErrorClientTests {
         innerElementList.add(EmaFactory.createElementEntry().intValue( "RequestTimeout", 5000 ));
         innerElementList.add(EmaFactory.createElementEntry().intValue( "MaxOutstandingPosts", 5000 ));
         innerElementList.add(EmaFactory.createElementEntry().intValue( "DispatchTimeoutApiThread", 1 ));
-        innerElementList.add(EmaFactory.createElementEntry().intValue( "HandleException", 0 ));
         innerElementList.add(EmaFactory.createElementEntry().intValue( "MaxDispatchCountApiThread", 500 ));
         innerElementList.add(EmaFactory.createElementEntry().intValue( "MaxDispatchCountUserThread", 500 ));
         innerElementList.add(EmaFactory.createElementEntry().intValue( "PipePort", 4001 ));

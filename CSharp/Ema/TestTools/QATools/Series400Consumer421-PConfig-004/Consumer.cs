@@ -133,8 +133,7 @@ public partial class Consumer
 		innerElementList.AddUInt( "PostAckTimeout", 5000 );
 		innerElementList.AddUInt( "RequestTimeout", 5000 );
 		innerElementList.AddUInt( "MaxOutstandingPosts", 5000 );
-        innerElementList.AddInt("DispatchTimeoutApiThread", 100);
-		innerElementList.AddUInt( "HandleException", 0 );
+		innerElementList.AddInt( "DispatchTimeoutApiThread", 100);
 		innerElementList.AddUInt( "MaxDispatchCountApiThread", 500 );
 		innerElementList.AddUInt( "MaxDispatchCountUserThread", 500 );
 		innerElementList.AddInt( "PipePort", 4001 );

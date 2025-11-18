@@ -126,7 +126,7 @@ void createProgramaticConfig(Map& configMap)
 	elementList1.addUInt("RequestTimeout", 5000);
 	elementList1.addUInt("MaxOutstandingPosts", 5000);
 	elementList1.addInt("DispatchTimeoutApiThread", 100);
-	elementList1.addUInt("HandleException", 0);
+	elementList1.addUInt("CatchUnhandledException", 0);
 	elementList1.addUInt("MaxDispatchCountApiThread", 500);
 	elementList1.addUInt("MaxDispatchCountUserThread", 500);
 	elementList1.addInt("ReconnectAttemptLimit", 10);
