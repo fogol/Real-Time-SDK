@@ -7,24 +7,34 @@
  */
 
 using System.Globalization;
-using System.Net;
 using System.Text;
 
 namespace LSEG.Eta.ValueAdd.Reactor
 {
-    internal class ReactorRestLogginHandler
+    internal class ReactorRestLogginHandler : IDisposable
     {
-        StreamWriter StreamWriter { get; set; }
-        ReactorOptions ReactorOptions { get; set; }
+        private StreamWriter StreamWriter { get; set; }
+        private ReactorOptions ReactorOptions { get; set; }
 
-        StringBuilder m_StringBuilder = new StringBuilder(5000);
+        private StringBuilder m_StringBuilder = new StringBuilder(5000);
+        private bool m_IsDisposed;
 
         public ReactorRestLogginHandler(ReactorOptions reactorOptions)
         {
-            Stream stream = reactorOptions.RestLogOutputStream != null ? reactorOptions.RestLogOutputStream
-                : Console.OpenStandardOutput();
+            Stream stream;
+            bool leaveOpen;
+            if (reactorOptions.RestLogOutputStream != null)
+            {
+                stream = reactorOptions.RestLogOutputStream;
+                leaveOpen = true;
+            }
+            else
+            {
+                stream = Console.OpenStandardOutput();
+                leaveOpen = false;
+            }
 
-            StreamWriter = new StreamWriter(stream);
+            StreamWriter = new StreamWriter(stream, leaveOpen: leaveOpen);
             StreamWriter.AutoFlush = true;
             ReactorOptions = reactorOptions;
         }
@@ -118,12 +128,24 @@ namespace LSEG.Eta.ValueAdd.Reactor
             }
         }
 
-        /// <summary>
-        /// Finalizer for ReactorRestLogginHandler
-        /// </summary>
-        ~ReactorRestLogginHandler()
+        protected virtual void Dispose(bool disposing)
         {
-            StreamWriter.Dispose();
+            if (m_IsDisposed)
+            {
+                return;
+            }
+            if (disposing)
+            {
+                StreamWriter.Dispose();
+            }
+
+            m_IsDisposed = true;
+        }
+
+        public void Dispose()
+        {
+            Dispose(disposing: true);
+            GC.SuppressFinalize(this);
         }
     }
 }

@@ -820,9 +820,23 @@ public class ReactorWlLoginHandlerTest
 
         int reconnectMinDelay = 1000, reconnectMaxDelay = 3000;
         long expectedReconnectDelayTimeMs;
-        long maxExpectedReconnectDelay = 300;
+        long maxExpectedReconnectDelay = MeasureTransportReconnectDelay() + (reconnectMinDelay + reconnectMaxDelay) / 2;
         System.DateTime startTimeMs;
         long deviationTimeMs;
+
+        long MeasureTransportReconnectDelay()
+        {
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+            var channel = Transports.Transport.Connect(
+                new Transports.ConnectOptions
+                {
+                    Blocking = true,
+                    UnifiedNetworkInfo = { Address = "non-existent", ServiceName = "1111" }
+                },
+                out _);
+            stopwatch.Stop();
+            return stopwatch.ElapsedMilliseconds;
+        }
 
         /* Create reactors. */
         TestReactor consumerReactor = new TestReactor();

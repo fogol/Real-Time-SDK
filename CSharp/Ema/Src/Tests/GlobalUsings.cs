@@ -7,6 +7,7 @@
  */
 
 global using static System.Environment;
+global using static LSEG.Eta.Tests.Xunit.CollectionAssertUtil;
 global using Xunit;
 global using Thread = LSEG.Eta.Tests.Xunit.ThreadWithExceptionHandling;
 [assembly: LSEG.Eta.Tests.Xunit.CatchExceptionAspect]

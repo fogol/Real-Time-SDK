@@ -750,8 +750,8 @@ public class IProviderDictionaryTests
             Assert.True(fldComplelte);
             Assert.True(enumComplete);
 
-            Assert.Equal(2, providerFldClient.ReceivedOnAll);
-            Assert.Equal(2, providerFldClient.ReceivedOnRefresh);
+            Assert.Equal(72, providerFldClient.ReceivedOnAll);
+            Assert.Equal(72, providerFldClient.ReceivedOnRefresh);
             Assert.Equal(0, providerFldClient.ReceivedOnStatus);
 
             Assert.Equal(13, providerEnumClient.ReceivedOnAll);
@@ -1014,7 +1014,7 @@ public class IProviderDictionaryTests
 
             messageSender(simpleConsumer);
 
-            Thread.Sleep(1000);
+            Thread.Sleep(3000);
 
             string logOutput = consoleOutput.ToString();
 

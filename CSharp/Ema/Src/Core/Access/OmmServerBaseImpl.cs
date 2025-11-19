@@ -144,39 +144,9 @@ namespace LSEG.Ema.Access
 
 #pragma warning disable CS8618
         public OmmServerBaseImpl(OmmIProviderConfigImpl configImpl, IOmmProviderClient provierClient, object? closure)
+            : this(configImpl, provierClient, providerErrorClient: null!, closure)
 #pragma warning restore CS8618
         {
-            // First, verify the configuration.  If there are exceptions, this will throw an OmmInvalidConfigurationException.
-            configImpl.VerifyConfiguration();
-
-            // Second, deep copy only what's necessary for the config using the copy constructor.
-            // ConfigImpl can be used after this to generate the Reactor Role and connection list.
-            ConfigImpl = new OmmIProviderConfigImpl(configImpl);
-
-            InstanceName = $"{ConfigImpl.IProviderName}_{Interlocked.Increment(ref INSTANCE_ID)}";
-
-            m_LoggerClient = new LoggerClient<IOmmProviderClient>(this);
-            OmmProviderClient = provierClient;
-            Closure = closure;
-
-            OmmProviderEvent = new OmmEventImpl<IOmmProviderEvent>();
-
-            m_OperationModel = (OmmIProviderConfig.OperationModelMode)ConfigImpl.DispatchModel;
-
-            ServerPool = new ServerPool(this);
-            ServerPool.Initialize(ConfigImpl.IProviderConfig.ClientSessionCountHint, ConfigImpl.IProviderConfig.ItemCountHint, 
-                ConfigImpl.IProviderConfig.ClientSessionPoolLimit, ConfigImpl.IProviderConfig.ItemInfoPoolLimit);
-
-            m_EmaRequestMsg = new RequestMsg(m_EmaObjectManager);
-            m_EmaRefreshMsg = new RefreshMsg(m_EmaObjectManager);
-            m_EmaStatusMsg = new StatusMsg(m_EmaObjectManager);
-            m_EmaGenericMsg = new GenericMsg(m_EmaObjectManager);
-            m_EmaPostMsg = new PostMsg(m_EmaObjectManager);
-
-            // Set m_BindOption to the ConfigImpl.ServerConfig.BindOptions object.
-            m_BindOption = ConfigImpl.GenerateBindOptions();
-
-            Initialize();
         }
 
 #pragma warning disable CS8618

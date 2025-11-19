@@ -10,92 +10,77 @@ using System;
 
 namespace LSEG.Ema.Access.Tests;
 
-/// <summary>
-/// Tests for the <see cref="EmaObjectManager"/> accessed via <see cref="EmaGlobalObjectPool.Instance"/>.
-/// </summary>
 public class EmaObjectPoolTests
 {
-    [Fact]
-    public void ObjectPrimitivePoolTest()
+    private void PoolTest<TArray>(
+        Func<EmaObjectManager, TArray> getFromPool,
+        Action<EmaObjectManager, TArray> returnToPool,
+        Func<TArray, bool> isOwnedByPool,
+        Func<EmaObjectManager, int> getPoolBorrowedCount,
+        Func<EmaObjectManager, int> getPoolLimit)
     {
-        var objectPool = EmaGlobalObjectPool.Instance;
-        var arrays = new EmaObjectManager.DataArray[EmaObjectManager.INITIAL_POOL_SIZE * 2];
+        // Test must be independent from EmaGlobalObjectPool.Instance & its configuration in order to be executed
+        // on Linux without intermittent failures.
+        const int INITIAL_POOL_SIZE = 10;
+        var objectPoolManager = new EmaObjectManager(INITIAL_POOL_SIZE, global: false);
+
+        var arrays = new TArray[INITIAL_POOL_SIZE * 2];
 
         // no objects were returned from the pool yet
-        Assert.Equal(0, objectPool.primitivePool.current);
+        Assert.Equal(0, getPoolBorrowedCount(objectPoolManager));
 
         for (int i = 0; i < arrays.Length; i++)
         {
-            arrays[i] = objectPool.GetPrimitiveDataArrayFromPool();
+            arrays[i] = getFromPool(objectPoolManager);
         }
 
         // pool has been drained dry to the limit
-        Assert.Equal(objectPool.primitivePool.limit, objectPool.primitivePool.current);
+        Assert.Equal(getPoolLimit(objectPoolManager), getPoolBorrowedCount(objectPoolManager));
 
-        Array.ForEach(arrays, (array) =>
+        foreach (var array in arrays)
         {
-            if (array.OwnedByPool)
-                objectPool.ReturnPrimitiveDataArrayToPool(array);
-        });
+            if (isOwnedByPool(array))
+                returnToPool(objectPoolManager, array);
+        }
 
-        Assert.Equal(0, objectPool.primitivePool.current);
+        Assert.Equal(0, getPoolBorrowedCount(objectPoolManager));
 
         // test has passed when no exceptions were thrown
+    }
+
+    [Fact]
+    public void ObjectPrimitivePoolTest()
+    {
+        PoolTest<EmaObjectManager.DataArray>(
+            objManager => objManager.GetPrimitiveDataArrayFromPool(),
+            (objManager, arr) => objManager.ReturnPrimitiveDataArrayToPool(arr),
+            arr => arr.OwnedByPool,
+            objManager => objManager.primitivePool.current,
+            objManager => objManager.primitivePool.limit
+            );
     }
 
     [Fact]
     public void ObjectComplexPoolTest()
     {
-        var objectPool = EmaGlobalObjectPool.Instance;
-        var arrays = new EmaObjectManager.ComplexTypeArray[EmaObjectManager.INITIAL_POOL_SIZE * 2];
-
-        // no objects were returned from the pool yet
-        Assert.Equal(0, objectPool.complexTypePool.current);
-
-        for (int i = 0; i < arrays.Length; i++)
-        {
-            arrays[i] = objectPool.GetComplexTypeArrayFromPool();
-        }
-
-        // pool has been drained dry to the limit
-        Assert.Equal(objectPool.complexTypePool.limit, objectPool.complexTypePool.current);
-
-        Array.ForEach(arrays, (array) =>
-        {
-            if (array.OwnedByPool)
-                objectPool.ReturnComplexTypeArrayToPool(array);
-        });
-
-        Assert.Equal(0, objectPool.complexTypePool.current);
-
-        // test has passed when no exceptions were thrown
+        PoolTest<EmaObjectManager.ComplexTypeArray>(
+            objManager => objManager.GetComplexTypeArrayFromPool(),
+            (objManager, arr) => objManager.ReturnComplexTypeArrayToPool(arr),
+            arr => arr.OwnedByPool,
+            objManager => objManager.complexTypePool.current,
+            objManager => objManager.complexTypePool.limit
+            );
     }
 
     [Fact]
     public void ObjectMsgTypePoolTest()
     {
-        var objectPool = EmaGlobalObjectPool.Instance;
-        var arrays = new EmaObjectManager.MsgTypeArray[EmaObjectManager.INITIAL_POOL_SIZE * 2];
-
-        // no objects were returned from the pool yet
-        Assert.Equal(0, objectPool.msgTypePool.current);
-
-        for (int i = 0; i < arrays.Length; i++)
-        {
-            arrays[i] = objectPool.GetMsgTypeArrayFromPool();
-        }
-
-        // pool has been drained dry to the limit
-        Assert.Equal(objectPool.msgTypePool.limit, objectPool.msgTypePool.current);
-
-        Array.ForEach(arrays, (array) =>
-        {
-            if (array.OwnedByPool)
-                objectPool.ReturnMsgTypeArrayToPool(array);
-        });
-
-        Assert.Equal(0, objectPool.msgTypePool.current);
-
-        // test has passed when no exceptions were thrown
+        PoolTest<EmaObjectManager.MsgTypeArray>(
+            objManager => objManager.GetMsgTypeArrayFromPool(),
+            (objManager, arr) => objManager.ReturnMsgTypeArrayToPool(arr),
+            arr => arr.OwnedByPool,
+            objManager => objManager.msgTypePool.current,
+            objManager => objManager.msgTypePool.limit
+            );
     }
 }

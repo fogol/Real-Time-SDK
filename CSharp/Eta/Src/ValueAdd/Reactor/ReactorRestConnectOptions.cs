@@ -10,8 +10,10 @@ using LSEG.Eta.Transports;
 
 namespace LSEG.Eta.ValueAdd.Reactor
 {
-    internal class ReactorRestConnectOptions
+    internal class ReactorRestConnectOptions : IDisposable
     {
+        private bool m_isDisposed;
+
         public ReactorDiscoveryTransportProtocol Transport { get; set; }
 
         public ReactorDiscoveryDataFormatProtocol DataFormat { get; set; }
@@ -91,6 +93,26 @@ namespace LSEG.Eta.ValueAdd.Reactor
                 return;
 
             connectOptions.ProxyOptions.CopyTo(ProxyOptions);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (m_isDisposed)
+            {
+                return;
+            }
+            if (disposing)
+            {
+                RestLoggingHandler.Dispose();
+            }
+
+            m_isDisposed = true;
+        }
+
+        public void Dispose()
+        {
+            Dispose(disposing: true);
+            GC.SuppressFinalize(this);
         }
     }
 }

@@ -8,12 +8,10 @@
 
 using LSEG.Ema.Rdm;
 using LSEG.Eta.Codec;
-using LSEG.Eta.Common;
-using LSEG.Eta.Rdm;
 using System;
 using System.Collections.Generic;
 using System.Text;
-using System.Threading;
+using System.Threading.Tasks;
 using Xunit.Abstractions;
 
 namespace LSEG.Ema.Access.Tests.RequestRouting
@@ -26,8 +24,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
         public OmmConsumerTests(ITestOutputHelper output)
         {
-            this.m_Output = output;
-
+            m_Output = output;
         }
 
         [Fact]
@@ -169,82 +166,75 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
             ConsumerTestClient consumerClient = new ConsumerTestClient(m_Output, options);
 
-            try
+            
+            OmmInvalidUsageException expectedException = Assert.Throws<OmmInvalidUsageException>(
+                () =>
+                {
+                    consumer = new OmmConsumer(config.ConsumerName("Consumer_9"), consumerClient);
+                });
+
+            Assert.StartsWith("login failed (timed out after waiting 6500 milliseconds) for Connection_1, Connection_2", expectedException.Message);
+
+            int queueSize = consumerClient.QueueSize();
+
+            m_Output.WriteLine($"queueSize = {queueSize}");
+
+            Msg message = consumerClient.PopMessage();
+
+            StatusMsg statusMsg = (StatusMsg)message;
+
+            Assert.Equal(1, statusMsg.StreamId());
+            Assert.Equal(EmaRdm.MMT_LOGIN, statusMsg.DomainType());
+            Assert.Equal("Open / Suspect / None / 'session channel down reconnecting'", statusMsg.State().ToString());
+
+            ChannelInformation channelInfo = consumerClient.PopChannelInfo();
+            Assert.Equal("Channel_1", channelInfo.ChannelName);
+            Assert.Equal("Connection_1", channelInfo.SessionChannelName);
+            Assert.Equal(ChannelState.INACTIVE, channelInfo.ChannelState);
+
+            statusMsg = (StatusMsg)consumerClient.PopMessage();
+
+            Assert.Equal(1, statusMsg.StreamId());
+            Assert.Equal(EmaRdm.MMT_LOGIN, statusMsg.DomainType());
+            Assert.Equal("Open / Suspect / None / 'session channel down reconnecting'", statusMsg.State().ToString());
+
+            channelInfo = consumerClient.PopChannelInfo();
+            Assert.Equal("Channel_4", channelInfo.ChannelName);
+            Assert.Equal("Connection_2", channelInfo.SessionChannelName);
+            Assert.Equal(ChannelState.INACTIVE, channelInfo.ChannelState);
+
+            statusMsg = (StatusMsg)consumerClient.PopMessage();
+
+            Assert.Equal(1, statusMsg.StreamId());
+            Assert.Equal(EmaRdm.MMT_LOGIN, statusMsg.DomainType());
+            Assert.Equal("Open / Suspect / None / 'session channel down reconnecting'", statusMsg.State().ToString());
+
+            channelInfo = consumerClient.PopChannelInfo();
+            Assert.Equal("Channel_2", channelInfo.ChannelName);
+            Assert.Equal("Connection_1", channelInfo.SessionChannelName);
+            Assert.Equal(ChannelState.INACTIVE, channelInfo.ChannelState);
+
+            if (queueSize == 4)
             {
-                OmmInvalidUsageException expectedException = Assert.Throws<OmmInvalidUsageException>(()
-                    =>
-                { consumer = new OmmConsumer(config.ConsumerName("Consumer_9"), consumerClient); });
-
-                Assert.StartsWith("login failed (timed out after waiting 6500 milliseconds) for Connection_1, Connection_2", expectedException.Message);
-
-                int queueSize = consumerClient.QueueSize();
-
-                m_Output.WriteLine($"queueSize = {queueSize}");
-
-                Msg message = consumerClient.PopMessage();
-
-                StatusMsg statusMsg = (StatusMsg)message;
-
-                Assert.Equal(1, statusMsg.StreamId());
-                Assert.Equal(EmaRdm.MMT_LOGIN, statusMsg.DomainType());
-                Assert.Equal("Open / Suspect / None / 'session channel down reconnecting'", statusMsg.State().ToString());
-
-                ChannelInformation channelInfo = consumerClient.PopChannelInfo();
-                Assert.Equal("Channel_1", channelInfo.ChannelName);
-                Assert.Equal("Connection_1", channelInfo.SessionChannelName);
-                Assert.Equal(ChannelState.INACTIVE, channelInfo.ChannelState);
-
                 statusMsg = (StatusMsg)consumerClient.PopMessage();
-
                 Assert.Equal(1, statusMsg.StreamId());
                 Assert.Equal(EmaRdm.MMT_LOGIN, statusMsg.DomainType());
                 Assert.Equal("Open / Suspect / None / 'session channel down reconnecting'", statusMsg.State().ToString());
 
                 channelInfo = consumerClient.PopChannelInfo();
-                Assert.Equal("Channel_4", channelInfo.ChannelName);
+                Assert.Equal("Channel_5", channelInfo.ChannelName);
                 Assert.Equal("Connection_2", channelInfo.SessionChannelName);
                 Assert.Equal(ChannelState.INACTIVE, channelInfo.ChannelState);
+            }
 
+            if (queueSize == 5)
+            {
                 statusMsg = (StatusMsg)consumerClient.PopMessage();
-
                 Assert.Equal(1, statusMsg.StreamId());
                 Assert.Equal(EmaRdm.MMT_LOGIN, statusMsg.DomainType());
-                Assert.Equal("Open / Suspect / None / 'session channel down reconnecting'", statusMsg.State().ToString());
-
-                channelInfo = consumerClient.PopChannelInfo();
-                Assert.Equal("Channel_2", channelInfo.ChannelName);
-                Assert.Equal("Connection_1", channelInfo.SessionChannelName);
-                Assert.Equal(ChannelState.INACTIVE, channelInfo.ChannelState);
-
-                if (queueSize == 4)
-                {
-                    statusMsg = (StatusMsg)consumerClient.PopMessage();
-                    Assert.Equal(1, statusMsg.StreamId());
-                    Assert.Equal(EmaRdm.MMT_LOGIN, statusMsg.DomainType());
-                    Assert.Equal("Open / Suspect / None / 'session channel down reconnecting'", statusMsg.State().ToString());
-
-                    channelInfo = consumerClient.PopChannelInfo();
-                    Assert.Equal("Channel_5", channelInfo.ChannelName);
-                    Assert.Equal("Connection_2", channelInfo.SessionChannelName);
-                    Assert.Equal(ChannelState.INACTIVE, channelInfo.ChannelState);
-                }
-
-                if (queueSize == 5)
-                {
-                    statusMsg = (StatusMsg)consumerClient.PopMessage();
-                    Assert.Equal(1, statusMsg.StreamId());
-                    Assert.Equal(EmaRdm.MMT_LOGIN, statusMsg.DomainType());
-                    Assert.Equal("Open / Suspect / None / 'session channel closed'", statusMsg.State().ToString());
-                }
+                Assert.Equal("Open / Suspect / None / 'session channel closed'", statusMsg.State().ToString());
             }
-            catch (Exception excep)
-            {
-                Assert.Fail(excep.Message);
-            }
-            finally
-            {
-                Assert.Null(consumer);
-            }
+            
         }
 
         [Fact]
@@ -273,10 +263,9 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 OmmConsumerImpl ommConsumerImpl = consumer.m_OmmConsumerImpl!;
 
-                Assert.Equal(4, consumerClient.QueueSize()); // Receives status message for login stream state.
-                Assert.Equal(4, consumerClient.ChannelInfoSize());
+                // Receives status message for login stream state.
 
-                statusMsg = (StatusMsg)consumerClient.PopMessage();
+                statusMsg = consumerClient.WaitForMessage<StatusMsg>();
                 Assert.Equal(1, statusMsg.StreamId());
                 Assert.Equal(EmaRdm.MMT_LOGIN, statusMsg.DomainType());
                 Assert.Equal("Open / Suspect / None / 'session channel down reconnecting'", statusMsg.State().ToString());
@@ -286,7 +275,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 Assert.Equal("Connection_2", channelInfo.SessionChannelName);
                 Assert.Equal(ChannelState.INACTIVE, channelInfo.ChannelState);
 
-                statusMsg = (StatusMsg)consumerClient.PopMessage();
+                statusMsg = consumerClient.WaitForMessage<StatusMsg>();
                 Assert.Equal(1, statusMsg.StreamId());
                 Assert.Equal(EmaRdm.MMT_LOGIN, statusMsg.DomainType());
                 Assert.Equal("Open / Suspect / None / 'session channel up'", statusMsg.State().ToString());
@@ -296,7 +285,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 Assert.Equal("Connection_1", channelInfo.SessionChannelName);
                 Assert.Equal(ChannelState.ACTIVE, channelInfo.ChannelState);
 
-                statusMsg = (StatusMsg)consumerClient.PopMessage();
+                statusMsg = consumerClient.WaitForMessage<StatusMsg>();
                 Assert.Equal(1, statusMsg.StreamId());
                 Assert.Equal(EmaRdm.MMT_LOGIN, statusMsg.DomainType());
                 Assert.Equal("Open / Suspect / None / 'session channel down reconnecting'", statusMsg.State().ToString());
@@ -306,7 +295,17 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 Assert.Equal("Connection_2", channelInfo.SessionChannelName);
                 Assert.Equal(ChannelState.INACTIVE, channelInfo.ChannelState);
 
-                refreshMsg = (RefreshMsg)consumerClient.PopMessage();
+                var msg = consumerClient.WaitForMessage<Msg>();
+                if (msg is RefreshMsg)
+                {
+                    refreshMsg = (RefreshMsg) msg;
+                }
+                else // extra message received, let's wait for RefreshMsg again
+                {
+                    consumerClient.PopChannelInfo();
+                    refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
+                }
+
                 Assert.Equal(1, refreshMsg.StreamId());
                 Assert.Equal(EmaRdm.MMT_LOGIN, refreshMsg.DomainType());
                 Assert.Equal("Open / Ok / None / 'Login accepted'", refreshMsg.State().ToString());
@@ -321,14 +320,9 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 Assert.Equal("Connection_1", ommConsumerImpl.ConsumerSession.SessionChannelList[0].SessionChannelConfig.Name);
             }
-            catch (Exception excep)
-            {
-                Assert.Fail(excep.Message);
-            }
             finally
             {
-                Assert.NotNull(consumer);
-                consumer.Uninitialize();
+                consumer?.Uninitialize();
                 ommProvider.Uninitialize();
             }
         }
@@ -365,9 +359,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 string firstChannelName = ommConsumerImpl.ConsumerSession!.SessionChannelList[0].SessionChannelConfig.Name;
 
-                Msg message = consumerClient.PopMessage();
-
-                StatusMsg statusMsg = (StatusMsg)message;
+                StatusMsg statusMsg = consumerClient.WaitForMessage<StatusMsg>();
                 Assert.Equal(1, statusMsg.StreamId());
                 Assert.Equal(EmaRdm.MMT_LOGIN, statusMsg.DomainType());
                 Assert.Equal("Open / Suspect / None / 'session channel up'", statusMsg.State().ToString());
@@ -377,7 +369,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 Assert.Equal("Connection_1", chanelInfo.SessionChannelName);
                 Assert.Equal(ChannelState.ACTIVE, chanelInfo.ChannelState);
 
-                statusMsg = (StatusMsg)consumerClient.PopMessage();
+                statusMsg = consumerClient.WaitForMessage<StatusMsg>();
                 Assert.Equal(1, statusMsg.StreamId());
                 Assert.Equal(EmaRdm.MMT_LOGIN, statusMsg.DomainType());
                 Assert.Equal("Open / Suspect / None / 'session channel up'", statusMsg.State().ToString());
@@ -387,11 +379,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 Assert.Equal("Connection_2", chanelInfo.SessionChannelName);
                 Assert.Equal(ChannelState.ACTIVE, chanelInfo.ChannelState);
 
-                message = consumerClient.PopMessage();
-
-                Assert.True(message is RefreshMsg);
-
-                RefreshMsg refreshMsg = (RefreshMsg)message;
+                RefreshMsg refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
 
                 Assert.Equal(1, refreshMsg.StreamId());
                 Assert.Equal(EmaRdm.MMT_LOGIN, refreshMsg.DomainType());
@@ -433,14 +421,9 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                     }
                 }
             }
-            catch (OmmException ommException)
-            {
-                Assert.Fail(ommException.Message);
-            }
             finally
             {
-                Assert.NotNull(consumer);
-                consumer.Uninitialize();
+                consumer?.Uninitialize();
                 provider.Uninitialize();
                 provider2.Uninitialize();
             }
@@ -465,13 +448,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 long loginHandle = consumer.RegisterClient(new RequestMsg().DomainType(EmaRdm.MMT_LOGIN), consumerClient);
 
                 /* Waits until OmmConsumer receives the refresh message */
-                while (consumerClient.QueueSize() == 0) { }
-
-                Assert.Equal(1, consumerClient.QueueSize()); // Ensure that the callback receives only one login message
-
-                Msg message = consumerClient.PopMessage();
-                Assert.True(message is RefreshMsg);
-                RefreshMsg refreshMsg = (RefreshMsg)message;
+                RefreshMsg refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
 
                 Assert.Equal(1, refreshMsg.StreamId());
                 Assert.Equal(EmaRdm.MMT_LOGIN, refreshMsg.DomainType());
@@ -515,9 +492,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
             }
             finally
             {
-                Assert.NotNull(consumer);
-
-                consumer.Uninitialize();
+                consumer?.Uninitialize();
                 ommProvider.Uninitialize();
                 ommProvider2.Uninitialize();
             }
@@ -547,31 +522,23 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
             {
                 consumer = new OmmConsumer(new OmmConsumerConfig(EmaConfigFileLocation).ConsumerName("Consumer_9"), consumerClient);
 
-                Thread.Sleep(3000);
-
-                Assert.Equal(4, consumerClient.QueueSize());
-
-                Msg message = consumerClient.PopMessage();
-                StatusMsg statusMsg = (StatusMsg)message;
+                StatusMsg statusMsg = consumerClient.WaitForMessage<StatusMsg>();
 
                 Assert.Equal(1, statusMsg.StreamId());
                 Assert.Equal(EmaRdm.MMT_LOGIN, statusMsg.DomainType());
                 Assert.Equal("Open / Suspect / None / 'session channel up'", statusMsg.State().ToString());
 
-                statusMsg = (StatusMsg)consumerClient.PopMessage();
+                statusMsg = consumerClient.WaitForMessage<StatusMsg>();
                 Assert.Equal(1, statusMsg.StreamId());
                 Assert.Equal(EmaRdm.MMT_LOGIN, statusMsg.DomainType());
                 Assert.Equal("Open / Suspect / None / 'session channel up'", statusMsg.State().ToString());
 
-                statusMsg = (StatusMsg)consumerClient.PopMessage();
+                statusMsg = consumerClient.WaitForMessage<StatusMsg>();
                 Assert.Equal(1, statusMsg.StreamId());
                 Assert.Equal(EmaRdm.MMT_LOGIN, statusMsg.DomainType());
                 Assert.Equal("Open / Suspect / Not entitled / 'Login denied'", statusMsg.State().ToString());
 
-                message = consumerClient.PopMessage();
-                Assert.True(message is RefreshMsg);
-
-                RefreshMsg refreshMsg = (RefreshMsg)message;
+                RefreshMsg refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
                 Assert.Equal(1, refreshMsg.StreamId());
                 Assert.Equal(EmaRdm.MMT_LOGIN, refreshMsg.DomainType());
                 Assert.Equal("Open / Ok / None / 'Login accepted'", refreshMsg.State().ToString());
@@ -606,17 +573,11 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                     }
                 }
             }
-            catch (Exception execp)
-            {
-                Assert.Fail(execp.ToString());
-            }
             finally
             {
-                Assert.NotNull(consumer);
-
-                consumer.Uninitialize();
-                ommprovider.Uninitialize();
-                ommprovider2.Uninitialize();
+                consumer?.Uninitialize();
+                ommprovider?.Uninitialize();
+                ommprovider2?.Uninitialize();
             }
         }
 
@@ -642,25 +603,18 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
             {
                 consumer = new OmmConsumer(new OmmConsumerConfig(EmaConfigFileLocation).ConsumerName("Consumer_9"), consumerClient);
 
-                Assert.Equal(3, consumerClient.QueueSize());
-
-                Msg message = consumerClient.PopMessage();
-                StatusMsg statusMsg = (StatusMsg)message;
+                StatusMsg statusMsg = consumerClient.WaitForMessage<StatusMsg>();
 
                 Assert.Equal(1, statusMsg.StreamId());
                 Assert.Equal(EmaRdm.MMT_LOGIN, statusMsg.DomainType());
                 Assert.Equal("Open / Suspect / None / 'session channel up'", statusMsg.State().ToString());
 
-                statusMsg = (StatusMsg)consumerClient.PopMessage();
+                statusMsg = consumerClient.WaitForMessage<StatusMsg>();
                 Assert.Equal(1, statusMsg.StreamId());
                 Assert.Equal(EmaRdm.MMT_LOGIN, statusMsg.DomainType());
                 Assert.Equal("Open / Suspect / None / 'session channel up'", statusMsg.State().ToString());
 
-                message = consumerClient.PopMessage();
-
-                Assert.True(message is RefreshMsg);
-
-                RefreshMsg refreshMsg = (RefreshMsg)message;
+                RefreshMsg refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
                 Assert.Equal(1, refreshMsg.StreamId());
                 Assert.Equal(EmaRdm.MMT_LOGIN, refreshMsg.DomainType());
                 Assert.Equal("Open / Ok / None / 'Login accepted'", refreshMsg.State().ToString());
@@ -707,9 +661,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
             }
             finally
             {
-                Assert.NotNull(consumer);
-
-                consumer.Uninitialize();
+                consumer?.Uninitialize();
                 ommprovider.Uninitialize();
                 ommprovider2.Uninitialize();
             }
@@ -741,30 +693,21 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
             {
                 consumer = new OmmConsumer(new OmmConsumerConfig(EmaConfigFileLocation).ConsumerName("Consumer_9"), consumerClient);
 
-                Assert.Equal(3, consumerClient.QueueSize());
                 Assert.Equal(3, consumerClient.ChannelInfoSize());
 
-                Msg message = consumerClient.PopMessage();
-
-                StatusMsg statusMsg = (StatusMsg)message;
+                StatusMsg statusMsg = consumerClient.WaitForMessage<StatusMsg>();
 
                 Assert.Equal(1, statusMsg.StreamId());
                 Assert.Equal(EmaRdm.MMT_LOGIN, statusMsg.DomainType());
                 Assert.Equal("Open / Suspect / None / 'session channel up'", statusMsg.State().ToString());
 
-                message = consumerClient.PopMessage();
-
-                statusMsg = (StatusMsg)message;
+                statusMsg = consumerClient.WaitForMessage<StatusMsg>();
 
                 Assert.Equal(1, statusMsg.StreamId());
                 Assert.Equal(EmaRdm.MMT_LOGIN, statusMsg.DomainType());
                 Assert.Equal("Open / Suspect / None / 'session channel up'", statusMsg.State().ToString());
 
-                message = consumerClient.PopMessage();
-
-                Assert.True(message is RefreshMsg);
-
-                RefreshMsg refreshMsg = (RefreshMsg)message;
+                RefreshMsg refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
 
                 Assert.Equal(1, refreshMsg.StreamId());
                 Assert.Equal(EmaRdm.MMT_LOGIN, refreshMsg.DomainType());
@@ -805,19 +748,13 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 providerClient2.ForceLogout();
 
-                Thread.Sleep(2000);
-
-                Assert.Equal(2, consumerClient.QueueSize());
-
-                message = consumerClient.PopMessage();
-                statusMsg = (StatusMsg)message;
+                statusMsg = consumerClient.WaitForMessage<StatusMsg>();
 
                 Assert.Equal(1, statusMsg.StreamId());
                 Assert.Equal(EmaRdm.MMT_LOGIN, statusMsg.DomainType());
                 Assert.Equal("Open / Ok / Not entitled / 'Force logout'", statusMsg.State().ToString());
 
-                message = consumerClient.PopMessage();
-                statusMsg = (StatusMsg)message;
+                statusMsg = consumerClient.WaitForMessage<StatusMsg>();
 
                 Assert.Equal(1, statusMsg.StreamId());
                 Assert.Equal(EmaRdm.MMT_LOGIN, statusMsg.DomainType());
@@ -829,9 +766,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
             }
             finally
             {
-                Assert.NotNull(consumer);
-
-                consumer.Uninitialize();
+                consumer?.Uninitialize();
                 ommprovider.Uninitialize();
                 ommprovider2.Uninitialize();
             }
@@ -930,28 +865,19 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
             {
                 consumer = new OmmConsumer(new OmmConsumerConfig(EmaConfigFileLocation).ConsumerName("Consumer_9"), consumerClient);
 
-                Thread.Sleep(500);
-
-                Assert.Equal(4, consumerClient.QueueSize());
-
-                Msg message = consumerClient.PopMessage();
-                StatusMsg statusMsg = (StatusMsg)message;
+                StatusMsg statusMsg = consumerClient.WaitForMessage<StatusMsg>();
 
                 Assert.Equal(1, statusMsg.StreamId());
                 Assert.Equal(EmaRdm.MMT_LOGIN, statusMsg.DomainType());
                 Assert.Equal("Open / Suspect / None / 'session channel up'", statusMsg.State().ToString());
 
-                message = consumerClient.PopMessage();
-                statusMsg = (StatusMsg)message;
+                statusMsg = consumerClient.WaitForMessage<StatusMsg>();
 
                 Assert.Equal(1, statusMsg.StreamId());
                 Assert.Equal(EmaRdm.MMT_LOGIN, statusMsg.DomainType());
                 Assert.Equal("Open / Suspect / None / 'session channel up'", statusMsg.State().ToString());
 
-                message = consumerClient.PopMessage();
-                Assert.True(message is RefreshMsg);
-
-                RefreshMsg refreshMsg = (RefreshMsg)message;
+                RefreshMsg refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
 
                 Assert.Equal(1, refreshMsg.StreamId());
                 Assert.Equal(EmaRdm.MMT_LOGIN, refreshMsg.DomainType());
@@ -962,8 +888,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 Assert.Equal(DataType.DataTypes.NO_DATA, refreshMsg.Payload().DataType);
                 Assert.Equal(DataType.DataTypes.ELEMENT_LIST, refreshMsg.Attrib().DataType);
 
-                message = consumerClient.PopMessage();
-                statusMsg = (StatusMsg)message;
+                statusMsg = consumerClient.WaitForMessage<StatusMsg>();
 
                 Assert.Equal(1, statusMsg.StreamId());
                 Assert.Equal(EmaRdm.MMT_LOGIN, statusMsg.DomainType());
@@ -973,14 +898,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 long directoryHandle = consumer.RegisterClient(reqMsg.DomainType(EmaRdm.MMT_DIRECTORY).MarkForClear(), consumerClient);
 
-                Thread.Sleep(2000);
-
-                Assert.Equal(1, consumerClient.QueueSize());
-
-                message = consumerClient.PopMessage();
-                Assert.True(message is RefreshMsg);
-
-                refreshMsg = (RefreshMsg)message;
+                refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
 
                 Assert.Equal(2, refreshMsg.StreamId());
                 Assert.Equal(EmaRdm.MMT_DIRECTORY, refreshMsg.DomainType());
@@ -1009,17 +927,11 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 /* Ensure that the consumer session has only one connection as the second connection is closed due to QoS mismatch */
                 Assert.Single(consumer.m_OmmConsumerImpl!.ConsumerSession!.SessionChannelList);
             }
-            catch (OmmException ex)
-            {
-                Assert.Fail(ex.Message);
-            }
             finally
             {
-                Assert.NotNull(consumer);
-
                 m_Output.WriteLine("Uninitializing...");
 
-                consumer.Uninitialize();
+                consumer?.Uninitialize();
                 ommprovider.Uninitialize();
                 ommprovider2.Uninitialize();
             }
@@ -1053,14 +965,8 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 long directoryHandle = consumer.RegisterClient(reqMsg.DomainType(EmaRdm.MMT_DIRECTORY), consumerClient);
 
                 /* Waits until OmmConsumer receives the refresh message */
-                while (consumerClient.QueueSize() == 0) { }
-
-                Assert.Equal(1, consumerClient.QueueSize()); // Ensure that the callback receives only one directory message
-
-                Msg message = consumerClient.PopMessage();
-
-                Assert.True(message is RefreshMsg);
-                RefreshMsg refreshMsg = (RefreshMsg)message;
+                RefreshMsg refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
+                Assert.Equal(0, consumerClient.QueueSize()); // Ensure that the callback receives only one directory message
 
                 Assert.Equal(2, refreshMsg.StreamId());
                 Assert.Equal(EmaRdm.MMT_DIRECTORY, refreshMsg.DomainType());
@@ -1254,17 +1160,11 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 consumer.Unregister(directoryHandle);
             }
-            catch (OmmException ex)
-            {
-                Assert.Fail(ex.Message);
-            }
             finally
             {
                 m_Output.WriteLine("Uninitializing...");
 
-                Assert.NotNull(consumer);
-
-                consumer.Uninitialize();
+                consumer?.Uninitialize();
                 ommprovider.Uninitialize();
                 ommprovider2.Uninitialize();
             }
@@ -1282,7 +1182,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
             // Provider_1 provides the DIRECT_FEED service name
             OmmProvider ommprovider2 = new OmmProvider(config.Port("19004").ProviderName("Provider_1"), providerClient);
-            ;
+
             OmmConsumer? consumer = null;
             ConsumerTestClient consumerClient = new ConsumerTestClient(m_Output);
 
@@ -1296,15 +1196,8 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 long directoryHandle = consumer.RegisterClient(reqMsg.DomainType(EmaRdm.MMT_DIRECTORY).Filter(1), consumerClient);
 
                 /* Waits until OmmConsumer receives the refresh message */
-                while (consumerClient.QueueSize() == 0) { }
-
-                Assert.Equal(1, consumerClient.QueueSize()); // Ensure that the callback receives only one directory message
-
-                Msg message = consumerClient.PopMessage();
-
-                Assert.True(message is RefreshMsg);
-
-                RefreshMsg refreshMsg = (RefreshMsg)message;
+                RefreshMsg refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
+                Assert.Equal(0, consumerClient.QueueSize()); // Ensure that the callback receives only one directory message
 
                 Assert.Equal(2, refreshMsg.StreamId());
                 Assert.Equal(EmaRdm.MMT_DIRECTORY, refreshMsg.DomainType());
@@ -1473,15 +1366,8 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 long directoryHandle2 = consumer.RegisterClient(reqMsg.DomainType(EmaRdm.MMT_DIRECTORY).Filter(3), consumerClient);
 
                 /* Waits until OmmConsumer receives the refresh message */
-                while (consumerClient.QueueSize() == 0) { }
-
-                Assert.Equal(1, consumerClient.QueueSize()); // Ensure that the callback receives only one directory message
-
-                message = consumerClient.PopMessage();
-
-                Assert.True(message is RefreshMsg);
-
-                refreshMsg = (RefreshMsg)message;
+                refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
+                Assert.Equal(0, consumerClient.QueueSize()); // Ensure that the callback receives only one directory message
 
                 Assert.Equal(2, refreshMsg.StreamId());
                 Assert.Equal(EmaRdm.MMT_DIRECTORY, refreshMsg.DomainType());
@@ -1672,17 +1558,11 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 consumer.Unregister(directoryHandle);
                 consumer.Unregister(directoryHandle2);
             }
-            catch (OmmException ex)
-            {
-                Assert.Fail(ex.Message);
-            }
             finally
             {
-                Assert.NotNull(consumer);
-
                 Console.WriteLine("Uninitializing...");
 
-                consumer.Uninitialize();
+                consumer?.Uninitialize();
                 ommprovider.Uninitialize();
                 ommprovider2.Uninitialize();
             }
@@ -1718,15 +1598,8 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 var consumerSession = consumer.m_OmmConsumerImpl!.ConsumerSession!;
 
                 /* Waits until OmmConsumer receives the refresh message */
-                while (consumerClient.QueueSize() == 0) { }
-
-                Assert.Equal(1, consumerClient.QueueSize()); // Ensure that the callback receives only one directory message
-
-                Msg message = consumerClient.PopMessage();
-
-                Assert.True(message is RefreshMsg);
-
-                RefreshMsg refreshMsg = (RefreshMsg)message;
+                RefreshMsg refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
+                Assert.Equal(0, consumerClient.QueueSize()); // Ensure that the callback receives only one directory message
 
                 Assert.Equal(2, refreshMsg.StreamId());
                 Assert.Equal(EmaRdm.MMT_DIRECTORY, refreshMsg.DomainType());
@@ -2108,17 +1981,11 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 consumer.Unregister(directoryHandle);
             }
-            catch (OmmException ex)
-            {
-                Assert.Fail(ex.Message);
-            }
             finally
             {
-                Assert.NotNull(consumer);
-
                 m_Output.WriteLine("Uninitializing...");
 
-                consumer.Uninitialize();
+                consumer?.Uninitialize();
                 ommprovider.Uninitialize();
                 ommprovider2.Uninitialize();
             }
@@ -2152,15 +2019,8 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 long directoryHandle = consumer.RegisterClient(reqMsg.DomainType(EmaRdm.MMT_DIRECTORY).ServiceName("DIRECT_FEED_2"), consumerClient);
 
                 /* Waits until OmmConsumer receives the refresh message */
-                while (consumerClient.QueueSize() == 0) { }
-
-                Assert.Equal(1, consumerClient.QueueSize()); // Ensure that the callback receives only one directory message
-
-                Msg message = consumerClient.PopMessage();
-
-                Assert.True(message is RefreshMsg);
-
-                RefreshMsg refreshMsg = (RefreshMsg)message;
+                RefreshMsg refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
+                Assert.Equal(0, consumerClient.QueueSize()); // Ensure that the callback receives only one directory message
 
                 Assert.Equal(2, refreshMsg.StreamId());
                 Assert.Equal(EmaRdm.MMT_DIRECTORY, refreshMsg.DomainType());
@@ -2356,17 +2216,11 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 consumer.Unregister(directoryHandle);
             }
-            catch (OmmException ex)
-            {
-                Assert.Fail(ex.Message);
-            }
             finally
             {
-                Assert.NotNull(consumer);
-
                 m_Output.WriteLine("Uninitializing...");
 
-                consumer.Uninitialize();
+                consumer?.Uninitialize();
                 ommprovider.Uninitialize();
                 ommprovider2.Uninitialize();
             }
@@ -2400,15 +2254,8 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 long directoryHandle = consumer.RegisterClient(reqMsg.DomainType(EmaRdm.MMT_DIRECTORY).ServiceId(32767), consumerClient);
 
                 /* Waits until OmmConsumer receives the refresh message */
-                while (consumerClient.QueueSize() == 0) { }
-
-                Assert.Equal(1, consumerClient.QueueSize()); // Ensure that the callback receives only one directory message
-
-                Msg message = consumerClient.PopMessage();
-
-                Assert.True(message is RefreshMsg);
-
-                RefreshMsg refreshMsg = (RefreshMsg)message;
+                RefreshMsg refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
+                Assert.Equal(0, consumerClient.QueueSize()); // Ensure that the callback receives only one directory message
 
                 Assert.Equal(2, refreshMsg.StreamId());
                 Assert.Equal(EmaRdm.MMT_DIRECTORY, refreshMsg.DomainType());
@@ -2605,17 +2452,11 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 consumer.Unregister(directoryHandle);
             }
-            catch (OmmException ex)
-            {
-                Assert.Fail(ex.Message);
-            }
             finally
             {
-                Assert.NotNull(consumer);
-
                 m_Output.WriteLine("Uninitializing...");
 
-                consumer.Uninitialize();
+                consumer?.Uninitialize();
                 ommprovider.Uninitialize();
                 ommprovider2.Uninitialize();
             }
@@ -2649,13 +2490,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 long directoryHandle = consumer.RegisterClient(reqMsg.DomainType(EmaRdm.MMT_DIRECTORY).ServiceName("UNKNOWN_SERVICE"), consumerClient);
 
                 /* Waits until OmmConsumer receives the refresh message */
-                while (consumerClient.QueueSize() == 0) { }
-
-                Msg message = consumerClient.PopMessage();
-
-                Assert.True(message is RefreshMsg);
-
-                RefreshMsg refreshMsg = (RefreshMsg)message;
+                RefreshMsg refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
 
                 Assert.Equal(2, refreshMsg.StreamId());
                 Assert.Equal(EmaRdm.MMT_DIRECTORY, refreshMsg.DomainType());
@@ -2672,17 +2507,11 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 consumer.Unregister(directoryHandle);
             }
-            catch (OmmException ex)
-            {
-                Assert.Fail(ex.Message);
-            }
             finally
             {
-                Assert.NotNull(consumer);
-
                 m_Output.WriteLine("Uninitializing...");
 
-                consumer.Uninitialize();
+                consumer?.Uninitialize();
                 ommprovider.Uninitialize();
                 ommprovider2.Uninitialize();
             }
@@ -2716,13 +2545,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 long directoryHandle = consumer.RegisterClient(reqMsg.DomainType(EmaRdm.MMT_DIRECTORY).ServiceId(55555), consumerClient);
 
                 /* Waits until OmmConsumer receives the refresh message */
-                while (consumerClient.QueueSize() == 0) { }
-
-                Msg message = consumerClient.PopMessage();
-
-                Assert.True(message is RefreshMsg);
-
-                RefreshMsg refreshMsg = (RefreshMsg)message;
+                RefreshMsg refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
 
                 Assert.Equal(2, refreshMsg.StreamId());
                 Assert.Equal(EmaRdm.MMT_DIRECTORY, refreshMsg.DomainType());
@@ -2739,17 +2562,11 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 consumer.Unregister(directoryHandle);
             }
-            catch (OmmException ex)
-            {
-                Assert.Fail(ex.Message);
-            }
             finally
             {
-                Assert.NotNull(consumer);
-
                 m_Output.WriteLine("Uninitializing...");
 
-                consumer.Uninitialize();
+                consumer?.Uninitialize();
                 ommprovider.Uninitialize();
                 ommprovider2.Uninitialize();
             }
@@ -2786,18 +2603,14 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 long directoryHandle2 = consumer.RegisterClient(reqMsg.DomainType(EmaRdm.MMT_DIRECTORY).ServiceName("DIRECT_FEED_2"), consumerClient);
 
+                OmmConsumerImpl ommconsumerImpl = consumer.m_OmmConsumerImpl!;
+                ulong GetServiceIdByName(string name) => (ulong)ommconsumerImpl.ConsumerSession!.GetSessionDirectoryByName(name)!.Service!.ServiceId;
+                var serviceId1 = GetServiceIdByName("DIRECT_FEED");
+                var serviceId2 = GetServiceIdByName("DIRECT_FEED_2");
+                m_Output.WriteLine($"Services consumer operates on: DIRECT_FEED(id:{serviceId1}), DIRECT_FEED_2(id:{serviceId2})");
+
                 /* Waits until OmmConsumer receives the refresh message */
-                while (consumerClient.QueueSize() == 0) { }
-
-                Thread.Sleep(2000);
-
-                Assert.Equal(2, consumerClient.QueueSize()); // Ensure that the callback receives only one directory message
-
-                Msg message = consumerClient.PopMessage();
-
-                Assert.True(message is RefreshMsg);
-
-                RefreshMsg refreshMsg = (RefreshMsg)message;
+                RefreshMsg refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
 
                 Assert.Equal(2, refreshMsg.StreamId());
                 Assert.Equal(EmaRdm.MMT_DIRECTORY, refreshMsg.DomainType());
@@ -2807,12 +2620,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 Assert.True(refreshMsg.HasMsgKey);
                 Assert.Equal(DataType.DataTypes.MAP, refreshMsg.Payload().DataType);
 
-                while (consumerClient.QueueSize() == 0) { }
-
-                message = consumerClient.PopMessage();
-
-                Assert.True(message is RefreshMsg);
-                refreshMsg = (RefreshMsg)message;
+                refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
 
                 FilterList filterList = new FilterList();
                 Map map = new Map();
@@ -2830,82 +2638,73 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 ommprovider2.Submit(updateMsg.Clear().DomainType(EmaRdm.MMT_DIRECTORY).
                         Payload(map).MarkForClear(), 0);   // use 0 item handle to fanout to all subscribers
 
-                while (consumerClient.QueueSize() < 1) { }
+                // Making assertions that aren't sensitive to UpdateMsg messages order
+                var updateMsgs = new[]
+                {
+                    consumerClient.WaitForMessage<UpdateMsg>(),
+                    consumerClient.WaitForMessage<UpdateMsg>(),
+                    consumerClient.WaitForMessage<UpdateMsg>(),
+                };
+                AssertCollectionUnordered(
+                    updateMsgs,
+                    updateMsg =>
+                    {
+                        Assert.Equal(2, updateMsg.StreamId());
+                        Assert.Equal(EmaRdm.MMT_DIRECTORY, updateMsg.DomainType());
+                        Assert.Equal(DataType.DataTypes.MAP, updateMsg.Payload().DataType);
 
-                message = consumerClient.PopMessage();
+                        Map payload = updateMsg.Payload().Map();
 
-                Assert.True(message is UpdateMsg);
+                        using var mapIt = payload.GetEnumerator();
+                        Assert.True(mapIt.MoveNext());
+                        MapEntry mapEntry = mapIt.Current;
 
-                updateMsg = (UpdateMsg)message;
-                Assert.Equal(2, updateMsg.StreamId());
-                Assert.Equal(EmaRdm.MMT_DIRECTORY, updateMsg.DomainType());
-                Assert.Equal(DataType.DataTypes.MAP, updateMsg.Payload().DataType);
+                        Assert.Equal(serviceId1, mapEntry.Key.OmmUInt().Value);
+                        Assert.Equal(DataType.DataTypes.NO_DATA, mapEntry.LoadType);
+                    },
+                    updateMsg =>
+                    {
+                        Assert.Equal(2, updateMsg.StreamId());
+                        Assert.Equal(EmaRdm.MMT_DIRECTORY, updateMsg.DomainType());
+                        Assert.Equal(DataType.DataTypes.MAP, updateMsg.Payload().DataType);
 
-                Map payload = updateMsg.Payload().Map();
+                        var payload = updateMsg.Payload().Map();
 
-                var mapIt = payload.GetEnumerator();
-                Assert.True(mapIt.MoveNext());
-                MapEntry mapEntry = mapIt.Current;
+                        using var mapIt = payload.GetEnumerator();
+                        Assert.True(mapIt.MoveNext());
+                        var mapEntry = mapIt.Current;
 
-                Assert.Equal<ulong>(32767, mapEntry.Key.OmmUInt().Value);
+                        Assert.Equal(serviceId2, mapEntry.Key.OmmUInt().Value);
+                        Assert.Equal(DataType.DataTypes.NO_DATA, mapEntry.LoadType);
 
-                Assert.Equal(DataType.DataTypes.NO_DATA, mapEntry.LoadType);
+                        Assert.False(mapIt.MoveNext());
+                    },
+                    updateMsg =>
+                    {
+                        Assert.Equal(2, updateMsg.StreamId());
+                        Assert.Equal(EmaRdm.MMT_DIRECTORY, updateMsg.DomainType());
+                        Assert.Equal(DataType.DataTypes.MAP, updateMsg.Payload().DataType);
 
-                while (consumerClient.QueueSize() < 2) { }
+                        var payload = updateMsg.Payload().Map();
 
-                message = consumerClient.PopMessage();
+                        using var mapIt = payload.GetEnumerator();
+                        Assert.True(mapIt.MoveNext());
+                        var mapEntry = mapIt.Current;
 
-                Assert.True(message is UpdateMsg);
+                        Assert.Equal(serviceId2, mapEntry.Key.OmmUInt().Value);
+                        Assert.Equal(DataType.DataTypes.NO_DATA, mapEntry.LoadType);
 
-                updateMsg = (UpdateMsg)message;
-                Assert.Equal(2, updateMsg.StreamId());
-                Assert.Equal(EmaRdm.MMT_DIRECTORY, updateMsg.DomainType());
-                Assert.Equal(DataType.DataTypes.MAP, updateMsg.Payload().DataType);
-
-                payload = updateMsg.Payload().Map();
-
-                mapIt = payload.GetEnumerator();
-                Assert.True(mapIt.MoveNext());
-                mapEntry = mapIt.Current;
-
-                Assert.Equal<ulong>(32768, mapEntry.Key.OmmUInt().Value);
-                Assert.Equal(DataType.DataTypes.NO_DATA, mapEntry.LoadType);
-
-                Assert.False(mapIt.MoveNext());
-
-                message = consumerClient.PopMessage();
-
-                Assert.True(message is UpdateMsg);
-
-                updateMsg = (UpdateMsg)message;
-                Assert.Equal(2, updateMsg.StreamId());
-                Assert.Equal(EmaRdm.MMT_DIRECTORY, updateMsg.DomainType());
-                Assert.Equal(DataType.DataTypes.MAP, updateMsg.Payload().DataType);
-
-                payload = updateMsg.Payload().Map();
-
-                mapIt = payload.GetEnumerator();
-                Assert.True(mapIt.MoveNext());
-                mapEntry = mapIt.Current;
-
-                Assert.Equal<ulong>(32768, mapEntry.Key.OmmUInt().Value);
-                Assert.Equal(DataType.DataTypes.NO_DATA, mapEntry.LoadType);
-                Assert.False(mapIt.MoveNext());
+                        Assert.False(mapIt.MoveNext());
+                    });
 
                 consumer.Unregister(directoryHandle);
                 consumer.Unregister(directoryHandle2);
             }
-            catch (OmmException ex)
-            {
-                Assert.Fail(ex.Message);
-            }
             finally
             {
-                Assert.NotNull(consumer);
-
                 m_Output.WriteLine("Uninitializing...");
 
-                consumer.Uninitialize();
+                consumer?.Uninitialize();
                 ommprovider.Uninitialize();
                 ommprovider2.Uninitialize();
             }
@@ -2941,15 +2740,8 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 long directoryHandle = consumer.RegisterClient(reqMsg.DomainType(EmaRdm.MMT_DIRECTORY).Filter(63), consumerClient);
 
                 /* Waits until OmmConsumer receives the refresh message */
-                while (consumerClient.QueueSize() == 0) { }
-
-                Assert.Equal(1, consumerClient.QueueSize()); // Ensure that the callback receives only one directory message
-
-                Msg message = consumerClient.PopMessage();
-
-                Assert.True(message is RefreshMsg);
-
-                RefreshMsg refreshMsg = (RefreshMsg)message;
+                RefreshMsg refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
+                Assert.Equal(0, consumerClient.QueueSize()); // Ensure that the callback receives only one directory message
 
                 Assert.Equal(2, refreshMsg.StreamId());
                 Assert.Equal(EmaRdm.MMT_DIRECTORY, refreshMsg.DomainType());
@@ -3172,15 +2964,8 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                         Filter(EmaRdm.SERVICE_STATE_FILTER).
                         Payload(map).MarkForClear(), 0);   // use 0 item handle to fan-out to all subscribers	
 
-                Thread.Sleep(5000);
-
-                Assert.Equal(1, consumerClient.QueueSize()); // Receives source directory update message to notify that the service state is down.
-
-                message = consumerClient.PopMessage();
-
-                Assert.True(message is UpdateMsg);
-
-                updateMsg = (UpdateMsg)message;
+                // Receives source directory update message to notify that the service state is down.
+                updateMsg = consumerClient.WaitForMessage<UpdateMsg>()/*(UpdateMsg)message*/;
 
                 Assert.Equal(2, updateMsg.StreamId());
                 Assert.Equal(EmaRdm.MMT_DIRECTORY, updateMsg.DomainType());
@@ -3373,17 +3158,11 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 consumer.Unregister(directoryHandle);
             }
-            catch (OmmException ex)
-            {
-                Assert.Fail(ex.Message);
-            }
             finally
             {
-                Assert.NotNull(consumer);
-
                 m_Output.WriteLine("Uninitializing...");
 
-                consumer.Uninitialize();
+                consumer?.Uninitialize();
                 ommprovider.Uninitialize();
                 ommprovider2.Uninitialize();
             }
@@ -3419,15 +3198,8 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 long directoryHandle = consumer.RegisterClient(reqMsg.DomainType(EmaRdm.MMT_DIRECTORY).Filter(63), consumerClient);
 
                 /* Waits until OmmConsumer receives the refresh message */
-                while (consumerClient.QueueSize() == 0) { }
-
-                Assert.Equal(1, consumerClient.QueueSize()); // Ensure that the callback receives only one directory message
-
-                Msg message = consumerClient.PopMessage();
-
-                Assert.True(message is RefreshMsg);
-
-                RefreshMsg refreshMsg = (RefreshMsg)message;
+                RefreshMsg refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
+                Assert.Equal(0, consumerClient.QueueSize()); // Ensure that the callback receives only one directory message
 
                 Assert.Equal(2, refreshMsg.StreamId());
                 Assert.Equal(EmaRdm.MMT_DIRECTORY, refreshMsg.DomainType());
@@ -3651,15 +3423,8 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                         Filter(EmaRdm.SERVICE_STATE_FILTER).
                         Payload(map), 0);   // use 0 item handle to fan-out to all subscribers	
 
-                Thread.Sleep(5000);
-
-                Assert.Equal(1, consumerClient.QueueSize()); // Receives source directory update message to notify that the service state is down.
-
-                message = consumerClient.PopMessage();
-
-                Assert.True(message is UpdateMsg);
-
-                updateMsg = (UpdateMsg)message;
+                updateMsg = consumerClient.WaitForMessage<UpdateMsg>()/*(UpdateMsg)message*/;
+                Assert.Equal(0, consumerClient.QueueSize()); // Receives source directory update message to notify that the service state is down.
 
                 Assert.Equal(2, updateMsg.StreamId());
                 Assert.Equal(EmaRdm.MMT_DIRECTORY, updateMsg.DomainType());
@@ -3852,17 +3617,11 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 consumer.Unregister(directoryHandle);
             }
-            catch (OmmException ex)
-            {
-                Assert.Fail(ex.Message);
-            }
             finally
             {
-                Assert.NotNull(consumer);
-
                 m_Output.WriteLine("Uninitializing...");
 
-                consumer.Uninitialize();
+                consumer?.Uninitialize();
                 ommprovider.Uninitialize();
                 ommprovider2.Uninitialize();
             }
@@ -3937,15 +3696,8 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 // Request info filter only
                 long directoryHandle = consumer.RegisterClient(reqMsg.DomainType(EmaRdm.MMT_DIRECTORY).Filter(63), consumerClient);
 
-                Thread.Sleep(1000);
-
-                Assert.Equal(1, consumerClient.QueueSize()); // Ensure that the callback receives only one directory message
-
-                Msg message = consumerClient.PopMessage();
-
-                Assert.True(message is RefreshMsg);
-
-                RefreshMsg refreshMsg = (RefreshMsg)message;
+                RefreshMsg refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
+                Assert.Equal(0, consumerClient.QueueSize()); // Ensure that the callback receives only one directory message
 
                 Assert.Equal(2, refreshMsg.StreamId());
                 Assert.Equal(EmaRdm.MMT_DIRECTORY, refreshMsg.DomainType());
@@ -3958,17 +3710,11 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 consumer.Unregister(directoryHandle);
             }
-            catch (OmmException excep)
-            {
-                Assert.Fail(excep.Message);
-            }
             finally
             {
-                Assert.NotNull(consumer);
-
                 m_Output.WriteLine("Uninitializing...");
 
-                consumer.Uninitialize();
+                consumer?.Uninitialize();
                 ommprovider.Uninitialize();
                 ommprovider2.Uninitialize();
             }
@@ -4005,14 +3751,8 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 long directoryHandle = consumer.RegisterClient(reqMsg.DomainType(EmaRdm.MMT_DIRECTORY).Filter(63), consumerClient);
 
                 /* Waits until OmmConsumer receives the refresh message */
-                while (consumerClient.QueueSize() == 0) { }
-
-                Assert.Equal(1, consumerClient.QueueSize()); // Ensure that the callback receives only one directory message
-                Msg message = consumerClient.PopMessage();
-
-                Assert.True(message is RefreshMsg);
-
-                RefreshMsg refreshMsg = (RefreshMsg)message;
+                RefreshMsg refreshMsg = consumerClient.WaitForMessage<RefreshMsg>()/*(RefreshMsg)message*/;
+                Assert.Equal(0, consumerClient.QueueSize()); // Ensure that the callback receives only one directory message
 
                 Assert.Equal(2, refreshMsg.StreamId());
                 Assert.Equal(EmaRdm.MMT_DIRECTORY, refreshMsg.DomainType());
@@ -4068,63 +3808,40 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 }
 
                 long itemHandle = consumer.RegisterClient(reqMsg.Clear().ServiceId(direct_feed_serviceId).Name("LSEG.O"), consumerClient);
-                Thread.Sleep(2000);
 
-                Assert.Equal(1, providerClient1.QueueSize());
-                message = providerClient1.PopMessage();
-
-                Assert.True(message is RequestMsg);
-                RequestMsg requestMsg = (RequestMsg)message;
+                RequestMsg requestMsg = providerClient1.WaitForMessage<RequestMsg>()/*(RequestMsg)message*/;
 
                 Assert.Equal("DIRECT_FEED", requestMsg.ServiceName());
                 Assert.Equal("LSEG.O", requestMsg.Name());
                 Assert.Equal(1, requestMsg.ServiceId());
 
-                Thread.Sleep(2000);
-
-                Assert.Equal(2, consumerClient.QueueSize());
-                message = consumerClient.PopMessage();
-
-                refreshMsg = (RefreshMsg)message;
+                refreshMsg = consumerClient.WaitForMessage<RefreshMsg>()/*(RefreshMsg)message*/;
 
                 Assert.Equal("DIRECT_FEED", refreshMsg.ServiceName());
                 Assert.Equal("LSEG.O", refreshMsg.Name());
                 Assert.Equal(direct_feed_serviceId, refreshMsg.ServiceId());
 
-                message = consumerClient.PopMessage();
-                UpdateMsg updateMsg = (UpdateMsg)message;
+                UpdateMsg updateMsg = consumerClient.WaitForMessage<UpdateMsg>()/*(UpdateMsg)message*/;
 
                 Assert.Equal("DIRECT_FEED", updateMsg.ServiceName());
                 Assert.Equal("LSEG.O", updateMsg.Name());
                 Assert.Equal(direct_feed_serviceId, updateMsg.ServiceId());
 
                 long itemHandle2 = consumer.RegisterClient(reqMsg.Clear().ServiceId(direct_feed2_serviceId).Name("LSEG.O"), consumerClient);
-                Thread.Sleep(2000);
 
-                Assert.Equal(1, providerClient2.QueueSize());
-
-                message = providerClient2.PopMessage();
-                Assert.True(message is RequestMsg);
-
-                requestMsg = (RequestMsg)message;
+                requestMsg = providerClient2.WaitForMessage<RequestMsg>()/*(RequestMsg)message*/;
 
                 Assert.Equal("DIRECT_FEED_2", requestMsg.ServiceName());
                 Assert.Equal("LSEG.O", requestMsg.Name());
                 Assert.Equal(1, requestMsg.ServiceId());
 
-                Thread.Sleep(2000);
-
-                Assert.Equal(2, consumerClient.QueueSize());
-                message = consumerClient.PopMessage();
-                refreshMsg = (RefreshMsg)message;
+                refreshMsg = consumerClient.WaitForMessage<RefreshMsg>()/*(RefreshMsg)message*/;
 
                 Assert.Equal("DIRECT_FEED_2", refreshMsg.ServiceName());
                 Assert.Equal("LSEG.O", refreshMsg.Name());
                 Assert.Equal(direct_feed2_serviceId, refreshMsg.ServiceId());
 
-                message = consumerClient.PopMessage();
-
-                updateMsg = (UpdateMsg)message;
+                updateMsg = consumerClient.WaitForMessage<UpdateMsg>()/*(UpdateMsg)message*/;
 
                 Assert.Equal("DIRECT_FEED_2", updateMsg.ServiceName());
                 Assert.Equal("LSEG.O", updateMsg.Name());
@@ -4134,17 +3851,11 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 consumer.Unregister(itemHandle);
                 consumer.Unregister(itemHandle2);
             }
-            catch (OmmException excep)
-            {
-                Assert.Fail(excep.Message);
-            }
             finally
             {
-                Assert.NotNull(consumer);
-
                 m_Output.WriteLine("Uninitializing...");
 
-                consumer.Uninitialize();
+                consumer?.Uninitialize();
                 ommprovider.Uninitialize();
                 ommprovider2.Uninitialize();
             }
@@ -4181,24 +3892,14 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 consumer = new OmmConsumer(new OmmConsumerConfig(EmaConfigFileLocation).ConsumerName("Consumer_11"));
 
                 /* Provider receives two dictionary request from OmmConsumer */
-                Assert.Equal(2, providerClient.QueueSize());
-
-                Msg message = providerClient.PopMessage();
-
-                Assert.True(message is RequestMsg);
-
-                RequestMsg requestMsg = (RequestMsg)message;
+                RequestMsg requestMsg = providerClient.WaitForMessage<RequestMsg>();
 
                 Assert.Equal("DIRECT_FEED", requestMsg.ServiceName());
                 Assert.Equal("RWFFld", requestMsg.Name());
                 Assert.Equal(1, requestMsg.ServiceId());
                 Assert.Equal(EmaRdm.DICTIONARY_NORMAL, requestMsg.Filter());
 
-                message = providerClient.PopMessage();
-
-                Assert.True(message is RequestMsg);
-
-                requestMsg = (RequestMsg)message;
+                requestMsg = providerClient.WaitForMessage<RequestMsg>();
 
                 Assert.Equal("DIRECT_FEED", requestMsg.ServiceName());
                 Assert.Equal("RWFEnum", requestMsg.Name());
@@ -4213,31 +3914,21 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 long rwfEnumHandle = consumer.RegisterClient(reqMsg.DomainType(EmaRdm.MMT_DICTIONARY).Name("RWFEnum").
                         Filter(EmaRdm.DICTIONARY_NORMAL), consumerClient);
 
-                Thread.Sleep(2000);
-
-                Assert.Equal(3, consumerClient.QueueSize());
-
-                message = consumerClient.PopMessage();
-
-                RefreshMsg refreshMsg = (RefreshMsg)message;
+                RefreshMsg refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
 
                 /* Receives first partial refresh from EMA */
                 Assert.Equal("RWFFld", refreshMsg.Name());
                 Assert.False(refreshMsg.Complete());
                 Assert.True(refreshMsg.ClearCache());
 
-                message = consumerClient.PopMessage();
-
-                refreshMsg = (RefreshMsg)message;
+                refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
 
                 /* Receives complete refresh from EMA */
                 Assert.Equal("RWFEnum", refreshMsg.Name());
                 Assert.True(refreshMsg.Complete());
                 Assert.True(refreshMsg.ClearCache());
 
-                message = consumerClient.PopMessage();
-
-                refreshMsg = (RefreshMsg)message;
+                refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
 
                 /* Receives second partial refresh from EMA */
                 Assert.Equal("RWFFld", refreshMsg.Name());
@@ -4247,17 +3938,11 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 consumer.Unregister(rwfFldHandle);
                 consumer.Unregister(rwfEnumHandle);
             }
-            catch (OmmException excep)
-            {
-                Assert.Fail(excep.Message);
-            }
             finally
             {
-                Assert.NotNull(consumer);
-
                 m_Output.WriteLine("Uninitializing...");
 
-                consumer.Uninitialize();
+                consumer?.Uninitialize();
                 ommprovider.Uninitialize();
                 ommprovider2.Uninitialize();
             }
@@ -4294,24 +3979,15 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 consumer = new OmmConsumer(new OmmConsumerConfig(EmaConfigFileLocation).ConsumerName("Consumer_11"));
 
                 /* Provider receives two dictionary request from OmmConsumer */
-                Assert.Equal(2, providerClient.QueueSize());
 
-                Msg message = providerClient.PopMessage();
-
-                Assert.True(message is RequestMsg);
-
-                RequestMsg requestMsg = (RequestMsg)message;
+                RequestMsg requestMsg = providerClient.WaitForMessage<RequestMsg>();
 
                 Assert.Equal("DIRECT_FEED", requestMsg.ServiceName());
                 Assert.Equal("RWFFld", requestMsg.Name());
                 Assert.Equal(1, requestMsg.ServiceId());
                 Assert.Equal(EmaRdm.DICTIONARY_NORMAL, requestMsg.Filter());
 
-                message = providerClient.PopMessage();
-
-                Assert.True(message is RequestMsg);
-
-                requestMsg = (RequestMsg)message;
+                requestMsg = providerClient.WaitForMessage<RequestMsg>();
 
                 Assert.Equal("DIRECT_FEED", requestMsg.ServiceName());
                 Assert.Equal("RWFEnum", requestMsg.Name());
@@ -4326,22 +4002,14 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 long rwfEnumHandle = consumer.RegisterClient(reqMsg.DomainType(EmaRdm.MMT_DICTIONARY).Name("RWFEnum").ServiceName("DIRECT_FEED").
                         Filter(EmaRdm.DICTIONARY_NORMAL), consumerClient);
 
-                Thread.Sleep(5000);
-
-                Assert.Equal(2, consumerClient.QueueSize());
-
-                message = consumerClient.PopMessage();
-
-                RefreshMsg refreshMsg = (RefreshMsg)message;
+                RefreshMsg refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
 
                 /* Receives complete refresh from EMA */
                 Assert.Equal("RWFFld", refreshMsg.Name());
                 Assert.True(refreshMsg.Complete());
                 Assert.True(refreshMsg.ClearCache());
 
-                message = consumerClient.PopMessage();
-
-                refreshMsg = (RefreshMsg)message;
+                refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
 
                 /* Receives second partial refresh from EMA */
                 Assert.Equal("RWFEnum", refreshMsg.Name());
@@ -4351,19 +4019,13 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 consumer.Unregister(rwfFldHandle);
                 consumer.Unregister(rwfEnumHandle);
             }
-            catch (OmmException excep)
-            {
-                Assert.Fail(excep.Message);
-            }
             finally
             {
-                Assert.NotNull(consumer);
-
                 m_Output.WriteLine("Uninitializing...");
 
                 ommprovider.Uninitialize();
                 ommprovider2.Uninitialize();
-                consumer.Uninitialize();
+                consumer?.Uninitialize();
             }
         }
 
@@ -4396,34 +4058,20 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 long itemHandle = consumer.RegisterClient(reqMsg.ServiceName("DIRECT_FEED_2").DomainType(EmaRdm.MMT_SYMBOL_LIST).Name(".AV.N"), consumerClient);
 
-                Thread.Sleep(2000);
-
                 var consumerSession = consumer.m_OmmConsumerImpl!.ConsumerSession;
 
                 int serviceId = consumerSession!.GetSessionDirectoryByName("DIRECT_FEED_2")!.Service!.ServiceId;
 
+                RequestMsg requestMsg = providerClient2.WaitForMessage<RequestMsg>();
+                Assert.Equal(0, providerClient2.QueueSize());
                 Assert.Equal(0, providerClient1.QueueSize());
-
-                Assert.Equal(1, providerClient2.QueueSize());
-
-                Msg message = providerClient2.PopMessage();
-
-                Assert.True(message is RequestMsg);
-
-                RequestMsg requestMsg = (RequestMsg)message;
 
                 Assert.Equal("DIRECT_FEED_2", requestMsg.ServiceName());
                 Assert.Equal(".AV.N", requestMsg.Name());
                 Assert.Equal(1, requestMsg.ServiceId());
                 Assert.Equal(EmaRdm.MMT_SYMBOL_LIST, requestMsg.DomainType());
 
-                Thread.Sleep(2000);
-
-                Assert.Equal(1, consumerClient.QueueSize());
-
-                message = consumerClient.PopMessage();
-
-                RefreshMsg refreshMsg = (RefreshMsg)message;
+                RefreshMsg refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
 
                 Assert.Equal("DIRECT_FEED_2", refreshMsg.ServiceName());
                 Assert.Equal(".AV.N", refreshMsg.Name());
@@ -4453,17 +4101,11 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 consumer.Unregister(itemHandle);
             }
-            catch (OmmException excep)
-            {
-                Assert.Fail(excep.Message);
-            }
             finally
             {
-                Assert.NotNull(consumer);
-
                 m_Output.WriteLine("Uninitializing...");
 
-                consumer.Uninitialize();
+                consumer?.Uninitialize();
                 ommprovider.Uninitialize();
                 ommprovider2.Uninitialize();
             }
@@ -4500,14 +4142,8 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 long directoryHandle = consumer.RegisterClient(reqMsg.DomainType(EmaRdm.MMT_DIRECTORY).Filter(63), consumerClient);
 
                 /* Waits until OmmConsumer receives the refresh message */
-                while (consumerClient.QueueSize() == 0) { }
-
-                Assert.Equal(1, consumerClient.QueueSize()); // Ensure that the callback receives only one directory message
-                Msg message = consumerClient.PopMessage();
-
-                Assert.True(message is RefreshMsg);
-
-                RefreshMsg refreshMsg = (RefreshMsg)message;
+                RefreshMsg refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
+                Assert.Equal(0, consumerClient.QueueSize()); // Ensure that the callback receives only one directory message
 
                 Assert.Equal(2, refreshMsg.StreamId());
                 Assert.Equal(EmaRdm.MMT_DIRECTORY, refreshMsg.DomainType());
@@ -4563,63 +4199,40 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 }
 
                 long itemHandle = consumer.RegisterClient(reqMsg.Clear().ServiceName("DIRECT_FEED").Name("LSEG.O"), consumerClient);
-                Thread.Sleep(2000);
 
-                Assert.Equal(1, providerClient1.QueueSize());
-                message = providerClient1.PopMessage();
-
-                Assert.True(message is RequestMsg);
-                RequestMsg requestMsg = (RequestMsg)message;
+                RequestMsg requestMsg = providerClient1.WaitForMessage<RequestMsg>();
 
                 Assert.Equal("DIRECT_FEED", requestMsg.ServiceName());
                 Assert.Equal("LSEG.O", requestMsg.Name());
                 Assert.Equal(1, requestMsg.ServiceId());
 
-                Thread.Sleep(2000);
-
-                Assert.Equal(2, consumerClient.QueueSize());
-                message = consumerClient.PopMessage();
-
-                refreshMsg = (RefreshMsg)message;
+                refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
 
                 Assert.Equal("DIRECT_FEED", refreshMsg.ServiceName());
                 Assert.Equal("LSEG.O", refreshMsg.Name());
                 Assert.Equal(direct_feed_serviceId, refreshMsg.ServiceId());
 
-                message = consumerClient.PopMessage();
-                UpdateMsg updateMsg = (UpdateMsg)message;
+                UpdateMsg updateMsg = consumerClient.WaitForMessage<UpdateMsg>();
 
                 Assert.Equal("DIRECT_FEED", updateMsg.ServiceName());
                 Assert.Equal("LSEG.O", updateMsg.Name());
                 Assert.Equal(direct_feed_serviceId, updateMsg.ServiceId());
 
                 long itemHandle2 = consumer.RegisterClient(reqMsg.Clear().ServiceName("DIRECT_FEED_2").Name("LSEG.O"), consumerClient);
-                Thread.Sleep(2000);
 
-                Assert.Equal(1, providerClient2.QueueSize());
-
-                message = providerClient2.PopMessage();
-                Assert.True(message is RequestMsg);
-
-                requestMsg = (RequestMsg)message;
+                requestMsg = providerClient2.WaitForMessage<RequestMsg>();
 
                 Assert.Equal("DIRECT_FEED_2", requestMsg.ServiceName());
                 Assert.Equal("LSEG.O", requestMsg.Name());
                 Assert.Equal(1, requestMsg.ServiceId());
 
-                Thread.Sleep(2000);
-
-                Assert.Equal(2, consumerClient.QueueSize());
-                message = consumerClient.PopMessage();
-                refreshMsg = (RefreshMsg)message;
+                refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
 
                 Assert.Equal("DIRECT_FEED_2", refreshMsg.ServiceName());
                 Assert.Equal("LSEG.O", refreshMsg.Name());
                 Assert.Equal(direct_feed2_serviceId, refreshMsg.ServiceId());
 
-                message = consumerClient.PopMessage();
-
-                updateMsg = (UpdateMsg)message;
+                updateMsg = consumerClient.WaitForMessage<UpdateMsg>();
 
                 Assert.Equal("DIRECT_FEED_2", updateMsg.ServiceName());
                 Assert.Equal("LSEG.O", updateMsg.Name());
@@ -4629,17 +4242,11 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 consumer.Unregister(itemHandle);
                 consumer.Unregister(itemHandle2);
             }
-            catch (OmmException excep)
-            {
-                Assert.Fail(excep.Message);
-            }
             finally
             {
-                Assert.NotNull(consumer);
-
                 m_Output.WriteLine("Uninitializing...");
 
-                consumer.Uninitialize();
+                consumer?.Uninitialize();
                 ommprovider.Uninitialize();
                 ommprovider2.Uninitialize();
             }
@@ -4689,52 +4296,28 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 consumer.RegisterClient(reqMsg.ServiceName("DIRECT_FEED").Payload(batch).MarkForClear(), consumerClient);
 
-                Thread.Sleep(2000);
-
-                Assert.Equal(3, providerClient1.QueueSize());
-
-                Msg message = providerClient1.PopMessage();
-
-                Assert.True(message is RequestMsg);
-
-                RequestMsg requestMsg = (RequestMsg)message;
+                RequestMsg requestMsg = providerClient1.WaitForMessage<RequestMsg>();
 
                 Assert.Equal(3, requestMsg.StreamId());
                 Assert.Equal("DIRECT_FEED", requestMsg.ServiceName());
                 Assert.Equal("itemA", requestMsg.Name());
                 Assert.Equal(1, requestMsg.ServiceId());
 
-                message = providerClient1.PopMessage();
-
-                Assert.True(message is RequestMsg);
-
-                requestMsg = (RequestMsg)message;
+                requestMsg = providerClient1.WaitForMessage<RequestMsg>();
 
                 Assert.Equal(4, requestMsg.StreamId());
                 Assert.Equal("DIRECT_FEED", requestMsg.ServiceName());
                 Assert.Equal("itemB", requestMsg.Name());
                 Assert.Equal(1, requestMsg.ServiceId());
 
-                message = providerClient1.PopMessage();
-
-                Assert.True(message is RequestMsg);
-
-                requestMsg = (RequestMsg)message;
+                requestMsg = providerClient1.WaitForMessage<RequestMsg>();
 
                 Assert.Equal(5, requestMsg.StreamId());
                 Assert.Equal("DIRECT_FEED", requestMsg.ServiceName());
                 Assert.Equal("itemC", requestMsg.Name());
                 Assert.Equal(1, requestMsg.ServiceId());
 
-                Thread.Sleep(2000);
-
-                Assert.Equal(4, consumerClient.QueueSize());
-
-                message = consumerClient.PopMessage();
-
-                Assert.True(message is StatusMsg);
-
-                StatusMsg statusMsg = (StatusMsg)message;
+                StatusMsg statusMsg = consumerClient.WaitForMessage<StatusMsg>();
 
                 Assert.Equal(5, statusMsg.StreamId());
                 Assert.False(statusMsg.HasName);
@@ -4745,11 +4328,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 Assert.Equal(OmmState.StatusCodes.NONE, statusMsg.State().StatusCode);
                 Assert.Equal("Stream closed for batch", statusMsg.State().StatusText);
 
-                message = consumerClient.PopMessage();
-
-                Assert.True(message is RefreshMsg);
-
-                RefreshMsg refreshMsg = (RefreshMsg)message;
+                RefreshMsg refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
 
                 Assert.Equal(6, refreshMsg.StreamId());
                 Assert.Equal("DIRECT_FEED", refreshMsg.ServiceName());
@@ -4761,11 +4340,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 Assert.True(refreshMsg.Solicited());
                 Assert.True(refreshMsg.Complete());
 
-                message = consumerClient.PopMessage();
-
-                Assert.True(message is RefreshMsg);
-
-                refreshMsg = (RefreshMsg)message;
+                refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
 
                 Assert.Equal(7, refreshMsg.StreamId());
                 Assert.Equal("DIRECT_FEED", refreshMsg.ServiceName());
@@ -4777,11 +4352,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 Assert.True(refreshMsg.Solicited());
                 Assert.True(refreshMsg.Complete());
 
-                message = consumerClient.PopMessage();
-
-                Assert.True(message is RefreshMsg);
-
-                refreshMsg = (RefreshMsg)message;
+                refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
 
                 Assert.Equal(8, refreshMsg.StreamId());
                 Assert.Equal("DIRECT_FEED", refreshMsg.ServiceName());
@@ -4796,50 +4367,28 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 /* Closes the first provider to force recovering items */
                 ommprovider.Uninitialize();
 
-                Thread.Sleep(3000);
-
-                Assert.Equal(3, providerClient2.QueueSize());
-
-                Thread.Sleep(1000);
-
-                message = providerClient2.PopMessage();
-
-                Assert.True(message is RequestMsg);
-
-                requestMsg = (RequestMsg)message;
+                requestMsg = providerClient2.WaitForMessage<RequestMsg>();
 
                 Assert.Equal(3, requestMsg.StreamId());
                 Assert.Equal("DIRECT_FEED", requestMsg.ServiceName());
                 Assert.Equal("itemA", requestMsg.Name());
                 Assert.Equal(1, requestMsg.ServiceId());
 
-                message = providerClient2.PopMessage();
-
-                Assert.True(message is RequestMsg);
-
-                requestMsg = (RequestMsg)message;
+                requestMsg = providerClient2.WaitForMessage<RequestMsg>();
 
                 Assert.Equal(4, requestMsg.StreamId());
                 Assert.Equal("DIRECT_FEED", requestMsg.ServiceName());
                 Assert.Equal("itemB", requestMsg.Name());
                 Assert.Equal(1, requestMsg.ServiceId());
 
-                message = providerClient2.PopMessage();
-
-                Assert.True(message is RequestMsg);
-
-                requestMsg = (RequestMsg)message;
+                requestMsg = providerClient2.WaitForMessage<RequestMsg>();
 
                 Assert.Equal(5, requestMsg.StreamId());
                 Assert.Equal("DIRECT_FEED", requestMsg.ServiceName());
                 Assert.Equal("itemC", requestMsg.Name());
                 Assert.Equal(1, requestMsg.ServiceId());
 
-                Assert.Equal(6, consumerClient.QueueSize());
-
-                message = consumerClient.PopMessage();
-
-                statusMsg = (StatusMsg)message;
+                statusMsg = consumerClient.WaitForMessage<StatusMsg>();
                 Assert.Equal(6, statusMsg.StreamId());
                 Assert.Equal("DIRECT_FEED", statusMsg.ServiceName());
                 Assert.Equal("itemA", statusMsg.Name());
@@ -4848,9 +4397,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 Assert.Equal(OmmState.StatusCodes.NONE, statusMsg.State().StatusCode);
                 Assert.Equal("channel down.", statusMsg.State().StatusText);
 
-                message = consumerClient.PopMessage();
-
-                statusMsg = (StatusMsg)message;
+                statusMsg = consumerClient.WaitForMessage<StatusMsg>();
                 Assert.Equal(7, statusMsg.StreamId());
                 Assert.Equal("DIRECT_FEED", statusMsg.ServiceName());
                 Assert.Equal("itemB", statusMsg.Name());
@@ -4859,9 +4406,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 Assert.Equal(OmmState.StatusCodes.NONE, statusMsg.State().StatusCode);
                 Assert.Equal("channel down.", statusMsg.State().StatusText);
 
-                message = consumerClient.PopMessage();
-
-                statusMsg = (StatusMsg)message;
+                statusMsg = consumerClient.WaitForMessage<StatusMsg>();
                 Assert.Equal(8, statusMsg.StreamId());
                 Assert.Equal("DIRECT_FEED", statusMsg.ServiceName());
                 Assert.Equal("itemC", statusMsg.Name());
@@ -4870,11 +4415,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 Assert.Equal(OmmState.StatusCodes.NONE, statusMsg.State().StatusCode);
                 Assert.Equal("channel down.", statusMsg.State().StatusText);
 
-                message = consumerClient.PopMessage();
-
-                Assert.True(message is RefreshMsg);
-
-                refreshMsg = (RefreshMsg)message;
+                refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
 
                 Assert.Equal(6, refreshMsg.StreamId());
                 Assert.Equal("DIRECT_FEED", refreshMsg.ServiceName());
@@ -4886,11 +4427,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 Assert.True(refreshMsg.Solicited());
                 Assert.True(refreshMsg.Complete());
 
-                message = consumerClient.PopMessage();
-
-                Assert.True(message is RefreshMsg);
-
-                refreshMsg = (RefreshMsg)message;
+                refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
 
                 Assert.Equal(7, refreshMsg.StreamId());
                 Assert.Equal("DIRECT_FEED", refreshMsg.ServiceName());
@@ -4902,11 +4439,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 Assert.True(refreshMsg.Solicited());
                 Assert.True(refreshMsg.Complete());
 
-                message = consumerClient.PopMessage();
-
-                Assert.True(message is RefreshMsg);
-
-                refreshMsg = (RefreshMsg)message;
+                refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
 
                 Assert.Equal(8, refreshMsg.StreamId());
                 Assert.Equal("DIRECT_FEED", refreshMsg.ServiceName());
@@ -4919,21 +4452,12 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 Assert.True(refreshMsg.Complete());
 
                 consumerClient.UnregisterAllHandles();
-
-                Thread.Sleep(1000);
-
-            }
-            catch (OmmException excep)
-            {
-                Assert.Fail(excep.Message);
             }
             finally
             {
-                Assert.NotNull(consumer);
-
                 m_Output.WriteLine("Uninitializing...");
 
-                consumer.Uninitialize();
+                consumer?.Uninitialize();
                 ommprovider2.Uninitialize();
             }
         }
@@ -4985,54 +4509,33 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 consumer.RegisterClient(reqMsg.ServiceListName("SVG1").Payload(batch).MarkForClear(), consumerClient);
 
-                Thread.Sleep(2000);
+                int providerIdx = Task.WaitAny(
+                    providerClient1.WaitForNonEmptinessAsync(),
+                    providerClient2.WaitForNonEmptinessAsync());
+                ProviderTestClient providerClient = providerIdx == 0 ? providerClient1 : providerClient2;
 
-                ProviderTestClient providerClient = providerClient1.QueueSize() > 0 ? providerClient1 : providerClient2;
-
-                Assert.Equal(3, providerClient.QueueSize());
-
-                Msg message = providerClient.PopMessage();
-
-                Assert.True(message is RequestMsg);
-
-                RequestMsg requestMsg = (RequestMsg)message;
+                RequestMsg requestMsg = providerClient.WaitForMessage<RequestMsg>();
 
                 Assert.Equal(3, requestMsg.StreamId());
                 Assert.Equal("DIRECT_FEED", requestMsg.ServiceName());
                 Assert.Equal("itemA", requestMsg.Name());
                 Assert.Equal(1, requestMsg.ServiceId());
 
-                message = providerClient.PopMessage();
-
-                Assert.True(message is RequestMsg);
-
-                requestMsg = (RequestMsg)message;
+                requestMsg = providerClient.WaitForMessage<RequestMsg>();
 
                 Assert.Equal(4, requestMsg.StreamId());
                 Assert.Equal("DIRECT_FEED", requestMsg.ServiceName());
                 Assert.Equal("itemB", requestMsg.Name());
                 Assert.Equal(1, requestMsg.ServiceId());
 
-                message = providerClient.PopMessage();
-
-                Assert.True(message is RequestMsg);
-
-                requestMsg = (RequestMsg)message;
+                requestMsg = providerClient.WaitForMessage<RequestMsg>();
 
                 Assert.Equal(5, requestMsg.StreamId());
                 Assert.Equal("DIRECT_FEED", requestMsg.ServiceName());
                 Assert.Equal("itemC", requestMsg.Name());
                 Assert.Equal(1, requestMsg.ServiceId());
 
-                Thread.Sleep(2000);
-
-                Assert.Equal(4, consumerClient.QueueSize());
-
-                message = consumerClient.PopMessage();
-
-                Assert.True(message is StatusMsg);
-
-                StatusMsg statusMsg = (StatusMsg)message;
+                StatusMsg statusMsg = consumerClient.WaitForMessage<StatusMsg>();
 
                 Assert.False(statusMsg.HasName);
                 Assert.Equal("SVG1", statusMsg.ServiceName());
@@ -5042,11 +4545,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 Assert.Equal(OmmState.StatusCodes.NONE, statusMsg.State().StatusCode);
                 Assert.Equal("Stream closed for batch", statusMsg.State().StatusText);
 
-                message = consumerClient.PopMessage();
-
-                Assert.True(message is RefreshMsg);
-
-                RefreshMsg refreshMsg = (RefreshMsg)message;
+                RefreshMsg refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
 
                 Assert.Equal("SVG1", refreshMsg.ServiceName());
                 Assert.Equal("itemA", refreshMsg.Name());
@@ -5057,11 +4556,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 Assert.True(refreshMsg.Solicited());
                 Assert.True(refreshMsg.Complete());
 
-                message = consumerClient.PopMessage();
-
-                Assert.True(message is RefreshMsg);
-
-                refreshMsg = (RefreshMsg)message;
+                refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
 
                 Assert.Equal("SVG1", refreshMsg.ServiceName());
                 Assert.Equal("itemB", refreshMsg.Name());
@@ -5072,11 +4567,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 Assert.True(refreshMsg.Solicited());
                 Assert.True(refreshMsg.Complete());
 
-                message = consumerClient.PopMessage();
-
-                Assert.True(message is RefreshMsg);
-
-                refreshMsg = (RefreshMsg)message;
+                refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
 
                 Assert.Equal("SVG1", refreshMsg.ServiceName());
                 Assert.Equal("itemC", refreshMsg.Name());
@@ -5087,18 +4578,11 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 Assert.True(refreshMsg.Solicited());
                 Assert.True(refreshMsg.Complete());
             }
-            catch (OmmException exp)
-            {
-                m_Output.WriteLine(exp.StackTrace);
-                Assert.Fail(exp.Message);
-            }
             finally
             {
-                Assert.NotNull(consumer);
-
                 m_Output.WriteLine("Uninitializing...");
 
-                consumer.Uninitialize();
+                consumer?.Uninitialize();
                 ommprovider.Uninitialize();
                 ommprovider2.Uninitialize();
             }
@@ -5135,23 +4619,15 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 long itemHandle1 = consumer.RegisterClient(reqMsg.ServiceName("DIRECT_FEED").Name("LSEG.O"), consumerClient);
 
-                Thread.Sleep(9000);
-
                 /* Ensure that the provider receives a request message but it doesn't send a response back. */
-                Assert.Equal(2, providerClient1.QueueSize());
-
-                Msg message = providerClient1.PopMessage();
-                RequestMsg recvReqMsg = (RequestMsg)message;
+                RequestMsg recvReqMsg = providerClient1.WaitForMessage<RequestMsg>();
 
                 Assert.Equal(3, recvReqMsg.StreamId());
                 Assert.Equal(1, recvReqMsg.ServiceId());
                 Assert.Equal("DIRECT_FEED", recvReqMsg.ServiceName());
                 Assert.Equal("LSEG.O", recvReqMsg.Name());
 
-                Assert.Equal(2, consumerClient.QueueSize());
-                message = consumerClient.PopMessage();
-
-                StatusMsg statusMsg = (StatusMsg)message;
+                StatusMsg statusMsg = consumerClient.WaitForMessage<StatusMsg>();
 
                 Assert.Equal(5, statusMsg.StreamId());
                 Assert.Equal("DIRECT_FEED", statusMsg.ServiceName());
@@ -5161,12 +4637,8 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 Assert.Equal(OmmState.StatusCodes.NONE, statusMsg.State().StatusCode);
                 Assert.Equal("Request timeout", statusMsg.State().StatusText);
 
-                Thread.Sleep(2000);
-                Assert.Equal(1, providerClient1.QueueSize());
-
                 /* Provider receives a close message */
-                message = providerClient1.PopMessage();
-                recvReqMsg = (RequestMsg)message;
+                recvReqMsg = providerClient1.WaitForMessage<RequestMsg>();
 
                 Assert.Equal(3, recvReqMsg.StreamId());
                 Assert.Equal(1, recvReqMsg.ServiceId());
@@ -5174,9 +4646,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 Assert.Equal("LSEG.O", recvReqMsg.Name());
 
                 /* The second provider receives the request message */
-                Assert.Equal(1, providerClient2.QueueSize());
-                message = providerClient2.PopMessage();
-                recvReqMsg = (RequestMsg)message;
+                recvReqMsg = providerClient2.WaitForMessage<RequestMsg>();
 
                 Assert.Equal(3, recvReqMsg.StreamId());
                 Assert.Equal(1, recvReqMsg.ServiceId());
@@ -5184,10 +4654,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 Assert.Equal("LSEG.O", recvReqMsg.Name());
 
                 /* Receives the first refresh message from the second provider */
-                Assert.Equal(1, consumerClient.QueueSize());
-                message = consumerClient.PopMessage();
-
-                RefreshMsg refreshMsg = (RefreshMsg)message;
+                RefreshMsg refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
 
                 Assert.Equal("DIRECT_FEED", refreshMsg.ServiceName());
                 Assert.Equal("LSEG.O", refreshMsg.Name());
@@ -5200,18 +4667,11 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 consumer.Unregister(itemHandle1);
             }
-            catch (OmmException excp)
-            {
-                m_Output.WriteLine(excp.StackTrace);
-                Assert.Fail(excp.Message);
-            }
             finally
             {
-                Assert.NotNull(consumer);
-
                 m_Output.WriteLine("Uninitializing...");
 
-                consumer.Uninitialize();
+                consumer?.Uninitialize();
                 ommprovider.Uninitialize();
                 ommprovider2.Uninitialize();
             }
@@ -5250,27 +4710,13 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 long itemHandle = consumer.RegisterClient(reqMsg.ServiceName("DIRECT_FEED").Name("LSEG.O"), consumerClient);
 
-                Thread.Sleep(3000);
-
-                Assert.Equal(1, providerClient1.QueueSize());
-
-                Msg message = providerClient1.PopMessage();
-
-                Assert.True(message is RequestMsg);
-
-                RequestMsg requestMsg = (RequestMsg)message;
+                RequestMsg requestMsg = providerClient1.WaitForMessage<RequestMsg>();
 
                 Assert.Equal("DIRECT_FEED", requestMsg.ServiceName());
                 Assert.Equal("LSEG.O", requestMsg.Name());
                 Assert.Equal(1, requestMsg.ServiceId());
 
-                Thread.Sleep(2000);
-
-                Assert.Equal(1, consumerClient.QueueSize());
-
-                message = consumerClient.PopMessage();
-
-                RefreshMsg refreshMsg = (RefreshMsg)message;
+                RefreshMsg refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
 
                 Assert.Equal("DIRECT_FEED", refreshMsg.ServiceName());
                 Assert.Equal("LSEG.O", refreshMsg.Name());
@@ -5301,23 +4747,15 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                         Payload(map).MarkForClear(), 0);   // use 0 item handle to fan-out to all subscribers
 
 
-                Thread.Sleep(2000); // Wait until consumer receives the item Open/Suspect status message from the VA Watchlist
-
                 /* The second provider receives the request message */
-                Assert.Equal(1, providerClient2.QueueSize());
-                message = providerClient2.PopMessage();
-                RequestMsg recvReqMsg = (RequestMsg)message;
+                RequestMsg recvReqMsg = providerClient2.WaitForMessage<RequestMsg>();
 
                 Assert.Equal(3, recvReqMsg.StreamId());
                 Assert.Equal(1, recvReqMsg.ServiceId());
                 Assert.Equal("DIRECT_FEED", recvReqMsg.ServiceName());
                 Assert.Equal("LSEG.O", recvReqMsg.Name());
 
-                Assert.Equal(2, consumerClient.QueueSize());
-
-                message = consumerClient.PopMessage();
-
-                StatusMsg statusMsg = (StatusMsg)message;
+                StatusMsg statusMsg = consumerClient.WaitForMessage<StatusMsg>();
 
                 Assert.Equal("DIRECT_FEED", statusMsg.ServiceName());
                 Assert.Equal("LSEG.O", statusMsg.Name());
@@ -5326,10 +4764,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 Assert.Equal(OmmState.StatusCodes.NONE, statusMsg.State().StatusCode);
 
                 /* Receives refresh message from the second provider */
-                Assert.Equal(1, consumerClient.QueueSize());
-                message = consumerClient.PopMessage();
-
-                refreshMsg = (RefreshMsg)message;
+                refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
 
                 Assert.Equal("DIRECT_FEED", refreshMsg.ServiceName());
                 Assert.Equal("LSEG.O", refreshMsg.Name());
@@ -5342,18 +4777,11 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 consumer.Unregister(itemHandle);
             }
-            catch (OmmException excep)
-            {
-                m_Output.WriteLine(excep.StackTrace);
-                Assert.Fail(excep.Message);
-            }
             finally
             {
-                Assert.NotNull(consumer);
-
                 m_Output.WriteLine("Uninitializing...");
 
-                consumer.Uninitialize();
+                consumer?.Uninitialize();
                 ommprovider.Uninitialize();
                 ommprovider2.Uninitialize();
             }
@@ -5390,27 +4818,16 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 long itemHandle = consumer.RegisterClient(reqMsg.ServiceName("DIRECT_FEED").Name("LSEG.O"), consumerClient);
 
-                Thread.Sleep(3000);
-
                 /* Checks provider that receives the item request. */
-                Msg message;
                 RequestMsg? requestMsg = null;
 
-                message = providerClient1.PopMessage();
-                Assert.True(message is RequestMsg);
-                requestMsg = (RequestMsg)message;
+                requestMsg = providerClient1.WaitForMessage<RequestMsg>();
 
                 Assert.Equal("DIRECT_FEED", requestMsg.ServiceName());
                 Assert.Equal("LSEG.O", requestMsg.Name());
                 Assert.Equal(1, requestMsg.ServiceId());
 
-                Thread.Sleep(2000);
-
-                Assert.Equal(1, consumerClient.QueueSize());
-
-                message = consumerClient.PopMessage();
-
-                RefreshMsg refreshMsg = (RefreshMsg)message;
+                RefreshMsg refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
 
                 Assert.Equal("DIRECT_FEED", refreshMsg.ServiceName());
                 Assert.Equal("LSEG.O", refreshMsg.Name());
@@ -5424,23 +4841,15 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 RequestMsg recvReqMsg;
                 ommprovider.Uninitialize();
 
-                Thread.Sleep(2000);
-
                 /* The second provider receives the request message */
-                Assert.Equal(1, providerClient2.QueueSize());
-                message = providerClient2.PopMessage();
-                recvReqMsg = (RequestMsg)message;
+                recvReqMsg = providerClient2.WaitForMessage<RequestMsg>();
 
                 Assert.Equal(3, recvReqMsg.StreamId());
                 Assert.Equal(1, recvReqMsg.ServiceId());
                 Assert.Equal("DIRECT_FEED", recvReqMsg.ServiceName());
                 Assert.Equal("LSEG.O", recvReqMsg.Name());
 
-                Assert.Equal(2, consumerClient.QueueSize());
-
-                message = consumerClient.PopMessage();
-
-                StatusMsg statusMsg = (StatusMsg)message;
+                StatusMsg statusMsg = consumerClient.WaitForMessage<StatusMsg>();
 
                 Assert.Equal("DIRECT_FEED", statusMsg.ServiceName());
                 Assert.Equal("LSEG.O", statusMsg.Name());
@@ -5450,10 +4859,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 Assert.Equal("channel down.", statusMsg.State().StatusText);
 
                 /* Receives refresh message from the second provider */
-                Assert.Equal(1, consumerClient.QueueSize());
-                message = consumerClient.PopMessage();
-
-                refreshMsg = (RefreshMsg)message;
+                refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
 
                 Assert.Equal("DIRECT_FEED", refreshMsg.ServiceName());
                 Assert.Equal("LSEG.O", refreshMsg.Name());
@@ -5466,18 +4872,11 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 consumer.Unregister(itemHandle);
             }
-            catch (OmmException excep)
-            {
-                m_Output.WriteLine(excep.StackTrace);
-                Assert.Fail(excep.Message);
-            }
             finally
             {
-                Assert.NotNull(consumer);
-
                 m_Output.WriteLine("Uninitializing...");
 
-                consumer.Uninitialize();
+                consumer?.Uninitialize();
                 ommprovider.Uninitialize();
                 ommprovider2.Uninitialize();
             }
@@ -5512,15 +4911,10 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 long itemHandle = consumer.RegisterClient(new RequestMsg().ServiceName("DIRECT_FEED").Name("LSEG.O"), consumerClient);
 
-                Thread.Sleep(1000);
-
                 /* Checks provider that receives the item request. */
-                Msg message;
                 RequestMsg? requestMsg = null;
 
-                message = providerClient1.PopMessage();
-                Assert.True(message is RequestMsg);
-                requestMsg = (RequestMsg)message;
+                requestMsg = providerClient1.WaitForMessage<RequestMsg>();
 
                 if (!requestMsg.HasServiceName)
                 {
@@ -5531,13 +4925,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 Assert.Equal("LSEG.O", requestMsg.Name());
                 Assert.Equal(1, requestMsg.ServiceId());
 
-                Thread.Sleep(1000);
-
-                Assert.Equal(1, consumerClient.QueueSize());
-
-                message = consumerClient.PopMessage();
-
-                RefreshMsg refreshMsg = (RefreshMsg)message;
+                RefreshMsg refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
 
                 Assert.Equal("DIRECT_FEED", refreshMsg.ServiceName());
                 Assert.Equal(32767, refreshMsg.ServiceId());
@@ -5555,35 +4943,20 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 ommprovider = new OmmProvider(config.Port("19001").ProviderName("Provider_1"), providerClient1);
 
-                int count = 0;
-                while (count <= 5 && providerClient1.QueueSize() != 2)
-                {
-                    Thread.Sleep(1200);
-                    count++;
-                }
-
                 /* The first provider receives the request message */
-                Assert.Equal(2, providerClient1.QueueSize());
-
-                message = providerClient1.PopMessage();
-                recvReqMsg = (RequestMsg)message;
+                recvReqMsg = providerClient1.WaitForMessage<RequestMsg>();
 
                 Assert.Equal(1, recvReqMsg.StreamId());
                 Assert.Equal(EmaRdm.MMT_LOGIN, recvReqMsg.DomainType());
 
-                message = providerClient1.PopMessage();
-                recvReqMsg = (RequestMsg)message;
+                recvReqMsg = providerClient1.WaitForMessage<RequestMsg>();
 
                 Assert.Equal(4, recvReqMsg.StreamId());
                 Assert.Equal(1, recvReqMsg.ServiceId());
                 Assert.Equal("DIRECT_FEED", recvReqMsg.ServiceName());
                 Assert.Equal("LSEG.O", recvReqMsg.Name());
 
-                Assert.Equal(2, consumerClient.QueueSize());
-
-                message = consumerClient.PopMessage();
-
-                StatusMsg statusMsg = (StatusMsg)message;
+                StatusMsg statusMsg = consumerClient.WaitForMessage<StatusMsg>();
 
                 Assert.Equal("DIRECT_FEED", statusMsg.ServiceName());
                 Assert.Equal("LSEG.O", statusMsg.Name());
@@ -5592,10 +4965,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 Assert.Equal(OmmState.StatusCodes.NONE, statusMsg.State().StatusCode);
 
                 /* Receives refresh message from the first provider */
-                Assert.Equal(1, consumerClient.QueueSize());
-                message = consumerClient.PopMessage();
-
-                refreshMsg = (RefreshMsg)message;
+                refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
 
                 Assert.Equal("DIRECT_FEED", refreshMsg.ServiceName());
                 Assert.Equal("LSEG.O", refreshMsg.Name());
@@ -5609,18 +4979,11 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 consumer.Unregister(itemHandle);
             }
-            catch (OmmException excep)
-            {
-                m_Output.WriteLine(excep.StackTrace);
-                Assert.Fail(excep.Message);
-            }
             finally
             {
-                Assert.NotNull(consumer);
-
                 m_Output.WriteLine("Uninitializing...");
 
-                consumer.Uninitialize();
+                consumer?.Uninitialize();
                 ommprovider.Uninitialize();
                 ommprovider2.Uninitialize();
             }
@@ -5657,27 +5020,16 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 long itemHandle = consumer.RegisterClient(reqMsg.ServiceName("DIRECT_FEED").Name("LSEG.O"), consumerClient);
 
-                Thread.Sleep(1000);
-
                 /* Checks provider that receives the item request. */
-                Msg message;
                 RequestMsg? requestMsg = null;
 
-                message = providerClient1.PopMessage();
-                Assert.True(message is RequestMsg);
-                requestMsg = (RequestMsg)message;
+                requestMsg = providerClient1.WaitForMessage<RequestMsg>();
 
                 Assert.Equal("DIRECT_FEED", requestMsg.ServiceName());
                 Assert.Equal("LSEG.O", requestMsg.Name());
                 Assert.Equal(1, requestMsg.ServiceId());
 
-                Thread.Sleep(1000);
-
-                Assert.Equal(1, consumerClient.QueueSize());
-
-                message = consumerClient.PopMessage();
-
-                RefreshMsg refreshMsg = (RefreshMsg)message;
+                RefreshMsg refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
 
                 Assert.Equal("DIRECT_FEED", refreshMsg.ServiceName());
                 Assert.Equal(32767, refreshMsg.ServiceId());
@@ -5692,23 +5044,14 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 ommprovider.Uninitialize();
 
                 /* Wait until the subscribed channel is closed */
-                Thread.Sleep(11000);
-
-                Assert.Equal(1, providerClient2.QueueSize());
-
-                message = providerClient2.PopMessage();
-                recvReqMsg = (RequestMsg)message;
+                recvReqMsg = providerClient2.WaitForMessage<RequestMsg>(TimeSpan.FromSeconds(15));
 
                 Assert.Equal(3, recvReqMsg.StreamId());
                 Assert.Equal(1, recvReqMsg.ServiceId());
                 Assert.Equal("DIRECT_FEED", recvReqMsg.ServiceName());
                 Assert.Equal("LSEG.O", recvReqMsg.Name());
 
-                Assert.Equal(2, consumerClient.QueueSize());
-
-                message = consumerClient.PopMessage();
-
-                StatusMsg statusMsg = (StatusMsg)message;
+                StatusMsg statusMsg = consumerClient.WaitForMessage<StatusMsg>();
 
                 Assert.Equal("DIRECT_FEED", statusMsg.ServiceName());
                 Assert.Equal("LSEG.O", statusMsg.Name());
@@ -5717,10 +5060,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 Assert.Equal(OmmState.StatusCodes.NONE, statusMsg.State().StatusCode);
 
                 /* Receives refresh message from the second provider */
-                Assert.Equal(1, consumerClient.QueueSize());
-                message = consumerClient.PopMessage();
-
-                refreshMsg = (RefreshMsg)message;
+                refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
 
                 Assert.Equal("DIRECT_FEED", refreshMsg.ServiceName());
                 Assert.Equal("LSEG.O", refreshMsg.Name());
@@ -5733,18 +5073,11 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 consumer.Unregister(itemHandle);
             }
-            catch (OmmException excep)
-            {
-                m_Output.WriteLine(excep.StackTrace);
-                Assert.Fail(excep.Message);
-            }
             finally
             {
-                Assert.NotNull(consumer);
-
                 m_Output.WriteLine("Uninitializing...");
 
-                consumer.Uninitialize();
+                consumer?.Uninitialize();
                 ommprovider2.Uninitialize();
             }
         }
@@ -5783,39 +5116,24 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 consumer.RegisterClient(reqMsg.ServiceName("DIRECT_FEED").Name("LSEG.O"), consumerClient);
 
-                Thread.Sleep(3000);
-
-                /* Ensure that the provider receives a request message but it closes the item stream. */
-                Assert.Equal(1, providerClient1.QueueSize());
-
-                Msg message = providerClient1.PopMessage();
-                RequestMsg recvReqMsg = (RequestMsg)message;
+                RequestMsg recvReqMsg = providerClient1.WaitForMessage<RequestMsg>();
 
                 Assert.Equal(3, recvReqMsg.StreamId());
                 Assert.Equal(1, recvReqMsg.ServiceId());
                 Assert.Equal("DIRECT_FEED", recvReqMsg.ServiceName());
                 Assert.Equal("LSEG.O", recvReqMsg.Name());
 
-                Thread.Sleep(1000);
-
+                /* Ensure that the second provider receive a request message but it closes the item stream */
+                recvReqMsg = providerClient2.WaitForMessage<RequestMsg>();
                 /* Ensure that the first provider doesn't receive a close message */
                 Assert.Equal(0, providerClient1.QueueSize());
 
-                /* Ensure that the second provider receive a request message but it closes the item stream */
-                Assert.Equal(1, providerClient2.QueueSize());
-
-                message = providerClient2.PopMessage();
-                recvReqMsg = (RequestMsg)message;
-
                 Assert.Equal(3, recvReqMsg.StreamId());
                 Assert.Equal(1, recvReqMsg.ServiceId());
                 Assert.Equal("DIRECT_FEED", recvReqMsg.ServiceName());
                 Assert.Equal("LSEG.O", recvReqMsg.Name());
 
-                Assert.Equal(2, consumerClient.QueueSize());
-                message = consumerClient.PopMessage();
-
-                StatusMsg statusMsg = (StatusMsg)message;
+                StatusMsg statusMsg = consumerClient.WaitForMessage<StatusMsg>();
 
                 Assert.Equal(5, statusMsg.StreamId());
                 Assert.Equal("DIRECT_FEED", statusMsg.ServiceName());
@@ -5825,9 +5143,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 Assert.Equal(OmmState.StatusCodes.NOT_AUTHORIZED, statusMsg.State().StatusCode);
                 Assert.Equal("Unauthorized access to the item.", statusMsg.State().StatusText);
 
-                message = consumerClient.PopMessage();
-
-                statusMsg = (StatusMsg)message;
+                statusMsg = consumerClient.WaitForMessage<StatusMsg>();
 
                 Assert.Equal(5, statusMsg.StreamId());
                 Assert.Equal("DIRECT_FEED", statusMsg.ServiceName());
@@ -5837,18 +5153,11 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 Assert.Equal(OmmState.StatusCodes.NOT_AUTHORIZED, statusMsg.State().StatusCode);
                 Assert.Equal("Unauthorized access to the item.", statusMsg.State().StatusText);
             }
-            catch (OmmException excep)
-            {
-                m_Output.WriteLine(excep.StackTrace);
-                Assert.Fail(excep.Message);
-            }
             finally
             {
-                Assert.NotNull(consumer);
-
                 m_Output.WriteLine("Uninitializing...");
 
-                consumer.Uninitialize();
+                consumer?.Uninitialize();
                 ommprovider.Uninitialize();
                 ommprovider2.Uninitialize();
             }
@@ -5882,16 +5191,9 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 long itemHandle1 = consumer.RegisterClient(reqMsg.ServiceName("UNKNOWN_SERVICE").Name("LSEG.O"), consumerClient);
 
-                Thread.Sleep(2000);
-
+                StatusMsg statusMsg = consumerClient.WaitForMessage<StatusMsg>();
                 /* Ensure that the provider doesn't receive any request message */
                 Assert.Equal(0, providerClient1.QueueSize());
-
-                Assert.Equal(1, consumerClient.QueueSize());
-
-                Msg message = consumerClient.PopMessage();
-
-                StatusMsg statusMsg = (StatusMsg)message;
 
                 Assert.Equal("UNKNOWN_SERVICE", statusMsg.ServiceName());
                 Assert.Equal("LSEG.O", statusMsg.Name());
@@ -5904,16 +5206,9 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 long itemHandle2 = consumer.RegisterClient(reqMsg.Clear().ServiceId(0).Name("LSEG.O"), consumerClient);
 
+                statusMsg = consumerClient.WaitForMessage<StatusMsg>();
                 /* Ensure that the provider doesn't receive any request message */
                 Assert.Equal(0, providerClient1.QueueSize());
-
-                Thread.Sleep(2000);
-
-                Assert.Equal(1, consumerClient.QueueSize());
-
-                message = consumerClient.PopMessage();
-
-                statusMsg = (StatusMsg)message;
 
                 Assert.Equal(0, statusMsg.ServiceId());
                 Assert.Equal("LSEG.O", statusMsg.Name());
@@ -5924,18 +5219,11 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 consumer.Unregister(itemHandle2); // Users cancel this request.
             }
-            catch (OmmException excep)
-            {
-                m_Output.WriteLine(excep.StackTrace);
-                Assert.Fail(excep.Message);
-            }
             finally
             {
-                Assert.NotNull(consumer);
-
                 m_Output.WriteLine("Uninitializing...");
 
-                consumer.Uninitialize();
+                consumer?.Uninitialize();
                 ommprovider.Uninitialize();
                 ommprovider2.Uninitialize();
             }
@@ -5971,16 +5259,9 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 long itemHandle2 = consumer.RegisterClient(reqMsg.Clear().ServiceName("DIRECT_FEED2").Name("LSEG.L"), consumerClient);
 
-                Thread.Sleep(2000);
-
+                StatusMsg statusMsg = consumerClient.WaitForMessage<StatusMsg>();
                 /* Ensure that the provider doesn't receive any request message */
                 Assert.Equal(0, providerClient1.QueueSize());
-
-                Assert.Equal(2, consumerClient.QueueSize());
-
-                Msg message = consumerClient.PopMessage();
-
-                StatusMsg statusMsg = (StatusMsg)message;
 
                 Assert.Equal("DIRECT_FEED2", statusMsg.ServiceName());
                 Assert.Equal("LSEG.O", statusMsg.Name());
@@ -5989,9 +5270,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 Assert.Equal(OmmState.StatusCodes.NONE, statusMsg.State().StatusCode);
                 Assert.Equal("No matching service present.", statusMsg.State().StatusText);
 
-                message = consumerClient.PopMessage();
-
-                statusMsg = (StatusMsg)message;
+                statusMsg = consumerClient.WaitForMessage<StatusMsg>();
 
                 Assert.Equal("DIRECT_FEED2", statusMsg.ServiceName());
                 Assert.Equal("LSEG.L", statusMsg.Name());
@@ -6036,33 +5315,21 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                                                         Filter(EmaRdm.SERVICE_INFO_FILTER | EmaRdm.SERVICE_STATE_FILTER).
                                                         Payload(map).MarkForClear(), 0);
 
-                Thread.Sleep(2000);
-
-                /* Provider receives a request once the service is available */
-                Assert.Equal(2, providerClient1.QueueSize());
-
-                message = providerClient1.PopMessage();
-                RequestMsg recvReqMsg = (RequestMsg)message;
+                RequestMsg recvReqMsg = providerClient1.WaitForMessage<RequestMsg>();
 
                 Assert.Equal(3, recvReqMsg.StreamId());
                 Assert.Equal(2, recvReqMsg.ServiceId());
                 Assert.Equal("DIRECT_FEED2", recvReqMsg.ServiceName());
                 Assert.Equal("LSEG.O", recvReqMsg.Name());
 
-                message = providerClient1.PopMessage();
-                recvReqMsg = (RequestMsg)message;
+                recvReqMsg = providerClient1.WaitForMessage<RequestMsg>();
 
                 Assert.Equal(4, recvReqMsg.StreamId());
                 Assert.Equal(2, recvReqMsg.ServiceId());
                 Assert.Equal("DIRECT_FEED2", recvReqMsg.ServiceName());
                 Assert.Equal("LSEG.L", recvReqMsg.Name());
 
-                Thread.Sleep(2000);
-
-                Assert.Equal(2, consumerClient.QueueSize());
-                message = consumerClient.PopMessage();
-
-                RefreshMsg refreshMsg = (RefreshMsg)message;
+                RefreshMsg refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
 
                 Assert.Equal("DIRECT_FEED2", refreshMsg.ServiceName());
                 Assert.Equal("LSEG.O", refreshMsg.Name());
@@ -6073,9 +5340,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 Assert.True(refreshMsg.Solicited());
                 Assert.True(refreshMsg.Complete());
 
-                message = consumerClient.PopMessage();
-
-                refreshMsg = (RefreshMsg)message;
+                refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
 
                 Assert.Equal("DIRECT_FEED2", refreshMsg.ServiceName());
                 Assert.Equal("LSEG.L", refreshMsg.Name());
@@ -6089,18 +5354,11 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 consumer.Unregister(itemHandle1);
                 consumer.Unregister(itemHandle2);
             }
-            catch (OmmException excep)
-            {
-                m_Output.WriteLine(excep.StackTrace);
-                Assert.Fail(excep.Message);
-            }
             finally
             {
-                Assert.NotNull(consumer);
-
                 m_Output.WriteLine("Uninitializing...");
 
-                consumer.Uninitialize();
+                consumer?.Uninitialize();
                 ommprovider.Uninitialize();
                 ommprovider2.Uninitialize();
             }
@@ -6138,27 +5396,14 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 long itemHandle1 = consumer.RegisterClient(reqMsg.ServiceName("DIRECT_FEED").Name("LSEG.O"), consumerClient);
 
-                Thread.Sleep(1000);
-
-                /* Ensure that the provider receives the request message */
-                Assert.Equal(1, providerClient1.QueueSize());
-
-                Msg message = providerClient1.PopMessage();
-
-                Assert.True(message is RequestMsg);
-
-                RequestMsg requestMsg = (RequestMsg)message;
+                RequestMsg requestMsg = providerClient1.WaitForMessage<RequestMsg>();
 
                 Assert.Equal(3, requestMsg.StreamId());
                 Assert.Equal("DIRECT_FEED", requestMsg.ServiceName());
                 Assert.Equal("LSEG.O", requestMsg.Name());
                 Assert.Equal(1, requestMsg.ServiceId());
 
-                Assert.Equal(1, consumerClient.QueueSize());
-
-                message = consumerClient.PopMessage();
-
-                RefreshMsg refreshMsg = (RefreshMsg)message;
+                RefreshMsg refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
 
                 Assert.Equal("DIRECT_FEED", refreshMsg.ServiceName());
                 Assert.Equal(serviceId, refreshMsg.ServiceId());
@@ -6188,12 +5433,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                         Filter(EmaRdm.SERVICE_STATE_FILTER).
                         Payload(map).MarkForClear(), 0);   // use 0 item handle to fan-out to all subscribers
 
-                Thread.Sleep(2000);
-
-                Assert.Equal(2, consumerClient.QueueSize());
-
-                message = consumerClient.PopMessage();
-                StatusMsg statusMsg = (StatusMsg)message;
+                StatusMsg statusMsg = consumerClient.WaitForMessage<StatusMsg>();
 
                 Assert.Equal("DIRECT_FEED", statusMsg.ServiceName());
                 Assert.Equal(serviceId, statusMsg.ServiceId());
@@ -6203,8 +5443,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 Assert.Equal(OmmState.StatusCodes.NONE, statusMsg.State().StatusCode);
                 Assert.Equal("Item temporary closed", statusMsg.State().StatusText);
 
-                message = consumerClient.PopMessage();
-                statusMsg = (StatusMsg)message;
+                statusMsg = consumerClient.WaitForMessage<StatusMsg>();
 
                 Assert.Equal("DIRECT_FEED", statusMsg.ServiceName());
                 Assert.Equal(serviceId, statusMsg.ServiceId());
@@ -6258,25 +5497,14 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                                                         Filter(EmaRdm.SERVICE_INFO_FILTER | EmaRdm.SERVICE_STATE_FILTER).
                                                         Payload(map).MarkForClear(), 0);
 
-                Thread.Sleep(2000);
-
-                /* The second provider receives a request once the service is available */
-                Assert.Equal(1, providerClient2.QueueSize());
-
-                message = providerClient2.PopMessage();
-                RequestMsg recvReqMsg = (RequestMsg)message;
+                RequestMsg recvReqMsg = providerClient2.WaitForMessage<RequestMsg>();
 
                 Assert.Equal(3, recvReqMsg.StreamId());
                 Assert.Equal(2, recvReqMsg.ServiceId());
                 Assert.Equal("DIRECT_FEED", recvReqMsg.ServiceName());
                 Assert.Equal("LSEG.O", recvReqMsg.Name());
 
-                Thread.Sleep(1000);
-
-                Assert.Equal(1, consumerClient.QueueSize());
-                message = consumerClient.PopMessage();
-
-                refreshMsg = (RefreshMsg)message;
+                refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
 
                 Assert.Equal("DIRECT_FEED", refreshMsg.ServiceName());
                 Assert.Equal("LSEG.O", refreshMsg.Name());
@@ -6289,18 +5517,11 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 consumer.Unregister(itemHandle1);
             }
-            catch (OmmException excep)
-            {
-                m_Output.WriteLine(excep.StackTrace);
-                Assert.Fail(excep.Message);
-            }
             finally
             {
-                Assert.NotNull(consumer);
-
                 m_Output.WriteLine("Uninitializing...");
 
-                consumer.Uninitialize();
+                consumer?.Uninitialize();
                 ommprovider.Uninitialize();
                 ommprovider2.Uninitialize();
             }
@@ -6338,41 +5559,23 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 long itemHandle2 = consumer.RegisterClient(reqMsg.Clear().ServiceName("DIRECT_FEED").Name("LSEG.O"), consumerClient);
 
-                Thread.Sleep(2000);
-
+                RequestMsg requestMsg = providerClient1.WaitForMessage<RequestMsg>();
                 /* The second provider doesn't receive any request messages */
                 Assert.Equal(0, providerClient2.QueueSize());
-
-                /* The first provider receives the two request messages */
-                Assert.Equal(2, providerClient1.QueueSize());
-
-                Msg message = providerClient1.PopMessage();
-
-                Assert.True(message is RequestMsg);
-
-                RequestMsg requestMsg = (RequestMsg)message;
 
                 Assert.Equal("DIRECT_FEED", requestMsg.ServiceName());
                 Assert.Equal("LSEG.O", requestMsg.Name());
                 Assert.Equal(1, requestMsg.ServiceId());
                 Assert.Equal(1, requestMsg.PriorityCount());
 
-                message = providerClient1.PopMessage();
-
-                Assert.True(message is RequestMsg);
-
-                requestMsg = (RequestMsg)message;
+                requestMsg = providerClient1.WaitForMessage<RequestMsg>();
 
                 Assert.Equal("DIRECT_FEED", requestMsg.ServiceName());
                 Assert.Equal("LSEG.O", requestMsg.Name());
                 Assert.Equal(1, requestMsg.ServiceId());
                 Assert.Equal(2, requestMsg.PriorityCount());
 
-                Assert.Equal(2, consumerClient.QueueSize());
-
-                message = consumerClient.PopMessage();
-
-                RefreshMsg refreshMsg = (RefreshMsg)message;
+                RefreshMsg refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
 
                 Assert.Equal("DIRECT_FEED", refreshMsg.ServiceName());
                 Assert.Equal("LSEG.O", refreshMsg.Name());
@@ -6381,9 +5584,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 Assert.Equal(OmmState.DataStates.OK, refreshMsg.State().DataState);
                 Assert.Equal(OmmState.StatusCodes.NONE, refreshMsg.State().StatusCode);
 
-                message = consumerClient.PopMessage();
-
-                refreshMsg = (RefreshMsg)message;
+                refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
 
                 Assert.Equal("DIRECT_FEED", refreshMsg.ServiceName());
                 Assert.Equal("LSEG.O", refreshMsg.Name());
@@ -6395,18 +5596,11 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 consumer.Unregister(itemHandle1);
                 consumer.Unregister(itemHandle2);
             }
-            catch (OmmException excep)
-            {
-                m_Output.WriteLine(excep.StackTrace);
-                Assert.Fail(excep.Message);
-            }
             finally
             {
-                Assert.NotNull(consumer);
-
                 m_Output.WriteLine("Uninitializing...");
 
-                consumer.Uninitialize();
+                consumer?.Uninitialize();
                 ommprovider.Uninitialize();
                 ommprovider2.Uninitialize();
             }
@@ -6443,16 +5637,9 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 long itemHandle1 = consumer.RegisterClient(reqMsg.ServiceName("DIRECT_FEED").DomainType(domainType).Name("LSEG.O"),
                         consumerClient);
 
-                Thread.Sleep(1000);
-
+                StatusMsg statusMsg = consumerClient.WaitForMessage<StatusMsg>();
                 /* Ensure that the provider doesn't receive any request message */
                 Assert.Equal(0, providerClient1.QueueSize());
-
-                Assert.Equal(1, consumerClient.QueueSize());
-
-                Msg message = consumerClient.PopMessage();
-
-                StatusMsg statusMsg = (StatusMsg)message;
 
                 Assert.Equal("DIRECT_FEED", statusMsg.ServiceName());
                 Assert.Equal("LSEG.O", statusMsg.Name());
@@ -6469,16 +5656,9 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 long itemHandle2 = consumer.RegisterClient(reqMsg.Clear().ServiceId(32767).DomainType(domainType).Name("LSEG.O"),
                         consumerClient);
 
-                Thread.Sleep(1000);
-
+                statusMsg = consumerClient.WaitForMessage<StatusMsg>();
                 /* Ensure that the provider doesn't receive any request message */
                 Assert.Equal(0, providerClient1.QueueSize());
-
-                Assert.Equal(1, consumerClient.QueueSize());
-
-                message = consumerClient.PopMessage();
-
-                statusMsg = (StatusMsg)message;
 
                 Assert.Equal("DIRECT_FEED", statusMsg.ServiceName());
                 Assert.Equal(32767, statusMsg.ServiceId());
@@ -6493,18 +5673,11 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 consumer.Unregister(itemHandle2);
             }
-            catch (OmmException excep)
-            {
-                m_Output.WriteLine(excep.StackTrace);
-                Assert.Fail(excep.Message);
-            }
             finally
             {
-                Assert.NotNull(consumer);
-
                 m_Output.WriteLine("Uninitializing...");
 
-                consumer.Uninitialize();
+                consumer?.Uninitialize();
                 ommprovider.Uninitialize();
                 ommprovider2.Uninitialize();
             }
@@ -6607,31 +5780,16 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 long itemHandle1 = consumer.RegisterClient(reqMsg.ServiceName("DIRECT_FEED").DomainType(EmaRdm.MMT_MARKET_PRICE).Name("LSEG.O"),
                         consumerClient);
 
+                /* The second receives the request message as it provides the MARKET_PRICE domain type */
+                RequestMsg requestMsg = providerClient2.WaitForMessage<RequestMsg>();
                 /* Ensure that the first server doesn't receive the request message */
                 Assert.Equal(0, providerClient1.QueueSize());
-
-                Thread.Sleep(500);
-
-                /* The second receives the request message as it provides the MARKET_PRICE domain type */
-                Assert.Equal(1, providerClient2.QueueSize());
-
-                Msg message = providerClient2.PopMessage();
-
-                Assert.True(message is RequestMsg);
-
-                RequestMsg requestMsg = (RequestMsg)message;
 
                 Assert.Equal("DIRECT_FEED", requestMsg.ServiceName());
                 Assert.Equal("LSEG.O", requestMsg.Name());
                 Assert.Equal(1, requestMsg.ServiceId());
 
-                Thread.Sleep(2000);
-
-                Assert.Equal(1, consumerClient.QueueSize());
-
-                message = consumerClient.PopMessage();
-
-                RefreshMsg refreshMsg = (RefreshMsg)message;
+                RefreshMsg refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
 
                 Assert.Equal("DIRECT_FEED", refreshMsg.ServiceName());
                 Assert.Equal("LSEG.O", refreshMsg.Name());
@@ -6644,18 +5802,11 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 consumer.Unregister(itemHandle1);
             }
-            catch (OmmException excep)
-            {
-                m_Output.WriteLine(excep.StackTrace);
-                Assert.Fail(excep.Message);
-            }
             finally
             {
-                Assert.NotNull(consumer);
-
                 m_Output.WriteLine("Uninitializing...");
 
-                consumer.Uninitialize();
+                consumer?.Uninitialize();
                 ommprovider.Uninitialize();
                 ommprovider2.Uninitialize();
             }
@@ -6691,16 +5842,9 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                     .ServiceName("DIRECT_FEED").DomainType(EmaRdm.MMT_MARKET_PRICE).Name("LSEG.O"),
                         consumerClient);
 
-                Thread.Sleep(1000);
-
+                StatusMsg statusMsg = consumerClient.WaitForMessage<StatusMsg>();
                 /* Ensure that the provider doesn't receive any request message */
                 Assert.Equal(0, providerClient1.QueueSize());
-
-                Assert.Equal(1, consumerClient.QueueSize());
-
-                Msg message = consumerClient.PopMessage();
-
-                StatusMsg statusMsg = (StatusMsg)message;
 
                 Assert.Equal("DIRECT_FEED", statusMsg.ServiceName());
                 Assert.Equal("LSEG.O", statusMsg.Name());
@@ -6713,18 +5857,11 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 consumer.Unregister(itemHandle1);
             }
-            catch (OmmException excep)
-            {
-                m_Output.WriteLine(excep.StackTrace);
-                Assert.Fail(excep.Message);
-            }
             finally
             {
-                Assert.NotNull(consumer);
-
                 m_Output.WriteLine("Uninitializing...");
 
-                consumer.Uninitialize();
+                consumer?.Uninitialize();
 
                 /* Ensure that there is no item status as the item is unregistered */
                 Assert.Equal(0, consumerClient.QueueSize());
@@ -6763,16 +5900,9 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 long itemHandle1 = consumer.RegisterClient(reqMsg.Qos(OmmQos.Timelinesses.INEXACT_DELAYED, OmmQos.Rates.JUST_IN_TIME_CONFLATED).ServiceName("DIRECT_FEED").DomainType(EmaRdm.MMT_MARKET_PRICE).Name("LSEG.O"),
                         consumerClient);
 
-                Thread.Sleep(1000);
-
+                StatusMsg statusMsg = consumerClient.WaitForMessage<StatusMsg>();
                 /* Ensure that the provider doesn't receive any request message */
                 Assert.Equal(0, providerClient1.QueueSize());
-
-                Assert.Equal(1, consumerClient.QueueSize());
-
-                Msg message = consumerClient.PopMessage();
-
-                StatusMsg statusMsg = (StatusMsg)message;
 
                 Assert.Equal("DIRECT_FEED", statusMsg.ServiceName());
                 Assert.Equal("LSEG.O", statusMsg.Name());
@@ -6788,16 +5918,9 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 itemHandle1 = consumer.RegisterClient(reqMsg.Clear().Qos(OmmQos.Timelinesses.INEXACT_DELAYED, OmmQos.Rates.JUST_IN_TIME_CONFLATED).ServiceId(32767)
                     .DomainType(EmaRdm.MMT_MARKET_PRICE).Name("LSEG.O"), consumerClient);
 
-                Thread.Sleep(1000);
-
+                statusMsg = consumerClient.WaitForMessage<StatusMsg>();
                 /* Ensure that the provider doesn't receive any request message */
                 Assert.Equal(0, providerClient1.QueueSize());
-
-                Assert.Equal(1, consumerClient.QueueSize());
-
-                message = consumerClient.PopMessage();
-
-                statusMsg = (StatusMsg)message;
 
                 Assert.Equal("DIRECT_FEED", statusMsg.ServiceName());
                 Assert.Equal(32767, statusMsg.ServiceId());
@@ -6807,18 +5930,11 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 Assert.Equal(OmmState.StatusCodes.NONE, statusMsg.State().StatusCode);
                 Assert.Equal("Service does not provide a matching QoS", statusMsg.State().StatusText);
             }
-            catch (OmmException excep)
-            {
-                m_Output.WriteLine(excep.StackTrace);
-                Assert.Fail(excep.Message);
-            }
             finally
             {
-                Assert.NotNull(consumer);
-
                 m_Output.WriteLine("Uninitializing...");
 
-                consumer.Uninitialize();
+                consumer?.Uninitialize();
                 ommprovider.Uninitialize();
                 ommprovider2.Uninitialize();
             }
@@ -6857,27 +5973,13 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 long itemHandle = consumer.RegisterClient(reqMsg.ServiceName("DIRECT_FEED").Name("LSEG.O"), consumerClient);
 
-                Thread.Sleep(2000);
-
-                Assert.Equal(1, providerClient1.QueueSize());
-
-                Msg message = providerClient1.PopMessage();
-
-                Assert.True(message is RequestMsg);
-
-                RequestMsg requestMsg = (RequestMsg)message;
+                RequestMsg requestMsg = providerClient1.WaitForMessage<RequestMsg>();
 
                 Assert.Equal("DIRECT_FEED", requestMsg.ServiceName());
                 Assert.Equal("LSEG.O", requestMsg.Name());
                 Assert.Equal(1, requestMsg.ServiceId());
 
-                Thread.Sleep(2000);
-
-                Assert.Equal(1, consumerClient.QueueSize());
-
-                message = consumerClient.PopMessage();
-
-                RefreshMsg refreshMsg = (RefreshMsg)message;
+                RefreshMsg refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
 
                 Assert.Equal("DIRECT_FEED", refreshMsg.ServiceName());
                 Assert.Equal("LSEG.O", refreshMsg.Name());
@@ -6906,13 +6008,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                         Filter(EmaRdm.SERVICE_GROUP_FILTER).
                         Payload(map).MarkForClear(), 0);   // use 0 item handle to fanout to all subscribers
 
-                Thread.Sleep(2000); // Wait until consumer receives the group status message.
-
-                Assert.Equal(2, consumerClient.QueueSize());
-
-                message = consumerClient.PopMessage();
-
-                StatusMsg statusMsg = (StatusMsg)message;
+                StatusMsg statusMsg = consumerClient.WaitForMessage<StatusMsg>();
 
                 Assert.Equal("DIRECT_FEED", statusMsg.ServiceName());
                 Assert.Equal("LSEG.O", statusMsg.Name());
@@ -6923,9 +6019,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 Assert.Equal(OmmState.StatusCodes.NONE, statusMsg.State().StatusCode);
                 Assert.Equal("Group Status Msg", statusMsg.State().StatusText);
 
-                message = consumerClient.PopMessage();
-
-                refreshMsg = (RefreshMsg)message;
+                refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
 
                 Assert.Equal("DIRECT_FEED", refreshMsg.ServiceName());
                 Assert.Equal("LSEG.O", refreshMsg.Name());
@@ -6937,18 +6031,11 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 consumer.Unregister(itemHandle);
             }
-            catch (OmmException excep)
-            {
-                m_Output.WriteLine(excep.StackTrace);
-                Assert.Fail(excep.Message);
-            }
             finally
             {
-                Assert.NotNull(consumer);
-
                 m_Output.WriteLine("Uninitializing...");
 
-                consumer.Uninitialize();
+                consumer?.Uninitialize();
                 ommprovider.Uninitialize();
                 ommprovider2.Uninitialize();
             }
@@ -6984,27 +6071,13 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 long itemHandle = consumer.RegisterClient(reqMsg.ServiceName("DIRECT_FEED").Name("LSEG.O"), consumerClient);
 
-                Thread.Sleep(2000);
-
-                Assert.Equal(1, providerClient1.QueueSize());
-
-                Msg message = providerClient1.PopMessage();
-
-                Assert.True(message is RequestMsg);
-
-                RequestMsg requestMsg = (RequestMsg)message;
+                RequestMsg requestMsg = providerClient1.WaitForMessage<RequestMsg>();
 
                 Assert.Equal("DIRECT_FEED", requestMsg.ServiceName());
                 Assert.Equal("LSEG.O", requestMsg.Name());
                 Assert.Equal(1, requestMsg.ServiceId());
 
-                Thread.Sleep(2000);
-
-                Assert.Equal(1, consumerClient.QueueSize());
-
-                message = consumerClient.PopMessage();
-
-                RefreshMsg refreshMsg = (RefreshMsg)message;
+                RefreshMsg refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
 
                 Assert.Equal("DIRECT_FEED", refreshMsg.ServiceName());
                 Assert.Equal("LSEG.O", refreshMsg.Name());
@@ -7021,13 +6094,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                         .State(OmmState.StreamStates.CLOSED_RECOVER, OmmState.DataStates.SUSPECT, OmmState.StatusCodes.NONE, "Item temporary closed")
                         , providerItemHandle);
 
-                Thread.Sleep(2000); // Wait until consumer receives the item closed recoverable status message.
-
-                Assert.Equal(2, consumerClient.QueueSize());
-
-                message = consumerClient.PopMessage();
-
-                StatusMsg statusMsg = (StatusMsg)message;
+                StatusMsg statusMsg = consumerClient.WaitForMessage<StatusMsg>();
 
                 Assert.Equal("DIRECT_FEED", statusMsg.ServiceName());
                 Assert.Equal("LSEG.O", statusMsg.Name());
@@ -7036,9 +6103,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 Assert.Equal(OmmState.DataStates.SUSPECT, statusMsg.State().DataState);
                 Assert.Equal(OmmState.StatusCodes.NONE, statusMsg.State().StatusCode);
 
-                message = consumerClient.PopMessage();
-
-                refreshMsg = (RefreshMsg)message;
+                refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
 
                 Assert.Equal("DIRECT_FEED", refreshMsg.ServiceName());
                 Assert.Equal("LSEG.O", refreshMsg.Name());
@@ -7049,18 +6114,11 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 consumer.Unregister(itemHandle);
             }
-            catch (OmmException excep)
-            {
-                m_Output.WriteLine(excep.StackTrace);
-                Assert.Fail(excep.Message);
-            }
             finally
             {
-                Assert.NotNull(consumer);
-
                 m_Output.WriteLine("Uninitializing...");
 
-                consumer.Uninitialize();
+                consumer?.Uninitialize();
                 ommprovider.Uninitialize();
                 ommprovider2.Uninitialize();
             }
@@ -7098,27 +6156,13 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 long itemHandle = consumer.RegisterClient(reqMsg.ServiceName("DIRECT_FEED").Name("LSEG.O"), consumerClient);
 
-                Thread.Sleep(2000);
-
-                Assert.Equal(1, providerClient1.QueueSize());
-
-                Msg message = providerClient1.PopMessage();
-
-                Assert.True(message is RequestMsg);
-
-                RequestMsg requestMsg = (RequestMsg)message;
+                RequestMsg requestMsg = providerClient1.WaitForMessage<RequestMsg>();
 
                 Assert.Equal("DIRECT_FEED", requestMsg.ServiceName());
                 Assert.Equal("LSEG.O", requestMsg.Name());
                 Assert.Equal(1, requestMsg.ServiceId());
 
-                Thread.Sleep(2000);
-
-                Assert.Equal(1, consumerClient.QueueSize());
-
-                message = consumerClient.PopMessage();
-
-                RefreshMsg refreshMsg = (RefreshMsg)message;
+                RefreshMsg refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
 
                 Assert.Equal("DIRECT_FEED", refreshMsg.ServiceName());
                 Assert.Equal("LSEG.O", refreshMsg.Name());
@@ -7171,13 +6215,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                         .State(OmmState.StreamStates.CLOSED_RECOVER, OmmState.DataStates.SUSPECT, OmmState.StatusCodes.NONE, "Item temporary closed")
                         , providerItemHandle);
 
-                Thread.Sleep(2000); // Wait until consumer receives the item closed recoverable status message.
-
-                Assert.Equal(2, consumerClient.QueueSize());
-
-                message = consumerClient.PopMessage();
-
-                StatusMsg statusMsg = (StatusMsg)message;
+                StatusMsg statusMsg = consumerClient.WaitForMessage<StatusMsg>();
 
                 Assert.Equal("DIRECT_FEED", statusMsg.ServiceName());
                 Assert.Equal("LSEG.O", statusMsg.Name());
@@ -7187,9 +6225,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 Assert.Equal(OmmState.StatusCodes.NONE, statusMsg.State().StatusCode);
                 Assert.Equal("Item temporary closed", statusMsg.State().StatusText);
 
-                message = consumerClient.PopMessage();
-
-                statusMsg = (StatusMsg)message;
+                statusMsg = consumerClient.WaitForMessage<StatusMsg>();
 
                 Assert.Equal("DIRECT_FEED", statusMsg.ServiceName());
                 Assert.Equal("LSEG.O", statusMsg.Name());
@@ -7202,18 +6238,11 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 /* Unsubscribe item when it is being recovered. */
                 consumer.Unregister(itemHandle);
             }
-            catch (OmmException excep)
-            {
-                m_Output.WriteLine(excep.StackTrace);
-                Assert.Fail(excep.Message);
-            }
             finally
             {
-                Assert.NotNull(consumer);
-
                 m_Output.WriteLine("Uninitializing...");
 
-                consumer.Uninitialize();
+                consumer?.Uninitialize();
                 ommprovider.Uninitialize();
                 ommprovider2.Uninitialize();
             }
@@ -7251,27 +6280,13 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 long itemHandle = consumer.RegisterClient(reqMsg.ServiceName("DIRECT_FEED").Name("LSEG.O"), consumerClient);
 
-                Thread.Sleep(1000);
-
-                Assert.Equal(1, providerClient1.QueueSize());
-
-                Msg message = providerClient1.PopMessage();
-
-                Assert.True(message is RequestMsg);
-
-                RequestMsg requestMsg = (RequestMsg)message;
+                RequestMsg requestMsg = providerClient1.WaitForMessage<RequestMsg>();
 
                 Assert.Equal("DIRECT_FEED", requestMsg.ServiceName());
                 Assert.Equal("LSEG.O", requestMsg.Name());
                 Assert.Equal(1, requestMsg.ServiceId());
 
-                Thread.Sleep(1000);
-
-                Assert.Equal(1, consumerClient.QueueSize());
-
-                message = consumerClient.PopMessage();
-
-                RefreshMsg refreshMsg = (RefreshMsg)message;
+                RefreshMsg refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
 
                 Assert.Equal("DIRECT_FEED", refreshMsg.ServiceName());
                 Assert.Equal("LSEG.O", refreshMsg.Name());
@@ -7324,13 +6339,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                         .State(OmmState.StreamStates.CLOSED_RECOVER, OmmState.DataStates.SUSPECT, OmmState.StatusCodes.NONE, "Item temporary closed")
                         , providerItemHandle);
 
-                Thread.Sleep(1000); // Wait until consumer receives the item closed recoverable status message.
-
-                Assert.Equal(2, consumerClient.QueueSize());
-
-                message = consumerClient.PopMessage();
-
-                StatusMsg statusMsg = (StatusMsg)message;
+                StatusMsg statusMsg = consumerClient.WaitForMessage<StatusMsg>();
 
                 Assert.Equal("DIRECT_FEED", statusMsg.ServiceName());
                 Assert.Equal("LSEG.O", statusMsg.Name());
@@ -7340,9 +6349,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 Assert.Equal(OmmState.StatusCodes.NONE, statusMsg.State().StatusCode);
                 Assert.Equal("Item temporary closed", statusMsg.State().StatusText);
 
-                message = consumerClient.PopMessage();
-
-                statusMsg = (StatusMsg)message;
+                statusMsg = consumerClient.WaitForMessage<StatusMsg>();
 
                 Assert.Equal("DIRECT_FEED", statusMsg.ServiceName());
                 Assert.Equal("LSEG.O", statusMsg.Name());
@@ -7372,13 +6379,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                         Filter(EmaRdm.SERVICE_STATE_FILTER).
                         Payload(map), 0);   // use 0 item handle to fan-out to all subscribers
 
-                Thread.Sleep(3000);
-
-                Assert.Equal(1, consumerClient.QueueSize());
-
-                message = consumerClient.PopMessage();
-
-                refreshMsg = (RefreshMsg)message;
+                refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
 
                 Assert.Equal("DIRECT_FEED", refreshMsg.ServiceName());
                 Assert.Equal("LSEG.O", refreshMsg.Name());
@@ -7389,18 +6390,11 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 consumer.Unregister(itemHandle);
             }
-            catch (OmmException excep)
-            {
-                m_Output.WriteLine(excep.Message);
-                Assert.Fail(excep.Message);
-            }
             finally
             {
-                Assert.NotNull(consumer);
-
                 m_Output.WriteLine("Uninitializing...");
 
-                consumer.Uninitialize();
+                consumer?.Uninitialize();
                 ommprovider.Uninitialize();
                 ommprovider2.Uninitialize();
             }
@@ -7435,15 +6429,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 long itemHandle = consumer.RegisterClient(reqMsg.ServiceListName("SVG1").Name("LSEG.O"), consumerClient);
 
-                Thread.Sleep(2000);
-
-                Assert.Equal(1, providerClient1.QueueSize());
-
-                Msg message = providerClient1.PopMessage();
-
-                Assert.True(message is RequestMsg);
-
-                RequestMsg requestMsg = (RequestMsg)message;
+                RequestMsg requestMsg = providerClient1.WaitForMessage<RequestMsg>();
 
                 Assert.Equal("DIRECT_FEED", requestMsg.ServiceName());
                 Assert.Equal("LSEG.O", requestMsg.Name());
@@ -7453,9 +6439,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 Assert.Equal(2, consumerClient.QueueSize());
 
-                message = consumerClient.PopMessage();
-
-                RefreshMsg refreshMsg = (RefreshMsg)message;
+                RefreshMsg refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
 
                 Assert.Equal("DIRECT_FEED", refreshMsg.ServiceName());
                 Assert.Equal(1, refreshMsg.ServiceId());
@@ -7464,9 +6448,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 Assert.Equal(OmmState.DataStates.OK, refreshMsg.State().DataState);
                 Assert.Equal(OmmState.StatusCodes.NONE, refreshMsg.State().StatusCode);
 
-                message = consumerClient.PopMessage();
-
-                UpdateMsg updateMsg = (UpdateMsg)message;
+                UpdateMsg updateMsg = consumerClient.WaitForMessage<UpdateMsg>();
 
                 Assert.Equal("DIRECT_FEED", updateMsg.ServiceName());
                 Assert.Equal(1, updateMsg.ServiceId());
@@ -7474,18 +6456,11 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 consumer.Unregister(itemHandle);
             }
-            catch (OmmException excep)
-            {
-                m_Output.WriteLine(excep.StackTrace);
-                Assert.Fail(excep.Message);
-            }
             finally
             {
-                Assert.NotNull(consumer);
-
                 m_Output.WriteLine("Uninitializing...");
 
-                consumer.Uninitialize();
+                consumer?.Uninitialize();
                 ommprovider.Uninitialize();
             }
         }
@@ -7535,27 +6510,13 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 long itemHandle = consumer.RegisterClient(reqMsg.ServiceListName("SVG1").Name("LSEG.O"), consumerClient);
 
-                Thread.Sleep(2000);
-
-                Assert.Equal(1, providerClient1.QueueSize());
-
-                Msg message = providerClient1.PopMessage();
-
-                Assert.True(message is RequestMsg);
-
-                RequestMsg requestMsg = (RequestMsg)message;
+                RequestMsg requestMsg = providerClient1.WaitForMessage<RequestMsg>();
 
                 Assert.Equal("DIRECT_FEED", requestMsg.ServiceName());
                 Assert.Equal("LSEG.O", requestMsg.Name());
                 Assert.Equal(1, requestMsg.ServiceId());
 
-                Thread.Sleep(2000);
-
-                Assert.Equal(2, consumerClient.QueueSize());
-
-                message = consumerClient.PopMessage();
-
-                RefreshMsg refreshMsg = (RefreshMsg)message;
+                RefreshMsg refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
 
                 Assert.Equal("SVG1", refreshMsg.ServiceName());
                 Assert.Equal(serviceId, refreshMsg.ServiceId());
@@ -7564,9 +6525,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 Assert.Equal(OmmState.DataStates.OK, refreshMsg.State().DataState);
                 Assert.Equal(OmmState.StatusCodes.NONE, refreshMsg.State().StatusCode);
 
-                message = consumerClient.PopMessage();
-
-                UpdateMsg updateMsg = (UpdateMsg)message;
+                UpdateMsg updateMsg = consumerClient.WaitForMessage<UpdateMsg>();
 
                 Assert.Equal("SVG1", updateMsg.ServiceName());
                 Assert.Equal(serviceId, updateMsg.ServiceId());
@@ -7574,27 +6533,13 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 long itemHandle2 = consumer.RegisterClient(reqMsg.ServiceListName("SVG2").Name("LSEG2.O"), consumerClient);
 
-                Thread.Sleep(2000);
-
-                Assert.Equal(1, providerClient2.QueueSize());
-
-                message = providerClient2.PopMessage();
-
-                Assert.True(message is RequestMsg);
-
-                requestMsg = (RequestMsg)message;
+                requestMsg = providerClient2.WaitForMessage<RequestMsg>();
 
                 Assert.Equal("DIRECT_FEED_2", requestMsg.ServiceName());
                 Assert.Equal("LSEG2.O", requestMsg.Name());
                 Assert.Equal(1, requestMsg.ServiceId());
 
-                Thread.Sleep(2000);
-
-                Assert.Equal(2, consumerClient.QueueSize());
-
-                message = consumerClient.PopMessage();
-
-                refreshMsg = (RefreshMsg)message;
+                refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
 
                 Assert.Equal("SVG2", refreshMsg.ServiceName());
                 Assert.Equal(serviceId2, refreshMsg.ServiceId());
@@ -7603,9 +6548,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 Assert.Equal(OmmState.DataStates.OK, refreshMsg.State().DataState);
                 Assert.Equal(OmmState.StatusCodes.NONE, refreshMsg.State().StatusCode);
 
-                message = consumerClient.PopMessage();
-
-                updateMsg = (UpdateMsg)message;
+                updateMsg = consumerClient.WaitForMessage<UpdateMsg>();
 
                 Assert.Equal("SVG2", updateMsg.ServiceName());
                 Assert.Equal(serviceId2, updateMsg.ServiceId());
@@ -7614,18 +6557,11 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 consumer.Unregister(itemHandle);
                 consumer.Unregister(itemHandle2);
             }
-            catch (OmmException excep)
-            {
-                m_Output.WriteLine(excep.StackTrace);
-                Assert.Fail(excep.Message);
-            }
             finally
             {
-                Assert.NotNull(consumer);
-
                 Console.WriteLine("Uninitializing...");
 
-                consumer.Uninitialize();
+                consumer?.Uninitialize();
                 ommprovider.Uninitialize();
                 ommprovider2.Uninitialize();
             }
@@ -7668,27 +6604,13 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 long itemHandle = consumer.RegisterClient(reqMsg.ServiceListName("SVG1").Name("LSEG.O"), consumerClient);
 
-                Thread.Sleep(2000);
-
-                Assert.Equal(1, providerClient1.QueueSize());
-
-                Msg message = providerClient1.PopMessage();
-
-                Assert.True(message is RequestMsg);
-
-                RequestMsg requestMsg = (RequestMsg)message;
+                RequestMsg requestMsg = providerClient1.WaitForMessage<RequestMsg>();
 
                 Assert.Equal("DIRECT_FEED", requestMsg.ServiceName());
                 Assert.Equal("LSEG.O", requestMsg.Name());
                 Assert.Equal(1, requestMsg.ServiceId());
 
-                Thread.Sleep(2000);
-
-                Assert.Equal(1, consumerClient.QueueSize());
-
-                message = consumerClient.PopMessage();
-
-                RefreshMsg refreshMsg = (RefreshMsg)message;
+                RefreshMsg refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
 
                 Assert.Equal("SVG1", refreshMsg.ServiceName());
                 Assert.Equal(serviceId, refreshMsg.ServiceId());
@@ -7699,18 +6621,11 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 consumer.Unregister(itemHandle);
             }
-            catch (OmmException excep)
-            {
-                m_Output.WriteLine(excep.StackTrace);
-                Assert.Fail(excep.Message);
-            }
             finally
             {
-                Assert.NotNull(consumer);
-
                 m_Output.WriteLine("Uninitializing...");
 
-                consumer.Uninitialize();
+                consumer?.Uninitialize();
                 ommprovider.Uninitialize();
                 ommprovider2.Uninitialize();
             }
@@ -7751,13 +6666,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 long itemHandle = consumer.RegisterClient(reqMsg.ServiceListName("SVG1").Name("LSEG.O"), consumerClient);
 
-                Thread.Sleep(2000);
-
-                Assert.Equal(1, consumerClient.QueueSize());
-
-                Msg message = consumerClient.PopMessage();
-
-                StatusMsg statusMsg = (StatusMsg)message;
+                StatusMsg statusMsg = consumerClient.WaitForMessage<StatusMsg>();
 
                 Assert.Equal("SVG1", statusMsg.ServiceName());
                 Assert.Equal("LSEG.O", statusMsg.Name());
@@ -7802,24 +6711,13 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                                                         Filter(EmaRdm.SERVICE_INFO_FILTER | EmaRdm.SERVICE_STATE_FILTER).
                                                         Payload(map).MarkForClear(), 0);
 
-                Thread.Sleep(2000);
-
-                Assert.Equal(1, providerClient1.QueueSize());
-
-                message = providerClient1.PopMessage();
-
-                Assert.True(message is RequestMsg);
-
-                RequestMsg requestMsg = (RequestMsg)message;
+                RequestMsg requestMsg = providerClient1.WaitForMessage<RequestMsg>();
 
                 Assert.Equal("DIRECT_FEED2", requestMsg.ServiceName());
                 Assert.Equal("LSEG.O", requestMsg.Name());
                 Assert.Equal(2, requestMsg.ServiceId());
 
-                Assert.Equal(1, consumerClient.QueueSize());
-                message = consumerClient.PopMessage();
-
-                RefreshMsg refreshMsg = (RefreshMsg)message;
+                RefreshMsg refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
                 Assert.Equal("SVG1", refreshMsg.ServiceName());
                 Assert.Equal("LSEG.O", refreshMsg.Name());
                 Assert.Equal(32767, refreshMsg.ServiceId());
@@ -7830,18 +6728,11 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 consumer.Unregister(itemHandle);
             }
-            catch (OmmException excep)
-            {
-                m_Output.WriteLine(excep.StackTrace);
-                Assert.Fail(excep.Message);
-            }
             finally
             {
-                Assert.NotNull(consumer);
-
                 m_Output.WriteLine("Uninitializing...");
 
-                consumer.Uninitialize();
+                consumer?.Uninitialize();
                 ommprovider.Uninitialize();
                 ommprovider2.Uninitialize();
             }
@@ -7885,27 +6776,13 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 long itemHandle = consumer.RegisterClient(reqMsg.ServiceListName("SVG1").Name("LSEG.O"), consumerClient);
 
-                Thread.Sleep(2000);
-
-                Assert.Equal(1, providerClient1.QueueSize());
-
-                Msg message = providerClient1.PopMessage();
-
-                Assert.True(message is RequestMsg);
-
-                RequestMsg requestMsg = (RequestMsg)message;
+                RequestMsg requestMsg = providerClient1.WaitForMessage<RequestMsg>();
 
                 Assert.Equal("DIRECT_FEED", requestMsg.ServiceName());
                 Assert.Equal("LSEG.O", requestMsg.Name());
                 Assert.Equal(1, requestMsg.ServiceId());
 
-                Thread.Sleep(2000);
-
-                Assert.Equal(1, consumerClient.QueueSize());
-
-                message = consumerClient.PopMessage();
-
-                RefreshMsg refreshMsg = (RefreshMsg)message;
+                RefreshMsg refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
 
                 Assert.Equal("SVG1", refreshMsg.ServiceName());
                 Assert.Equal("LSEG.O", refreshMsg.Name());
@@ -7917,51 +6794,37 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 /* Send item recoverable status from the first provider */
                 long providerItemHandle = providerClient1.RetriveItemHandle("LSEG.O");
 
-                ElementList serviceState = new ElementList();
-                serviceState.AddUInt(EmaRdm.ENAME_SVC_STATE, EmaRdm.SERVICE_DOWN);
-                serviceState.AddUInt(EmaRdm.ENAME_ACCEPTING_REQS, 1);
-                serviceState.AddState(EmaRdm.ENAME_STATUS, OmmState.StreamStates.OPEN, OmmState.DataStates.SUSPECT,
-                    OmmState.StatusCodes.NONE);
-                serviceState.MarkForClear().Complete();
-
-                FilterList filterListEnc = new FilterList();
-                filterListEnc.AddEntry(EmaRdm.SERVICE_STATE_ID, FilterAction.UPDATE, serviceState);
-                filterListEnc.MarkForClear().Complete();
-
-                Map map = new Map();
-                map.AddKeyUInt(1, MapAction.UPDATE, filterListEnc);
-                map.MarkForClear().Complete();
+                Map map = new Map()
+                    .AddKeyUInt(1, MapAction.UPDATE, new FilterList()
+                        .AddEntry(EmaRdm.SERVICE_STATE_ID, FilterAction.UPDATE, new ElementList()
+                            .AddUInt(EmaRdm.ENAME_SVC_STATE, EmaRdm.SERVICE_DOWN)
+                            .AddUInt(EmaRdm.ENAME_ACCEPTING_REQS, 1)
+                            .AddState(EmaRdm.ENAME_STATUS, OmmState.StreamStates.OPEN, OmmState.DataStates.SUSPECT,
+                                OmmState.StatusCodes.NONE)
+                            .MarkForClear().Complete())
+                        .MarkForClear().Complete())
+                    .MarkForClear().Complete();
 
                 UpdateMsg updateMsg = new UpdateMsg();
-                ommprovider.Submit(updateMsg.DomainType(EmaRdm.MMT_DIRECTORY).
-                        Filter(EmaRdm.SERVICE_STATE_FILTER).
-                        Payload(map).MarkForClear(), 0);   // use 0 item handle to fan-out to all subscribers
+
+                ommprovider.Submit(updateMsg.DomainType(EmaRdm.MMT_DIRECTORY)
+                    .Filter(EmaRdm.SERVICE_STATE_FILTER)
+                    .Payload(map).MarkForClear(), 0);   // use 0 item handle to fan-out to all subscribers	 	 	 
+
 
                 ommprovider.Submit(new StatusMsg().DomainType(EmaRdm.MMT_MARKET_PRICE)
                         .State(OmmState.StreamStates.CLOSED_RECOVER, OmmState.DataStates.SUSPECT, OmmState.StatusCodes.NONE, "Item temporary closed")
                         , providerItemHandle);
 
-
-                Thread.Sleep(2000); // Wait until consumer receives the item closed recoverable status message.
-
-                /* The second provider receive a request message for the DIRECT_FEED_2 */
-                Assert.Equal(1, providerClient2.QueueSize());
-
-                message = providerClient2.PopMessage();
-
-                Assert.True(message is RequestMsg);
-
-                requestMsg = (RequestMsg)message;
+                /* Wait until consumer receives the item closed recoverable status message and sends request to second provider.
+                The second provider receive a request message for the DIRECT_FEED_2 */
+                requestMsg = providerClient2.WaitForMessage<RequestMsg>();
 
                 Assert.Equal("DIRECT_FEED_2", requestMsg.ServiceName());
                 Assert.Equal("LSEG.O", requestMsg.Name());
                 Assert.Equal(1, requestMsg.ServiceId());
 
-                Assert.Equal(2, consumerClient.QueueSize());
-
-                message = consumerClient.PopMessage();
-
-                StatusMsg statusMsg = (StatusMsg)message;
+                StatusMsg statusMsg = consumerClient.WaitForMessage<StatusMsg>();
 
                 Assert.Equal("SVG1", statusMsg.ServiceName());
                 Assert.Equal("LSEG.O", statusMsg.Name());
@@ -7970,9 +6833,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 Assert.Equal(OmmState.DataStates.SUSPECT, statusMsg.State().DataState);
                 Assert.Equal(OmmState.StatusCodes.NONE, statusMsg.State().StatusCode);
 
-                message = consumerClient.PopMessage();
-
-                refreshMsg = (RefreshMsg)message;
+                refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
 
                 Assert.Equal("SVG1", refreshMsg.ServiceName());
                 Assert.Equal("LSEG.O", refreshMsg.Name());
@@ -7985,18 +6846,11 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 consumer.Unregister(itemHandle);
             }
-            catch (OmmException excep)
-            {
-                m_Output.WriteLine(excep.StackTrace);
-                Assert.Fail(excep.Message);
-            }
             finally
             {
-                Assert.NotNull(consumer);
-
                 m_Output.WriteLine("Uninitializing...");
 
-                consumer.Uninitialize();
+                consumer?.Uninitialize();
                 ommprovider.Uninitialize();
                 ommprovider2.Uninitialize();
             }
@@ -8040,27 +6894,13 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 long itemHandle = consumer.RegisterClient(reqMsg.ServiceListName("SVG1").Name("LSEG.O"), consumerClient);
 
-                Thread.Sleep(2000);
-
-                Assert.Equal(1, providerClient1.QueueSize());
-
-                Msg message = providerClient1.PopMessage();
-
-                Assert.True(message is RequestMsg);
-
-                RequestMsg requestMsg = (RequestMsg)message;
+                RequestMsg requestMsg = providerClient1.WaitForMessage<RequestMsg>();
 
                 Assert.Equal("DIRECT_FEED", requestMsg.ServiceName());
                 Assert.Equal("LSEG.O", requestMsg.Name());
                 Assert.Equal(1, requestMsg.ServiceId());
 
-                Thread.Sleep(2000);
-
-                Assert.Equal(1, consumerClient.QueueSize());
-
-                message = consumerClient.PopMessage();
-
-                RefreshMsg refreshMsg = (RefreshMsg)message;
+                RefreshMsg refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
 
                 Assert.Equal("SVG1", refreshMsg.ServiceName());
                 Assert.Equal(serviceId, refreshMsg.ServiceId());
@@ -8090,26 +6930,15 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                         Filter(EmaRdm.SERVICE_GROUP_FILTER).
                         Payload(map).MarkForClear(), 0);   // use 0 item handle to fanout to all subscribers
 
-                Thread.Sleep(2000); // Wait until consumer receives the item closed recoverable status message.
-
-                /* The second provider receive a request message for the DIRECT_FEED_2 */
-                Assert.Equal(1, providerClient2.QueueSize());
-
-                message = providerClient2.PopMessage();
-
-                Assert.True(message is RequestMsg);
-
-                requestMsg = (RequestMsg)message;
+                /* Wait until consumer receives the item closed recoverable status message.
+                The second provider receive a request message for the DIRECT_FEED_2 */
+                requestMsg = providerClient2.WaitForMessage<RequestMsg>();
 
                 Assert.Equal("DIRECT_FEED_2", requestMsg.ServiceName());
                 Assert.Equal("LSEG.O", requestMsg.Name());
                 Assert.Equal(1, requestMsg.ServiceId());
 
-                Assert.Equal(2, consumerClient.QueueSize());
-
-                message = consumerClient.PopMessage();
-
-                StatusMsg statusMsg = (StatusMsg)message;
+                StatusMsg statusMsg = consumerClient.WaitForMessage<StatusMsg>();
 
                 Assert.Equal("SVG1", statusMsg.ServiceName());
                 Assert.Equal(serviceId, statusMsg.ServiceId());
@@ -8119,9 +6948,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 Assert.Equal(OmmState.DataStates.SUSPECT, statusMsg.State().DataState);
                 Assert.Equal(OmmState.StatusCodes.NONE, statusMsg.State().StatusCode);
 
-                message = consumerClient.PopMessage();
-
-                refreshMsg = (RefreshMsg)message;
+                refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
 
                 Assert.Equal("SVG1", refreshMsg.ServiceName());
                 Assert.Equal(serviceId, refreshMsg.ServiceId());
@@ -8135,18 +6962,11 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 consumer.Unregister(itemHandle);
             }
-            catch (OmmException excep)
-            {
-                m_Output.WriteLine(excep.StackTrace);
-                Assert.Fail(excep.Message);
-            }
             finally
             {
-                Assert.NotNull(consumer);
-
                 m_Output.WriteLine("Uninitializing...");
 
-                consumer.Uninitialize();
+                consumer?.Uninitialize();
                 ommprovider.Uninitialize();
                 ommprovider2.Uninitialize();
             }
@@ -8190,27 +7010,13 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 long itemHandle = consumer.RegisterClient(reqMsg.ServiceListName("SVG1").Name("LSEG.O"), consumerClient);
 
-                Thread.Sleep(2000);
-
-                Assert.Equal(1, providerClient1.QueueSize());
-
-                Msg message = providerClient1.PopMessage();
-
-                Assert.True(message is RequestMsg);
-
-                RequestMsg requestMsg = (RequestMsg)message;
+                RequestMsg requestMsg = providerClient1.WaitForMessage<RequestMsg>();
 
                 Assert.Equal("DIRECT_FEED", requestMsg.ServiceName());
                 Assert.Equal("LSEG.O", requestMsg.Name());
                 Assert.Equal(1, requestMsg.ServiceId());
 
-                Thread.Sleep(2000);
-
-                Assert.Equal(1, consumerClient.QueueSize());
-
-                message = consumerClient.PopMessage();
-
-                RefreshMsg refreshMsg = (RefreshMsg)message;
+                RefreshMsg refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
 
                 Assert.Equal("SVG1", refreshMsg.ServiceName());
                 Assert.Equal(serviceId, refreshMsg.ServiceId());
@@ -8240,26 +7046,14 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                         Filter(EmaRdm.SERVICE_GROUP_FILTER).
                         Payload(map).MarkForClear(), 0);   // use 0 item handle to fanout to all subscribers
 
-                Thread.Sleep(2000); // Wait until consumer receives the item closed recoverable status message.
-
-                /* The second provider receive a request message for the DIRECT_FEED_2 */
-                Assert.Equal(1, providerClient2.QueueSize());
-
-                message = providerClient2.PopMessage();
-
-                Assert.True(message is RequestMsg);
-
-                requestMsg = (RequestMsg)message;
+                /* Wait until consumer receives the item closed recoverable status message. The second provider receive a request message for the DIRECT_FEED_2 */
+                requestMsg = providerClient2.WaitForMessage<RequestMsg>();
 
                 Assert.Equal("DIRECT_FEED_2", requestMsg.ServiceName());
                 Assert.Equal("LSEG.O", requestMsg.Name());
                 Assert.Equal(1, requestMsg.ServiceId());
 
-                Assert.Equal(2, consumerClient.QueueSize());
-
-                message = consumerClient.PopMessage();
-
-                StatusMsg statusMsg = (StatusMsg)message;
+                StatusMsg statusMsg = consumerClient.WaitForMessage<StatusMsg>();
 
                 Assert.Equal("SVG1", statusMsg.ServiceName());
                 Assert.Equal(serviceId, statusMsg.ServiceId());
@@ -8270,9 +7064,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 Assert.Equal(OmmState.StatusCodes.NONE, statusMsg.State().StatusCode);
                 Assert.Equal("Group Status Msg", statusMsg.State().StatusText);
 
-                message = consumerClient.PopMessage();
-
-                refreshMsg = (RefreshMsg)message;
+                refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
 
                 Assert.Equal("SVG1", refreshMsg.ServiceName());
                 Assert.Equal(serviceId, refreshMsg.ServiceId());
@@ -8286,16 +7078,9 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 consumer.Unregister(itemHandle);
             }
-            catch (OmmException excep)
-            {
-                m_Output.WriteLine(excep.Message);
-                Assert.Fail(excep.Message);
-            }
             finally
             {
-                Assert.NotNull(consumer);
-
-                consumer.Uninitialize();
+                consumer?.Uninitialize();
                 ommprovider.Uninitialize();
                 ommprovider2.Uninitialize();
             }
@@ -8334,27 +7119,13 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 long itemHandle = consumer.RegisterClient(reqMsg.ServiceName("DIRECT_FEED").Name("LSEG.O"), consumerClient);
 
-                Thread.Sleep(1000);
-
-                Assert.Equal(1, providerClient1.QueueSize());
-
-                Msg message = providerClient1.PopMessage();
-
-                Assert.True(message is RequestMsg);
-
-                RequestMsg requestMsg = (RequestMsg)message;
+                RequestMsg requestMsg = providerClient1.WaitForMessage<RequestMsg>();
 
                 Assert.Equal("DIRECT_FEED", requestMsg.ServiceName());
                 Assert.Equal("LSEG.O", requestMsg.Name());
                 Assert.Equal(1, requestMsg.ServiceId());
 
-                Thread.Sleep(1000);
-
-                Assert.Equal(1, consumerClient.QueueSize());
-
-                message = consumerClient.PopMessage();
-
-                RefreshMsg refreshMsg = (RefreshMsg)message;
+                RefreshMsg refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
 
                 Assert.Equal("DIRECT_FEED", refreshMsg.ServiceName());
                 Assert.Equal("LSEG.O", refreshMsg.Name());
@@ -8381,16 +7152,8 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                                                             .Name("IBM.N").SolicitAck(false).Complete(true)
                                                             .Payload(nestedUpdateMsg.MarkForClear()).MarkForClear(), itemHandle);
 
-                Thread.Sleep(1000);
-
                 /* Checks to ensure that the provider receives the PostMsg */
-                Assert.Equal(1, providerClient1.QueueSize());
-
-                message = providerClient1.PopMessage();
-
-                Assert.True(message is PostMsg);
-
-                PostMsg recvPostMsg = (PostMsg)message;
+                PostMsg recvPostMsg = providerClient1.WaitForMessage<PostMsg>();
 
                 Assert.Equal("DIRECT_FEED", recvPostMsg.ServiceName());
                 Assert.Equal("IBM.N", recvPostMsg.Name());
@@ -8409,16 +7172,8 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                         .Name("IBM.N").SolicitAck(true).Complete(true)
                         .Payload(nestedUpdateMsg), itemHandle);
 
-                Thread.Sleep(1000);
-
                 /* Checks to ensure that the provider receives the PostMsg */
-                Assert.Equal(1, providerClient1.QueueSize());
-
-                message = providerClient1.PopMessage();
-
-                Assert.True(message is PostMsg);
-
-                recvPostMsg = (PostMsg)message;
+                recvPostMsg = providerClient1.WaitForMessage<PostMsg>();
 
                 Assert.Equal("DIRECT_FEED", recvPostMsg.ServiceName());
                 Assert.Equal("IBM.N", recvPostMsg.Name());
@@ -8429,13 +7184,8 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 updateMsg = recvPostMsg.Payload().UpdateMsg();
                 Assert.Equal(DataType.DataTypes.FIELD_LIST, updateMsg.Payload().DataType);
 
-                Thread.Sleep(2000);
                 /* Ensure that the client side receives ACK message from provider */
-                Assert.Equal(1, consumerClient.QueueSize());
-
-                message = consumerClient.PopMessage();
-
-                AckMsg ackMessage = (AckMsg)message;
+                AckMsg ackMessage = consumerClient.WaitForMessage<AckMsg>();
 
                 Assert.Equal("DIRECT_FEED", ackMessage.ServiceName());
                 Assert.Equal(32767, ackMessage.ServiceId());
@@ -8444,18 +7194,11 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 consumer.Unregister(itemHandle);
             }
-            catch (OmmException excep)
-            {
-                m_Output.WriteLine(excep.StackTrace);
-                Assert.Fail(excep.Message);
-            }
             finally
             {
-                Assert.NotNull(consumer);
-
                 m_Output.WriteLine("Uninitializing...");
 
-                consumer.Uninitialize();
+                consumer?.Uninitialize();
                 ommprovider.Uninitialize();
                 ommprovider2.Uninitialize();
             }
@@ -8494,27 +7237,13 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 long itemHandle = consumer.RegisterClient(reqMsg.ServiceName("DIRECT_FEED").Name("LSEG.O"), consumerClient);
 
-                Thread.Sleep(1000);
-
-                Assert.Equal(1, providerClient1.QueueSize());
-
-                Msg message = providerClient1.PopMessage();
-
-                Assert.True(message is RequestMsg);
-
-                RequestMsg requestMsg = (RequestMsg)message;
+                RequestMsg requestMsg = providerClient1.WaitForMessage<RequestMsg>();
 
                 Assert.Equal("DIRECT_FEED", requestMsg.ServiceName());
                 Assert.Equal("LSEG.O", requestMsg.Name());
                 Assert.Equal(1, requestMsg.ServiceId());
 
-                Thread.Sleep(1000);
-
-                Assert.Equal(1, consumerClient.QueueSize());
-
-                message = consumerClient.PopMessage();
-
-                RefreshMsg refreshMsg = (RefreshMsg)message;
+                RefreshMsg refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
 
                 Assert.Equal("DIRECT_FEED", refreshMsg.ServiceName());
                 Assert.Equal("LSEG.O", refreshMsg.Name());
@@ -8552,13 +7281,6 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 {
                     PostMsg postMsg = new PostMsg();
                     UpdateMsg nestedUpdateMsg = new UpdateMsg();
-                    FieldList nestedFieldList = new FieldList();
-
-                    nestedFieldList.AddReal(22, 34, OmmReal.MagnitudeTypes.EXPONENT_POS_1);
-                    nestedFieldList.AddReal(25, 35, OmmReal.MagnitudeTypes.EXPONENT_POS_1);
-                    nestedFieldList.AddTime(18, 11, 29, 30);
-                    nestedFieldList.AddEnumValue(37, 3);
-                    nestedFieldList.MarkForClear().Complete();
 
                     consumer.Submit(postMsg.Clear().PostId(2).ServiceId(serviceId)
                         .Name("IBM.N").SolicitAck(true).Complete(true)
@@ -8566,20 +7288,13 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 });
 
                 Assert.StartsWith("Failed to submit PostMsg on item stream. Reason: INVALID_USAGE. Error text: "
-                    + "Message submitted with unknown service Id 32768", expectedException.Message);
+                    + $"Message submitted with unknown service Id {serviceId}", expectedException.Message);
 
                 /* This is invalid usage as the UNKNOWN_FEED service name doesn't exist in any providers */
                 expectedException = Assert.Throws<OmmInvalidUsageException>(() =>
                 {
                     PostMsg postMsg = new PostMsg();
                     UpdateMsg nestedUpdateMsg = new UpdateMsg();
-                    FieldList nestedFieldList = new FieldList();
-
-                    nestedFieldList.AddReal(22, 34, OmmReal.MagnitudeTypes.EXPONENT_POS_1);
-                    nestedFieldList.AddReal(25, 35, OmmReal.MagnitudeTypes.EXPONENT_POS_1);
-                    nestedFieldList.AddTime(18, 11, 29, 30);
-                    nestedFieldList.AddEnumValue(37, 3);
-                    nestedFieldList.MarkForClear().Complete();
 
                     consumer.Submit(postMsg.PostId(1).ServiceName("UNKNOWN_FEED")
                                                         .Name("IBM.N").SolicitAck(false).Complete(true)
@@ -8595,17 +7310,10 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 {
                     PostMsg postMsg = new PostMsg();
                     UpdateMsg nestedUpdateMsg = new UpdateMsg();
-                    FieldList nestedFieldList = new FieldList();
-
-                    nestedFieldList.AddReal(22, 34, OmmReal.MagnitudeTypes.EXPONENT_POS_1);
-                    nestedFieldList.AddReal(25, 35, OmmReal.MagnitudeTypes.EXPONENT_POS_1);
-                    nestedFieldList.AddTime(18, 11, 29, 30);
-                    nestedFieldList.AddEnumValue(37, 3);
-                    nestedFieldList.MarkForClear().Complete();
 
                     consumer.Submit(postMsg.Clear().PostId(2).ServiceId(65535)
-                    .Name("IBM.N").SolicitAck(true).Complete(true)
-                    .Payload(nestedUpdateMsg.MarkForClear()).MarkForClear(), itemHandle);
+                        .Name("IBM.N").SolicitAck(true).Complete(true)
+                        .Payload(nestedUpdateMsg.MarkForClear()).MarkForClear(), itemHandle);
                 });
 
                 Assert.StartsWith("Failed to submit PostMsg on item stream. Reason: INVALID_USAGE. Error text: "
@@ -8613,18 +7321,11 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 consumer.Unregister(itemHandle);
             }
-            catch (OmmException excep)
-            {
-                m_Output.WriteLine(excep.StackTrace);
-                Assert.Fail(excep.Message);
-            }
             finally
             {
-                Assert.NotNull(consumer);
-
                 m_Output.WriteLine("Uninitializing...");
 
-                consumer.Uninitialize();
+                consumer?.Uninitialize();
                 ommprovider.Uninitialize();
                 ommprovider2.Uninitialize();
             }
@@ -8663,14 +7364,8 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 long loginHandle = consumer.RegisterClient(reqMsg.DomainType(EmaRdm.MMT_LOGIN), consumerClient);
 
-                Thread.Sleep(1000);
-
                 /* This is login refresh message message */
-                Assert.Equal(1, consumerClient.QueueSize());
-
-                Msg message = consumerClient.PopMessage();
-
-                RefreshMsg refreshMsg = (RefreshMsg)message;
+                RefreshMsg refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
 
                 Assert.Equal(EmaRdm.MMT_LOGIN, refreshMsg.DomainType());
                 Assert.Equal(OmmState.StreamStates.OPEN, refreshMsg.State().StreamState);
@@ -8696,16 +7391,8 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                                                             .Name("IBM.N").SolicitAck(false).Complete(true)
                                                             .Payload(nestedUpdateMsg.MarkForClear()).MarkForClear(), loginHandle);
 
-                Thread.Sleep(1000);
-
                 /* Checks to ensure that the provider receives the PostMsg */
-                Assert.Equal(1, providerClient1.QueueSize());
-
-                message = providerClient1.PopMessage();
-
-                Assert.True(message is PostMsg);
-
-                PostMsg recvPostMsg = (PostMsg)message;
+                PostMsg recvPostMsg = providerClient1.WaitForMessage<PostMsg>();
 
                 Assert.Equal("DIRECT_FEED", recvPostMsg.ServiceName());
                 Assert.Equal("IBM.N", recvPostMsg.Name());
@@ -8724,16 +7411,8 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                         .Name("IBM.N").SolicitAck(true).Complete(true)
                         .Payload(nestedUpdateMsg), loginHandle);
 
-                Thread.Sleep(2000);
-
                 /* Checks to ensure that the provider receives the PostMsg */
-                Assert.Equal(1, providerClient1.QueueSize());
-
-                message = providerClient1.PopMessage();
-
-                Assert.True(message is PostMsg);
-
-                recvPostMsg = (PostMsg)message;
+                recvPostMsg = providerClient1.WaitForMessage<PostMsg>();
 
                 Assert.Equal("DIRECT_FEED", recvPostMsg.ServiceName());
                 Assert.Equal("IBM.N", recvPostMsg.Name());
@@ -8744,13 +7423,8 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 updateMsg = recvPostMsg.Payload().UpdateMsg();
                 Assert.Equal(DataType.DataTypes.FIELD_LIST, updateMsg.Payload().DataType);
 
-                Thread.Sleep(2000);
                 /* Ensure that the client side receives ACK message from provider */
-                Assert.Equal(1, consumerClient.QueueSize());
-
-                message = consumerClient.PopMessage();
-
-                AckMsg ackMessage = (AckMsg)message;
+                AckMsg ackMessage = consumerClient.WaitForMessage<AckMsg>();
 
                 Assert.Equal("DIRECT_FEED", ackMessage.ServiceName());
                 Assert.Equal(32767, ackMessage.ServiceId());
@@ -8759,20 +7433,13 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 consumer.Unregister(loginHandle);
             }
-            catch (OmmException excep)
-            {
-                m_Output.WriteLine(excep.StackTrace);
-                Assert.Fail(excep.Message);
-            }
             finally
             {
-                Assert.NotNull(consumer);
-
                 Thread.Sleep(1000);
 
                 m_Output.WriteLine("Uninitializing...");
 
-                consumer.Uninitialize();
+                consumer?.Uninitialize();
                 ommprovider.Uninitialize();
                 ommprovider2.Uninitialize();
             }
@@ -8809,27 +7476,13 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 long itemHandle = consumer.RegisterClient(reqMsg.ServiceName("DIRECT_FEED").Name("LSEG.O"), consumerClient);
 
-                Thread.Sleep(1000);
-
-                Assert.Equal(1, providerClient1.QueueSize());
-
-                Msg message = providerClient1.PopMessage();
-
-                Assert.True(message is RequestMsg);
-
-                RequestMsg requestMsg = (RequestMsg)message;
+                RequestMsg requestMsg = providerClient1.WaitForMessage<RequestMsg>();
 
                 Assert.Equal("DIRECT_FEED", requestMsg.ServiceName());
                 Assert.Equal("LSEG.O", requestMsg.Name());
                 Assert.Equal(1, requestMsg.ServiceId());
 
-                Thread.Sleep(1000);
-
-                Assert.Equal(1, consumerClient.QueueSize());
-
-                message = consumerClient.PopMessage();
-
-                RefreshMsg refreshMsg = (RefreshMsg)message;
+                RefreshMsg refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
 
                 Assert.Equal("DIRECT_FEED", refreshMsg.ServiceName());
                 Assert.Equal("LSEG.O", refreshMsg.Name());
@@ -8852,16 +7505,8 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 consumer.Submit(genericMsg.Name("genericMsg").DomainType(200).Complete(true).Payload(nestedUpdateMsg.MarkForClear()).MarkForClear(), itemHandle);
 
-                Thread.Sleep(1000);
-
                 /* Checks to ensure that the provider receives the GenericMsg */
-                Assert.Equal(1, providerClient1.QueueSize());
-
-                message = providerClient1.PopMessage();
-
-                Assert.True(message is GenericMsg);
-
-                GenericMsg recvGenericMsg = (GenericMsg)message;
+                GenericMsg recvGenericMsg = providerClient1.WaitForMessage<GenericMsg>();
 
                 Assert.Equal("genericMsg", recvGenericMsg.Name());
                 Assert.Equal(200, recvGenericMsg.DomainType());
@@ -8873,11 +7518,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 Assert.Equal(DataType.DataTypes.FIELD_LIST, updateMsg.Payload().DataType);
 
                 /* Ensure there is no more message from provider */
-                Assert.Equal(1, consumerClient.QueueSize());
-
-                message = consumerClient.PopMessage();
-
-                recvGenericMsg = (GenericMsg)message;
+                recvGenericMsg = consumerClient.WaitForMessage<GenericMsg>();
                 Assert.Equal("genericMsg", recvGenericMsg.Name());
                 Assert.Equal(200, recvGenericMsg.DomainType());
                 Assert.False(recvGenericMsg.HasServiceId);
@@ -8886,18 +7527,11 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 consumer.Unregister(itemHandle);
             }
-            catch (OmmException excep)
-            {
-                m_Output.WriteLine(excep.StackTrace);
-                Assert.Fail(excep.Message);
-            }
             finally
             {
-                Assert.NotNull(consumer);
-
                 m_Output.WriteLine("Uninitializing...");
 
-                consumer.Uninitialize();
+                consumer?.Uninitialize();
                 ommprovider.Uninitialize();
                 ommprovider2.Uninitialize();
             }
@@ -8934,27 +7568,13 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 long itemHandle = consumer.RegisterClient(reqMsg.ServiceName("DIRECT_FEED").Name("LSEG.O"), consumerClient);
 
-                Thread.Sleep(1000);
-
-                Assert.Equal(1, providerClient1.QueueSize());
-
-                Msg message = providerClient1.PopMessage();
-
-                Assert.True(message is RequestMsg);
-
-                RequestMsg requestMsg = (RequestMsg)message;
+                RequestMsg requestMsg = providerClient1.WaitForMessage<RequestMsg>();
 
                 Assert.Equal("DIRECT_FEED", requestMsg.ServiceName());
                 Assert.Equal("LSEG.O", requestMsg.Name());
                 Assert.Equal(1, requestMsg.ServiceId());
 
-                Thread.Sleep(1000);
-
-                Assert.Equal(1, consumerClient.QueueSize());
-
-                message = consumerClient.PopMessage();
-
-                RefreshMsg refreshMsg = (RefreshMsg)message;
+                RefreshMsg refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
 
                 Assert.Equal("DIRECT_FEED", refreshMsg.ServiceName());
                 Assert.Equal("LSEG.O", refreshMsg.Name());
@@ -8978,16 +7598,8 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 consumer.Submit(genericMsg.Name("genericMsg").DomainType(200).ServiceId(32767).Complete(true).Payload(nestedUpdateMsg.MarkForClear())
                     .MarkForClear(), itemHandle);
 
-                Thread.Sleep(3000);
-
                 /* Checks to ensure that the provider receives the GenericMsg */
-                Assert.Equal(1, providerClient1.QueueSize());
-
-                message = providerClient1.PopMessage();
-
-                Assert.True(message is GenericMsg);
-
-                GenericMsg recvGenericMsg = (GenericMsg)message;
+                GenericMsg recvGenericMsg = providerClient1.WaitForMessage<GenericMsg>();
 
                 Assert.Equal("genericMsg", recvGenericMsg.Name());
                 Assert.Equal(200, recvGenericMsg.DomainType());
@@ -9000,11 +7612,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 Assert.Equal(DataType.DataTypes.FIELD_LIST, updateMsg.Payload().DataType);
 
                 /* Ensure that Consumer receives a generic message from provider */
-                Assert.Equal(1, consumerClient.QueueSize());
-
-                message = consumerClient.PopMessage();
-
-                recvGenericMsg = (GenericMsg)message;
+                recvGenericMsg = consumerClient.WaitForMessage<GenericMsg>();
                 Assert.Equal("genericMsg", recvGenericMsg.Name());
                 Assert.Equal(200, recvGenericMsg.DomainType());
                 Assert.True(recvGenericMsg.HasServiceId);
@@ -9019,13 +7627,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 Thread.Sleep(1000);
 
                 /* Checks to ensure that the provider receives the GenericMsg */
-                Assert.Equal(1, providerClient1.QueueSize());
-
-                message = providerClient1.PopMessage();
-
-                Assert.True(message is GenericMsg);
-
-                recvGenericMsg = (GenericMsg)message;
+                recvGenericMsg = providerClient1.WaitForMessage<GenericMsg>();
 
                 Assert.Equal("genericMsg2", recvGenericMsg.Name());
                 Assert.Equal(205, recvGenericMsg.DomainType());
@@ -9038,11 +7640,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 Assert.Equal(DataType.DataTypes.FIELD_LIST, updateMsg.Payload().DataType);
 
                 /* Ensure that Consumer receives a generic message from provider */
-                Assert.Equal(1, consumerClient.QueueSize());
-
-                message = consumerClient.PopMessage();
-
-                recvGenericMsg = (GenericMsg)message;
+                recvGenericMsg = consumerClient.WaitForMessage<GenericMsg>();
                 Assert.Equal("genericMsg2", recvGenericMsg.Name());
                 Assert.Equal(205, recvGenericMsg.DomainType());
                 Assert.False(recvGenericMsg.HasServiceId);
@@ -9051,18 +7649,11 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 consumer.Unregister(itemHandle);
             }
-            catch (OmmException excep)
-            {
-                m_Output.WriteLine(excep.StackTrace);
-                Assert.Fail(excep.Message);
-            }
             finally
             {
-                Assert.NotNull(consumer);
-
                 m_Output.WriteLine("Uninitializing...");
 
-                consumer.Uninitialize();
+                consumer?.Uninitialize();
                 ommprovider.Uninitialize();
                 ommprovider2.Uninitialize();
             }
@@ -9100,14 +7691,8 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 long loginHandle = consumer.RegisterClient(reqMsg.DomainType(EmaRdm.MMT_LOGIN), consumerClient);
 
-                Thread.Sleep(1000);
-
                 /* This is login refresh message message */
-                Assert.Equal(1, consumerClient.QueueSize());
-
-                Msg message = consumerClient.PopMessage();
-
-                RefreshMsg refreshMsg = (RefreshMsg)message;
+                RefreshMsg refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
 
                 Assert.Equal(EmaRdm.MMT_LOGIN, refreshMsg.DomainType());
                 Assert.Equal(OmmState.StreamStates.OPEN, refreshMsg.State().StreamState);
@@ -9129,16 +7714,8 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 /* The service Id is required in order to decode the GenericMsg's payload which includes FieldList properly */
                 consumer.Submit(genericMsg.Name("genericMsg").DomainType(200).Complete(true).Payload(nestedUpdateMsg.MarkForClear()).MarkForClear(), loginHandle);
 
-                Thread.Sleep(1000);
-
                 /* Checks to ensure that the first provider receives the GenericMsg */
-                Assert.Equal(1, providerClient1.QueueSize());
-
-                message = providerClient1.PopMessage();
-
-                Assert.True(message is GenericMsg);
-
-                GenericMsg recvGenericMsg = (GenericMsg)message;
+                GenericMsg recvGenericMsg = providerClient1.WaitForMessage<GenericMsg>();
 
                 Assert.Equal(1, recvGenericMsg.StreamId());
                 Assert.Equal("genericMsg", recvGenericMsg.Name());
@@ -9150,13 +7727,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 Assert.Equal(DataType.DataTypes.NO_DATA, updateMsg.Payload().DataType);
 
                 /* Checks to ensure that the second provider receives the GenericMsg */
-                Assert.Equal(1, providerClient2.QueueSize());
-
-                message = providerClient2.PopMessage();
-
-                Assert.True(message is GenericMsg);
-
-                recvGenericMsg = (GenericMsg)message;
+                recvGenericMsg = providerClient2.WaitForMessage<GenericMsg>();
 
                 Assert.Equal(1, recvGenericMsg.StreamId());
                 Assert.Equal("genericMsg", recvGenericMsg.Name());
@@ -9168,11 +7739,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 Assert.Equal(DataType.DataTypes.NO_DATA, updateMsg.Payload().DataType);
 
                 /* Ensure that receives two generic messages from the two providers.*/
-                Assert.Equal(2, consumerClient.QueueSize());
-
-                message = consumerClient.PopMessage();
-
-                recvGenericMsg = (GenericMsg)message;
+                recvGenericMsg = consumerClient.WaitForMessage<GenericMsg>();
                 Assert.Equal(1, recvGenericMsg.StreamId());
                 Assert.Equal("genericMsg", recvGenericMsg.Name());
                 Assert.Equal(200, recvGenericMsg.DomainType());
@@ -9180,9 +7747,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 Assert.True(recvGenericMsg.Complete());
                 Assert.Equal(DataType.DataTypes.NO_DATA, recvGenericMsg.Payload().DataType);
 
-                message = consumerClient.PopMessage();
-
-                recvGenericMsg = (GenericMsg)message;
+                recvGenericMsg = consumerClient.WaitForMessage<GenericMsg>();
                 Assert.Equal(1, recvGenericMsg.StreamId());
                 Assert.Equal("genericMsg", recvGenericMsg.Name());
                 Assert.Equal(200, recvGenericMsg.DomainType());
@@ -9192,18 +7757,11 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 consumer.Unregister(loginHandle);
             }
-            catch (OmmException excep)
-            {
-                m_Output.WriteLine(excep.StackTrace);
-                Assert.Fail(excep.Message);
-            }
             finally
             {
-                Assert.NotNull(consumer);
-
                 m_Output.WriteLine("Uninitializing...");
 
-                consumer.Uninitialize();
+                consumer?.Uninitialize();
                 ommprovider.Uninitialize();
                 ommprovider2.Uninitialize();
             }
@@ -9240,14 +7798,8 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 long loginHandle = consumer.RegisterClient(reqMsg.DomainType(EmaRdm.MMT_LOGIN), consumerClient);
 
-                Thread.Sleep(1000);
-
                 /* This is login refresh message message */
-                Assert.Equal(1, consumerClient.QueueSize());
-
-                Msg message = consumerClient.PopMessage();
-
-                RefreshMsg refreshMsg = (RefreshMsg)message;
+                RefreshMsg refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
 
                 Assert.Equal(EmaRdm.MMT_LOGIN, refreshMsg.DomainType());
                 Assert.Equal(OmmState.StreamStates.OPEN, refreshMsg.State().StreamState);
@@ -9270,16 +7822,8 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 consumer.Submit(genericMsg.Name("genericMsg").DomainType(200).Complete(true).ServiceId(32767)
                     .Payload(nestedUpdateMsg.MarkForClear()).MarkForClear(), loginHandle);
 
-                Thread.Sleep(1000);
-
                 /* Checks to ensure that the first provider receives the GenericMsg */
-                Assert.Equal(1, providerClient1.QueueSize());
-
-                message = providerClient1.PopMessage();
-
-                Assert.True(message is GenericMsg);
-
-                GenericMsg recvGenericMsg = (GenericMsg)message;
+                GenericMsg recvGenericMsg = providerClient1.WaitForMessage<GenericMsg>();
 
                 Assert.Equal(1, recvGenericMsg.StreamId());
                 Assert.Equal("genericMsg", recvGenericMsg.Name());
@@ -9291,13 +7835,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 Assert.Equal(DataType.DataTypes.FIELD_LIST, updateMsg.Payload().DataType);
 
                 /* Checks to ensure that the second provider receives the GenericMsg */
-                Assert.Equal(1, providerClient2.QueueSize());
-
-                message = providerClient2.PopMessage();
-
-                Assert.True(message is GenericMsg);
-
-                recvGenericMsg = (GenericMsg)message;
+                recvGenericMsg = providerClient2.WaitForMessage<GenericMsg>();
 
                 Assert.Equal(1, recvGenericMsg.StreamId());
                 Assert.Equal("genericMsg", recvGenericMsg.Name());
@@ -9306,11 +7844,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 Assert.Equal(DataType.DataTypes.ERROR, recvGenericMsg.Payload().DataType);
 
                 /* Ensure that receives two generic message from the two providers.*/
-                Assert.Equal(2, consumerClient.QueueSize());
-
-                message = consumerClient.PopMessage();
-
-                recvGenericMsg = (GenericMsg)message;
+                recvGenericMsg = consumerClient.WaitForMessage<GenericMsg>();
                 Assert.Equal(1, recvGenericMsg.StreamId());
                 Assert.Equal("genericMsg", recvGenericMsg.Name());
                 Assert.Equal(200, recvGenericMsg.DomainType());
@@ -9318,9 +7852,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 Assert.True(recvGenericMsg.Complete());
                 Assert.Equal(DataType.DataTypes.NO_DATA, recvGenericMsg.Payload().DataType);
 
-                message = consumerClient.PopMessage();
-
-                recvGenericMsg = (GenericMsg)message;
+                recvGenericMsg = consumerClient.WaitForMessage<GenericMsg>();
                 Assert.Equal(1, recvGenericMsg.StreamId());
                 Assert.Equal("genericMsg", recvGenericMsg.Name());
                 Assert.Equal(200, recvGenericMsg.DomainType());
@@ -9335,13 +7867,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 Thread.Sleep(1000);
 
                 /* Checks to ensure that the first provider receives the GenericMsg */
-                Assert.Equal(1, providerClient1.QueueSize());
-
-                message = providerClient1.PopMessage();
-
-                Assert.True(message is GenericMsg);
-
-                recvGenericMsg = (GenericMsg)message;
+                recvGenericMsg = providerClient1.WaitForMessage<GenericMsg>();
 
                 Assert.Equal(1, recvGenericMsg.StreamId());
                 Assert.Equal("genericMsg2", recvGenericMsg.Name());
@@ -9350,13 +7876,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 Assert.Equal(DataType.DataTypes.ERROR, recvGenericMsg.Payload().DataType);
 
                 /* Checks to ensure that the second provider receives the GenericMsg */
-                Assert.Equal(1, providerClient2.QueueSize());
-
-                message = providerClient2.PopMessage();
-
-                Assert.True(message is GenericMsg);
-
-                recvGenericMsg = (GenericMsg)message;
+                recvGenericMsg = providerClient2.WaitForMessage<GenericMsg>();
 
                 Assert.Equal(1, recvGenericMsg.StreamId());
                 Assert.Equal("genericMsg2", recvGenericMsg.Name());
@@ -9365,11 +7885,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 Assert.Equal(DataType.DataTypes.ERROR, recvGenericMsg.Payload().DataType);
 
                 /* Ensure that receives two generic message from the two providers.*/
-                Assert.Equal(2, consumerClient.QueueSize());
-
-                message = consumerClient.PopMessage();
-
-                recvGenericMsg = (GenericMsg)message;
+                recvGenericMsg = consumerClient.WaitForMessage<GenericMsg>();
                 Assert.Equal(1, recvGenericMsg.StreamId());
                 Assert.Equal("genericMsg2", recvGenericMsg.Name());
                 Assert.Equal(205, recvGenericMsg.DomainType());
@@ -9377,9 +7893,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 Assert.True(recvGenericMsg.Complete());
                 Assert.Equal(DataType.DataTypes.NO_DATA, recvGenericMsg.Payload().DataType);
 
-                message = consumerClient.PopMessage();
-
-                recvGenericMsg = (GenericMsg)message;
+                recvGenericMsg = consumerClient.WaitForMessage<GenericMsg>();
                 Assert.Equal(1, recvGenericMsg.StreamId());
                 Assert.Equal("genericMsg2", recvGenericMsg.Name());
                 Assert.Equal(205, recvGenericMsg.DomainType());
@@ -9389,18 +7903,11 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 consumer.Unregister(loginHandle);
             }
-            catch (OmmException excep)
-            {
-                m_Output.WriteLine(excep.StackTrace);
-                Assert.Fail(excep.Message);
-            }
             finally
             {
-                Assert.NotNull(consumer);
-
                 m_Output.WriteLine("Uninitializing...");
 
-                consumer.Uninitialize();
+                consumer?.Uninitialize();
                 ommprovider.Uninitialize();
                 ommprovider2.Uninitialize();
             }
@@ -9438,17 +7945,10 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 long itemHandle = consumer.RegisterClient(reqMsg.ServiceName("DIRECT_FEED").Name("LSEG.O").Qos(55, 55), consumerClient);
 
-                Thread.Sleep(2000);
-
+                /* Receive a StatusMsg from EMA */
+                StatusMsg statusMsg = consumerClient.WaitForMessage<StatusMsg>();
                 /* Ensure that the provider doesn't receive the request message as the requested QoS doesn't match */
                 Assert.Equal(0, providerClient1.QueueSize());
-
-                /* Receive a StatusMsg from EMA */
-                Assert.Equal(1, consumerClient.QueueSize());
-
-                Msg message = consumerClient.PopMessage();
-
-                StatusMsg statusMsg = (StatusMsg)message;
 
                 Assert.Equal("DIRECT_FEED", statusMsg.ServiceName());
                 Assert.Equal("LSEG.O", statusMsg.Name());
@@ -9516,23 +8016,15 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 Thread.Sleep(2000);
 
                 /* Provider receives the request message */
-                Assert.Equal(1, providerClient1.QueueSize());
-
-                message = providerClient1.PopMessage();
-
-                RequestMsg recvReq = (RequestMsg)message;
+                RequestMsg recvReq = providerClient1.WaitForMessage<RequestMsg>();
 
                 Assert.Equal(3, recvReq.StreamId());
                 Assert.Equal("DIRECT_FEED", recvReq.ServiceName());
                 Assert.Equal("LSEG.O", recvReq.Name());
                 Assert.Equal(1, recvReq.ServiceId());
 
-                /* Receives a refresh from the provider */
-                Assert.Equal(1, consumerClient.QueueSize());
-                message = consumerClient.PopMessage();
-
                 /* Receives Refresh message from the active server of the second connection */
-                RefreshMsg refreshMsg = (RefreshMsg)message;
+                RefreshMsg refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
                 Assert.Equal(5, refreshMsg.StreamId());
                 Assert.Equal(EmaRdm.MMT_MARKET_PRICE, refreshMsg.DomainType());
                 Assert.Equal("Open / Ok / None / 'Refresh Completed'", refreshMsg.State().ToString());
@@ -9546,18 +8038,11 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 consumer.Unregister(itemHandle);
             }
-            catch (OmmException excep)
-            {
-                m_Output.WriteLine(excep.StackTrace);
-                Assert.Fail(excep.Message);
-            }
             finally
             {
-                Assert.NotNull(consumer);
-
                 m_Output.WriteLine("Uninitializing...");
 
-                consumer.Uninitialize();
+                consumer?.Uninitialize();
                 ommprovider.Uninitialize();
                 ommprovider2.Uninitialize();
             }
@@ -9598,17 +8083,10 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 long itemHandle = consumer.RegisterClient(reqMsg.ServiceListName("SVG1").Name("LSEG.O").Qos(55, 55), consumerClient);
 
-                Thread.Sleep(2000);
-
+                /* Ensure that the provider doesn't receive the request message as the requested QoS doesn't match */
+                StatusMsg statusMsg = consumerClient.WaitForMessage<StatusMsg>();
                 /* Ensure that the provider doesn't receive the request message as the requested QoS doesn't match */
                 Assert.Equal(0, providerClient1.QueueSize());
-
-                /* Receive a StatusMsg from EMA */
-                Assert.Equal(1, consumerClient.QueueSize());
-
-                Msg message = consumerClient.PopMessage();
-
-                StatusMsg statusMsg = (StatusMsg)message;
 
                 Assert.Equal("SVG1", statusMsg.ServiceName());
                 Assert.Equal("LSEG.O", statusMsg.Name());
@@ -9678,9 +8156,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 /* Provider receives the request message */
                 Assert.Equal(1, providerClient1.QueueSize());
 
-                message = providerClient1.PopMessage();
-
-                RequestMsg recvReq = (RequestMsg)message;
+                RequestMsg recvReq = providerClient1.WaitForMessage<RequestMsg>();
 
                 Assert.Equal(3, recvReq.StreamId());
                 Assert.Equal("DIRECT_FEED", recvReq.ServiceName());
@@ -9688,10 +8164,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 Assert.Equal(1, recvReq.ServiceId());
 
                 /* Receives a refresh from the provider */
-                Assert.Equal(1, consumerClient.QueueSize());
-                message = consumerClient.PopMessage();
-
-                RefreshMsg refreshMsg = (RefreshMsg)message;
+                RefreshMsg refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
                 Assert.Equal(5, refreshMsg.StreamId());
                 Assert.Equal(EmaRdm.MMT_MARKET_PRICE, refreshMsg.DomainType());
                 Assert.Equal("Open / Ok / None / 'Refresh Completed'", refreshMsg.State().ToString());
@@ -9705,18 +8178,11 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 consumer.Unregister(itemHandle);
             }
-            catch (OmmException excep)
-            {
-                m_Output.WriteLine(excep.StackTrace);
-                Assert.Fail(excep.Message);
-            }
             finally
             {
-                Assert.NotNull(consumer);
-
                 m_Output.WriteLine("Uninitializing...");
 
-                consumer.Uninitialize();
+                consumer?.Uninitialize();
                 ommprovider.Uninitialize();
                 ommprovider2.Uninitialize();
             }
@@ -9753,17 +8219,9 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 long itemHandle = consumer.RegisterClient(reqMsg.ServiceName("DIRECT_FEED").Name("LSEG.O").DomainType(55), consumerClient);
 
-                Thread.Sleep(3000);
-
+                StatusMsg statusMsg = consumerClient.WaitForMessage<StatusMsg>();
                 /* Ensure that the provider doesn't receive the request message as the requested capability doesn't match */
                 Assert.Equal(0, providerClient1.QueueSize());
-
-                /* Receive a StatusMsg from EMA */
-                Assert.Equal(1, consumerClient.QueueSize());
-
-                Msg message = consumerClient.PopMessage();
-
-                StatusMsg statusMsg = (StatusMsg)message;
 
                 Assert.Equal("DIRECT_FEED", statusMsg.ServiceName());
                 Assert.Equal("LSEG.O", statusMsg.Name());
@@ -9833,11 +8291,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 Thread.Sleep(2000);
 
                 /* Provider receives the request message */
-                Assert.Equal(1, providerClient1.QueueSize());
-
-                message = providerClient1.PopMessage();
-
-                RequestMsg recvReq = (RequestMsg)message;
+                RequestMsg recvReq = providerClient1.WaitForMessage<RequestMsg>();
 
                 Assert.Equal(3, recvReq.StreamId());
                 Assert.Equal("DIRECT_FEED", recvReq.ServiceName());
@@ -9846,10 +8300,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 Assert.Equal(1, recvReq.ServiceId());
 
                 /* Receives a refresh from the provider */
-                Assert.Equal(1, consumerClient.QueueSize());
-                message = consumerClient.PopMessage();
-
-                RefreshMsg refreshMsg = (RefreshMsg)message;
+                RefreshMsg refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
                 Assert.Equal(5, refreshMsg.StreamId());
                 Assert.Equal(55, refreshMsg.DomainType());
                 Assert.Equal("Open / Ok / None / 'Refresh Completed'", refreshMsg.State().ToString());
@@ -9863,18 +8314,11 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 consumer.Unregister(itemHandle);
             }
-            catch (OmmException excep)
-            {
-                m_Output.WriteLine(excep.StackTrace);
-                Assert.Fail(excep.Message);
-            }
             finally
             {
-                Assert.NotNull(consumer);
-
                 m_Output.WriteLine("Uninitializing...");
 
-                consumer.Uninitialize();
+                consumer?.Uninitialize();
                 ommprovider.Uninitialize();
                 ommprovider2.Uninitialize();
             }
@@ -9917,17 +8361,10 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 long itemHandle = consumer.RegisterClient(reqMsg.ServiceListName("SVG1").Name("LSEG.O").DomainType(55), consumerClient);
 
-                Thread.Sleep(2000);
-
+                /* Receive a StatusMsg from EMA */
+                StatusMsg statusMsg = consumerClient.WaitForMessage<StatusMsg>();
                 /* Ensure that the provider doesn't receive the request message as the requested capability doesn't match */
                 Assert.Equal(0, providerClient1.QueueSize());
-
-                /* Receive a StatusMsg from EMA */
-                Assert.Equal(1, consumerClient.QueueSize());
-
-                Msg message = consumerClient.PopMessage();
-
-                StatusMsg statusMsg = (StatusMsg)message;
 
                 Assert.Equal("SVG1", statusMsg.ServiceName());
                 Assert.Equal("LSEG.O", statusMsg.Name());
@@ -9994,14 +8431,8 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                                                         Filter(EmaRdm.SERVICE_INFO_FILTER | EmaRdm.SERVICE_STATE_FILTER).
                                                         Payload(map), 0);
 
-                Thread.Sleep(2000);
-
                 /* Provider receives the request message */
-                Assert.Equal(1, providerClient1.QueueSize());
-
-                message = providerClient1.PopMessage();
-
-                RequestMsg recvReq = (RequestMsg)message;
+                RequestMsg recvReq = providerClient1.WaitForMessage<RequestMsg>();
 
                 Assert.Equal(3, recvReq.StreamId());
                 Assert.Equal("DIRECT_FEED", recvReq.ServiceName());
@@ -10010,10 +8441,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 Assert.Equal(1, recvReq.ServiceId());
 
                 /* Receives a refresh from the provider */
-                Assert.Equal(1, consumerClient.QueueSize());
-                message = consumerClient.PopMessage();
-
-                RefreshMsg refreshMsg = (RefreshMsg)message;
+                RefreshMsg refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
                 Assert.Equal(5, refreshMsg.StreamId());
                 Assert.Equal(55, refreshMsg.DomainType());
                 Assert.Equal("Open / Ok / None / 'Refresh Completed'", refreshMsg.State().ToString());
@@ -10027,18 +8455,11 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 consumer.Unregister(itemHandle);
             }
-            catch (OmmException excep)
-            {
-                m_Output.WriteLine(excep.StackTrace);
-                Assert.Fail(excep.Message);
-            }
             finally
             {
-                Assert.NotNull(consumer);
-
                 m_Output.WriteLine("Uninitializing...");
 
-                consumer.Uninitialize();
+                consumer?.Uninitialize();
                 ommprovider.Uninitialize();
                 ommprovider2.Uninitialize();
             }
@@ -10074,21 +8495,15 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 long itemHandle1 = consumer.RegisterClient(reqMsg.ServiceName("DIRECT_FEED").Name("LSEG.O").PrivateStream(true), consumerClient);
 
-                Thread.Sleep(7000);
-
                 /* Ensure that the provider receives a request message but it doesn't send a response back. */
-                Assert.Equal(3, providerClient1.QueueSize());
-
-                Msg message = providerClient1.PopMessage();
-                RequestMsg recvReqMsg = (RequestMsg)message;
+                RequestMsg recvReqMsg = providerClient1.WaitForMessage<RequestMsg>();
 
                 Assert.Equal(3, recvReqMsg.StreamId());
                 Assert.Equal(1, recvReqMsg.ServiceId());
                 Assert.Equal("DIRECT_FEED", recvReqMsg.ServiceName());
                 Assert.Equal("LSEG.O", recvReqMsg.Name());
 
-                message = providerClient1.PopMessage();
-                recvReqMsg = (RequestMsg)message;
+                recvReqMsg = providerClient1.WaitForMessage<RequestMsg>();
 
                 /* This is close message from consumer */
                 Assert.Equal(3, recvReqMsg.StreamId());
@@ -10096,13 +8511,9 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 Assert.Equal("DIRECT_FEED", recvReqMsg.ServiceName());
                 Assert.Equal("LSEG.O", recvReqMsg.Name());
 
-                message = providerClient1.PopMessage();
-                recvReqMsg = (RequestMsg)message;
+                recvReqMsg = providerClient1.WaitForMessage<RequestMsg>();
 
-                Assert.Equal(1, consumerClient.QueueSize());
-                message = consumerClient.PopMessage();
-
-                StatusMsg statusMsg = (StatusMsg)message;
+                StatusMsg statusMsg = consumerClient.WaitForMessage<StatusMsg>();
 
                 Assert.Equal(5, statusMsg.StreamId());
                 Assert.Equal("DIRECT_FEED", statusMsg.ServiceName());
@@ -10117,18 +8528,11 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 consumer.Unregister(itemHandle1);
             }
-            catch (OmmException excep)
-            {
-                m_Output.WriteLine(excep.StackTrace);
-                Assert.Fail(excep.Message);
-            }
             finally
             {
-                Assert.NotNull(consumer);
-
                 m_Output.WriteLine("Uninitializing...");
 
-                consumer.Uninitialize();
+                consumer?.Uninitialize();
                 ommprovider.Uninitialize();
                 ommprovider2.Uninitialize();
             }
@@ -10164,27 +8568,13 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 long itemHandle = consumer.RegisterClient(reqMsg.ServiceName("DIRECT_FEED").Name("LSEG.O").PrivateStream(true), consumerClient);
 
-                Thread.Sleep(3000);
-
-                Assert.Equal(1, providerClient1.QueueSize());
-
-                Msg message = providerClient1.PopMessage();
-
-                Assert.True(message is RequestMsg);
-
-                RequestMsg requestMsg = (RequestMsg)message;
+                RequestMsg requestMsg = providerClient1.WaitForMessage<RequestMsg>();
 
                 Assert.Equal("DIRECT_FEED", requestMsg.ServiceName());
                 Assert.Equal("LSEG.O", requestMsg.Name());
                 Assert.Equal(1, requestMsg.ServiceId());
 
-                Thread.Sleep(2000);
-
-                Assert.Equal(1, consumerClient.QueueSize());
-
-                message = consumerClient.PopMessage();
-
-                RefreshMsg refreshMsg = (RefreshMsg)message;
+                RefreshMsg refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
 
                 Assert.Equal("DIRECT_FEED", refreshMsg.ServiceName());
                 Assert.Equal("LSEG.O", refreshMsg.Name());
@@ -10213,15 +8603,10 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                         Payload(map).MarkForClear(), 0);   // use 0 item handle to fan-out to all subscribers
 
 
-                Thread.Sleep(2000); // Wait until consumer receives the item Open/Suspect status message from the VA Watchlist
-
+                // Wait until consumer receives the item Open/Suspect status message from the VA Watchlist
+                StatusMsg statusMsg = consumerClient.WaitForMessage<StatusMsg>();
                 /* Ensure that second provider doesn't receive the request message */
                 Assert.Equal(0, providerClient2.QueueSize());
-                Assert.Equal(1, consumerClient.QueueSize());
-
-                message = consumerClient.PopMessage();
-
-                StatusMsg statusMsg = (StatusMsg)message;
 
                 Assert.Equal("DIRECT_FEED", statusMsg.ServiceName());
                 Assert.Equal("LSEG.O", statusMsg.Name());
@@ -10231,18 +8616,11 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 consumer.Unregister(itemHandle);
             }
-            catch (OmmException excep)
-            {
-                m_Output.WriteLine(excep.StackTrace);
-                Assert.Fail(excep.Message);
-            }
             finally
             {
-                Assert.NotNull(consumer);
-
                 m_Output.WriteLine("Uninitializing...");
 
-                consumer.Uninitialize();
+                consumer?.Uninitialize();
                 ommprovider.Uninitialize();
                 ommprovider2.Uninitialize();
             }
@@ -10276,27 +8654,16 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 long itemHandle = consumer.RegisterClient(reqMsg.ServiceName("DIRECT_FEED").Name("LSEG.O").PrivateStream(true), consumerClient);
 
-                Thread.Sleep(1000);
-
-                /* Checks provider that receives the item request. */
-                Msg message;
                 RequestMsg? requestMsg = null;
 
-                message = providerClient1.PopMessage();
-                Assert.True(message is RequestMsg);
-                requestMsg = (RequestMsg)message;
+                /* Checks provider that receives the item request. */
+                requestMsg = providerClient1.WaitForMessage<RequestMsg>();
 
                 Assert.Equal("DIRECT_FEED", requestMsg.ServiceName());
                 Assert.Equal("LSEG.O", requestMsg.Name());
                 Assert.Equal(1, requestMsg.ServiceId());
 
-                Thread.Sleep(1000);
-
-                Assert.Equal(1, consumerClient.QueueSize());
-
-                message = consumerClient.PopMessage();
-
-                RefreshMsg refreshMsg = (RefreshMsg)message;
+                RefreshMsg refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
 
                 Assert.Equal("DIRECT_FEED", refreshMsg.ServiceName());
                 Assert.Equal("LSEG.O", refreshMsg.Name());
@@ -10312,27 +8679,15 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 ommprovider = new OmmProvider(config.Port("19001").ProviderName("Provider_1"), providerClient1);
 
-                Thread.Sleep(2000);
-
                 /* Ensures that the first provider receives the login request message  */
-                Assert.Equal(1, providerClient1.QueueSize());
-
-                message = providerClient1.PopMessage();
-                recvReqMsg = (RequestMsg)message;
+                recvReqMsg = providerClient1.WaitForMessage<RequestMsg>();
 
                 Assert.Equal(1, recvReqMsg.StreamId());
                 Assert.Equal(EmaRdm.MMT_LOGIN, recvReqMsg.DomainType());
 
-                Thread.Sleep(3000);
-
+                StatusMsg statusMsg = consumerClient.WaitForMessage<StatusMsg>();
                 /* Ensures that the first provider doesn't receive the request message */
                 Assert.Equal(0, providerClient1.QueueSize());
-
-                Assert.Equal(1, consumerClient.QueueSize());
-
-                message = consumerClient.PopMessage();
-
-                StatusMsg statusMsg = (StatusMsg)message;
 
                 Assert.Equal("DIRECT_FEED", statusMsg.ServiceName());
                 Assert.Equal("LSEG.O", statusMsg.Name());
@@ -10343,18 +8698,11 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 consumer.Unregister(itemHandle);
             }
-            catch (OmmException excep)
-            {
-                m_Output.WriteLine(excep.StackTrace);
-                Assert.Fail(excep.Message);
-            }
             finally
             {
-                Assert.NotNull(consumer);
-
                 m_Output.WriteLine("Uninitializing...");
 
-                consumer.Uninitialize();
+                consumer?.Uninitialize();
                 ommprovider.Uninitialize();
                 ommprovider2.Uninitialize();
             }
@@ -10388,27 +8736,16 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 long itemHandle = consumer.RegisterClient(reqMsg.ServiceName("DIRECT_FEED").Name("LSEG.O").PrivateStream(true), consumerClient);
 
-                Thread.Sleep(3000);
-
-                /* Checks provider that receives the item request. */
-                Msg message;
                 RequestMsg? requestMsg = null;
 
-                message = providerClient1.PopMessage();
-                Assert.True(message is RequestMsg);
-                requestMsg = (RequestMsg)message;
+                /* Checks provider that receives the item request. */
+                requestMsg = providerClient1.WaitForMessage<RequestMsg>();
 
                 Assert.Equal("DIRECT_FEED", requestMsg.ServiceName());
                 Assert.Equal("LSEG.O", requestMsg.Name());
                 Assert.Equal(1, requestMsg.ServiceId());
 
-                Thread.Sleep(2000);
-
-                Assert.Equal(1, consumerClient.QueueSize());
-
-                message = consumerClient.PopMessage();
-
-                RefreshMsg refreshMsg = (RefreshMsg)message;
+                RefreshMsg refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
 
                 Assert.Equal("DIRECT_FEED", refreshMsg.ServiceName());
                 Assert.Equal("LSEG.O", refreshMsg.Name());
@@ -10419,16 +8756,9 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 /* Force channel down on provider */
                 ommprovider.Uninitialize();
 
-                Thread.Sleep(2000);
-
+                StatusMsg statusMsg = consumerClient.WaitForMessage<StatusMsg>();
                 /* Ensure that the second provider doesn't receive the request message */
                 Assert.Equal(0, providerClient2.QueueSize());
-
-                Assert.Equal(1, consumerClient.QueueSize());
-
-                message = consumerClient.PopMessage();
-
-                StatusMsg statusMsg = (StatusMsg)message;
 
                 Assert.Equal("DIRECT_FEED", statusMsg.ServiceName());
                 Assert.Equal("LSEG.O", statusMsg.Name());
@@ -10439,18 +8769,11 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 consumer.Unregister(itemHandle);
             }
-            catch (OmmException excep)
-            {
-                m_Output.WriteLine(excep.StackTrace);
-                Assert.Fail(excep.Message);
-            }
             finally
             {
-                Assert.NotNull(consumer);
-
                 m_Output.WriteLine("Uninitializing...");
 
-                consumer.Uninitialize();
+                consumer?.Uninitialize();
                 ommprovider.Uninitialize();
                 ommprovider2.Uninitialize();
             }
@@ -10493,16 +8816,9 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 consumer.RegisterClient(reqMsg.Clear().ServiceListName("SVG1").Name("itemC"), consumerClient);
 
-                Thread.Sleep(2000);
-
+                StatusMsg statusMsg = consumerClient.WaitForMessage<StatusMsg>();
                 /* Ensure that the provider doesn't receive any request message */
                 Assert.Equal(0, providerClient1.QueueSize());
-
-                Assert.Equal(3, consumerClient.QueueSize());
-
-                Msg message = consumerClient.PopMessage();
-
-                StatusMsg statusMsg = (StatusMsg)message;
 
                 Assert.Equal("UNKNOWN_SERVICE", statusMsg.ServiceName());
                 Assert.Equal("itemA", statusMsg.Name());
@@ -10511,9 +8827,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 Assert.Equal(OmmState.StatusCodes.NONE, statusMsg.State().StatusCode);
                 Assert.Equal("No matching service present.", statusMsg.State().StatusText);
 
-                message = consumerClient.PopMessage();
-
-                statusMsg = (StatusMsg)message;
+                statusMsg = consumerClient.WaitForMessage<StatusMsg>();
 
                 Assert.Equal("UNKNOWN_SERVICE", statusMsg.ServiceName());
                 Assert.Equal("itemB", statusMsg.Name());
@@ -10522,9 +8836,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 Assert.Equal(OmmState.StatusCodes.NONE, statusMsg.State().StatusCode);
                 Assert.Equal("No matching service present.", statusMsg.State().StatusText);
 
-                message = consumerClient.PopMessage();
-
-                statusMsg = (StatusMsg)message;
+                statusMsg = consumerClient.WaitForMessage<StatusMsg>();
 
                 Assert.Equal("SVG1", statusMsg.ServiceName());
                 Assert.Equal("itemC", statusMsg.Name());
@@ -10535,13 +8847,9 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 // Uninitialized OmmConsumer to get item closed status
                 m_Output.WriteLine("Uninitializing...");
-                consumer.Uninitialize();
+                consumer?.Uninitialize();
 
-                Assert.Equal(3, consumerClient.QueueSize());
-
-                message = consumerClient.PopMessage();
-
-                statusMsg = (StatusMsg)message;
+                statusMsg = consumerClient.WaitForMessage<StatusMsg>();
 
                 Assert.Equal("UNKNOWN_SERVICE", statusMsg.ServiceName());
                 Assert.Equal("itemA", statusMsg.Name());
@@ -10550,9 +8858,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 Assert.Equal(OmmState.StatusCodes.NONE, statusMsg.State().StatusCode);
                 Assert.Equal("Consumer session is closed.", statusMsg.State().StatusText);
 
-                message = consumerClient.PopMessage();
-
-                statusMsg = (StatusMsg)message;
+                statusMsg = consumerClient.WaitForMessage<StatusMsg>();
 
                 Assert.Equal("UNKNOWN_SERVICE", statusMsg.ServiceName());
                 Assert.Equal("itemB", statusMsg.Name());
@@ -10561,9 +8867,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 Assert.Equal(OmmState.StatusCodes.NONE, statusMsg.State().StatusCode);
                 Assert.Equal("Consumer session is closed.", statusMsg.State().StatusText);
 
-                message = consumerClient.PopMessage();
-
-                statusMsg = (StatusMsg)message;
+                statusMsg = consumerClient.WaitForMessage<StatusMsg>();
 
                 Assert.Equal("SVG1", statusMsg.ServiceName());
                 Assert.Equal("itemC", statusMsg.Name());
@@ -10573,15 +8877,8 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 Assert.Equal("Consumer session is closed.", statusMsg.State().StatusText);
 
             }
-            catch (OmmException excep)
-            {
-                m_Output.WriteLine(excep.StackTrace);
-                Assert.Fail(excep.Message);
-            }
             finally
             {
-                Assert.NotNull(consumer);
-
                 m_Output.WriteLine("Uninitializing...");
 
                 ommprovider.Uninitialize();
@@ -10632,45 +8929,28 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 consumer.RegisterClient(reqMsg3.ServiceListName("SVG1").Name("itemC"), consumerClient);
 
-                Thread.Sleep(2000);
-
                 /* Checks provider that receives the item request. */
-                Msg message;
                 RequestMsg? requestMsg = null;
 
-                Assert.Equal(3, providerClient1.QueueSize());
-
-                message = providerClient1.PopMessage();
-                Assert.True(message is RequestMsg);
-                requestMsg = (RequestMsg)message;
+                requestMsg = providerClient1.WaitForMessage<RequestMsg>();
 
                 Assert.Equal("DIRECT_FEED", requestMsg.ServiceName());
                 Assert.Equal("itemA", requestMsg.Name());
                 Assert.Equal(1, requestMsg.ServiceId());
 
-                message = providerClient1.PopMessage();
-                Assert.True(message is RequestMsg);
-                requestMsg = (RequestMsg)message;
+                requestMsg = providerClient1.WaitForMessage<RequestMsg>();
 
                 Assert.Equal("DIRECT_FEED", requestMsg.ServiceName());
                 Assert.Equal("itemB", requestMsg.Name());
                 Assert.Equal(1, requestMsg.ServiceId());
 
-                message = providerClient1.PopMessage();
-                Assert.True(message is RequestMsg);
-                requestMsg = (RequestMsg)message;
+                requestMsg = providerClient1.WaitForMessage<RequestMsg>();
 
                 Assert.Equal("DIRECT_FEED", requestMsg.ServiceName());
                 Assert.Equal("itemC", requestMsg.Name());
                 Assert.Equal(1, requestMsg.ServiceId());
 
-                Thread.Sleep(1000);
-
-                Assert.Equal(3, consumerClient.QueueSize());
-
-                message = consumerClient.PopMessage();
-
-                RefreshMsg refreshMsg = (RefreshMsg)message;
+                RefreshMsg refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
 
                 Assert.Equal("DIRECT_FEED", refreshMsg.ServiceName());
                 Assert.Equal("itemA", refreshMsg.Name());
@@ -10678,9 +8958,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 Assert.Equal(OmmState.DataStates.OK, refreshMsg.State().DataState);
                 Assert.Equal(OmmState.StatusCodes.NONE, refreshMsg.State().StatusCode);
 
-                message = consumerClient.PopMessage();
-
-                refreshMsg = (RefreshMsg)message;
+                refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
 
                 Assert.Equal("DIRECT_FEED", refreshMsg.ServiceName());
                 Assert.Equal("itemB", refreshMsg.Name());
@@ -10688,9 +8966,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 Assert.Equal(OmmState.DataStates.OK, refreshMsg.State().DataState);
                 Assert.Equal(OmmState.StatusCodes.NONE, refreshMsg.State().StatusCode);
 
-                message = consumerClient.PopMessage();
-
-                refreshMsg = (RefreshMsg)message;
+                refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
 
                 Assert.Equal("SVG1", refreshMsg.ServiceName());
                 Assert.Equal("itemC", refreshMsg.Name());
@@ -10704,15 +8980,13 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 Thread.Sleep(2000);
 
                 m_Output.WriteLine("Uninitializing...");
-                consumer.Uninitialize();
+                consumer?.Uninitialize();
 
                 StatusMsg statusMsg;
 
                 Assert.Equal(6, consumerClient.QueueSize());
 
-                message = consumerClient.PopMessage();
-
-                statusMsg = (StatusMsg)message;
+                statusMsg = consumerClient.WaitForMessage<StatusMsg>();
 
                 Assert.Equal("DIRECT_FEED", statusMsg.ServiceName());
                 Assert.Equal("itemA", statusMsg.Name());
@@ -10721,9 +8995,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 Assert.Equal(OmmState.StatusCodes.NONE, statusMsg.State().StatusCode);
                 Assert.Equal("channel down.", statusMsg.State().StatusText);
 
-                message = consumerClient.PopMessage();
-
-                statusMsg = (StatusMsg)message;
+                statusMsg = consumerClient.WaitForMessage<StatusMsg>();
 
                 Assert.Equal("DIRECT_FEED", statusMsg.ServiceName());
                 Assert.Equal("itemB", statusMsg.Name());
@@ -10732,8 +9004,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 Assert.Equal(OmmState.StatusCodes.NONE, statusMsg.State().StatusCode);
                 Assert.Equal("channel down.", statusMsg.State().StatusText);
 
-                message = consumerClient.PopMessage();
-                statusMsg = (StatusMsg)message;
+                statusMsg = consumerClient.WaitForMessage<StatusMsg>();
 
                 Assert.Equal("SVG1", statusMsg.ServiceName());
                 Assert.Equal("itemC", statusMsg.Name());
@@ -10742,9 +9013,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 Assert.Equal(OmmState.StatusCodes.NONE, statusMsg.State().StatusCode);
                 Assert.Equal("channel down.", statusMsg.State().StatusText);
 
-                message = consumerClient.PopMessage();
-
-                statusMsg = (StatusMsg)message;
+                statusMsg = consumerClient.WaitForMessage<StatusMsg>();
 
                 Assert.Equal("DIRECT_FEED", statusMsg.ServiceName());
                 Assert.Equal("itemA", statusMsg.Name());
@@ -10753,8 +9022,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 Assert.Equal(OmmState.StatusCodes.NONE, statusMsg.State().StatusCode);
                 Assert.Equal("Consumer session is closed.", statusMsg.State().StatusText);
 
-                message = consumerClient.PopMessage();
-                statusMsg = (StatusMsg)message;
+                statusMsg = consumerClient.WaitForMessage<StatusMsg>();
 
                 Assert.Equal("DIRECT_FEED", statusMsg.ServiceName());
                 Assert.Equal("itemB", statusMsg.Name());
@@ -10763,8 +9031,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 Assert.Equal(OmmState.StatusCodes.NONE, statusMsg.State().StatusCode);
                 Assert.Equal("Consumer session is closed.", statusMsg.State().StatusText);
 
-                message = consumerClient.PopMessage();
-                statusMsg = (StatusMsg)message;
+                statusMsg = consumerClient.WaitForMessage<StatusMsg>();
 
                 Assert.Equal("SVG1", statusMsg.ServiceName());
                 Assert.Equal("itemC", statusMsg.Name());
@@ -10773,16 +9040,9 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 Assert.Equal(OmmState.StatusCodes.NONE, statusMsg.State().StatusCode);
                 Assert.Equal("Consumer session is closed.", statusMsg.State().StatusText);
 
-            }
-            catch (OmmException excep)
-            {
-                m_Output.WriteLine(excep.StackTrace);
-                Assert.Fail(excep.Message);
             }
             finally
             {
-                Assert.NotNull(consumer);
-
                 m_Output.WriteLine("Uninitializing...");
 
                 ommprovider.Uninitialize();
@@ -10827,41 +9087,23 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 long itemHandle2 = consumer.RegisterClient(reqMsg.Clear().ServiceListName("SVG1").Name("LSEG.O"), consumerClient);
 
-                Thread.Sleep(3000);
-
+                RequestMsg requestMsg = providerClient1.WaitForMessage<RequestMsg>();
                 /* The second provider doesn't receive any request messages */
                 Assert.Equal(0, providerClient2.QueueSize());
-
-                /* The first provider receives the two request messages */
-                Assert.Equal(2, providerClient1.QueueSize());
-
-                Msg message = providerClient1.PopMessage();
-
-                Assert.True(message is RequestMsg);
-
-                RequestMsg requestMsg = (RequestMsg)message;
 
                 Assert.Equal("DIRECT_FEED", requestMsg.ServiceName());
                 Assert.Equal("LSEG.O", requestMsg.Name());
                 Assert.Equal(1, requestMsg.ServiceId());
                 Assert.Equal(1, requestMsg.PriorityCount());
 
-                message = providerClient1.PopMessage();
-
-                Assert.True(message is RequestMsg);
-
-                requestMsg = (RequestMsg)message;
+                requestMsg = providerClient1.WaitForMessage<RequestMsg>();
 
                 Assert.Equal("DIRECT_FEED", requestMsg.ServiceName());
                 Assert.Equal("LSEG.O", requestMsg.Name());
                 Assert.Equal(1, requestMsg.ServiceId());
                 Assert.Equal(2, requestMsg.PriorityCount());
 
-                Assert.Equal(2, consumerClient.QueueSize());
-
-                message = consumerClient.PopMessage();
-
-                RefreshMsg refreshMsg = (RefreshMsg)message;
+                RefreshMsg refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
 
                 Assert.Equal("SVG1", refreshMsg.ServiceName());
                 Assert.Equal("LSEG.O", refreshMsg.Name());
@@ -10871,9 +9113,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 Assert.Equal(OmmState.StatusCodes.NONE, refreshMsg.State().StatusCode);
                 Assert.True(refreshMsg.Complete());
 
-                message = consumerClient.PopMessage();
-
-                refreshMsg = (RefreshMsg)message;
+                refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
 
                 Assert.Equal("SVG1", refreshMsg.ServiceName());
                 Assert.Equal("LSEG.O", refreshMsg.Name());
@@ -10886,18 +9126,11 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 consumer.Unregister(itemHandle1);
                 consumer.Unregister(itemHandle2);
             }
-            catch (OmmException excep)
-            {
-                m_Output.WriteLine(excep.StackTrace);
-                Assert.Fail(excep.Message);
-            }
             finally
             {
-                Assert.NotNull(consumer);
-
                 m_Output.WriteLine("Uninitializing...");
 
-                consumer.Uninitialize();
+                consumer?.Uninitialize();
                 ommprovider.Uninitialize();
                 ommprovider2.Uninitialize();
             }
@@ -10921,8 +9154,8 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
             OmmProvider ommprovider2 = new OmmProvider(config.Port("19004").ProviderName("Provider_1"), providerClient2);
 
             OmmConsumer? consumer = null;
-            ConsumerTestClient consumerClient = new ConsumerTestClient(m_Output);
 
+            ConsumerTestClient consumerClient = new ConsumerTestClient(m_Output);
             try
             {
                 ServiceList serviceList = new ServiceList("SVG1");
@@ -10936,27 +9169,16 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 long itemHandle = consumer.RegisterClient(reqMsg.ServiceListName("SVG1").Name("LSEG.O"), consumerClient);
 
-                Thread.Sleep(1000);
-
                 /* Checks provider that receives the item request. */
-                Msg message;
                 RequestMsg? requestMsg = null;
 
-                message = providerClient1.PopMessage();
-                Assert.True(message is RequestMsg);
-                requestMsg = (RequestMsg)message;
+                requestMsg = providerClient1.WaitForMessage<RequestMsg>();
 
                 Assert.Equal("DIRECT_FEED", requestMsg.ServiceName());
                 Assert.Equal("LSEG.O", requestMsg.Name());
                 Assert.Equal(1, requestMsg.ServiceId());
 
-                Thread.Sleep(1000);
-
-                Assert.Equal(1, consumerClient.QueueSize());
-
-                message = consumerClient.PopMessage();
-
-                RefreshMsg refreshMsg = (RefreshMsg)message;
+                RefreshMsg refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
 
                 Assert.Equal("SVG1", refreshMsg.ServiceName());
                 Assert.Equal("LSEG.O", refreshMsg.Name());
@@ -10973,36 +9195,21 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 ommprovider = new OmmProvider(config.Port("19001").ProviderName("Provider_1"), providerClient1);
 
-                Thread.Sleep(3000);
-
                 /* The first provider receives the request message */
-                Assert.Equal(1, providerClient1.QueueSize());
-
+                recvReqMsg = providerClient1.WaitForMessage<RequestMsg>();
                 /* Ensure that the second provider doesn't receive any request message */
                 Assert.Equal(0, providerClient2.QueueSize());
-
-                message = providerClient1.PopMessage();
-                recvReqMsg = (RequestMsg)message;
 
                 Assert.Equal(1, recvReqMsg.StreamId());
                 Assert.Equal(EmaRdm.MMT_LOGIN, recvReqMsg.DomainType());
 
-                Thread.Sleep(4000);
-                Assert.Equal(1, providerClient1.QueueSize());
-
-                message = providerClient1.PopMessage();
-                recvReqMsg = (RequestMsg)message;
-
+                recvReqMsg = providerClient1.WaitForMessage<RequestMsg>();
                 Assert.Equal(4, recvReqMsg.StreamId());
                 Assert.Equal(1, recvReqMsg.ServiceId());
                 Assert.Equal("DIRECT_FEED", recvReqMsg.ServiceName());
                 Assert.Equal("LSEG.O", recvReqMsg.Name());
 
-                Assert.Equal(2, consumerClient.QueueSize());
-
-                message = consumerClient.PopMessage();
-
-                StatusMsg statusMsg = (StatusMsg)message;
+                StatusMsg statusMsg = consumerClient.WaitForMessage<StatusMsg>();
 
                 Assert.Equal("SVG1", statusMsg.ServiceName());
                 Assert.Equal("LSEG.O", statusMsg.Name());
@@ -11011,10 +9218,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 Assert.Equal(OmmState.StatusCodes.NONE, statusMsg.State().StatusCode);
 
                 /* Receives refresh message from the first provider */
-                Assert.Equal(1, consumerClient.QueueSize());
-                message = consumerClient.PopMessage();
-
-                refreshMsg = (RefreshMsg)message;
+                refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
 
                 Assert.Equal("SVG1", refreshMsg.ServiceName());
                 Assert.Equal("LSEG.O", refreshMsg.Name());
@@ -11027,18 +9231,11 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 consumer.Unregister(itemHandle);
             }
-            catch (OmmException excep)
-            {
-                m_Output.WriteLine(excep.StackTrace);
-                Assert.Fail(excep.Message);
-            }
             finally
             {
-                Assert.NotNull(consumer);
-
                 m_Output.WriteLine("Uninitializing...");
 
-                consumer.Uninitialize();
+                consumer?.Uninitialize();
                 ommprovider.Uninitialize();
                 ommprovider2.Uninitialize();
             }
@@ -11114,18 +9311,11 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 Assert.Equal(ChannelState.ACTIVE, channelInfo.ChannelState);
                 Assert.Equal("not available for OmmConsumer connections", channelInfo.IpAddress);
             }
-            catch (OmmException excep)
-            {
-                m_Output.WriteLine(excep.StackTrace);
-                Assert.Fail(excep.Message);
-            }
             finally
             {
-                Assert.NotNull(consumer);
-
                 m_Output.WriteLine("Uninitializing...");
 
-                consumer.Uninitialize();
+                consumer?.Uninitialize();
                 ommprovider2.Uninitialize();
             }
         }
@@ -11164,39 +9354,26 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 consumer.RegisterClient(reqMsg.ServiceListName("SVG1").Name("LSEG.L"), consumerClient);
 
-                Thread.Sleep(2000);
-
                 /* Ensure that the provider receives a request message but it closes the item stream. */
-                Assert.Equal(1, providerClient1.QueueSize());
-
-                Msg message = providerClient1.PopMessage();
-                RequestMsg recvReqMsg = (RequestMsg)message;
+                RequestMsg recvReqMsg = providerClient1.WaitForMessage<RequestMsg>();
 
                 Assert.Equal(3, recvReqMsg.StreamId());
                 Assert.Equal(1, recvReqMsg.ServiceId());
                 Assert.Equal("DIRECT_FEED", recvReqMsg.ServiceName());
                 Assert.Equal("LSEG.L", recvReqMsg.Name());
 
-                Thread.Sleep(1000);
+                /* Ensure that the second provider receive a request message but it closes the item stream */
+                recvReqMsg = providerClient2.WaitForMessage<RequestMsg>();
 
                 /* Ensure that the first provider doesn't receive a close message */
                 Assert.Equal(0, providerClient1.QueueSize());
-
-                /* Ensure that the second provider receive a request message but it closes the item stream */
-                Assert.Equal(1, providerClient2.QueueSize());
-
-                message = providerClient2.PopMessage();
-                recvReqMsg = (RequestMsg)message;
 
                 Assert.Equal(3, recvReqMsg.StreamId());
                 Assert.Equal(1, recvReqMsg.ServiceId());
                 Assert.Equal("DIRECT_FEED_2", recvReqMsg.ServiceName());
                 Assert.Equal("LSEG.L", recvReqMsg.Name());
 
-                Assert.Equal(2, consumerClient.QueueSize());
-                message = consumerClient.PopMessage();
-
-                StatusMsg statusMsg = (StatusMsg)message;
+                StatusMsg statusMsg = consumerClient.WaitForMessage<StatusMsg>();
 
                 Assert.Equal(5, statusMsg.StreamId());
                 Assert.Equal("SVG1", statusMsg.ServiceName());
@@ -11206,9 +9383,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 Assert.Equal(OmmState.StatusCodes.NOT_AUTHORIZED, statusMsg.State().StatusCode);
                 Assert.Equal("Unauthorized access to the item.", statusMsg.State().StatusText);
 
-                message = consumerClient.PopMessage();
-
-                statusMsg = (StatusMsg)message;
+                statusMsg = consumerClient.WaitForMessage<StatusMsg>();
 
                 Assert.Equal(5, statusMsg.StreamId());
                 Assert.Equal("SVG1", statusMsg.ServiceName());
@@ -11218,18 +9393,11 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 Assert.Equal(OmmState.StatusCodes.NOT_AUTHORIZED, statusMsg.State().StatusCode);
                 Assert.Equal("Unauthorized access to the item.", statusMsg.State().StatusText);
             }
-            catch (OmmException excep)
-            {
-                m_Output.WriteLine(excep.StackTrace);
-                Assert.Fail(excep.Message);
-            }
             finally
             {
-                Assert.NotNull(consumer);
-
                 m_Output.WriteLine("Uninitializing...");
 
-                consumer.Uninitialize();
+                consumer?.Uninitialize();
                 ommprovider.Uninitialize();
                 ommprovider2.Uninitialize();
             }
@@ -11280,23 +9448,11 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 long loginHandle = consumer.RegisterClient(reqMsg.DomainType(EmaRdm.MMT_LOGIN), consumerClient);
 
-                Thread.Sleep(3000);
-
-                Assert.Equal(1, consumerClient.QueueSize());
-
                 /* This is login refresh message message */
-                Msg message = consumerClient.PopMessage();
-
-                Thread.Sleep(1000);
+                RefreshMsg refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
 
                 /* Checks to ensure that the first provider of the first connection receives the PostMsg */
-                Assert.Equal(1, providerClient1.QueueSize());
-
-                message = providerClient1.PopMessage();
-
-                Assert.True(message is PostMsg);
-
-                PostMsg recvPostMsg = (PostMsg)message;
+                PostMsg recvPostMsg = providerClient1.WaitForMessage<PostMsg>();
 
                 Assert.Equal(1, recvPostMsg.StreamId());
                 Assert.Equal("DIRECT_FEED", recvPostMsg.ServiceName());
@@ -11309,13 +9465,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 Assert.Equal(DataType.DataTypes.FIELD_LIST, updateMsg.Payload().DataType);
 
                 /* Checks to ensure that the first provider of the second connection receives the PostMsg */
-                Assert.Equal(1, providerClient2.QueueSize());
-
-                message = providerClient2.PopMessage();
-
-                Assert.True(message is PostMsg);
-
-                recvPostMsg = (PostMsg)message;
+                recvPostMsg = providerClient2.WaitForMessage<PostMsg>();
 
                 Assert.Equal(1, recvPostMsg.StreamId());
                 Assert.Equal("DIRECT_FEED", recvPostMsg.ServiceName());
@@ -11330,19 +9480,11 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 /* Shutdown the first provider */
                 ommprovider.Uninitialize();
 
-                Thread.Sleep(5000);
+                /* Checks to ensure that only the first provider of the second connection receives the PostMsg */
+                recvPostMsg = providerClient2.WaitForMessage<PostMsg>();
 
                 /* Checks to ensure that the second provider doesn't receive the post message as the source directory is not ready yet. */
                 Assert.Equal(0, providerClient3.QueueSize());
-
-                /* Checks to ensure that only the first provider of the second connection receives the PostMsg */
-                Assert.Equal(1, providerClient2.QueueSize());
-
-                message = providerClient2.PopMessage();
-
-                Assert.True(message is PostMsg);
-
-                recvPostMsg = (PostMsg)message;
 
                 Assert.Equal(1, recvPostMsg.StreamId());
                 Assert.Equal("DIRECT_FEED", recvPostMsg.ServiceName());
@@ -11356,18 +9498,11 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 consumer.Unregister(loginHandle);
             }
-            catch (OmmException excep)
-            {
-                m_Output.WriteLine(excep.StackTrace);
-                Assert.Fail(excep.Message);
-            }
             finally
             {
-                Assert.NotNull(consumer);
-
                 m_Output.WriteLine("Uninitializing...");
 
-                consumer.Uninitialize();
+                consumer?.Uninitialize();
                 ommprovider.Uninitialize();
                 ommprovider2.Uninitialize();
                 ommprovider3.Uninitialize();
@@ -11403,16 +9538,9 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 long itemHandle = consumer.RegisterClient(reqMsg.ServiceName("DIRECT_FEED2").Name("LSEG.O"), consumerClient);
 
-                Thread.Sleep(2000);
-
+                StatusMsg statusMsg = consumerClient.WaitForMessage<StatusMsg>();
                 /* Ensure that the provider doesn't receive any request message */
                 Assert.Equal(0, providerClient1.QueueSize());
-
-                Assert.Equal(1, consumerClient.QueueSize());
-
-                Msg message = consumerClient.PopMessage();
-
-                StatusMsg statusMsg = (StatusMsg)message;
 
                 Assert.Equal("DIRECT_FEED2", statusMsg.ServiceName());
                 Assert.Equal("LSEG.O", statusMsg.Name());
@@ -11466,18 +9594,11 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 Assert.Equal(0, providerClient1.QueueSize());
                 Assert.Equal(0, consumerClient.QueueSize());
             }
-            catch (OmmException excep)
-            {
-                m_Output.WriteLine(excep.StackTrace);
-                Assert.Fail(excep.Message);
-            }
             finally
             {
-                Assert.NotNull(consumer);
-
                 m_Output.WriteLine("Uninitializing...");
 
-                consumer.Uninitialize();
+                consumer?.Uninitialize();
                 ommprovider.Uninitialize();
                 ommprovider2.Uninitialize();
             }
@@ -11519,16 +9640,9 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 long itemHandle = consumer.RegisterClient(reqMsg.ServiceListName("SVG1").Name("LSEG.O"), consumerClient);
 
-                Thread.Sleep(2000);
-
+                StatusMsg statusMsg = consumerClient.WaitForMessage<StatusMsg>();
                 /* Ensure that the provider doesn't receive any request message */
                 Assert.Equal(0, providerClient1.QueueSize());
-
-                Assert.Equal(1, consumerClient.QueueSize());
-
-                Msg message = consumerClient.PopMessage();
-
-                StatusMsg statusMsg = (StatusMsg)message;
 
                 Assert.Equal("SVG1", statusMsg.ServiceName());
                 Assert.Equal("LSEG.O", statusMsg.Name());
@@ -11582,18 +9696,11 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 Assert.Equal(0, providerClient1.QueueSize());
                 Assert.Equal(0, consumerClient.QueueSize());
             }
-            catch (OmmException excep)
-            {
-                m_Output.WriteLine(excep.StackTrace);
-                Assert.Fail(excep.Message);
-            }
             finally
             {
-                Assert.NotNull(consumer);
-
                 m_Output.WriteLine("Uninitializing...");
 
-                consumer.Uninitialize();
+                consumer?.Uninitialize();
                 ommprovider.Uninitialize();
                 ommprovider2.Uninitialize();
             }
@@ -11646,12 +9753,8 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 long loginHandle = consumer.RegisterClient(reqMsg.DomainType(EmaRdm.MMT_LOGIN), consumerClient);
 
-                Thread.Sleep(1000);
-
-                Assert.Equal(1, consumerClient.QueueSize());
-
                 /* This is login refresh message message */
-                Msg message = consumerClient.PopMessage();
+                consumerClient.WaitForNonEmptiness();
 
                 // Submit login reissue to the providers.
                 RequestMsg loginReqMsg2 = new();
@@ -11659,39 +9762,23 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 consumer.Reissue(loginReqMsg2.MarkForClear(), loginHandle);
 
-                Thread.Sleep(1000);
-
-                /* Ensure that the providers receive the reissue message on the login stream;*/
-                Assert.Equal(1, providerClient1.QueueSize());
-
                 /* Checks login reissue from the first provider */
-                message = providerClient1.PopMessage();
-                RequestMsg requestMsg = (RequestMsg)message;
+                RequestMsg requestMsg = providerClient1.WaitForMessage<RequestMsg>();
                 Assert.Equal(EmaRdm.MMT_LOGIN, requestMsg.DomainType());
                 Assert.True(requestMsg.Pause());
 
-                Assert.Equal(1, providerClient2.QueueSize());
-
                 /* Checks login reissue from the second provider */
-                message = providerClient2.PopMessage();
-                requestMsg = (RequestMsg)message;
+                requestMsg = providerClient2.WaitForMessage<RequestMsg>();
                 Assert.Equal(EmaRdm.MMT_LOGIN, requestMsg.DomainType());
                 Assert.True(requestMsg.Pause());
 
                 consumer.Unregister(loginHandle);
             }
-            catch (OmmException excep)
-            {
-                m_Output.WriteLine(excep.StackTrace);
-                Assert.Fail(excep.Message);
-            }
             finally
             {
-                Assert.NotNull(consumer);
-
                 m_Output.WriteLine("Uninitializing...");
 
-                consumer.Uninitialize();
+                consumer?.Uninitialize();
                 ommprovider.Uninitialize();
                 ommprovider2.Uninitialize();
             }
@@ -11737,42 +9824,25 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 long loginHandle = consumer.RegisterClient(reqMsg.DomainType(EmaRdm.MMT_LOGIN), consumerClient);
 
-                Thread.Sleep(1000);
-
-                Assert.Equal(1, consumerClient.QueueSize());
-
                 /* This is login refresh message message */
-                Msg message = consumerClient.PopMessage();
+                consumerClient.WaitForNonEmptiness();
 
                 // Submit login reissue to the providers.
                 consumer.Reissue(loginReqMsg.Name("user").NameType(1).DomainType(1).Attrib(elementList).Pause(true),
                     loginHandle);
 
-                Thread.Sleep(1000);
-
-                /* Ensure that the providers receive the reissue message on the login stream;*/
-                Assert.Equal(1, providerClient1.QueueSize());
-
                 /* Checks login reissue from the first provider */
-                message = providerClient1.PopMessage();
-                RequestMsg requestMsg = (RequestMsg)message;
+                RequestMsg requestMsg = providerClient1.WaitForMessage<RequestMsg>();
                 Assert.Equal(EmaRdm.MMT_LOGIN, requestMsg.DomainType());
                 Assert.True(requestMsg.Pause());
 
                 consumer.Unregister(loginHandle);
             }
-            catch (OmmException excep)
-            {
-                m_Output.WriteLine(excep.StackTrace);
-                Assert.Fail(excep.Message);
-            }
             finally
             {
-                Assert.NotNull(consumer);
-
                 m_Output.WriteLine("Uninitializing...");
 
-                consumer.Uninitialize();
+                consumer?.Uninitialize();
                 ommprovider.Uninitialize();
             }
         }
@@ -11808,14 +9878,10 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 long loginHandle = consumer.RegisterClient(reqMsg.DomainType(EmaRdm.MMT_LOGIN), consumerClient);
 
-                Thread.Sleep(1000);
-
                 /* This is login refresh message message */
-                Assert.Equal(1, consumerClient.QueueSize());
+                consumerClient.WaitForNonEmptiness();
 
-                Msg message = consumerClient.PopMessage();
-
-                RefreshMsg refreshMsg = (RefreshMsg)message;
+                RefreshMsg refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
 
                 Assert.Equal(EmaRdm.MMT_LOGIN, refreshMsg.DomainType());
                 Assert.Equal(OmmState.StreamStates.OPEN, refreshMsg.State().StreamState);
@@ -11842,16 +9908,8 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 consumer.Submit(genericMsg.Name("genericMsg").DomainType(200).Complete(true).ServiceId(32767)
                     .Payload(nestedUpdateMsg.MarkForClear()).MarkForClear(), loginHandle);
 
-                Thread.Sleep(1000);
-
                 /* Checks to ensure that the first provider receives the GenericMsg */
-                Assert.Equal(1, providerClient1.QueueSize());
-
-                message = providerClient1.PopMessage();
-
-                Assert.True(message is GenericMsg);
-
-                GenericMsg recvGenericMsg = (GenericMsg)message;
+                GenericMsg recvGenericMsg = providerClient1.WaitForMessage<GenericMsg>();
 
                 Assert.Equal(1, recvGenericMsg.StreamId());
                 Assert.Equal("genericMsg", recvGenericMsg.Name());
@@ -11863,13 +9921,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 Assert.Equal(DataType.DataTypes.FIELD_LIST, updateMsg.Payload().DataType);
 
                 /* Checks to ensure that the second provider receives the GenericMsg */
-                Assert.Equal(1, providerClient2.QueueSize());
-
-                message = providerClient2.PopMessage();
-
-                Assert.True(message is GenericMsg);
-
-                recvGenericMsg = (GenericMsg)message;
+                recvGenericMsg = providerClient2.WaitForMessage<GenericMsg>();
 
                 Assert.Equal(1, recvGenericMsg.StreamId());
                 Assert.Equal("genericMsg", recvGenericMsg.Name());
@@ -11878,11 +9930,8 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 Assert.Equal(DataType.DataTypes.ERROR, recvGenericMsg.Payload().DataType);
 
                 /* Ensure that receives two generic message from the two providers.*/
-                Assert.Equal(2, consumerClient.QueueSize());
 
-                message = consumerClient.PopMessage();
-
-                recvGenericMsg = (GenericMsg)message;
+                recvGenericMsg = consumerClient.WaitForMessage<GenericMsg>();
                 Assert.Equal(1, recvGenericMsg.StreamId());
                 Assert.Equal("genericMsg", recvGenericMsg.Name());
                 Assert.Equal(200, recvGenericMsg.DomainType());
@@ -11907,9 +9956,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 Assert.True(recvGenericMsg.Complete());
                 Assert.Equal(DataType.DataTypes.NO_DATA, recvGenericMsg.Payload().DataType);
 
-                message = consumerClient.PopMessage();
-
-                recvGenericMsg = (GenericMsg)message;
+                recvGenericMsg = consumerClient.WaitForMessage<GenericMsg>();
                 Assert.Equal(1, recvGenericMsg.StreamId());
                 Assert.Equal("genericMsg", recvGenericMsg.Name());
                 Assert.Equal(200, recvGenericMsg.DomainType());
@@ -11926,16 +9973,8 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 consumer.Submit(genericMsg.Name("genericMsg2").DomainType(205).ServiceId(555)
                         .Complete(true).Payload(nestedUpdateMsg), loginHandle);
 
-                Thread.Sleep(1000);
-
                 /* Checks to ensure that the first provider receives the GenericMsg */
-                Assert.Equal(1, providerClient1.QueueSize());
-
-                message = providerClient1.PopMessage();
-
-                Assert.True(message is GenericMsg);
-
-                recvGenericMsg = (GenericMsg)message;
+                recvGenericMsg = providerClient1.WaitForMessage<GenericMsg>();
 
                 Assert.Equal(1, recvGenericMsg.StreamId());
                 Assert.Equal("genericMsg2", recvGenericMsg.Name());
@@ -11944,13 +9983,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 Assert.Equal(DataType.DataTypes.ERROR, recvGenericMsg.Payload().DataType);
 
                 /* Checks to ensure that the second provider receives the GenericMsg */
-                Assert.Equal(1, providerClient2.QueueSize());
-
-                message = providerClient2.PopMessage();
-
-                Assert.True(message is GenericMsg);
-
-                recvGenericMsg = (GenericMsg)message;
+                recvGenericMsg = providerClient2.WaitForMessage<GenericMsg>();
 
                 Assert.Equal(1, recvGenericMsg.StreamId());
                 Assert.Equal("genericMsg2", recvGenericMsg.Name());
@@ -11959,11 +9992,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 Assert.Equal(DataType.DataTypes.ERROR, recvGenericMsg.Payload().DataType);
 
                 /* Ensure that receives two generic message from the two providers.*/
-                Assert.Equal(2, consumerClient.QueueSize());
-
-                message = consumerClient.PopMessage();
-
-                recvGenericMsg = (GenericMsg)message;
+                recvGenericMsg = consumerClient.WaitForMessage<GenericMsg>();
                 Assert.Equal(1, recvGenericMsg.StreamId());
                 Assert.Equal("genericMsg2", recvGenericMsg.Name());
                 Assert.Equal(205, recvGenericMsg.DomainType());
@@ -11971,9 +10000,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 Assert.True(recvGenericMsg.Complete());
                 Assert.Equal(DataType.DataTypes.NO_DATA, recvGenericMsg.Payload().DataType);
 
-                message = consumerClient.PopMessage();
-
-                recvGenericMsg = (GenericMsg)message;
+                recvGenericMsg = consumerClient.WaitForMessage<GenericMsg>();
                 Assert.Equal(1, recvGenericMsg.StreamId());
                 Assert.Equal("genericMsg2", recvGenericMsg.Name());
                 Assert.Equal(205, recvGenericMsg.DomainType());
@@ -11983,18 +10010,11 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 consumer.Unregister(loginHandle);
             }
-            catch (OmmException excep)
-            {
-                m_Output.WriteLine(excep.StackTrace);
-                Assert.Fail(excep.Message);
-            }
             finally
             {
-                Assert.NotNull(consumer);
-
                 m_Output.WriteLine("Uninitializing...");
 
-                consumer.Uninitialize();
+                consumer?.Uninitialize();
                 ommprovider.Uninitialize();
                 ommprovider2.Uninitialize();
             }
@@ -12033,15 +10053,9 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 long itemHandle = consumer.RegisterClient(reqMsg.Clear().ServiceName("DIRECT_FEED").Name("LSEG.L"), consumerClient);
 
-                Thread.Sleep(1500);
+                // Ensure that the consumer receives one source directory and one item refresh message.
 
-                Assert.Equal(2, consumerClient.QueueSize()); // Ensure that the consumer receives one source directory and one item refresh message.
-
-                Msg message = consumerClient.PopMessage();
-
-                Assert.True(message is RefreshMsg);
-
-                RefreshMsg refreshMsg = (RefreshMsg)message;
+                RefreshMsg refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
 
                 Assert.Equal(2, refreshMsg.StreamId());
                 Assert.Equal(EmaRdm.MMT_DIRECTORY, refreshMsg.DomainType());
@@ -12061,11 +10075,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 Assert.Equal((ulong)serviceId, mapEntry.Key.UInt());
                 Assert.Equal(MapAction.ADD, mapEntry.Action);
 
-                message = consumerClient.PopMessage();
-
-                Assert.True(message is RefreshMsg);
-
-                refreshMsg = (RefreshMsg)message;
+                refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
 
                 /* Checks item refresh message */
                 Assert.Equal(5, refreshMsg.StreamId());
@@ -12083,19 +10093,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 /* Bring down the connection for the DIRECT_FEED service name */
                 ommprovider.Uninitialize();
 
-                int count = 0;
-                while (count < 5 && consumerClient.QueueSize() != 2)
-                {
-                    Thread.Sleep(500);
-                    ++count;
-                }
-
-                Assert.Equal(2, consumerClient.QueueSize());
-
-                message = consumerClient.PopMessage();
-                Assert.True(message is UpdateMsg);
-
-                UpdateMsg updateMsg = (UpdateMsg)message;
+                UpdateMsg updateMsg = consumerClient.WaitForMessage<UpdateMsg>();
                 Assert.Equal(2, updateMsg.StreamId());
                 Assert.Equal(EmaRdm.MMT_DIRECTORY, updateMsg.DomainType());
                 Assert.Equal(DataType.DataTypes.MAP, updateMsg.Payload().DataType);
@@ -12110,10 +10108,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 Assert.Equal(MapAction.DELETE, mapEntry.Action);
                 Assert.Equal(DataType.DataTypes.NO_DATA, mapEntry.LoadType);
 
-                message = consumerClient.PopMessage();
-                Assert.True(message is StatusMsg);
-
-                StatusMsg statusMsg = (StatusMsg)message;
+                StatusMsg statusMsg = consumerClient.WaitForMessage<StatusMsg>();
 
                 Assert.True(statusMsg.HasServiceName);
                 Assert.Equal("DIRECT_FEED", statusMsg.ServiceName());
@@ -12129,20 +10124,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 ommprovider = new OmmProvider(config.Port("19001").ProviderName("Provider_1"), providerClient);
 
                 /* Waits for channel up and the consumer receives the source directory update */
-                count = 0;
-                while (count < 10 && consumerClient.QueueSize() != 2)
-                {
-                    Thread.Sleep(1000);
-                    ++count;
-                }
-
-                Assert.Equal(2, consumerClient.QueueSize());
-
-                message = consumerClient.PopMessage();
-
-                Assert.True(message is UpdateMsg);
-
-                updateMsg = (UpdateMsg)message;
+                updateMsg = consumerClient.WaitForMessage<UpdateMsg>();
                 Assert.Equal(2, updateMsg.StreamId());
                 Assert.Equal(EmaRdm.MMT_DIRECTORY, updateMsg.DomainType());
                 Assert.Equal(DataType.DataTypes.MAP, updateMsg.Payload().DataType);
@@ -12160,11 +10142,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 Assert.Equal(MapAction.ADD, mapEntry.Action);
                 Assert.Equal(DataType.DataTypes.FILTER_LIST, mapEntry.LoadType);
 
-                message = consumerClient.PopMessage();
-
-                Assert.True(message is RefreshMsg);
-
-                refreshMsg = (RefreshMsg)message;
+                refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
 
                 /* Checks item refresh message */
                 Assert.Equal(5, refreshMsg.StreamId());
@@ -12182,17 +10160,11 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 consumer.Unregister(directoryHandle);
                 consumer.Unregister(itemHandle);
             }
-            catch (OmmException ex)
-            {
-                Assert.Fail(ex.Message);
-            }
             finally
             {
-                Assert.NotNull(consumer);
-
                 m_Output.WriteLine("Uninitializing...");
 
-                consumer.Uninitialize();
+                consumer?.Uninitialize();
                 ommprovider.Uninitialize();
                 ommprovider2.Uninitialize();
             }
@@ -12227,29 +10199,21 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
             {
                 consumer = new(new OmmConsumerConfig(EmaConfigFileLocation).ConsumerName("Consumer_9"), consumerClient);
 
-                Assert.Equal(3, consumerClient.QueueSize()); // Ensure that the callback receives only one login message
+                // Ensure that the callback receives only one login message
 
-                Msg message = consumerClient.PopMessage();
-
-                StatusMsg statusMsg = (StatusMsg)message;
+                StatusMsg statusMsg = consumerClient.WaitForMessage<StatusMsg>();
 
                 Assert.Equal(1, statusMsg.StreamId());
                 Assert.Equal(EmaRdm.MMT_LOGIN, statusMsg.DomainType());
                 Assert.Equal("Open / Suspect / None / 'session channel up'", statusMsg.State().ToString());
 
-                message = consumerClient.PopMessage();
-
-                statusMsg = (StatusMsg)message;
+                statusMsg = consumerClient.WaitForMessage<StatusMsg>();
 
                 Assert.Equal(1, statusMsg.StreamId());
                 Assert.Equal(EmaRdm.MMT_LOGIN, statusMsg.DomainType());
                 Assert.Equal("Open / Suspect / None / 'session channel up'", statusMsg.State().ToString());
 
-                message = consumerClient.PopMessage();
-
-                Assert.True(message is RefreshMsg);
-
-                RefreshMsg refreshMsg = (RefreshMsg)message;
+                RefreshMsg refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
 
                 Assert.Equal(1, refreshMsg.StreamId());
                 Assert.Equal(EmaRdm.MMT_LOGIN, refreshMsg.DomainType());
@@ -12307,23 +10271,13 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 ommprovider = new OmmProvider(config.Port("19002"), providerClient3);
 
                 /* Waits until the Channel_1 of Connection_1 is closed */
-                Thread.Sleep(3500);
-
-                Assert.Equal(3, consumerClient.QueueSize());
-
-                message = consumerClient.PopMessage();
-
-                statusMsg = (StatusMsg)message;
+                statusMsg = consumerClient.WaitForMessage<StatusMsg>();
 
                 Assert.Equal(1, statusMsg.StreamId());
                 Assert.Equal(EmaRdm.MMT_LOGIN, statusMsg.DomainType());
                 Assert.Equal("Open / Ok / None / 'session channel down reconnecting'", statusMsg.State().ToString());
 
-                message = consumerClient.PopMessage();
-
-                Assert.True(message is RefreshMsg);
-
-                refreshMsg = (RefreshMsg)message;
+                refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
 
                 Assert.Equal(1, refreshMsg.StreamId());
                 Assert.Equal(EmaRdm.MMT_LOGIN, refreshMsg.DomainType());
@@ -12369,23 +10323,15 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 /* Ensure that OmmPosting is found */
                 Assert.True(foundOmmPosting);
 
-                message = consumerClient.PopMessage();
-
-                statusMsg = (StatusMsg)message;
+                statusMsg = consumerClient.WaitForMessage<StatusMsg>();
 
                 Assert.Equal(1, statusMsg.StreamId());
                 Assert.Equal(EmaRdm.MMT_LOGIN, statusMsg.DomainType());
                 Assert.Equal("Open / Ok / None / 'session channel up'", statusMsg.State().ToString());
             }
-            catch (OmmException)
-            {
-                Assert.False(true);
-            }
             finally
             {
-                Assert.NotNull(consumer);
-
-                consumer.Uninitialize();
+                consumer?.Uninitialize();
                 ommprovider.Uninitialize();
                 ommprovider2.Uninitialize();
 
@@ -12416,29 +10362,20 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 consumer = new(new OmmConsumerConfig(EmaConfigFileLocation).ConsumerName("Consumer_9"), consumerClient);
 
-                Assert.Equal(3, consumerClient.QueueSize()); // Ensure that the callback receives only one login message
-
-                Msg message = consumerClient.PopMessage();
-
-                StatusMsg statusMsg = (StatusMsg)message;
+                // Ensure that the callback receives only one login message
+                StatusMsg statusMsg = consumerClient.WaitForMessage<StatusMsg>();
 
                 Assert.Equal(1, statusMsg.StreamId());
                 Assert.Equal(EmaRdm.MMT_LOGIN, statusMsg.DomainType());
                 Assert.Equal("Open / Suspect / None / 'session channel up'", statusMsg.State().ToString());
 
-                message = consumerClient.PopMessage();
-
-                statusMsg = (StatusMsg)message;
+                statusMsg = consumerClient.WaitForMessage<StatusMsg>();
 
                 Assert.Equal(1, statusMsg.StreamId());
                 Assert.Equal(EmaRdm.MMT_LOGIN, statusMsg.DomainType());
                 Assert.Equal("Open / Suspect / None / 'session channel up'", statusMsg.State().ToString());
 
-                message = consumerClient.PopMessage();
-
-                Assert.True(message is RefreshMsg);
-
-                RefreshMsg refreshMsg = (RefreshMsg)message;
+                RefreshMsg refreshMsg = consumerClient.WaitForMessage<RefreshMsg>();
 
                 Assert.Equal(1, refreshMsg.StreamId());
                 Assert.Equal(EmaRdm.MMT_LOGIN, refreshMsg.DomainType());
@@ -12487,24 +10424,16 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 ommprovider.Uninitialize();
 
                 /* Waits until the Connect_1 is closed */
-                Thread.Sleep(11000);
-
-                Assert.Equal(3, consumerClient.QueueSize());
-
                 for (int i = 0; i < 2; i++)
                 {
-                    message = consumerClient.PopMessage();
-
-                    statusMsg = (StatusMsg)message;
+                    statusMsg = consumerClient.WaitForMessage<StatusMsg>();
 
                     Assert.Equal(1, statusMsg.StreamId());
                     Assert.Equal(EmaRdm.MMT_LOGIN, statusMsg.DomainType());
                     Assert.Equal("Open / Ok / None / 'session channel down reconnecting'", statusMsg.State().ToString());
                 }
 
-                message = consumerClient.PopMessage();
-
-                statusMsg = (StatusMsg)message;
+                statusMsg = consumerClient.WaitForMessage<StatusMsg>();
 
                 Assert.Equal(1, statusMsg.StreamId());
                 Assert.Equal(EmaRdm.MMT_LOGIN, statusMsg.DomainType());
@@ -12513,12 +10442,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 // Bring down the Connection_2
                 ommprovider2.Uninitialize();
 
-                Thread.Sleep(3000);
-
-                Assert.Equal(1, consumerClient.QueueSize());
-                message = consumerClient.PopMessage();
-
-                statusMsg = (StatusMsg)message;
+                statusMsg = consumerClient.WaitForMessage<StatusMsg>();
 
                 Assert.Equal(1, statusMsg.StreamId());
                 Assert.Equal(EmaRdm.MMT_LOGIN, statusMsg.DomainType());
@@ -12534,19 +10458,8 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 // Bring up Channel_5 of Connection_2
                 ommprovider2 = new OmmProvider(config.Port("19005"), providerClient2);
 
-                Thread.Sleep(2000);
-
-                message = consumerClient.PopMessage();
-
-                while (message is not RefreshMsg)
-                {
-                    if (consumerClient.QueueSize() > 0)
-                        message = consumerClient.PopMessage();
-
-                    Thread.Sleep(500);
-                }
-
-                Assert.True(message is RefreshMsg);
+                Msg message;
+                while ((message = consumerClient.WaitForMessage<Msg>()) is not RefreshMsg) ;
 
                 refreshMsg = (RefreshMsg)message;
 
@@ -12594,24 +10507,16 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 /* Ensure that OmmPosting is found */
                 Assert.True(foundOmmPosting);
 
-                message = consumerClient.PopMessage();
-
-                statusMsg = (StatusMsg)message;
+                statusMsg = consumerClient.WaitForMessage<StatusMsg>();
 
                 Assert.Equal(1, statusMsg.StreamId());
                 Assert.Equal(EmaRdm.MMT_LOGIN, statusMsg.DomainType());
                 Assert.Equal("Open / Ok / None / 'session channel up'", statusMsg.State().ToString());
 
             }
-            catch (OmmException)
-            {
-                Assert.False(true);
-            }
             finally
             {
-                Assert.NotNull(consumer);
-
-                consumer.Uninitialize();
+                consumer?.Uninitialize();
                 ommprovider.Uninitialize();
                 ommprovider2.Uninitialize();
             }
@@ -12660,15 +10565,9 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 Assert.Equal(expectedGuranteedOutputBuffers, channelInformationList[0].GuaranteedOutputBuffers);
                 Assert.Equal(expectedGuranteedOutputBuffers, channelInformationList[1].GuaranteedOutputBuffers);
             }
-            catch (OmmException)
-            {
-                Assert.False(true);
-            }
             finally
             {
-                Assert.NotNull(consumer);
-
-                consumer.Uninitialize();
+                consumer?.Uninitialize();
                 ommprovider.Uninitialize();
                 ommprovider2.Uninitialize();
             }

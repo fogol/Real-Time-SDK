@@ -193,22 +193,10 @@ namespace LSEG.Ema.Access.Tests.OmmConsumerTests
         public void LoginRequestTimeoutTest()
         {
             OmmConsumerConfig config = new OmmConsumerConfig();
-            OmmException? exception = null;
-            OmmConsumer? consumer = null;
 
-            try
-            {
-                consumer = new OmmConsumer(config.Host("unknownhost:15999"));
-            }
-            catch (OmmException ommException)
-            {
-                exception = ommException;
-                Assert.True(exception.Type == OmmException.ExceptionType.OmmInvalidUsageException);
-                Assert.StartsWith("login failed (timed out after waiting 45000 milliseconds) for unknownhost:15999)", exception.Message);
-            }
-
-            Assert.NotNull(exception);
-            Assert.Null(consumer);
+            var ommException = Assert.ThrowsAny<OmmException>(() => new OmmConsumer(config.Host("unknownhost:15999")));
+            Assert.Equal(OmmException.ExceptionType.OmmInvalidUsageException, ommException.Type);
+            Assert.StartsWith("login failed (timed out after waiting 45000 milliseconds) for unknownhost:15999", ommException.Message);
         }
 
         [Fact]
@@ -225,24 +213,17 @@ namespace LSEG.Ema.Access.Tests.OmmConsumerTests
             output.WriteLine($"Connect with {hostString}");
 
             OmmConsumerConfig config = new OmmConsumerConfig();
-            OmmException? exception = null;
-            OmmConsumer? consumer = null;
-
             try
             {
-                consumer = new OmmConsumer(config.Host(hostString));
+                var ommException = Assert.ThrowsAny<OmmException>(()=> new OmmConsumer(config.Host(hostString)));
+                Assert.Equal(OmmException.ExceptionType.OmmInvalidUsageException, ommException.Type);
+                output.WriteLine($"exception.Message = {ommException.Message}");
+                Assert.Contains("Login request rejected for stream id 1 - Force logout by Provider", ommException.Message);
             }
-            catch (OmmException ommException)
+            finally
             {
-                exception = ommException;
-                Assert.True(exception.Type == OmmException.ExceptionType.OmmInvalidUsageException);
-                output.WriteLine($"exception.Message = {exception.Message}");
-                Assert.Contains("Login request rejected for stream id 1 - Force logout by Provider", exception.Message);
+                providerTest.UnInitialize();
             }
-
-            Assert.NotNull(exception);
-            Assert.Null(consumer);
-            providerTest.UnInitialize();
         }
 
         [Fact]
@@ -259,8 +240,6 @@ namespace LSEG.Ema.Access.Tests.OmmConsumerTests
             output.WriteLine($"Connect with {hostString}");
 
             OmmConsumerConfig config = new OmmConsumerConfig();
-            OmmException? exception = null;
-            OmmConsumer? consumer = null;
             OmmConsumerItemClientTest consumerClient = new();
 
             try
@@ -277,24 +256,20 @@ namespace LSEG.Ema.Access.Tests.OmmConsumerTests
                     Assert.Equal("Login request rejected for stream id 1 - Force logout by Provider", statusMsg.State().StatusText);
                 };
 
-                consumer = new OmmConsumer(config.Host(hostString), consumerClient, this);
+                var ommException = Assert.ThrowsAny<OmmException>(() => new OmmConsumer(config.Host(hostString), consumerClient, this));
+                Assert.Equal(OmmException.ExceptionType.OmmInvalidUsageException, ommException.Type);
+                output.WriteLine($"exception.Message = {ommException.Message}");
+                Assert.Contains("Login request rejected for stream id 1 - Force logout by Provider", ommException.Message);
+
+                Assert.Equal(1, consumerClient.ReceivedOnAll);
+                Assert.Equal(0, consumerClient.ReceivedOnRefresh);
+                Assert.Equal(1, consumerClient.ReceivedOnStatus);
+                Assert.Equal(0, consumerClient.ReceivedOnUpdate);
             }
-            catch (OmmException ommException)
+            finally
             {
-                exception = ommException;
-                Assert.True(exception.Type == OmmException.ExceptionType.OmmInvalidUsageException);
-                output.WriteLine($"exception.Message = {exception.Message}");
-                Assert.Contains("Login request rejected for stream id 1 - Force logout by Provider", exception.Message);
+                providerTest.UnInitialize();
             }
-
-            Assert.Equal(1, consumerClient.ReceivedOnAll);
-            Assert.Equal(0, consumerClient.ReceivedOnRefresh);
-            Assert.Equal(1, consumerClient.ReceivedOnStatus);
-            Assert.Equal(0, consumerClient.ReceivedOnUpdate);
-
-            Assert.NotNull(exception);
-            Assert.Null(consumer);
-            providerTest.UnInitialize();
         }
 
         [Fact]
@@ -311,22 +286,11 @@ namespace LSEG.Ema.Access.Tests.OmmConsumerTests
             output.WriteLine($"Connect with {hostString}");
 
             OmmConsumerConfig config = new OmmConsumerConfig();
-            OmmException? exception = null;
-            OmmConsumer? consumer = null;
 
-            try
-            {
-                consumer = new OmmConsumer(config.Host(hostString));
-            }
-            catch (OmmException ommException)
-            {
-                exception = ommException;
-                Assert.True(exception.Type == OmmException.ExceptionType.OmmInvalidUsageException);
-                Assert.StartsWith("directory retrieval failed (timed out after waiting 45000 milliseconds) for", exception.Message);
-            }
+            var ommException = Assert.ThrowsAny<OmmException>(() => new OmmConsumer(config.Host(hostString)));
+            Assert.Equal(OmmException.ExceptionType.OmmInvalidUsageException, ommException.Type);
+            Assert.StartsWith("directory retrieval failed (timed out after waiting 45000 milliseconds) for", ommException.Message);
 
-            Assert.NotNull(exception);
-            Assert.Null(consumer);
             providerTest.UnInitialize();
         }
 
@@ -347,14 +311,7 @@ namespace LSEG.Ema.Access.Tests.OmmConsumerTests
             OmmConsumerConfig config = new OmmConsumerConfig();
             OmmConsumer? consumer = null;
 
-            try
-            {
-                consumer = new OmmConsumer(config.Host(hostString));
-            }
-            catch (OmmException ommException)
-            {
-                Assert.Fail($"Exception during initialization not expected: {ommException}");
-            }
+            consumer = new OmmConsumer(config.Host(hostString));
 
             consumer?.Uninitialize();
             providerTest.UnInitialize();
@@ -378,7 +335,6 @@ namespace LSEG.Ema.Access.Tests.OmmConsumerTests
 
 
             OmmConsumerConfig config = new OmmConsumerConfig();
-            OmmException? exception = null;
             OmmConsumer? consumer = null;
 
             OmmConsumerItemClientTest consumerClient;
@@ -574,14 +530,11 @@ namespace LSEG.Ema.Access.Tests.OmmConsumerTests
 
                 consumer.Unregister(handle);
             }
-            catch (OmmException ommException)
+            finally
             {
-                exception = ommException;
+                consumer?.Uninitialize();
+                providerTest.UnInitialize();
             }
-
-            Assert.Null(exception);
-            consumer?.Uninitialize();
-            providerTest.UnInitialize();
         }
 
         [Theory]
@@ -600,7 +553,6 @@ namespace LSEG.Ema.Access.Tests.OmmConsumerTests
             output.WriteLine($"Connect with {hostString}");
 
             OmmConsumerConfig config = new OmmConsumerConfig();
-            OmmException? exception = null;
             OmmConsumer? consumer = null;
 
             OmmConsumerItemClientTest consumerClient;
@@ -716,15 +668,12 @@ namespace LSEG.Ema.Access.Tests.OmmConsumerTests
 
                 consumer.Unregister(handle);
             }
-            catch (OmmException ommException)
+            finally
             {
-                exception = ommException;
+                consumer?.Uninitialize();
+                providerTest.UnInitialize();
             }
 
-            Assert.Null(exception);
-
-            consumer?.Uninitialize();
-            providerTest.UnInitialize();
         }
 
         [Theory]
@@ -745,7 +694,6 @@ namespace LSEG.Ema.Access.Tests.OmmConsumerTests
 
 
             OmmConsumerConfig config = new OmmConsumerConfig();
-            OmmException? exception = null;
             OmmConsumer? consumer = null;
 
             OmmConsumerItemClientTest consumerClient;
@@ -811,15 +759,12 @@ namespace LSEG.Ema.Access.Tests.OmmConsumerTests
                 consumer.Unregister(handle);
 
             }
-            catch (OmmException ommException)
+            finally
             {
-                exception = ommException;
+                consumer?.Uninitialize();
+                providerTest.UnInitialize();
             }
 
-            Assert.Null(exception);
-
-            consumer?.Uninitialize();
-            providerTest.UnInitialize();
         }
 
         [Theory]
@@ -840,7 +785,6 @@ namespace LSEG.Ema.Access.Tests.OmmConsumerTests
 
 
             OmmConsumerConfig config = new OmmConsumerConfig();
-            OmmException? exception = null;
             OmmConsumer? consumer = null;
 
             OmmConsumerItemClientTest consumerClient;
@@ -897,15 +841,12 @@ namespace LSEG.Ema.Access.Tests.OmmConsumerTests
 
                 consumer.Unregister(handle);
             }
-            catch(OmmException ommException)
+            finally
             {
-                exception = ommException;
+                consumer?.Uninitialize();
+                providerTest.UnInitialize();
             }
 
-            Assert.Null(exception);
-
-            consumer?.Uninitialize();
-            providerTest.UnInitialize();
         }
 
         [Theory]
@@ -926,7 +867,6 @@ namespace LSEG.Ema.Access.Tests.OmmConsumerTests
 
 
             OmmConsumerConfig config = new OmmConsumerConfig();
-            OmmException? exception = null;
             OmmConsumer? consumer = null;
 
             OmmConsumerItemClientTest consumerClient;
@@ -982,15 +922,12 @@ namespace LSEG.Ema.Access.Tests.OmmConsumerTests
 
                 consumer.Unregister(handle);
             }
-            catch (OmmException ommException)
+            finally
             {
-                exception = ommException;
+                consumer?.Uninitialize();
+                providerTest.UnInitialize();
             }
 
-            Assert.Null(exception);
-
-            consumer?.Uninitialize();
-            providerTest.UnInitialize();
         }
 
         [Theory]
@@ -1012,7 +949,6 @@ namespace LSEG.Ema.Access.Tests.OmmConsumerTests
 
 
             OmmConsumerConfig config = new OmmConsumerConfig();
-            OmmException? exception = null;
             OmmConsumer? consumer = null;
 
             OmmConsumerItemClientTest consumerClient;
@@ -1068,15 +1004,12 @@ namespace LSEG.Ema.Access.Tests.OmmConsumerTests
 
                 consumer.Unregister(handle);
             }
-            catch (OmmException ommException)
+            finally
             {
-                exception = ommException;
+                consumer?.Uninitialize();
+                providerTest.UnInitialize();
             }
 
-            Assert.Null(exception);
-
-            consumer?.Uninitialize();
-            providerTest.UnInitialize();
         }
 
         [Theory]
@@ -1097,7 +1030,6 @@ namespace LSEG.Ema.Access.Tests.OmmConsumerTests
             output.WriteLine($"Connect with {hostString}");
             
             OmmConsumerConfig config = new OmmConsumerConfig();
-            OmmException? exception = null;
             OmmConsumer? consumer = null;
 
             OmmConsumerItemClientTest consumerClient;
@@ -1153,15 +1085,12 @@ namespace LSEG.Ema.Access.Tests.OmmConsumerTests
 
                 consumer.Unregister(handle);
             }
-            catch (OmmException ommException)
+            finally
             {
-                exception = ommException;
+                consumer?.Uninitialize();
+                providerTest.UnInitialize();
             }
 
-            Assert.Null(exception);
-
-            consumer?.Uninitialize();
-            providerTest.UnInitialize();
         }
 
         [Fact]
@@ -1204,7 +1133,6 @@ namespace LSEG.Ema.Access.Tests.OmmConsumerTests
             output.WriteLine($"Connect with {hostString}");
 
             OmmConsumerConfig config = new OmmConsumerConfig();
-            OmmException? exception = null;
             OmmConsumer? consumer = null;
 
             OmmConsumerItemClientTest consumerClient;
@@ -1306,15 +1234,11 @@ namespace LSEG.Ema.Access.Tests.OmmConsumerTests
                     consumer.Unregister(itemHandle);
                 }
             }
-            catch (OmmException ommException)
+            finally
             {
-                exception = ommException;
+                consumer?.Uninitialize();
+                providerTest.UnInitialize();
             }
-
-            Assert.Null(exception);
-
-            consumer?.Uninitialize();
-            providerTest.UnInitialize();
         }
 
 
@@ -1336,7 +1260,6 @@ namespace LSEG.Ema.Access.Tests.OmmConsumerTests
             output.WriteLine($"Connect with {hostString}");
 
             OmmConsumerConfig config = new OmmConsumerConfig();
-            OmmException? exception = null;
             OmmConsumer? consumer = null;
 
             OmmConsumerItemClientTest consumerClient;
@@ -1458,15 +1381,11 @@ namespace LSEG.Ema.Access.Tests.OmmConsumerTests
 
                 consumer.Unregister(handle);
             }
-            catch (OmmException ommException)
+            finally
             {
-                exception = ommException;
+                consumer?.Uninitialize();
+                providerTest.UnInitialize();
             }
-
-            Assert.Null(exception);
-
-            consumer?.Uninitialize();
-            providerTest.UnInitialize();
         }
 
         [Fact]
@@ -1484,10 +1403,8 @@ namespace LSEG.Ema.Access.Tests.OmmConsumerTests
             output.WriteLine($"Connect with {hostString}");
 
             OmmConsumerConfig config = new OmmConsumerConfig();
-            OmmException? exception = null;
             OmmConsumer? consumer = null;
             long invalidHandle = 100;
-            int numOfExcpetions = 0;
 
             try
             {
@@ -1495,61 +1412,20 @@ namespace LSEG.Ema.Access.Tests.OmmConsumerTests
 
                 consumer = new OmmConsumer(config.Host(hostString));
 
-                consumer.Submit(new GenericMsg(), invalidHandle);
+                var exception = Assert.Throws<OmmInvalidHandleException>(() => consumer.Submit(new GenericMsg(), invalidHandle));
+                Assert.StartsWith("Attempt to use invalid Handle on Submit(GenericMsg)", exception.Message);
 
+                exception = Assert.Throws<OmmInvalidHandleException>(() => consumer!.Submit(new PostMsg(), invalidHandle));
+                Assert.StartsWith("Attempt to use invalid Handle on Submit(PostMsg)", exception.Message);
+
+                exception = Assert.Throws<OmmInvalidHandleException>(() => consumer!.Reissue(new RequestMsg(), invalidHandle));
+                Assert.StartsWith("Attempt to use invalid Handle on Reissue()", exception.Message);
             }
-            catch (OmmException ommException1)
+            finally
             {
-                Assert.Equal(OmmException.ExceptionType.OmmInvalidHandleException, ommException1.Type);
-                Assert.True(ommException1 is OmmInvalidHandleException);
-                numOfExcpetions++;
-
-                OmmInvalidHandleException invalidHandleExcep = (OmmInvalidHandleException)ommException1;
-
-                Assert.StartsWith("Attempt to use invalid Handle on Submit(GenericMsg)", invalidHandleExcep.Message);
-
-                exception = ommException1;
-
-                try
-                {
-                    consumer!.Submit(new PostMsg(), invalidHandle);
-                }
-                catch (OmmException ommException2)
-                {
-                    Assert.Equal(OmmException.ExceptionType.OmmInvalidHandleException, ommException2.Type);
-                    Assert.True(ommException2 is OmmInvalidHandleException);
-                    numOfExcpetions++;
-
-                   invalidHandleExcep = (OmmInvalidHandleException)ommException2;
-
-                    Assert.StartsWith("Attempt to use invalid Handle on Submit(PostMsg)", invalidHandleExcep.Message);
-
-                    exception = ommException2;
-                }
-
-                try
-                {
-                    consumer!.Reissue(new RequestMsg(), invalidHandle);
-                }
-                catch (OmmException ommException3)
-                {
-                    Assert.Equal(OmmException.ExceptionType.OmmInvalidHandleException, ommException3.Type);
-                    Assert.True(ommException3 is OmmInvalidHandleException);
-                    numOfExcpetions++;
-
-                    invalidHandleExcep = (OmmInvalidHandleException)ommException3;
-
-                    Assert.StartsWith("Attempt to use invalid Handle on Reissue()", invalidHandleExcep.Message);
-
-                    exception = ommException3;
-                }
+                consumer?.Uninitialize();
+                providerTest.UnInitialize();
             }
-
-            Assert.NotNull(exception);
-            Assert.Equal(3, numOfExcpetions);
-
-            consumer?.Uninitialize();
-            providerTest.UnInitialize();
         }
 
         class OmmConsumerErrorClientTest : IOmmConsumerErrorClient
@@ -1584,7 +1460,6 @@ namespace LSEG.Ema.Access.Tests.OmmConsumerTests
             output.WriteLine($"Connect with {hostString}");
 
             OmmConsumerConfig config = new OmmConsumerConfig();
-            OmmException? exception = null;
             OmmConsumer? consumer = null;
             long invalidHandle = 100;
 
@@ -1624,16 +1499,12 @@ namespace LSEG.Ema.Access.Tests.OmmConsumerTests
                 Assert.Equal(invalidHandle, consumerErrorClient.InvalidHandleExceptionList[2].Handle);
                 Assert.StartsWith("Attempt to use invalid Handle on Reissue()", consumerErrorClient.InvalidHandleExceptionList[2].Message);
             }
-            catch (OmmException ommException)
+            finally
             {
-
-                exception = ommException; 
+                consumer?.Uninitialize();
+                providerTest.UnInitialize();
             }
 
-            Assert.Null(exception);
-
-            consumer?.Uninitialize();
-            providerTest.UnInitialize();
         }
 
         [Fact]
@@ -1650,7 +1521,6 @@ namespace LSEG.Ema.Access.Tests.OmmConsumerTests
             output.WriteLine($"Connect with {hostString}");
 
             OmmConsumerConfig config = new OmmConsumerConfig();
-            OmmException? exception = null;
             OmmConsumer? consumer = null;
 
             OmmConsumerItemClientTest consumerClient;
@@ -1762,15 +1632,12 @@ namespace LSEG.Ema.Access.Tests.OmmConsumerTests
 
                 consumer.Unregister(handle);
             }
-            catch (OmmException ommException)
+            finally
             {
-                exception = ommException;
+                consumer?.Uninitialize();
+                providerTest.UnInitialize();
             }
 
-            Assert.Null(exception);
-
-            consumer?.Uninitialize();
-            providerTest.UnInitialize();
         }
 
         [Fact]
@@ -1787,7 +1654,6 @@ namespace LSEG.Ema.Access.Tests.OmmConsumerTests
             output.WriteLine($"Connect with {hostString}");
 
             OmmConsumerConfig config = new OmmConsumerConfig();
-            OmmException? exception = null;
             OmmConsumer? consumer = null;
 
             OmmConsumerItemClientTest consumerClient;
@@ -1889,15 +1755,11 @@ namespace LSEG.Ema.Access.Tests.OmmConsumerTests
                 consumer.Unregister(handle);
 
             }
-            catch (OmmException ommException)
+            finally
             {
-                exception = ommException;
+                consumer?.Uninitialize();
+                providerTest.UnInitialize();
             }
-
-            Assert.Null(exception);
-
-            consumer?.Uninitialize();
-            providerTest.UnInitialize();
         }
 
 
@@ -1915,7 +1777,6 @@ namespace LSEG.Ema.Access.Tests.OmmConsumerTests
             output.WriteLine($"Connect with {hostString}");
 
             OmmConsumerConfig config = new OmmConsumerConfig();
-            OmmException? exception = null;
             OmmConsumer? consumer = null;
 
             OmmConsumerItemClientTest consumerClient;
@@ -2021,15 +1882,12 @@ namespace LSEG.Ema.Access.Tests.OmmConsumerTests
                 consumer.Unregister(loginHandle);
 
             }
-            catch (OmmException ommException)
+            finally
             {
-                exception = ommException;
+                consumer?.Uninitialize();
+                providerTest.UnInitialize();
             }
 
-            Assert.Null(exception);
-
-            consumer?.Uninitialize();
-            providerTest.UnInitialize();
         }
 
         [Fact]
@@ -2046,7 +1904,6 @@ namespace LSEG.Ema.Access.Tests.OmmConsumerTests
             output.WriteLine($"Connect with {hostString}");
 
             OmmConsumerConfig config = new OmmConsumerConfig();
-            OmmException? exception = null;
             OmmConsumer? consumer = null;
 
             OmmConsumerItemClientTest consumerClient;
@@ -2138,15 +1995,11 @@ namespace LSEG.Ema.Access.Tests.OmmConsumerTests
                 consumer.Unregister(handle);
 
             }
-            catch (OmmException ommException)
+            finally
             {
-                exception = ommException;
+                consumer?.Uninitialize();
+                providerTest.UnInitialize();
             }
-
-            Assert.Null(exception);
-
-            consumer?.Uninitialize();
-            providerTest.UnInitialize();
         }
 
         [Theory]
@@ -2168,7 +2021,6 @@ namespace LSEG.Ema.Access.Tests.OmmConsumerTests
 
 
             OmmConsumerConfig config = new OmmConsumerConfig();
-            OmmException? exception = null;
             OmmConsumer? consumer = null;
 
             OmmConsumerItemClientTest consumerClient;
@@ -2277,15 +2129,11 @@ namespace LSEG.Ema.Access.Tests.OmmConsumerTests
                 consumer.Unregister(handle);
                 consumer.Unregister(handle2);
             }
-            catch (OmmException ommException)
+            finally
             {
-                exception = ommException;
+                consumer?.Uninitialize();
+                providerTest.UnInitialize();
             }
-
-            Assert.Null(exception);
-
-            consumer?.Uninitialize();
-            providerTest.UnInitialize();
         }
     }
 }

@@ -63,8 +63,8 @@ namespace LSEG.Ema.Access.Tests.OmmConsumerTests
             $" channel Channel_1{NewLine}\tInstance Name Consumer_1_Success{NewLine}\tComponent Version";
 
         private static readonly string ERROR_LOG = $"{NewLine}ERROR|: loggerMsg{NewLine}    ClientName: Consumer_1_Error{NewLine}    Severity: Error    Text:    login failed (timed out after" +
-            $" waiting 3000 milliseconds) for localhost:5555){NewLine}loggerMsgEnd{NewLine}{NewLine}ERROR|: loggerMsg{NewLine}    ClientName: ChannelCallbackClient{NewLine}    Severity: Error    Text:    Received ChannelDown" +
-            $" event on channel Channel_1{NewLine}\tInstance Name Consumer_1_Error{NewLine}\t";
+            $" waiting 3000 milliseconds) for localhost:5555{NewLine}loggerMsgEnd{NewLine}{NewLine}ERROR|: loggerMsg{NewLine}    ClientName: ChannelCallbackClient{NewLine}    Severity: Error    Text:    Received ChannelDown" +
+            $" event on channel Channel_1{NewLine}\tInstance Name Consumer_1_Error{NewLine}";
 
         private static readonly string WARNING_LOG = $"{NewLine}WARN|: loggerMsg{NewLine}    ClientName: ChannelCallbackClient{NewLine}    Severity: Warning    Text:" +
             $"    Received ChannelDownReconnecting event on channel Channel_1{NewLine}\tInstance Name Consumer_1_Warning{NewLine}\tChannel is null{NewLine}\tError Id SUCCESS{NewLine}" +

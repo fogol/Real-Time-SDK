@@ -7,13 +7,13 @@
  */
 
 using LSEG.Ema.Rdm;
-using LSEG.Eta.Codec;
 using LSEG.Eta.Common;
+using LSEG.Eta.Tests.Utils;
 using System;
 using System.Collections.Generic;
-using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using Xunit.Abstractions;
 using DataDictionary = LSEG.Ema.Rdm.DataDictionary;
 
@@ -35,7 +35,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
         private OmmProvider? m_Provider;
         private string? m_LoginUserName;
         private ElementList? m_RefreshAttributes;
-        Queue<Msg> m_MessageQueue = new(30);
+        WaitableMessageQueue<Msg> m_MessageQueue = new();
         private Dictionary<string, RequestAttributes> m_ItemNameToHandleDict = new(10);
 
         private Dictionary<long, List<String>> m_ServiceIdToItemNamesMap = new(5);
@@ -102,6 +102,26 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
             }
         }
 
+        public T WaitForMessage<T>(TimeSpan timeout)
+            where T : Msg
+            => m_MessageQueue.WaitForMessage<T>(timeout);
+
+        public T WaitForMessage<T>()
+            where T : Msg
+            => m_MessageQueue.WaitForMessage<T>();
+
+        public void WaitForNonEmptiness(TimeSpan timeout)
+            => m_MessageQueue.WaitForNonEmptinessAsync(timeout).GetAwaiter().GetResult();
+
+        public void WaitForNonEmptiness()
+            => m_MessageQueue.WaitForNonEmptinessAsync().GetAwaiter().GetResult();
+
+        public Task WaitForNonEmptinessAsync(TimeSpan timeout)
+            => m_MessageQueue.WaitForNonEmptinessAsync(timeout);
+
+        public Task WaitForNonEmptinessAsync()
+            => m_MessageQueue.WaitForNonEmptinessAsync();
+
         public void SendLoginResponse(OmmProvider provider, bool acceptLoginRequest, string? statusText = null)
         {
             using var _ = EtaGlobalPoolTestUtil.CreateClearableSection();
@@ -128,7 +148,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
             m_RefreshAttributes?.ClearAndReturnToPool_All();
         }
 
-        void ProcessDictionaryRequest(RequestMsg reqMsg, IOmmProviderEvent providerEvent)
+        private void ProcessDictionaryRequest(RequestMsg reqMsg, IOmmProviderEvent providerEvent)
         {
             using var _ = EtaGlobalPoolTestUtil.CreateClearableSection();
 

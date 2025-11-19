@@ -11,7 +11,7 @@ using System.Text.Json;
 
 namespace LSEG.Eta.ValueAdd.Reactor
 {
-    internal class ReactorTokenSession : VaNode, IRestResponseCallback
+    internal class ReactorTokenSession : VaNode, IRestResponseCallback, IDisposable
     {
         private Reactor m_Reactor;
         private ReactorRestClient m_RestClient;
@@ -19,6 +19,7 @@ namespace LSEG.Eta.ValueAdd.Reactor
         private long m_AuthTokenExpireTime;
         private long m_AuthTokenExpiresIn;
         private bool m_SetProxyInfo = false;
+        private bool m_IsDisposed;
 
         private ReaderWriterLockSlim SessionLock { get; set; } =
             new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
@@ -455,6 +456,26 @@ namespace LSEG.Eta.ValueAdd.Reactor
                     }
                 }
             }
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (m_IsDisposed)
+            {
+                return;
+            }
+            if (disposing)
+            {
+                ReactorRestConnectOptions.Dispose();
+            }
+
+            m_IsDisposed = true;
+        }
+
+        public void Dispose()
+        {
+            Dispose(disposing: true);
+            GC.SuppressFinalize(this);
         }
     }
 }

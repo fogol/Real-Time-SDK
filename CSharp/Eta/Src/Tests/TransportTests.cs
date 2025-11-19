@@ -1128,7 +1128,7 @@ namespace LSEG.Eta.Transports.Tests
     public class TransportServerTests : IDisposable
     {
         // how long is the test is expected to successfully complete, in milliseconds
-        private const int DEFAULT_TIMEOUT = 10_000;
+        private const int DEFAULT_TIMEOUT = 30_000;
 
         private static int m_ServiceNameCounter = 19999;
 

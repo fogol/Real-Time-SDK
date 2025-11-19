@@ -7,17 +7,18 @@
  */
 
 using LSEG.Ema.Rdm;
-using LSEG.Eta.Codec;
 using LSEG.Eta.Common;
+using LSEG.Eta.Tests.Utils;
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using Xunit.Abstractions;
 
 namespace LSEG.Ema.Access.Tests.RequestRouting
 {
     internal class ConsumerTestClient : IOmmConsumerClient
     {
-        private readonly Queue<Msg> m_MessageQueue = new(30);
+        private readonly WaitableMessageQueue<Msg> m_MessageQueue = new();
 
         private readonly Queue<ChannelInformation> m_ChannelInfoQueue = new();
 
@@ -76,6 +77,26 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                 AccessLock.Exit();
             }
         }
+
+        public T WaitForMessage<T>(TimeSpan timeout)
+            where T : Msg
+            => m_MessageQueue.WaitForMessage<T>(timeout);
+
+        public T WaitForMessage<T>()
+            where T : Msg
+            => m_MessageQueue.WaitForMessage<T>();
+
+        public void WaitForNonEmptiness(TimeSpan timeout)
+            => WaitForNonEmptinessAsync(timeout).GetAwaiter().GetResult();
+
+        public void WaitForNonEmptiness()
+            => WaitForNonEmptinessAsync().GetAwaiter().GetResult();
+
+        public Task WaitForNonEmptinessAsync(TimeSpan timeout)
+            => m_MessageQueue.WaitForNonEmptinessAsync(timeout);
+
+        public Task WaitForNonEmptinessAsync()
+            => m_MessageQueue.WaitForNonEmptinessAsync();
 
         public int ChannelInfoSize()
         {

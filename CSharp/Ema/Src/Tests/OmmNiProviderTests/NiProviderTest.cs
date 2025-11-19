@@ -1200,7 +1200,7 @@ namespace LSEG.Ema.Access.Tests.OmmNiProviderTests
                 if (userDispatch)
                     config.OperationModel(OmmNiProviderConfig.OperationModelMode.USER_DISPATCH);
 
-                provider = new OmmProvider(config.Host(hostString));
+                provider = new OmmProvider(config);
 
                 providerFldClient = new OmmProviderItemClientTest(provider);
 
@@ -1213,6 +1213,8 @@ namespace LSEG.Ema.Access.Tests.OmmNiProviderTests
                 Assert.True(fldHandle != 0);
 
                 bool fldComplelte = false, enumComplete = false;
+                using var providerFldRefreshMsgFiredEvent = new CountdownEvent(2);
+                using var providerEnumRefreshMsgFiredEvent = new CountdownEvent(13);
 
                 /* Checks the expected RefreshMsg from the RWFFld request */
                 providerFldClient.RefreshMsgHandler = (refreshMsg, consEvent) =>
@@ -1238,6 +1240,8 @@ namespace LSEG.Ema.Access.Tests.OmmNiProviderTests
                     Assert.True(refreshMsg.Solicited());
 
                     fldComplelte = refreshMsg.MarkForClear().Complete();
+                    if (!providerFldRefreshMsgFiredEvent.IsSet)
+                        providerFldRefreshMsgFiredEvent.Signal();
                 };
 
                 providerEnumClient = new OmmProviderItemClientTest(provider);
@@ -1273,29 +1277,28 @@ namespace LSEG.Ema.Access.Tests.OmmNiProviderTests
 
                     Assert.True(refreshMsg.Solicited());
                     enumComplete = refreshMsg.MarkForClear().Complete();
+                    if (!providerEnumRefreshMsgFiredEvent.IsSet)
+                        providerEnumRefreshMsgFiredEvent.Signal();
                 };
 
                 if (userDispatch)
                 {
-                    for (int i = 0; i < 50; i++)
+                    for (int i = 0; i < 120; i++)
                         provider.Dispatch(1000000);
                 }
 
-                Policy.HandleResult<bool>(v => v)
-                    .WaitAndRetry(60, retryAttempt => TimeSpan.FromMilliseconds(1000))
-                    .Execute(() => providerFldClient.ReceivedOnAll == 2 && fldComplelte && enumComplete && providerEnumClient.ReceivedOnAll == 13);
-
                 //wait to finish all processings
-                Thread.Sleep(1000);
+                WaitHandle.WaitAll(new[] { providerFldRefreshMsgFiredEvent.WaitHandle, providerEnumRefreshMsgFiredEvent.WaitHandle }, TimeSpan.FromMinutes(10));
 
-                Assert.True(fldComplelte && enumComplete);
+                Assert.True(fldComplelte, "providerFldClient hasn't been called");
+                Assert.True(enumComplete, "providerEnumClient hasn't been called");
 
-                Assert.Equal(2, providerFldClient.ReceivedOnAll);
-                Assert.Equal(2, providerFldClient.ReceivedOnRefresh);
+                Assert.Equal(/*providerFldRefreshMsgFiredEvent.InitialCount*/72, providerFldClient.ReceivedOnAll);
+                Assert.Equal(/*providerFldRefreshMsgFiredEvent.InitialCount*/72, providerFldClient.ReceivedOnRefresh);
                 Assert.Equal(0, providerFldClient.ReceivedOnStatus);
 
-                Assert.Equal(13, providerEnumClient.ReceivedOnAll);
-                Assert.Equal(13, providerEnumClient.ReceivedOnRefresh);
+                Assert.Equal(providerEnumRefreshMsgFiredEvent.InitialCount, providerEnumClient.ReceivedOnAll);
+                Assert.Equal(providerEnumRefreshMsgFiredEvent.InitialCount, providerEnumClient.ReceivedOnRefresh);
                 Assert.Equal(0, providerEnumClient.ReceivedOnStatus);
 
                 provider.Unregister(fldHandle);

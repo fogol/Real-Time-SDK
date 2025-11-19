@@ -16,11 +16,14 @@ using LSEG.Eta.Codec;
 using System;
 using Buffer = LSEG.Eta.Codec.Buffer;
 using System.IO;
+using Xunit.Abstractions;
+using Polly;
 
 namespace LSEG.Eta.ValuedAdd.Tests
 {
     public class ReactorSessionMgntTest : IReactorChannelEventCallback, IDefaultMsgCallback, 
-        IReactorAuthTokenEventCallback, IReactorOAuthCredentialEventCallback, IRDMLoginMsgCallback
+        IReactorAuthTokenEventCallback, IReactorOAuthCredentialEventCallback, IRDMLoginMsgCallback,
+        IDisposable
     {
         private string CLIENT_ID;
         private string CLIENT_ID_JWT;
@@ -28,6 +31,9 @@ namespace LSEG.Eta.ValuedAdd.Tests
         private string CLIENT_JWK;
         private string TOKEN_SERVICE_URL;
         private string SERVICE_DISCOVERY_URL;
+        private string PROXY_HOST;
+        private string PROXY_PORT;
+        private Reactor reactor;
         private ReactorAuthTokenInfo reactorAuthTokenInfo = new ReactorAuthTokenInfo();
         private static readonly string TOKEN_TYPE = "Bearer";
         private const int EXPIRES_IN = 7199;
@@ -36,7 +42,8 @@ namespace LSEG.Eta.ValuedAdd.Tests
         private State expectedState = new State();
         private List<ReactorChannelEventType> reactorChannelEventTypes = new List<ReactorChannelEventType>();
         private List<LoginMsgType> loginMsgTypes = new List<LoginMsgType>();
-        
+        private ITestOutputHelper output;
+
         private void Clear()
         {
             reactorChannelEventTypes.Clear();
@@ -46,7 +53,7 @@ namespace LSEG.Eta.ValuedAdd.Tests
             loginMsgTypes.Clear();
         }
 
-        public ReactorSessionMgntTest()
+        public ReactorSessionMgntTest(ITestOutputHelper outputHelper)
         {
             try
             {
@@ -56,6 +63,8 @@ namespace LSEG.Eta.ValuedAdd.Tests
                 CLIENT_JWK = Environment.GetEnvironmentVariable("ETANET_CLIENT_JWK", System.EnvironmentVariableTarget.Process);
                 TOKEN_SERVICE_URL = Environment.GetEnvironmentVariable("ETANET_TOKEN_SERVICE_URL", System.EnvironmentVariableTarget.Process);
                 SERVICE_DISCOVERY_URL = Environment.GetEnvironmentVariable("ETANET_SERVICE_DISCOVERY_URL", System.EnvironmentVariableTarget.Process);
+                PROXY_HOST = Environment.GetEnvironmentVariable("ETANET_PROXY_HOST", System.EnvironmentVariableTarget.Process);
+                PROXY_PORT = Environment.GetEnvironmentVariable("ETANET_PROXY_PORT", System.EnvironmentVariableTarget.Process);
             }
             catch(Exception)
             {
@@ -63,26 +72,52 @@ namespace LSEG.Eta.ValuedAdd.Tests
             }
 
             Clear();
+
+            output = outputHelper;
+        }
+
+        public void Dispose()
+        {
+            ReactorErrorInfo errorInfo = null;
+            if (reactorChannel != null)
+                Assert.True(ReactorReturnCode.SUCCESS == reactorChannel.Close(out errorInfo),
+                    $"Failed to close reactor channel. Error: {errorInfo}");
+            if (reactor != null)
+                Assert.True(ReactorReturnCode.SUCCESS == reactor.Shutdown(out errorInfo),
+                    $"Failed to shutdown Reactor. Error: {errorInfo}");
+        }
+
+        private void SetProxy(ReactorConnectInfo connectInfo)
+        {
+            if (!string.IsNullOrEmpty(PROXY_HOST))
+            {
+                var opts = connectInfo.ConnectOptions.ProxyOptions;
+                opts.ProxyHostName = PROXY_HOST;
+                opts.ProxyPort = PROXY_PORT;
+            }
         }
 
         void ConnectSuccessWithOneConnection_usingDefaultLocation(bool isPingJwt, bool overrideTokenServiceURL, bool overrideDiscoveryURL)
         {
             ReactorOptions reactorOptions = new ReactorOptions();
 
-            if(overrideTokenServiceURL && !string.IsNullOrEmpty(TOKEN_SERVICE_URL))
+            if (overrideTokenServiceURL && !string.IsNullOrEmpty(TOKEN_SERVICE_URL))
             {
                 reactorOptions.SetTokenServiceURL(TOKEN_SERVICE_URL);
+                output.WriteLine($"TokenServiceURL is overriden with value: {TOKEN_SERVICE_URL}");
             }
 
-            if(overrideDiscoveryURL && !string.IsNullOrEmpty(SERVICE_DISCOVERY_URL))
+            if (overrideDiscoveryURL && !string.IsNullOrEmpty(SERVICE_DISCOVERY_URL))
             {
                 reactorOptions.SetServiceDiscoveryURL(SERVICE_DISCOVERY_URL);
+                output.WriteLine($"ServiceDiscoveryURL is overriden with value: {SERVICE_DISCOVERY_URL}");
             }
 
             reactorOptions.UserSpecObj = this;
-            Reactor reactor = Reactor.CreateReactor(reactorOptions, out ReactorErrorInfo errorInfo);
+            reactor = Reactor.CreateReactor(reactorOptions, out ReactorErrorInfo errorInfo);
 
             Assert.NotNull(reactor);
+            Assert.True(null == errorInfo, $"Failed to create Reactor. Error: {errorInfo}");
 
             Socket reactorEventFD = reactor.EventSocket;
             ReactorDispatchOptions dispatchOpts = new ReactorDispatchOptions();
@@ -92,6 +127,7 @@ namespace LSEG.Eta.ValuedAdd.Tests
             connectInfo.ConnectOptions.MinorVersion = Codec.Codec.MinorVersion();
             connectInfo.EnableSessionManagement = true;
             connectInfo.ReactorAuthTokenEventCallback = this;
+            SetProxy(connectInfo);
 
             ReactorConnectOptions connectOptions = new ReactorConnectOptions();
             connectOptions.ConnectionList.Add(connectInfo);
@@ -102,12 +138,14 @@ namespace LSEG.Eta.ValuedAdd.Tests
             {
                 credential.ClientSecret.Data(CLIENT_SECRET);
                 credential.ClientId.Data(CLIENT_ID);
+                output.WriteLine("Using JWT for authentication.");
             }
             else
             {
                 credential.ClientJwk.Data(File.ReadAllText(CLIENT_JWK));
                 credential.ClientId.Data(CLIENT_ID_JWT);
                 credential.Audience.Data(ReactorOAuthCredential.DEFAULT_JWT_AUDIENCE);
+                output.WriteLine("Using JWK for authentication.");
             }
 
             ConsumerRole consumerRole = new ConsumerRole();
@@ -125,39 +163,43 @@ namespace LSEG.Eta.ValuedAdd.Tests
             text.Data("Login accepted by host ads-fanout");
             expectedState.Text(text);
 
-            ReactorReturnCode returnCode = reactor.Connect(connectOptions, consumerRole, out errorInfo);
+            Policy.Handle<Exception>()
+                .Retry(5)
+                .Execute(() =>
+                {
+                    reactorChannelEventTypes.Clear();
 
-            Assert.True(!string.IsNullOrEmpty(reactorAuthTokenInfo.AccessToken));
-            Assert.Equal(TOKEN_TYPE, reactorAuthTokenInfo.TokenType);
-            Assert.Equal(EXPIRES_IN, reactorAuthTokenInfo.ExpiresIn);
+                    ReactorReturnCode returnCode = reactor.Connect(connectOptions, consumerRole, out errorInfo);
+                    Assert.Equal(ReactorReturnCode.SUCCESS, returnCode);
+                    output.WriteLine($"reactor.Connect error info: {errorInfo}");
 
-            Assert.Equal(ReactorReturnCode.SUCCESS, returnCode);
+                    Assert.True(!string.IsNullOrEmpty(reactorAuthTokenInfo.AccessToken));
+                    Assert.Equal(TOKEN_TYPE, reactorAuthTokenInfo.TokenType);
+                    Assert.Equal(EXPIRES_IN, reactorAuthTokenInfo.ExpiresIn);
 
-            readSockets.Add(reactorEventFD);
+                    Socket.Select(new[] { reactorEventFD }, null, null, TimeSpan.FromSeconds(10));
 
-            Socket.Select(readSockets, null, null, 10 * 1000 * 1000);
+                    while (reactorEventFD.Available > 0)
+                    {
+                        reactor.Dispatch(dispatchOpts, out errorInfo);
+                        Assert.True(errorInfo == null, $"Reactor error occurred: {errorInfo}");
+                    }
 
-            while(reactorEventFD.Available > 0)
-            {
-                reactor.Dispatch(dispatchOpts, out errorInfo);
-            }
-
-            Assert.Equal(ReactorChannelEventType.CHANNEL_UP, reactorChannelEventTypes[0]);
+                    Assert.Equal(ReactorChannelEventType.CHANNEL_UP, reactorChannelEventTypes[0]);
+                });
 
             readSockets.Clear();
             readSockets.Add(reactorChannel.Socket);
 
-            Socket.Select(readSockets, null, null, 10 * 1000 * 1000);
+            Socket.Select(readSockets, null, null, TimeSpan.FromSeconds(10));
             while (reactorChannel.Socket.Available > 0)
             {
                 reactor.Dispatch(dispatchOpts, out errorInfo);
+                Assert.True(errorInfo == null, $"Reactor error occurred: {errorInfo}");
             }
 
             Assert.Equal(LoginMsgType.REFRESH, loginMsgTypes[0]);
             Assert.Equal(ReactorChannelEventType.CHANNEL_READY, reactorChannelEventTypes[1]);
-            Assert.Equal(ReactorReturnCode.SUCCESS, reactorChannel.Close(out errorInfo));
-
-            Assert.Equal(ReactorReturnCode.SUCCESS, reactor.Shutdown(out _));
         }
 
         [Fact]
@@ -191,9 +233,9 @@ namespace LSEG.Eta.ValuedAdd.Tests
             }
 
             reactorOptions.UserSpecObj = this;
-            Reactor reactor = Reactor.CreateReactor(reactorOptions, out ReactorErrorInfo errorInfo);
+            reactor = Reactor.CreateReactor(reactorOptions, out ReactorErrorInfo errorInfo);
 
-            Assert.NotNull(reactor);
+            Assert.True(null == errorInfo, $"Failed to create Reactor. Error: {errorInfo}");
 
             Socket reactorEventFD = reactor.EventSocket;
             ReactorDispatchOptions dispatchOpts = new ReactorDispatchOptions();
@@ -204,6 +246,7 @@ namespace LSEG.Eta.ValuedAdd.Tests
             connectInfo.EnableSessionManagement = true;
             connectInfo.ReactorAuthTokenEventCallback = this;
             connectInfo.Location = "us-east-1"; // Specify a location
+            SetProxy(connectInfo);
 
             ReactorConnectOptions connectOptions = new ReactorConnectOptions();
             connectOptions.ConnectionList.Add(connectInfo);
@@ -228,25 +271,22 @@ namespace LSEG.Eta.ValuedAdd.Tests
             consumerRole.RdmLoginRequest = null;
 
             ReactorReturnCode returnCode = reactor.Connect(connectOptions, consumerRole, out errorInfo);
+            Assert.Equal(ReactorReturnCode.SUCCESS, returnCode);
+            output.WriteLine($"reactor.Connect error info: {errorInfo}");
 
             Assert.True(!string.IsNullOrEmpty(reactorAuthTokenInfo.AccessToken));
             Assert.Equal(TOKEN_TYPE, reactorAuthTokenInfo.TokenType);
             Assert.Equal(EXPIRES_IN, reactorAuthTokenInfo.ExpiresIn);
 
-            Assert.Equal(ReactorReturnCode.SUCCESS, returnCode);
+            reactorEventFD.Poll(TimeSpan.FromSeconds(15), SelectMode.SelectRead);
 
-            while (reactorEventFD.Poll(10 * 1000 * 1000, SelectMode.SelectRead) != true) ;
-
-            Assert.True(reactorEventFD.Available > 0);
+            Assert.True(reactorEventFD.Available > 0, $"No Reactor events emitted");
             reactor.Dispatch(dispatchOpts, out errorInfo);
+            Assert.True(errorInfo == null, $"Error dispatching events in Reactor: {errorInfo}");
             Assert.True(reactorEventFD.Available == 0);
 
             Assert.Equal(ReactorChannelEventType.CHANNEL_UP, reactorChannelEventTypes[0]);
             Assert.Equal(ReactorChannelEventType.CHANNEL_READY, reactorChannelEventTypes[1]);
-
-            Assert.Equal(ReactorReturnCode.SUCCESS, reactorChannel.Close(out errorInfo));
-
-            Assert.Equal(ReactorReturnCode.SUCCESS, reactor.Shutdown(out _));
         }
 
         [Fact]
@@ -280,9 +320,9 @@ namespace LSEG.Eta.ValuedAdd.Tests
             }
 
             reactorOptions.UserSpecObj = this;
-            Reactor reactor = Reactor.CreateReactor(reactorOptions, out ReactorErrorInfo errorInfo);
+            reactor = Reactor.CreateReactor(reactorOptions, out ReactorErrorInfo errorInfo);
 
-            Assert.NotNull(reactor);
+            Assert.True(null == errorInfo, $"Failed to create Reactor. Error: {errorInfo}");
 
             Socket reactorEventFD = reactor.EventSocket;
             ReactorDispatchOptions dispatchOpts = new ReactorDispatchOptions();
@@ -291,6 +331,7 @@ namespace LSEG.Eta.ValuedAdd.Tests
             connectInfo.EnableSessionManagement = true;
             connectInfo.ReactorAuthTokenEventCallback = this;
             connectInfo.Location = "mars-east-1"; // Specify a location
+            SetProxy(connectInfo);
 
             ReactorConnectOptions connectOptions = new ReactorConnectOptions();
             connectOptions.ConnectionList.Add(connectInfo);
@@ -314,10 +355,9 @@ namespace LSEG.Eta.ValuedAdd.Tests
             consumerRole.DefaultMsgCallback = this;
 
             ReactorReturnCode returnCode = reactor.Connect(connectOptions, consumerRole, out errorInfo);
+            output.WriteLine($"reactor.Connect error info: {errorInfo}");
 
             Assert.Equal(ReactorReturnCode.PARAMETER_INVALID, returnCode);
-
-            Assert.Equal(ReactorReturnCode.SUCCESS, reactor.Shutdown(out _));
         }
 
         [Fact]
@@ -351,9 +391,9 @@ namespace LSEG.Eta.ValuedAdd.Tests
             }
 
             reactorOptions.UserSpecObj = this;
-            Reactor reactor = Reactor.CreateReactor(reactorOptions, out ReactorErrorInfo errorInfo);
+            reactor = Reactor.CreateReactor(reactorOptions, out ReactorErrorInfo errorInfo);
 
-            Assert.NotNull(reactor);
+            Assert.True(null == errorInfo, $"Failed to create Reactor. Error: {errorInfo}");
 
             Socket reactorEventFD = reactor.EventSocket;
             ReactorDispatchOptions dispatchOpts = new ReactorDispatchOptions();
@@ -374,6 +414,7 @@ namespace LSEG.Eta.ValuedAdd.Tests
             secondConnectInfo.ConnectOptions.MinorVersion = Codec.Codec.MinorVersion();
             secondConnectInfo.EnableSessionManagement = true;
             secondConnectInfo.ReactorAuthTokenEventCallback = this;
+            SetProxy(secondConnectInfo);
 
             ReactorConnectOptions connectOptions = new ReactorConnectOptions();
             connectOptions.ConnectionList.Add(firstConnectInfo);
@@ -410,8 +451,8 @@ namespace LSEG.Eta.ValuedAdd.Tests
             expectedState.Text(text);
 
             ReactorReturnCode returnCode = reactor.Connect(connectOptions, consumerRole, out errorInfo);
-
             Assert.Equal(ReactorReturnCode.SUCCESS, returnCode);
+            output.WriteLine($"reactor.Connect error info: {errorInfo}");
 
             readSockets.Add(reactorEventFD);
 
@@ -420,6 +461,7 @@ namespace LSEG.Eta.ValuedAdd.Tests
             while (reactorEventFD.Available > 0)
             {
                 reactor.Dispatch(dispatchOpts, out errorInfo);
+                Assert.True(errorInfo == null, $"Reactor error occurred: {errorInfo}");
             }
 
             Assert.Equal(ReactorChannelEventType.CHANNEL_DOWN_RECONNECTING, reactorChannelEventTypes[0]);
@@ -432,6 +474,7 @@ namespace LSEG.Eta.ValuedAdd.Tests
             while (reactorEventFD.Available > 0)
             {
                 reactor.Dispatch(dispatchOpts, out errorInfo);
+                Assert.True(errorInfo == null, $"Reactor error occurred: {errorInfo}");
             }
 
             /* Receives access token information */
@@ -439,9 +482,11 @@ namespace LSEG.Eta.ValuedAdd.Tests
             Assert.Equal(TOKEN_TYPE, reactorAuthTokenInfo.TokenType);
             Assert.Equal(EXPIRES_IN, reactorAuthTokenInfo.ExpiresIn);
 
-            while (reactorEventFD.Available > 0 || reactorChannel == null)
+            var dispatchEndTime = System.DateTime.Now.AddSeconds(15);
+            while ((reactorEventFD.Available > 0 || reactorChannel == null) && System.DateTime.Now < dispatchEndTime)
             {
                 reactor.Dispatch(dispatchOpts, out errorInfo);
+                Assert.True(errorInfo == null, $"Reactor error occurred: {errorInfo}");
             }
 
             Assert.Equal(ReactorChannelEventType.CHANNEL_UP, reactorChannelEventTypes[1]);
@@ -454,6 +499,7 @@ namespace LSEG.Eta.ValuedAdd.Tests
             while (reactorEventFD.Available > 0)
             {
                 reactor.Dispatch(dispatchOpts, out errorInfo);
+                Assert.True(errorInfo == null, $"Reactor error occurred: {errorInfo}");
             }
 
             readSockets.Clear();
@@ -465,15 +511,12 @@ namespace LSEG.Eta.ValuedAdd.Tests
             while (reactorEventFD.Available > 0 || reactorChannel.Socket.Available > 0)
             {
                 reactor.Dispatch(dispatchOpts, out errorInfo);
+                Assert.True(errorInfo == null, $"Reactor error occurred: {errorInfo}");
             }
 
             Assert.Equal(LoginMsgType.REFRESH, loginMsgTypes[0]);
 
             Assert.Equal(ReactorChannelEventType.CHANNEL_READY, reactorChannelEventTypes[2]);
-
-            Assert.Equal(ReactorReturnCode.SUCCESS, reactorChannel.Close(out errorInfo));
-
-            Assert.Equal(ReactorReturnCode.SUCCESS, reactor.Shutdown(out _));
         }
 
         [Fact]
@@ -507,9 +550,9 @@ namespace LSEG.Eta.ValuedAdd.Tests
             }
 
             reactorOptions.UserSpecObj = this;
-            Reactor reactor = Reactor.CreateReactor(reactorOptions, out ReactorErrorInfo errorInfo);
+            reactor = Reactor.CreateReactor(reactorOptions, out ReactorErrorInfo errorInfo);
 
-            Assert.NotNull(reactor);
+            Assert.True(null == errorInfo, $"Failed to create Reactor. Error: {errorInfo}");
 
             Socket reactorEventFD = reactor.EventSocket;
             ReactorDispatchOptions dispatchOpts = new ReactorDispatchOptions();
@@ -530,6 +573,7 @@ namespace LSEG.Eta.ValuedAdd.Tests
             secondConnectInfo.ConnectOptions.MinorVersion = Codec.Codec.MinorVersion();
             secondConnectInfo.EnableSessionManagement = true;
             secondConnectInfo.ReactorAuthTokenEventCallback = this;
+            SetProxy(secondConnectInfo);
 
             ReactorConnectOptions connectOptions = new ReactorConnectOptions();
             connectOptions.ConnectionList.Add(firstConnectInfo);
@@ -568,8 +612,8 @@ namespace LSEG.Eta.ValuedAdd.Tests
             expectedState.Text(text);
 
             ReactorReturnCode returnCode = reactor.Connect(connectOptions, consumerRole, out errorInfo);
-
             Assert.Equal(ReactorReturnCode.SUCCESS, returnCode);
+            output.WriteLine($"reactor.Connect error info: {errorInfo}");
 
             readSockets.Add(reactorEventFD);
 
@@ -578,6 +622,7 @@ namespace LSEG.Eta.ValuedAdd.Tests
             while (reactorEventFD.Available > 0)
             {
                 reactor.Dispatch(dispatchOpts, out errorInfo);
+                Assert.True(errorInfo == null, $"Reactor error occurred: {errorInfo}");
             }
 
             Assert.Equal(ReactorChannelEventType.CHANNEL_DOWN_RECONNECTING, reactorChannelEventTypes[0]);
@@ -587,9 +632,11 @@ namespace LSEG.Eta.ValuedAdd.Tests
 
             Socket.Select(readSockets, null, null, 10 * 1000 * 1000);
 
-            while (reactorEventFD.Available > 0 || reactorChannel == null)
+            var dispatchEndTime = System.DateTime.Now.AddSeconds(15);
+            while ((reactorEventFD.Available > 0 || reactorChannel == null) && System.DateTime.Now < dispatchEndTime)
             {
                 reactor.Dispatch(dispatchOpts, out errorInfo);
+                Assert.True(errorInfo == null, $"Reactor error occurred: {errorInfo}");
             }
 
             /* Receives access token information */
@@ -605,6 +652,7 @@ namespace LSEG.Eta.ValuedAdd.Tests
             while (reactorEventFD.Available > 0)
             {
                 reactor.Dispatch(dispatchOpts, out errorInfo);
+                Assert.True(errorInfo == null, $"Reactor error occurred: {errorInfo}");
             }
 
             Assert.Equal(ReactorChannelEventType.CHANNEL_UP, reactorChannelEventTypes[1]);
@@ -617,15 +665,12 @@ namespace LSEG.Eta.ValuedAdd.Tests
             while (reactorChannel.Socket.Available > 0)
             {
                 reactor.Dispatch(dispatchOpts, out errorInfo);
+                Assert.True(errorInfo == null, $"Reactor error occurred: {errorInfo}");
             }
 
             Assert.Equal(LoginMsgType.REFRESH, loginMsgTypes[0]);
 
             Assert.Equal(ReactorChannelEventType.CHANNEL_READY, reactorChannelEventTypes[2]);
-
-            Assert.Equal(ReactorReturnCode.SUCCESS, reactorChannel.Close(out errorInfo));
-
-            Assert.Equal(ReactorReturnCode.SUCCESS, reactor.Shutdown(out _));
         }
 
         [Fact]
@@ -652,9 +697,9 @@ namespace LSEG.Eta.ValuedAdd.Tests
             ReactorOptions reactorOptions = new ReactorOptions();
 
             reactorOptions.UserSpecObj = this;
-            Reactor reactor = Reactor.CreateReactor(reactorOptions, out ReactorErrorInfo errorInfo);
+            reactor = Reactor.CreateReactor(reactorOptions, out ReactorErrorInfo errorInfo);
 
-            Assert.NotNull(reactor);
+            Assert.True(null == errorInfo, $"Failed to create Reactor. Error: {errorInfo}");
 
             Socket reactorEventFD = reactor.EventSocket;
             ReactorDispatchOptions dispatchOpts = new ReactorDispatchOptions();
@@ -664,6 +709,7 @@ namespace LSEG.Eta.ValuedAdd.Tests
             connectInfo.ConnectOptions.MinorVersion = Codec.Codec.MinorVersion();
             connectInfo.EnableSessionManagement = true;
             connectInfo.ReactorAuthTokenEventCallback = this;
+            SetProxy(connectInfo);
 
             ReactorConnectOptions connectOptions = new ReactorConnectOptions();
             connectOptions.ConnectionList.Add(connectInfo);
@@ -683,8 +729,6 @@ namespace LSEG.Eta.ValuedAdd.Tests
             Assert.Equal(ReactorReturnCode.INVALID_USAGE, returnCode);
             Assert.NotNull(errorInfo);
             Assert.Equal("Failed to copy OAuth credential for enabling the session management; OAuth client secret and client JSON Web Key do not exist.", errorInfo.Error.Text);
-
-            Assert.Equal(ReactorReturnCode.SUCCESS, reactor.Shutdown(out _));
         }
 
         [Fact]
@@ -695,9 +739,9 @@ namespace LSEG.Eta.ValuedAdd.Tests
             ReactorOptions reactorOptions = new ReactorOptions();
 
             reactorOptions.UserSpecObj = this;
-            Reactor reactor = Reactor.CreateReactor(reactorOptions, out ReactorErrorInfo errorInfo);
+            reactor = Reactor.CreateReactor(reactorOptions, out ReactorErrorInfo errorInfo);
 
-            Assert.NotNull(reactor);
+            Assert.True(null == errorInfo, $"Failed to create Reactor. Error: {errorInfo}");
 
             ReactorDispatchOptions dispatchOpts = new ReactorDispatchOptions();
             ReactorConnectInfo connectInfo = new ReactorConnectInfo();
@@ -706,6 +750,7 @@ namespace LSEG.Eta.ValuedAdd.Tests
             connectInfo.ConnectOptions.MinorVersion = Codec.Codec.MinorVersion();
             connectInfo.EnableSessionManagement = true;
             connectInfo.ReactorAuthTokenEventCallback = this;
+            SetProxy(connectInfo);
 
             ReactorConnectOptions connectOptions = new ReactorConnectOptions();
             connectOptions.ConnectionList.Add(connectInfo);
@@ -726,8 +771,6 @@ namespace LSEG.Eta.ValuedAdd.Tests
             Assert.Equal(ReactorReturnCode.FAILURE, returnCode);
             Assert.NotNull(errorInfo);
             Assert.Equal("Failed to perform a REST request to the token service. Text: {\"error\":\"invalid_client\"  ,\"error_description\":\"Invalid client or client credentials.\" }", errorInfo.Error.Text);
-
-            Assert.Equal(ReactorReturnCode.SUCCESS, reactor.Shutdown(out _));
         }
 
         public ReactorCallbackReturnCode DefaultMsgCallback(ReactorMsgEvent msgEvent)

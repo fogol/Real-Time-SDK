@@ -12,19 +12,22 @@ using LSEG.Eta.ValueAdd.Reactor;
 using System;
 using Xunit.Abstractions;
 using System.IO;
+using System.Text.RegularExpressions;
 
 namespace LSEG.Eta.ValuedAdd.Tests
 {
     public class ReactorQueryServiceDiscoveryTest : IReactorServiceEndpointEventCallback
     {
-        private string CLIENT_ID;
-        private string CLIENT_ID_JWT;
-        private string CLIENT_SECRET;
-        private string CLIENT_JWK;
-        private string TOKEN_SERVICE_URL;
-        private string SERVICE_DISCOVERY_URL;
+        private readonly string CLIENT_ID;
+        private readonly string CLIENT_ID_JWT;
+        private readonly string CLIENT_SECRET;
+        private readonly string CLIENT_JWK;
+        private readonly string TOKEN_SERVICE_URL;
+        private readonly string SERVICE_DISCOVERY_URL;
+        private readonly string PROXY_HOST;
+        private readonly string PROXY_PORT;
         private int expectedNumOfEndpoint = 0;
-        private string expectedErrorTextFromCallback;
+        private string expectedErrorRegexFromCallback;
         private string[] expectedTransports;
 
         private readonly ITestOutputHelper output;
@@ -41,6 +44,8 @@ namespace LSEG.Eta.ValuedAdd.Tests
                 CLIENT_JWK = Environment.GetEnvironmentVariable("ETANET_CLIENT_JWK", System.EnvironmentVariableTarget.Process);
                 TOKEN_SERVICE_URL = Environment.GetEnvironmentVariable("ETANET_TOKEN_SERVICE_URL", System.EnvironmentVariableTarget.Process);
                 SERVICE_DISCOVERY_URL = Environment.GetEnvironmentVariable("ETANET_SERVICE_DISCOVERY_URL", System.EnvironmentVariableTarget.Process);
+                PROXY_HOST = Environment.GetEnvironmentVariable("ETANET_PROXY_HOST", System.EnvironmentVariableTarget.Process);
+                PROXY_PORT = Environment.GetEnvironmentVariable("ETANET_PROXY_PORT", System.EnvironmentVariableTarget.Process);
             }
             catch (Exception)
             {
@@ -59,12 +64,12 @@ namespace LSEG.Eta.ValuedAdd.Tests
 
                 bool matchTransport;
 
-                foreach(var endpoint in serviceEndpointEvent.ServiceEndpointInfoList)
+                foreach (var endpoint in serviceEndpointEvent.ServiceEndpointInfoList)
                 {
                     matchTransport = false;
                     for (int i = 0; i < expectedTransports.Length; i++)
                     {
-                        if(endpoint.Transport.IndexOf(expectedTransports[i]) != -1)
+                        if (endpoint.Transport.IndexOf(expectedTransports[i]) != -1)
                         {
                             matchTransport = true;
                         }
@@ -77,13 +82,26 @@ namespace LSEG.Eta.ValuedAdd.Tests
             {
                 Assert.NotNull(serviceEndpointEvent.ReactorErrorInfo);
 
-                bool foundExpectedMsg = serviceEndpointEvent.ReactorErrorInfo.Error.Text.
-                    StartsWith(expectedErrorTextFromCallback);
+                var actualErrorMsg = serviceEndpointEvent.ReactorErrorInfo.Error.Text;
 
-                Assert.True(foundExpectedMsg);
+                Assert.True(Regex.IsMatch(actualErrorMsg, expectedErrorRegexFromCallback),
+                    "Pattern not found in value" + NewLine +
+                    $"Regex: {expectedErrorRegexFromCallback}{NewLine}" +
+                    $"Value: {actualErrorMsg}");
             }
 
             return ReactorCallbackReturnCode.SUCCESS;
+        }
+
+        private ReactorOptions CreateReactorOptions()
+        {
+            var options = new ReactorOptions();
+            if (!string.IsNullOrEmpty(PROXY_HOST))
+            {
+                options.RestProxyOptions.ProxyHostName = PROXY_HOST;
+                options.RestProxyOptions.ProxyPort = PROXY_PORT;
+            }
+            return options;
         }
 
         [Fact]
@@ -91,7 +109,7 @@ namespace LSEG.Eta.ValuedAdd.Tests
         [Category("Reactor")]
         public void RequestQueryServiceDiscoveryNotSpecifyClientSecrectAndClientJwkTest()
         {
-            ReactorOptions reactorOptions = new ReactorOptions();
+            ReactorOptions reactorOptions = CreateReactorOptions();
             reactorOptions.UserSpecObj = this;
             Reactor reactor = Reactor.CreateReactor(reactorOptions, out _);
 
@@ -112,7 +130,7 @@ namespace LSEG.Eta.ValuedAdd.Tests
         [Category("Reactor")]
         public void RequestQueryServiceDiscoveryUnauthorizedTest()
         {
-            ReactorOptions reactorOptions = new ReactorOptions();
+            ReactorOptions reactorOptions = CreateReactorOptions();
             reactorOptions.UserSpecObj = this;
             Reactor reactor = Reactor.CreateReactor(reactorOptions, out _);
 
@@ -123,7 +141,7 @@ namespace LSEG.Eta.ValuedAdd.Tests
             serviceDiscoveryOptions.ClientSecret.Data("invalidSecret");
             serviceDiscoveryOptions.ReactorServiceEndpointEventCallback = this;
             expectedNumOfEndpoint = 0;
-            expectedErrorTextFromCallback = "Failed to perform a REST request to the token service. Text: {\"error\":\"invalid_client\"  ,\"error_description\":\"Invalid client or client credentials.\" }";
+            expectedErrorRegexFromCallback = "Failed to perform a REST request to the token service. Text: {\"error\":\"invalid_client\"  ,\"error_description\":\"Invalid client or client credentials.\" }";
             ReactorErrorInfo errorInfo;
             Assert.Equal(ReactorReturnCode.SUCCESS, reactor.QueryServiceDiscovery(serviceDiscoveryOptions, out errorInfo));
             Assert.Null(errorInfo);
@@ -135,7 +153,7 @@ namespace LSEG.Eta.ValuedAdd.Tests
         [Category("Reactor")]
         public void RequestQueryServiceDiscoveryUnauthorized_JWT_Test()
         {
-            ReactorOptions reactorOptions = new ReactorOptions();
+            ReactorOptions reactorOptions = CreateReactorOptions();
 
             if(!string.IsNullOrEmpty(TOKEN_SERVICE_URL))
             {
@@ -152,7 +170,7 @@ namespace LSEG.Eta.ValuedAdd.Tests
             serviceDiscoveryOptions.ClientJwk.Data(File.ReadAllText(CLIENT_JWK));
             serviceDiscoveryOptions.ReactorServiceEndpointEventCallback = this;
             expectedNumOfEndpoint = 0;
-            expectedErrorTextFromCallback = "Failed to perform a REST request to the token service. Text: {\"error\":\"invalid_client\"  ,\"error_description\":\"Client not found in client database for JWT's sub claim value 'InvalidClientID'.\" }";
+            expectedErrorRegexFromCallback = "Failed to perform a REST request to the token service. Text: {\"error\":\"invalid_client\"  ,\"error_description\":\"Client not found in client database for JWT's sub claim value 'InvalidClientID'.\" }";
             ReactorErrorInfo errorInfo;
             Assert.Equal(ReactorReturnCode.SUCCESS, reactor.QueryServiceDiscovery(serviceDiscoveryOptions, out errorInfo));
             Assert.Null(errorInfo);
@@ -164,7 +182,7 @@ namespace LSEG.Eta.ValuedAdd.Tests
         [Category("Reactor")]
         public void RequestQueryServiceDiscoveryInvalid_JWK_Test()
         {
-            ReactorOptions reactorOptions = new ReactorOptions();
+            ReactorOptions reactorOptions = CreateReactorOptions();
             reactorOptions.UserSpecObj = this;
             Reactor reactor = Reactor.CreateReactor(reactorOptions, out _);
 
@@ -190,7 +208,7 @@ namespace LSEG.Eta.ValuedAdd.Tests
         [Category("Reactor")]
         public void RequestQueryServiceDiscoveryInvalidTokenServiceURLTest()
         {
-            ReactorOptions reactorOptions = new ReactorOptions();
+            ReactorOptions reactorOptions = CreateReactorOptions();
             reactorOptions.SetTokenServiceURL("https://invalid.api.refinitiv.com/auth/oauth2/v2/token");
             reactorOptions.UserSpecObj = this;
             Reactor reactor = Reactor.CreateReactor(reactorOptions, out _);
@@ -202,7 +220,9 @@ namespace LSEG.Eta.ValuedAdd.Tests
             serviceDiscoveryOptions.ClientSecret.Data(CLIENT_SECRET);
             serviceDiscoveryOptions.ReactorServiceEndpointEventCallback = this;
             expectedNumOfEndpoint = 0;
-            expectedErrorTextFromCallback = "Failed to perform a REST request to the token service. Text: No such host is known. (invalid.api.refinitiv.com:443)";
+            expectedErrorRegexFromCallback = @"^Failed to perform a REST request to the token service. Text: " +
+                @"(No such host is known. \(invalid.api.refinitiv.com:443\))" +
+                @"|(The proxy tunnel request to proxy .+ failed with status code '404')";
             ReactorErrorInfo errorInfo;
             Assert.Equal(ReactorReturnCode.SUCCESS, reactor.QueryServiceDiscovery(serviceDiscoveryOptions, out errorInfo));
             Assert.Null(errorInfo);
@@ -215,7 +235,7 @@ namespace LSEG.Eta.ValuedAdd.Tests
         [Category("Reactor")]
         public void RequestQueryServiceDiscoveryInvalidServiceDiscoveryURLTest()
         {
-            ReactorOptions reactorOptions = new ReactorOptions();
+            ReactorOptions reactorOptions = CreateReactorOptions();
             reactorOptions.SetServiceDiscoveryURL("https://invalid.api.refinitiv.com/streaming/pricing/v1/");
             reactorOptions.UserSpecObj = this;
             Reactor reactor = Reactor.CreateReactor(reactorOptions, out _);
@@ -227,7 +247,9 @@ namespace LSEG.Eta.ValuedAdd.Tests
             serviceDiscoveryOptions.ClientSecret.Data(CLIENT_SECRET);
             serviceDiscoveryOptions.ReactorServiceEndpointEventCallback = this;
             expectedNumOfEndpoint = 0;
-            expectedErrorTextFromCallback = "Failed to perform a REST request to the service discovery. Text: No such host is known. (invalid.api.refinitiv.com:443)";
+            expectedErrorRegexFromCallback = @"^Failed to perform a REST request to the service discovery. Text: "+
+                @"(No such host is known. \(invalid.api.refinitiv.com:443\))"+
+                @"|(The proxy tunnel request to proxy .+ failed with status code '404')";
             ReactorErrorInfo errorInfo;
             Assert.Equal(ReactorReturnCode.SUCCESS, reactor.QueryServiceDiscovery(serviceDiscoveryOptions, out errorInfo));
             Assert.Null(errorInfo);
@@ -237,7 +259,7 @@ namespace LSEG.Eta.ValuedAdd.Tests
 
         void RequestQueryServiceDiscovery(bool isPingJwt, bool overrideTokenService, bool overrideDiscoveryURL)
         {
-            ReactorOptions reactorOptions = new ReactorOptions();
+            ReactorOptions reactorOptions = CreateReactorOptions();
             
             if(overrideTokenService && !string.IsNullOrEmpty(TOKEN_SERVICE_URL))
             {
@@ -322,7 +344,7 @@ namespace LSEG.Eta.ValuedAdd.Tests
 
         private void RequestQueryServiceDiscovery_JWK_Audience(bool overrideTokenService, bool overrideDiscoveryURL, string audience)
         {
-            ReactorOptions reactorOptions = new ReactorOptions();
+            ReactorOptions reactorOptions = CreateReactorOptions();
 
             if (overrideTokenService && !string.IsNullOrEmpty(TOKEN_SERVICE_URL))
             {
@@ -352,7 +374,7 @@ namespace LSEG.Eta.ValuedAdd.Tests
             else // Invalid audience
             {
                 expectedNumOfEndpoint = 0;
-                expectedErrorTextFromCallback = "Failed to perform a REST request to the token service. Text: {\"error\":\"invalid_client\"  ,\"error_description\":\"Client not found in client database for JWT's sub claim value";
+                expectedErrorRegexFromCallback = "Failed to perform a REST request to the token service. Text: {\"error\":\"invalid_client\"  ,\"error_description\":\"(Client not found in client database for JWT's sub claim value|Invalid JWT token)";
             }
 
             serviceDiscoveryOptions.ReactorServiceEndpointEventCallback = this;
@@ -365,7 +387,7 @@ namespace LSEG.Eta.ValuedAdd.Tests
 
         void RequestQueryServiceDiscovery_TP_TCP(bool isPingJwt, bool overrideTokenService, bool overrideDiscoveryURL)
         {
-            ReactorOptions reactorOptions = new ReactorOptions();
+            ReactorOptions reactorOptions = CreateReactorOptions();
 
             if (overrideTokenService && !string.IsNullOrEmpty(TOKEN_SERVICE_URL))
             {
@@ -424,7 +446,7 @@ namespace LSEG.Eta.ValuedAdd.Tests
 
         void RequestQueryServiceDiscovery_DP_JSON2(bool isPingJwt, bool overrideTokenService, bool overrideDiscoveryURL)
         {
-            ReactorOptions reactorOptions = new ReactorOptions();
+            ReactorOptions reactorOptions = CreateReactorOptions();
             if (overrideTokenService && !string.IsNullOrEmpty(TOKEN_SERVICE_URL))
             {
                 reactorOptions.SetTokenServiceURL(TOKEN_SERVICE_URL);

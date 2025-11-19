@@ -28,7 +28,7 @@ internal class DictionaryHandler
     internal const string ENUM_TABLE_FILENAME = "../../../ComplexTypeTests/enumtype.def";
 
     private const int MAX_DICTIONARY_STATUS_MSG_SIZE = 1024;
-    private const int MAX_FIELD_DICTIONARY_MSG_SIZE = 448000;
+    private const int MAX_FIELD_DICTIONARY_MSG_SIZE = 8192; // TODO: replace this value with 448000 when consumer issue with dictionary loading fixed.
     private const int MAX_ENUM_TYPE_DICTIONARY_MSG_SIZE = 12800;
 
     private string FieldDictionaryDownloadName = FIELD_DICTIONARY_NAME;

@@ -288,6 +288,7 @@ namespace LSEG.Eta.ValueAdd.Reactor
 
                     if(ReactorRestClient.ValidateJWK(reactorChannel.TokenSession.ReactorOAuthCredential, out errorInfo) != ReactorReturnCode.SUCCESS)
                     {
+                        reactorChannel.TokenSession.Dispose();
                         reactorChannel.ReturnToPool();
                         reactorChannel.TokenSession = null;
                         return errorInfo!.Code;
@@ -884,7 +885,7 @@ namespace LSEG.Eta.ValueAdd.Reactor
                                "Required parameter ClientSecret or ClientJwk is not set");
                 }
 
-                ReactorRestConnectOptions connOptions = new ReactorRestConnectOptions(m_ReactorOptions);
+                using ReactorRestConnectOptions connOptions = new ReactorRestConnectOptions(m_ReactorOptions);
 
                 switch (serviceDiscoveryOptions.Transport)
                 {
@@ -1093,9 +1094,10 @@ namespace LSEG.Eta.ValueAdd.Reactor
                     return retVal;
 
                 /* Send CHANNEL_DOWN to worker and application for all reactorChannels. */
-                for (ReactorChannel? reactorChannel = m_ReactorChannelQueue.Start(ReactorChannel.REACTOR_CHANNEL_LINK);
-                reactorChannel != null;
-                reactorChannel = m_ReactorChannelQueue.Forth(ReactorChannel.REACTOR_CHANNEL_LINK))
+                for (
+                    ReactorChannel? reactorChannel = m_ReactorChannelQueue.Start(ReactorChannel.REACTOR_CHANNEL_LINK);
+                    reactorChannel != null;
+                    reactorChannel = m_ReactorChannelQueue.Forth(ReactorChannel.REACTOR_CHANNEL_LINK))
                 {
                     if (reactorChannel is null || reactorChannel.State == ReactorChannelState.CLOSED)
                         continue;
@@ -1304,6 +1306,7 @@ namespace LSEG.Eta.ValueAdd.Reactor
                         reactorChannel.Watchlist.Close();
                         reactorChannel.Watchlist = null;
                     }
+                    reactorChannel.TokenSession?.Dispose();
 
                     Interlocked.Increment(ref m_waitingForCloseAck);
                 }

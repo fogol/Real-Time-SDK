@@ -880,8 +880,13 @@ namespace LSEG.Ema.Access
 
                     if (channelConfig != null)
                     {
-                        strBuilder.Append($" for {channelConfig.ConnectInfo.ConnectOptions.UnifiedNetworkInfo.Address}:" +
-                            $"{channelConfig.ConnectInfo.ConnectOptions.UnifiedNetworkInfo.ServiceName})");
+                        var connectOpts = channelConfig.ConnectInfo.ConnectOptions;
+                        strBuilder.Append($" for {connectOpts.UnifiedNetworkInfo.Address}:{connectOpts.UnifiedNetworkInfo.ServiceName}");
+                        var proxyOpts = connectOpts.ProxyOptions;
+                        if (!string.IsNullOrEmpty(proxyOpts.ProxyHostName))
+                        {
+                            strBuilder.Append($" (proxy {proxyOpts.ProxyHostName}:{proxyOpts.ProxyPort})");
+                        }
                     }
 
                     string message = strBuilder.ToString();
