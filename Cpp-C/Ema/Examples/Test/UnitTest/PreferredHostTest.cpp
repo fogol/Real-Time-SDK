@@ -42,8 +42,10 @@ public:
 	{
 		try
 		{
-			dataDictionary.loadFieldDictionary("RDMFieldDictionaryTest");
-			dataDictionary.loadEnumTypeDictionary("enumtypeTest.def");
+			if (!dataDictionary.isFieldDictionaryLoaded())
+				dataDictionary.loadFieldDictionary("RDMFieldDictionaryTest");
+			if (!dataDictionary.isEnumTypeDefLoaded())
+				dataDictionary.loadEnumTypeDictionary("enumtypeTest.def");
 		}
 		catch (const OmmException& excp)
 		{
@@ -54,7 +56,6 @@ public:
 
 	void TearDown()
 	{
-		dataDictionary.clear();
 	}
 };
 

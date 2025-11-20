@@ -2067,6 +2067,7 @@ RsslRet _addTableToDictionary( RsslDataDictionary *dictionary, RsslUInt32 fidsCo
 		if (_addFieldTableReferenceToDictionary(dictionary, pFids, pTable, errorText) != RSSL_RET_SUCCESS)
 		{
 			for(i = 0; i <= pTable->maxValue; ++i) if (pTable->enumTypes[i]) free(pTable->enumTypes[i]);
+			free(pTable->fidReferences);
 			free(pTable->enumTypes);
 			free(pTable);
 			return RSSL_RET_FAILURE;
@@ -2142,10 +2143,16 @@ RSSL_API RsslRet rsslLoadEnumTypeDictionary(	const char				*filename,
 	}
 
 	if (!dictionary->isInitialized && _initDictionary(dictionary, errorText) != RSSL_RET_SUCCESS)
+	{
+		fclose(fp);
 		return RSSL_RET_FAILURE;
+	}
 
 	if ((ret = textFileReaderInit(&textFileReader, fp, errorText)) != RSSL_RET_SUCCESS)
+	{
+		fclose(fp);
 		return ret;
+	}
 
 	while ((ret = textFileReaderReadLine(&textFileReader, errorText)) > 0)
 	{
@@ -2161,7 +2168,7 @@ RSSL_API RsslRet rsslLoadEnumTypeDictionary(	const char				*filename,
 					 continue;
 				 getRestOfLine( textFileReader.currentLine, curPos, textFileReader.usrString2);
 				 if (_copyDictionaryTag(textFileReader.usrString, textFileReader.usrString2, RDM_DICTIONARY_ENUM_TABLES, dictionary, errorText))
-					return _finishEnumLoadFailure(0, dictionary, pFids, pEnumTypes, &textFileReader);
+					return _finishEnumLoadFailure(fp, dictionary, pFids, pEnumTypes, &textFileReader);
 			 }
 			 continue;
 		}
@@ -2170,7 +2177,7 @@ RSSL_API RsslRet rsslLoadEnumTypeDictionary(	const char				*filename,
 		* If the field does not exist, create it with UNKNOWN type. */
 
 		if ((curPos = getCopyUntilSpace(textFileReader.currentLine, 0, textFileReader.usrString)) == -2) /* Keyword is definitely missing. */
-			return (_setError(errorText, "Missing keyword(Line=%d).", lineNum), _finishEnumLoadFailure(0, dictionary, pFids, pEnumTypes, &textFileReader));
+			return (_setError(errorText, "Missing keyword(Line=%d).", lineNum), _finishEnumLoadFailure(fp, dictionary, pFids, pEnumTypes, &textFileReader));
 		else if (curPos < 0) /* Blank line. */
 			continue;
 
@@ -2185,7 +2192,7 @@ RSSL_API RsslRet rsslLoadEnumTypeDictionary(	const char				*filename,
 			if (pEnumTypes)
 			{
 				if (_addTableToDictionary(dictionary, fidsCount, pFids, maxValue, pEnumTypes, errorText, lineNum) != RSSL_RET_SUCCESS)
-					return _finishEnumLoadFailure(0, dictionary, pFids, pEnumTypes, &textFileReader);
+					return _finishEnumLoadFailure(fp, dictionary, pFids, pEnumTypes, &textFileReader);
 
 				maxValue = 0; fidsCount = 0;
 				_freeLists(pFids, pEnumTypes, RSSL_TRUE); pFids = 0; pEnumTypes = 0;
@@ -2193,15 +2200,15 @@ RSSL_API RsslRet rsslLoadEnumTypeDictionary(	const char				*filename,
 			pTmpFid = pFids;
 			pFids = (RsslReferenceFidStore*)calloc(1, sizeof(RsslReferenceFidStore));
 			if (!pFids)
-				return (_setError(errorText, "Unable to create storage for field table."), _finishEnumLoadFailure(0, dictionary, pFids, pEnumTypes, &textFileReader));
+				return (_setError(errorText, "Unable to create storage for field table."), _finishEnumLoadFailure(fp, dictionary, pFids, pEnumTypes, &textFileReader));
 			pFids->next = pTmpFid;
 			++fidsCount;
 
 			if (_rsslCreateStringCopyFromChar(&pFids->acronym, textFileReader.usrString) < RSSL_RET_SUCCESS)
-				return _finishEnumLoadFailure(0, dictionary, pFids, pEnumTypes, &textFileReader);
+				return _finishEnumLoadFailure(fp, dictionary, pFids, pEnumTypes, &textFileReader);
 
 			if ((curPos = getCopyUntilSpace(textFileReader.currentLine, curPos, textFileReader.usrString)) < 0)
-				return (_setError(errorText, "Missing FID(Line=%d).", lineNum), _finishEnumLoadFailure(0, dictionary, pFids, pEnumTypes, &textFileReader));
+				return (_setError(errorText, "Missing FID(Line=%d).", lineNum), _finishEnumLoadFailure(fp, dictionary, pFids, pEnumTypes, &textFileReader));
 
 			pFids->fid = atoi(textFileReader.usrString);
 			continue;
@@ -2212,7 +2219,7 @@ RSSL_API RsslRet rsslLoadEnumTypeDictionary(	const char				*filename,
 			RsslEnumTypeStore *pTmpEnumType = pEnumTypes;
 			pEnumTypes = (RsslEnumTypeStore*)calloc(1, sizeof(RsslEnumTypeStore));
 			if (!pEnumTypes)
-				return (_setError(errorText, "Unable to create storage for enumeration table."), _finishEnumLoadFailure(0, dictionary, pFids, pEnumTypes, &textFileReader));
+				return (_setError(errorText, "Unable to create storage for enumeration table."), _finishEnumLoadFailure(fp, dictionary, pFids, pEnumTypes, &textFileReader));
 			pEnumTypes->next = pTmpEnumType;
 		}
 
@@ -2227,7 +2234,7 @@ RSSL_API RsslRet rsslLoadEnumTypeDictionary(	const char				*filename,
 		if ((curPos = getCopyQuotedOrSharpedStr(textFileReader.currentLine, curPos, textFileReader.usrString, &textIsHex)) < 0)
 		{
 			_setError(errorText, "Missing DISPLAY(Line=%d).", lineNum);
-			return _finishEnumLoadFailure(0, dictionary, pFids, pEnumTypes, &textFileReader);
+			return _finishEnumLoadFailure(fp, dictionary, pFids, pEnumTypes, &textFileReader);
 		}
 
 		if (textIsHex) /* Special character -- store as binary */
@@ -2236,12 +2243,12 @@ RSSL_API RsslRet rsslLoadEnumTypeDictionary(	const char				*filename,
 			RsslUInt32 length = (rtrUInt32)strlen(textFileReader.usrString);
 
 			if (length & 0x1) /* Make sure it's even */
-				return (_setError(errorText, "Odd-length hexadecimal input(Line=%d).", lineNum), _finishEnumLoadFailure(0, dictionary, pFids, pEnumTypes, &textFileReader));
+				return (_setError(errorText, "Odd-length hexadecimal input(Line=%d).", lineNum), _finishEnumLoadFailure(fp, dictionary, pFids, pEnumTypes, &textFileReader));
 
 			pEnumTypes->enumType.display.length = (rtrUInt32)(strlen(textFileReader.usrString) / 2);
 			pEnumTypes->enumType.display.data = (char*)malloc(pEnumTypes->enumType.display.length + 1);
 			if (!pEnumTypes->enumType.display.data)
-				return (_setError(errorText, "Unable to create storage for enumeration display table."), _finishEnumLoadFailure(0, dictionary, pFids, pEnumTypes, &textFileReader));
+				return (_setError(errorText, "Unable to create storage for enumeration display table."), _finishEnumLoadFailure(fp, dictionary, pFids, pEnumTypes, &textFileReader));
 			pEnumTypes->enumType.display.data[pEnumTypes->enumType.display.length] = '\0'; /* May as well null-terminate it. */ 
 
 			for (pos = 0; pos < pEnumTypes->enumType.display.length; ++pos)
@@ -2251,7 +2258,7 @@ RSSL_API RsslRet rsslLoadEnumTypeDictionary(	const char				*filename,
 				int byte;
 
 				if (!isxdigit(hex[0]) || !isxdigit(hex[1]))
-					return (_setError(errorText, "Invalid hexadecimal input(Line=%d).", lineNum), _finishEnumLoadFailure(0, dictionary, pFids, pEnumTypes, &textFileReader));
+					return (_setError(errorText, "Invalid hexadecimal input(Line=%d).", lineNum), _finishEnumLoadFailure(fp, dictionary, pFids, pEnumTypes, &textFileReader));
 
 				sscanf(hex, "%x", &byte);
 				((unsigned char*)pEnumTypes->enumType.display.data)[pos] = (unsigned char)byte;
@@ -2262,7 +2269,7 @@ RSSL_API RsslRet rsslLoadEnumTypeDictionary(	const char				*filename,
 			pEnumTypes->enumType.display.length = (rtrUInt32)strlen(textFileReader.usrString);
 			pEnumTypes->enumType.display.data = (char*)malloc(pEnumTypes->enumType.display.length + 1);
 			if (!pEnumTypes->enumType.display.data)
-				return (_setError(errorText, "Unable to create storage for enumeration display table."), _finishEnumLoadFailure(0, dictionary, pFids, pEnumTypes, &textFileReader));
+				return (_setError(errorText, "Unable to create storage for enumeration display table."), _finishEnumLoadFailure(fp, dictionary, pFids, pEnumTypes, &textFileReader));
 			strncpy(pEnumTypes->enumType.display.data, textFileReader.usrString, (pEnumTypes->enumType.display.length + 1));
 		}
 
@@ -2277,7 +2284,7 @@ RSSL_API RsslRet rsslLoadEnumTypeDictionary(	const char				*filename,
 			pEnumTypes->enumType.meaning.length = (rtrUInt32)strlen(textFileReader.usrString);
 			pEnumTypes->enumType.meaning.data = (char*)malloc(pEnumTypes->enumType.meaning.length + 1);
 			if (!pEnumTypes->enumType.meaning.data)
-				return (_setError(errorText, "Unable to create storage for enumeration meaning table."), _finishEnumLoadFailure(0, dictionary, pFids, pEnumTypes, &textFileReader));
+				return (_setError(errorText, "Unable to create storage for enumeration meaning table."), _finishEnumLoadFailure(fp, dictionary, pFids, pEnumTypes, &textFileReader));
 			strncpy(pEnumTypes->enumType.meaning.data, textFileReader.usrString, (pEnumTypes->enumType.meaning.length + 1));
 		}
 	}
@@ -2287,10 +2294,10 @@ RSSL_API RsslRet rsslLoadEnumTypeDictionary(	const char				*filename,
 
 	/* Finish last table */
 	if (!pEnumTypes)
-		return (_setError(errorText, "No EnumTable found(Line=%d)", lineNum), _finishEnumLoadFailure(0, dictionary, pFids, 0, &textFileReader));
+		return (_setError(errorText, "No EnumTable found(Line=%d)", lineNum), _finishEnumLoadFailure(fp, dictionary, pFids, 0, &textFileReader));
 
 	if (_addTableToDictionary(dictionary, fidsCount, pFids, maxValue, pEnumTypes, errorText, -1) != RSSL_RET_SUCCESS)
-		return _finishEnumLoadFailure(0, dictionary, pFids, pEnumTypes, &textFileReader);
+		return _finishEnumLoadFailure(fp, dictionary, pFids, pEnumTypes, &textFileReader);
 
 	_freeLists(pFids, pEnumTypes, RSSL_TRUE); pFids = 0; pEnumTypes = 0;
 	maxValue = 0; fidsCount = 0;

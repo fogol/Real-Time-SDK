@@ -201,6 +201,7 @@ void DataDictionaryImpl::clear()
 		_loadedFieldDictionary = false;
 		_loadedEnumTypeDef = false;
 
+		rsslDeleteDataDictionary(_pRsslDataDictionary);
 		rsslClearDataDictionary(_pRsslDataDictionary);
 
 		if (_pDictionaryEntryList)

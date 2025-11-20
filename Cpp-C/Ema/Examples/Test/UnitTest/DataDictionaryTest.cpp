@@ -10,6 +10,7 @@
 #include "Utilities.h"
 #include "OmmConsumerConfigImpl.h"
 #include <sstream>
+#include <memory>
 
 using namespace refinitiv::ema::access;
 using namespace refinitiv::ema::rdm;
@@ -277,11 +278,23 @@ protected:
   static RsslDataDictionary globalRsslDataDictionary;
   static DataDictionary globalDataDictionary;
   static bool hasRun;
+
+  struct RsslDataDictionaryDeleter
+  {
+      void operator()(RsslDataDictionary* pRsslDataDictionary) const
+      {
+          rsslDeleteDataDictionary(pRsslDataDictionary);
+      }
+  };
+
+  static std::unique_ptr<RsslDataDictionary, RsslDataDictionaryDeleter> globalRsslDataDictionaryDeleter;
 };
 
 bool DataDictionaryTest::hasRun(false);
 RsslDataDictionary DataDictionaryTest::globalRsslDataDictionary;
 DataDictionary DataDictionaryTest::globalDataDictionary;
+
+std::unique_ptr<RsslDataDictionary, DataDictionaryTest::RsslDataDictionaryDeleter> DataDictionaryTest::globalRsslDataDictionaryDeleter{ &(DataDictionaryTest::globalRsslDataDictionary) };
 
 TEST_F(DataDictionaryTest, LoadDictionaryFromFile) {
   EXPECT_TRUE( true ) << "LoadDictionaryFromFile";
@@ -1133,4 +1146,24 @@ TEST_F(DataDictionaryTest, DictionaryEntryCallGetEntryExByNameShouldGenerateOmmE
 	{
 		EXPECT_EQ(excp.getExceptionType(), OmmException::OmmInvalidUsageExceptionEnum) << "Invalid usage exception type after calling getEntry(nameEntry) from non existing dictionary entry";
 	}
+}
+
+TEST_F(DataDictionaryTest, DataDictionaryClearAndLoadAgain)
+{
+    try {
+        DataDictionary dataDictionary;
+        dataDictionary.loadFieldDictionary(fieldDictionaryFileName);
+        dataDictionary.loadEnumTypeDictionary(enumTableFileName);
+        dataDictionary.clear();
+        EXPECT_FALSE(dataDictionary.isFieldDictionaryLoaded()) << "dataDictionary.isFieldDictionaryLoaded() should be false after dataDictionary.clear()";
+        EXPECT_FALSE(dataDictionary.isEnumTypeDefLoaded()) << "dataDictionary.isEnumTypeDefLoaded() should be false after dataDictionary.clear()";
+        dataDictionary.loadFieldDictionary(fieldDictionaryFileName);
+        dataDictionary.loadEnumTypeDictionary(enumTableFileName);
+        EXPECT_TRUE(dataDictionary.isFieldDictionaryLoaded()) << "dataDictionary.isFieldDictionaryLoaded() should be true after reload";
+        EXPECT_TRUE(dataDictionary.isEnumTypeDefLoaded()) << "dataDictionary.isEnumTypeDefLoaded() should be true after reload";
+    }
+    catch (const OmmException&)
+    {
+        GTEST_FAIL() << "unexpected exception after calling DataDictionary::loadFieldDictionary() and DataDictionary::loadEnumTypeDictionary() multiple times after clearing the data dictionary";
+    }
 }
