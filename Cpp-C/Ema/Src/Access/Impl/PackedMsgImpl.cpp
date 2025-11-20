@@ -443,7 +443,15 @@ void PackedMsgImpl::addMsg(const Msg& msg, UInt64 itemHandle)
 	
 		_packedBuf->length = rsslGetEncodedBufferLength(&_eIter);
 
-		if ((_packedBuf = rsslReactorPackBuffer(_reactorChannel, _packedBuf, &rsslErrorInfo)) == NULL)
+		RsslBuffer* packedBuf = rsslReactorPackBuffer(_reactorChannel, _packedBuf, &rsslErrorInfo);
+		if (packedBuf != NULL)
+		{
+			_packedBuf = packedBuf;
+
+			_remainingSize = _packedBuf->length;
+			_packedMsgCount++;
+		}
+		else
 		{
 			if (niProvHandleAdded)
 			{
@@ -453,25 +461,29 @@ void PackedMsgImpl::addMsg(const Msg& msg, UInt64 itemHandle)
 				_ommNiProviderImpl->_handleToStreamInfo.erase(_itemHandle);
 				_ommNiProviderImpl->returnProviderStreamId(streamId);
 			}
-			
-			reactorReleaseBuffer();
 
-			EmaString temp;
+			EmaString temp("Failed to pack buffer during addMsg().");
 			OmmInvalidUsageException::ErrorCode errorCode;
 
-			switch (rsslErrorInfo.rsslErrorInfoCode)
+			if (rsslErrorInfo.rsslErrorInfoCode == RSSL_EIC_FAILURE && rsslErrorInfo.rsslError.rsslErrorId == RSSL_RET_BUFFER_TOO_SMALL)
 			{
-			case RSSL_EIC_FAILURE:
-				temp.append("Failed to pack buffer during addMsg().");
-				errorCode = OmmInvalidUsageException::FailureEnum;
-				break;
-			case RSSL_EIC_SHUTDOWN:
-				temp.append("Failed to pack buffer during addMsg().");
-				errorCode = OmmInvalidUsageException::NoActiveChannelEnum;
-				break;
-			default:
-				temp.append("Failed to pack buffer during addMsg().");
-				errorCode = OmmInvalidUsageException::FailureEnum;
+				errorCode = OmmInvalidUsageException::BufferTooSmallEnum;
+				temp.append(" Buffer too small.");
+			}
+			else
+			{
+				reactorReleaseBuffer();
+				switch (rsslErrorInfo.rsslErrorInfoCode)
+				{
+				case RSSL_EIC_FAILURE:
+					errorCode = OmmInvalidUsageException::FailureEnum;
+					break;
+				case RSSL_EIC_SHUTDOWN:
+					errorCode = OmmInvalidUsageException::NoActiveChannelEnum;
+					break;
+				default:
+					errorCode = OmmInvalidUsageException::FailureEnum;
+				}
 			}
 
 			temp.append("Msg: ").append(msg.toString()).append(CR)
@@ -481,9 +493,6 @@ void PackedMsgImpl::addMsg(const Msg& msg, UInt64 itemHandle)
 				.append("Error Text: ").append(rsslErrorInfo.rsslError.text);
 			throwIueException(temp, errorCode);
 		}
-
-		_remainingSize = _packedBuf->length;
-		_packedMsgCount++;
 	}
 }
 

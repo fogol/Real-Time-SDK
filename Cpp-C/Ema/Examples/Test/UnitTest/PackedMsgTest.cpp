@@ -38,8 +38,10 @@ public:
 	{
 		try
 		{
-			dataDictionary.loadFieldDictionary("RDMFieldDictionaryTest");
-			dataDictionary.loadEnumTypeDictionary("enumtypeTest.def");
+			if (!dataDictionary.isFieldDictionaryLoaded())
+				dataDictionary.loadFieldDictionary("RDMFieldDictionaryTest");
+			if (!dataDictionary.isEnumTypeDefLoaded())
+				dataDictionary.loadEnumTypeDictionary("enumtypeTest.def");
 		}
 		catch (const OmmException& excp)
 		{
@@ -50,7 +52,6 @@ public:
 
 	void TearDown()
 	{
-		dataDictionary.clear();
 	}
 };
 
@@ -228,6 +229,90 @@ TEST_F(EmaMsgPackingTest, EmaMsgPackingTest_Encoding_Decoding)
 	}
 }
 
+TEST_F(EmaMsgPackingTest, EmaMsgPackingTest_Encoding_Decoding_JSON)
+{
+	try
+	{
+		clientHandle = 0;
+		itemHandle = 0;
+
+		OmmProviderTestClient providerCallback;
+		OmmProvider provider(OmmIProviderConfig(emaConfigTest).port("14004"), providerCallback);
+
+		OmmConsumerTestClient consumerCallback;
+		OmmConsumer consumer(OmmConsumerConfig(emaConfigTest).consumerName("Consumer_Websocket").dataDictionary(dataDictionary).operationModel(OmmConsumerConfig::UserDispatchEnum).username("user"));
+		consumer.registerClient(ReqMsg().serviceName("DIRECT_FEED").name("IBM.N"), consumerCallback);
+
+		Int32 count = 0;
+
+
+		while (clientHandle == 0 || itemHandle == 0)
+		{
+			/*Timeout 5 sec*/
+			if (count == 10) FAIL() << "UNABLE TO CONNECT TO CLIENT";
+			consumer.dispatch(500);
+			sleep(500);
+			count++;
+		}
+
+		FieldList fieldList;
+		UpdateMsg msg;
+		PackedMsg packedMsg(provider);
+		packedMsg.initBuffer(clientHandle);
+		Int32 exponent0Enum[packedMsgNum] = { 0 };
+
+		// Pack Refresh Message first
+		fieldList.addReal(22, 3990, OmmReal::ExponentNeg2Enum);
+		fieldList.addReal(25, 3994, OmmReal::ExponentNeg2Enum);
+		fieldList.addReal(30, 9, OmmReal::Exponent0Enum);
+		fieldList.addReal(31, 19, OmmReal::Exponent0Enum);
+		fieldList.complete();
+
+		packedMsg.addMsg(RefreshMsg().serviceName("DIRECT_FEED").name("IBM.N").solicited(true).
+			state(OmmState::OpenEnum, OmmState::OkEnum, OmmState::NoneEnum, "Refresh Completed").
+			payload(fieldList).
+			complete(), itemHandle);
+
+		for (Int32 i = 0; i < packedMsgNum; i++)
+		{
+			msg.clear();
+			fieldList.clear();
+			fieldList.addReal(30, 10 + i, OmmReal::Exponent0Enum);
+			exponent0Enum[i] = 10 + i;
+			fieldList.complete();
+
+			msg.serviceName("DIRECT_FEED").name("IBM.N");
+			msg.payload(fieldList);
+
+			(void)packedMsg.addMsg(msg, itemHandle);
+		}
+
+		EXPECT_TRUE(packedMsg.maxSize() > packedMsg.remainingSize());
+		EXPECT_TRUE(packedMsg.packedMsgCount() == packedMsgNum + 1); // 1 RefreshMsg + 10 UpdateMsg
+
+		provider.submit(packedMsg);
+		packedMsg.clear();
+		consumer.dispatch(1000);
+		sleep(1000);
+
+		EXPECT_TRUE(packedMsg.maxSize() == 6000);
+		EXPECT_TRUE(packedMsg.remainingSize() == 0);
+		EXPECT_TRUE(packedMsg.packedMsgCount() == 0);
+
+		EXPECT_TRUE(packedMsgNum == consumerCallback._updateMsgCount);
+
+		for (Int32 i = 0; i < packedMsgNum; i++)
+		{
+			EXPECT_TRUE(exponent0Enum[i] == consumerCallback._exponent0Enum[i])
+				<< "Failed: " << exponent0Enum[i] << " != " << consumerCallback._exponent0Enum[i];
+		}
+	}
+	catch (const OmmException& excp)
+	{
+		EXPECT_TRUE(false) << "PackedMsg Encoding & Decoding -- exception NOT expected : " << excp;
+	}
+}
+
 TEST_F(EmaMsgPackingTest, EmaMsgPackingTest_BufferOverflow)
 {
 	try
@@ -282,7 +367,155 @@ TEST_F(EmaMsgPackingTest, EmaMsgPackingTest_BufferOverflow)
 	}
 }
 
+TEST_F(EmaMsgPackingTest, EmaMsgPackingTest_BufferOverflow_JSONMsgEncode)
+{
+	try
+	{
+		clientHandle = 0;
+		itemHandle = 0;
 
+		OmmProviderTestClient providerCallback;
+		OmmProvider provider(OmmIProviderConfig(emaConfigTest).port("14004"), providerCallback);
+
+		OmmConsumerTestClient consumerCallback;
+		OmmConsumer consumer(OmmConsumerConfig(emaConfigTest).consumerName("Consumer_Websocket").dataDictionary(dataDictionary).operationModel(OmmConsumerConfig::UserDispatchEnum).username("user"));
+		consumer.registerClient(ReqMsg().serviceName("DIRECT_FEED").name("IBM.N"), consumerCallback);
+
+		Int32 count = 0;
+
+		while (clientHandle == 0 || itemHandle == 0)
+		{
+			/*Timeout 5 sec*/
+			if (count == 10) GTEST_FAIL() << "UNABLE TO CONNECT TO CLIENT";
+			consumer.dispatch(500);
+			sleep(500);
+			count++;
+		}
+
+		FieldList flist;
+		UpdateMsg msg;
+		PackedMsg packedMsg(provider);
+		// This pack buffer length is long enough to encode the 9 converted JSON messages
+		// but not long enough for the 10th RWF message to be added for the Reactor pack
+		packedMsg.initBuffer(clientHandle, 1020);
+		Int32 exponent0Enum[packedMsgNum] = { 0 };
+
+		try {
+			for (Int32 i = 0; i < packedMsgNum; i++)
+			{
+				msg.clear();
+				flist.clear();
+				flist.addReal(30, 10 + i, OmmReal::Exponent0Enum);
+				exponent0Enum[i] = 10 + i;
+				flist.complete();
+
+				msg.serviceName("DIRECT_FEED").name("IBM.N");
+				msg.payload(flist);
+
+				(void)packedMsg.addMsg(msg, itemHandle);
+			}
+
+			GTEST_FAIL() << "PackedMsg JSON buffer overflow -- exception expected";
+		}
+		catch (const OmmInvalidUsageException& excp)
+		{
+			EXPECT_EQ(excp.getErrorCode(), OmmInvalidUsageException::BufferTooSmallEnum) << "JSON PackedMsg buffer overflow test get wrong exception error code";
+
+			Int32 strPos = excp.getText().find("Failed rsslEncodeBuffer(). Buffer too small.");
+			if (strPos == EmaString::npos)
+				GTEST_FAIL() << "PackedMsg JSON buffer overflow get wrong exception text: " << excp.getText();
+		}
+
+		EXPECT_LT(packedMsg.remainingSize(), packedMsg.maxSize());
+		EXPECT_EQ(packedMsg.packedMsgCount(), packedMsgNum - 1);
+
+		provider.submit(packedMsg);
+		packedMsg.clear();
+		consumer.dispatch(1000);
+		sleep(1000);
+
+		EXPECT_EQ(packedMsgNum - 1, consumerCallback._updateMsgCount);
+	}
+	catch (const OmmException& excp)
+	{
+		GTEST_FAIL() << "PackedMsg JSON buffer overflow test get wrong exception: " << excp.getText();
+	}
+}
+
+TEST_F(EmaMsgPackingTest, EmaMsgPackingTest_BufferOverflow_JSONConversion)
+{
+	try
+	{
+		clientHandle = 0;
+		itemHandle = 0;
+
+		OmmProviderTestClient providerCallback;
+		OmmProvider provider(OmmIProviderConfig(emaConfigTest).port("14004"), providerCallback);
+
+		OmmConsumerTestClient consumerCallback;
+		OmmConsumer consumer(OmmConsumerConfig(emaConfigTest).consumerName("Consumer_Websocket").dataDictionary(dataDictionary).operationModel(OmmConsumerConfig::UserDispatchEnum).username("user"));
+		consumer.registerClient(ReqMsg().serviceName("DIRECT_FEED").name("IBM.N"), consumerCallback);
+
+		Int32 count = 0;
+
+		while (clientHandle == 0 || itemHandle == 0)
+		{
+			/*Timeout 5 sec*/
+			if (count == 10) GTEST_FAIL() << "UNABLE TO CONNECT TO CLIENT";
+			consumer.dispatch(500);
+			sleep(500);
+			count++;
+		}
+
+		FieldList flist;
+		UpdateMsg msg;
+		PackedMsg packedMsg(provider);
+		// This pack buffer length is long enough to encode the 10th JSON update messages plus the RWF message for the reactor to convert,
+		// but not long enough for the converted JSON message
+		packedMsg.initBuffer(clientHandle, 1030);
+		Int32 exponent0Enum[packedMsgNum] = { 0 };
+
+		try {
+			for (Int32 i = 0; i < packedMsgNum; i++)
+			{
+				msg.clear();
+				flist.clear();
+				flist.addReal(30, 10 + i, OmmReal::Exponent0Enum);
+				exponent0Enum[i] = 10 + i;
+				flist.complete();
+
+				msg.serviceName("DIRECT_FEED").name("IBM.N");
+				msg.payload(flist);
+
+				(void)packedMsg.addMsg(msg, itemHandle);
+			}
+
+			GTEST_FAIL() << "PackedMsg JSON buffer overflow -- exception expected";
+		}
+		catch (const OmmInvalidUsageException& excp)
+		{
+			EXPECT_EQ(excp.getErrorCode(), OmmInvalidUsageException::BufferTooSmallEnum) << "JSON PackedMsg buffer overflow test get wrong exception error code";
+
+			Int32 strPos = excp.getText().find("Failed to pack buffer during addMsg(). Buffer too small.");
+			if (strPos == EmaString::npos)
+				GTEST_FAIL() << "PackedMsg JSON buffer overflow get wrong exception text: " << excp.getText();
+		}
+
+		EXPECT_LT(packedMsg.remainingSize(), packedMsg.maxSize());
+		EXPECT_EQ(packedMsg.packedMsgCount(), packedMsgNum - 1);
+
+		provider.submit(packedMsg);
+		packedMsg.clear();
+		consumer.dispatch(1000);
+		sleep(1000);
+
+		EXPECT_EQ(packedMsgNum - 1, consumerCallback._updateMsgCount);
+	}
+	catch (const OmmException& excp)
+	{
+		GTEST_FAIL() << "PackedMsg JSON buffer overflow test get wrong exception: "<< excp.getText();
+	}
+}
 TEST_F(EmaMsgPackingTest, EmaMsgPackingTest_ChannelNotActive)
 {
 	try

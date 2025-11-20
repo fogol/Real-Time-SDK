@@ -401,6 +401,13 @@
 			<ReconnectMaxDelay value="1000" />
 			<XmlTraceToStdout value="0"/>
 		</Consumer>
+		<Consumer>
+			<Name value="Consumer_Websocket"/>
+			<Channel value="Channel_Websocket"/>
+			<Logger value="Logger_5"/>
+			<Dictionary value="Dictionary_1"/>
+			<XmlTraceToStdout value="0"/>
+		</Consumer>
 	</ConsumerList>
 </ConsumerGroup>
 
@@ -809,6 +816,16 @@
 			<TcpNodelay value="1"/>
 			<Host value="localhost"/>
 			<Port value="15004"/>
+		</Channel>
+		<Channel>
+			<Name value="Channel_Websocket"/>
+			<ChannelType value="ChannelType::RSSL_WEBSOCKET"/>
+			<CompressionType value="CompressionType::None"/>
+			<GuaranteedOutputBuffers value="5000"/>
+			<ConnectionPingTimeout value="30000"/>
+			<TcpNodelay value="1"/>
+			<Host value="localhost"/>
+			<Port value="14004"/>
 		</Channel>
 	</ChannelList>
 </ChannelGroup>
@@ -1301,6 +1318,11 @@
 			<Name value="Logger_4"/>
 			<LoggerType value="LoggerType::Stdout"/>
 			<LoggerSeverity value="LoggerSeverity::Verbose"/>
+		</Logger>
+		<Logger>
+			<Name value="Logger_5"/>
+			<LoggerType value="LoggerType::Stdout"/>
+			<LoggerSeverity value="LoggerSeverity::Success"/>
 		</Logger>
 	</LoggerList>
 </LoggerGroup>
