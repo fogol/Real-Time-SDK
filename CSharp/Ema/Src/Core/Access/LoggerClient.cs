@@ -97,10 +97,12 @@ namespace LSEG.Ema.Access
                         FileName = $"{fileName}_{ProcessId}.log",
                         Layout = messageLayout,
                         MaxArchiveFiles = (int)maxArchivesFiles,
-                        ArchiveNumbering = ArchiveNumberingMode.Rolling,
+                        ArchiveEvery = loggerConfig.FileArchivePeriod,
+                        ArchiveSuffixFormat = "_{1:yyyyMMdd}_{0:00}",
                         ArchiveAboveSize = (int)loggerConfig.MaxLogFileSize,
                         KeepFileOpen = false
                     };
+                    
                     LoggingConf.AddRuleForAllLevels(fileTarget, loggerName);
                 }
 

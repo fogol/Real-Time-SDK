@@ -1165,6 +1165,30 @@
                             </xs:complexType>
                           </xs:element>
 
+                          <xs:element name="FileArchivePeriod" minOccurs="0" maxOccurs="1">
+                            <xs:complexType>
+                              <xs:attribute name="value" use="required">
+                                <xs:simpleType>
+                                  <xs:restriction base="xs:string">
+                                    <xs:enumeration value="FileArchivePeriod::Minute" />
+                                    <xs:enumeration value="FileArchivePeriod::Hour" />
+                                    <xs:enumeration value="FileArchivePeriod::Day" />
+                                    <xs:enumeration value="FileArchivePeriod::Month" />
+                                    <xs:enumeration value="FileArchivePeriod::Year" />
+                                    <xs:enumeration value="FileArchivePeriod::None" />
+                                    <xs:enumeration value="FileArchivePeriod::Sunday" />
+                                    <xs:enumeration value="FileArchivePeriod::Monday" />
+                                    <xs:enumeration value="FileArchivePeriod::Tuesday" />
+                                    <xs:enumeration value="FileArchivePeriod::Wednesday" />
+                                    <xs:enumeration value="FileArchivePeriod::Thursday" />
+                                    <xs:enumeration value="FileArchivePeriod::Friday" />
+                                    <xs:enumeration value="FileArchivePeriod::Saturday" />
+                                  </xs:restriction>
+                                </xs:simpleType>
+                              </xs:attribute>
+                            </xs:complexType>
+                          </xs:element>
+
                         </xs:all>
                       </xs:complexType>
                     </xs:element> <!-- end Logger -->

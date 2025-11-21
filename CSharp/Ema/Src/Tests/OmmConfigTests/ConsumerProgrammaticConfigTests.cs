@@ -13,7 +13,7 @@ using System.Threading;
 using LSEG.Eta.Rdm;
 using LSEG.Eta.Transports;
 using LSEG.Eta.ValueAdd.Reactor;
-
+using NLog.Targets;
 using static LSEG.Ema.Access.EmaConfig;
 using static LSEG.Ema.Access.Tests.OmmConfigTests.ConfigTestsUtils;
 using static LSEG.Eta.Rdm.Directory;
@@ -136,7 +136,7 @@ namespace LSEG.Ema.Access.Tests.OmmConfigTests
             ElementList encodeGroupList = new ElementList();
             ElementList encodeObjectList = new ElementList();
 
-            // Load a blank config so we can be sure that everything added is from the programmtic config
+            // Load a blank config so we can be sure that everything added is from the programmatic config
             // This doesn't use the default behavior(loading EmaConfig.xml) because an EmaConfig.xml file may be present in the directory for other example apps
             consumerConfig = LoadEmaTestConfig();
 
@@ -670,6 +670,7 @@ namespace LSEG.Ema.Access.Tests.OmmConfigTests
                 .AddUInt("MaxLogFileSize", 100)
                 .AddEnum("LoggerSeverity", LoggerLevelEnum.ERROR)
                 .AddEnum("LoggerType", LoggerTypeEnum.FILE)
+                .AddEnum("FileArchivePeriod", (ushort)FileArchivePeriod.Month)
                 .MarkForClear().Complete();
 
             innerMap.AddKeyAscii("TestLogger_1", MapAction.ADD, encodeObjectList);
@@ -867,6 +868,7 @@ namespace LSEG.Ema.Access.Tests.OmmConfigTests
             Assert.Equal((ulong)1, testLoggerConfig.IncludeDateInLoggerOutput);
             Assert.Equal((ulong)20, testLoggerConfig.NumberOfLogFiles);
             Assert.Equal((ulong)100, testLoggerConfig.MaxLogFileSize);
+            Assert.Equal(FileArchivePeriod.Month, testLoggerConfig.FileArchivePeriod);
 
             // TestLogger_2 is all defaults
             testLoggerConfig = consConfigImpl.LoggerConfigMap["TestLogger_2"];

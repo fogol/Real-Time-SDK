@@ -6,6 +6,8 @@
  *|-----------------------------------------------------------------------------
  */
 
+using NLog.Targets;
+
 namespace LSEG.Ema.Access
 {
 	internal class LoggerConfig
@@ -18,6 +20,7 @@ namespace LSEG.Ema.Access
         public ulong MaxLogFileSize { get; set; }
         public LoggerLevel LoggerSeverity { get; set; }
         public LoggerType LoggerType { get; set; }
+        public FileArchivePeriod FileArchivePeriod { get; set; } = FileArchivePeriod.None;
         
         public LoggerConfig()
         {
@@ -32,6 +35,7 @@ namespace LSEG.Ema.Access
             MaxLogFileSize = oldConfig.MaxLogFileSize;
             LoggerSeverity = oldConfig.LoggerSeverity;
             LoggerType = oldConfig.LoggerType;
+            FileArchivePeriod = oldConfig.FileArchivePeriod;
         }
 
         // Clears the Logger info and sets the default options.
@@ -44,6 +48,7 @@ namespace LSEG.Ema.Access
             MaxLogFileSize = 0;
             LoggerSeverity = LoggerLevel.INFO;
             LoggerType = LoggerType.FILE;
+            FileArchivePeriod = FileArchivePeriod.None;
         }
 
         public void Copy(LoggerConfig destConfig)
@@ -55,6 +60,7 @@ namespace LSEG.Ema.Access
             destConfig.FileName = FileName;
             destConfig.LoggerSeverity = LoggerSeverity;
             destConfig.LoggerType = LoggerType;
+            destConfig.FileArchivePeriod = FileArchivePeriod;
         }
 
         internal static LoggerLevel StringToLoggerLevel(string logLevel) => logLevel switch
@@ -74,6 +80,25 @@ namespace LSEG.Ema.Access
             "File"      => LoggerType.FILE,
             "Stdout"    => LoggerType.STDOUT,
             _           => throw new OmmInvalidConfigurationException("Logger Type: " + logType + " not recognized. Acceptable inputs: \"File\", \"Stdout\".")
+        };
+
+        internal static FileArchivePeriod StringToFileArchivePeriod(string fileArchivePeriod) => fileArchivePeriod switch
+        {
+            "Day" => FileArchivePeriod.Day,
+            "Hour" => FileArchivePeriod.Hour,
+            "Minute" => FileArchivePeriod.Minute,
+            "Month" => FileArchivePeriod.Month,
+            "Year" => FileArchivePeriod.Year,
+            "None" => FileArchivePeriod.None,
+            "Sunday" => FileArchivePeriod.Sunday,
+            "Monday" => FileArchivePeriod.Monday,
+            "Tuesday" => FileArchivePeriod.Tuesday,
+            "Wednesday" => FileArchivePeriod.Wednesday,
+            "Thursday" => FileArchivePeriod.Thursday,
+            "Friday" => FileArchivePeriod.Friday,
+            "Saturday" => FileArchivePeriod.Saturday,
+            _ => throw new OmmInvalidConfigurationException("File Archive Period: " + fileArchivePeriod + " not recognized. Acceptable inputs are of the form \"FileArchivePeriod::<Period>\", " +
+                "where Period is from NLog.Targets.FileArchivePeriod, e.g. FileArchivePeriod::Month..")
         };
     }
 }

@@ -6,11 +6,10 @@
  *|-----------------------------------------------------------------------------
  */
 
-using System.Collections.Generic;
-
 using LSEG.Eta.Codec;
 using LSEG.Eta.Transports;
-
+using NLog.Targets;
+using System.Collections.Generic;
 using static LSEG.Ema.Access.Data;
 
 namespace LSEG.Ema.Access
@@ -1769,10 +1768,36 @@ namespace LSEG.Ema.Access
                                         if (loggerEntry.EnumValue() < 0 || loggerEntry.EnumValue() > EmaConfig.LoggerTypeEnum.MAX_DEFINED)
                                         {
                                             throw new OmmInvalidConfigurationException(
-                                                "Invalid value for Logger element LoggerSeverity. This must be an EMUM type, with the values found in LSEG.Ema.Access.EmaConfig.LoggerTypeEnum.");
+                                                "Invalid value for Logger element LoggerType. This must be an EMUM type, with the values found in LSEG.Ema.Access.EmaConfig.LoggerTypeEnum.");
                                         }
 
                                         tmpConfig.LoggerType = (LoggerType)loggerEntry.EnumValue();
+
+                                        break;
+                                    // FileArchivePeriod enum
+                                    case "FileArchivePeriod":
+                                        CheckElementEntry("Logger", "FileArchivePeriod", DataTypes.ENUM, loggerEntry, "with the values found in NLog.Targets.FileArchivePeriod.");
+
+                                        switch ((FileArchivePeriod)loggerEntry.EnumValue())
+                                        {
+                                            case FileArchivePeriod.Day:
+                                            case FileArchivePeriod.Hour:
+                                            case FileArchivePeriod.Minute:
+                                            case FileArchivePeriod.Month:
+                                            case FileArchivePeriod.Year:
+                                            case FileArchivePeriod.None:
+                                            case FileArchivePeriod.Sunday:
+                                            case FileArchivePeriod.Monday:
+                                            case FileArchivePeriod.Tuesday:
+                                            case FileArchivePeriod.Wednesday:
+                                            case FileArchivePeriod.Thursday:
+                                            case FileArchivePeriod.Friday:
+                                            case FileArchivePeriod.Saturday:
+                                                tmpConfig.FileArchivePeriod = (FileArchivePeriod)loggerEntry.EnumValue();
+                                                break;
+                                            default:
+                                                throw new OmmInvalidConfigurationException("Invalid value for Logger element FileArchivePeriod. This must be an ENUM type, with the values found in NLog.Targets.FileArchivePeriod.");
+                                        }
 
                                         break;
                                     default:

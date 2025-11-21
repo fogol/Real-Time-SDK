@@ -9,6 +9,7 @@
 
 using LSEG.Eta.Transports;
 using LSEG.Eta.ValueAdd.Reactor;
+using NLog.Targets;
 using System.Collections.Generic;
 
 using static LSEG.Ema.Access.Tests.OmmConfigTests.ConfigTestsUtils;
@@ -263,6 +264,7 @@ namespace LSEG.Ema.Access.Tests.OmmConfigTests
             Assert.Equal((ulong)1, testLoggerConfig.IncludeDateInLoggerOutput);
             Assert.Equal((ulong)10, testLoggerConfig.NumberOfLogFiles);
             Assert.Equal((ulong)20, testLoggerConfig.MaxLogFileSize);
+            Assert.Equal(FileArchivePeriod.Year, testLoggerConfig.FileArchivePeriod);
         }
 
         [Fact]

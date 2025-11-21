@@ -17,6 +17,7 @@ using System.IO;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Diagnostics.CodeAnalysis;
+using NLog.Targets;
 
 namespace LSEG.Ema.Access
 {
@@ -877,7 +878,13 @@ namespace LSEG.Ema.Access
                             CreatePrefixedValueParser("LoggerType",
                                     LoggerConfig.StringToLoggerType),
                                     "Invalid LoggerType string format. " +
-                                    "Correct format is \"LoggerType::<File/Stdout>\".");
+                                    "Correct format is \"LoggerType::<File/Stdout>\".")
+                    .Parse(() => tmpConfig.FileArchivePeriod,
+                           CreatePrefixedValueParser("FileArchivePeriod",
+                                    LoggerConfig.StringToFileArchivePeriod),
+                                    "Invalid FileArchivePeriod string format. " +
+                                    "Correct format is \"FileArchivePeriod::<Period>\", where Period is from NLog.Targets.FileArchivePeriod, " +
+                                    "e.g. FileArchivePeriod::Month.");
 
                 if (foundConfig == false)
                     configMap.Add(tmpConfig.Name, tmpConfig);

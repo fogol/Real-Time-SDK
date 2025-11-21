@@ -216,6 +216,7 @@
 				<IncludeDateInLoggerOutput value="1"/>
 				<NumberOfLogFiles value="10"/>
 				<MaxLogFileSize value="20"/>
+				<FileArchivePeriod value="FileArchivePeriod::Year" />
 			</Logger>
 			<Logger>
 				<Name value="TestLogger_2"/>
