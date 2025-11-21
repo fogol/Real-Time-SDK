@@ -108,21 +108,30 @@ class ZlibCompressor extends Compressor
             _deflaterOutputStream = new DeflaterOutputStream(_compressedBytesOutputStream, _deflater,
                     getMaxCompressedLength(_maxCompressionLen), true);
         }
-        // lazily initialize _compressByteArray buffer since we don't know size up front
-        if (_compressByteArray == null)
+
+        if (!bufferToCompress.data().hasArray())
         {
-            _compressByteArray = new byte[_maxCompressionLen];
+            // lazily initialize _compressByteArray buffer since we don't know size up front
+            if (_compressByteArray == null)
+            {
+                _compressByteArray = new byte[_maxCompressionLen];
+            }
+            // copy bufferToCompress contents to _compressByteArray
+            for (int i = 0; i < lenToCompress; i++)
+            {
+                _compressByteArray[i] = bufferToCompress.data().get(dataStartPos + i);
+            }
+            dataStartPos = 0;
         }
-        // copy bufferToCompress contents to _compressByteArray
-        for (int i = 0; i < lenToCompress; i++)
+        else
         {
-            _compressByteArray[i] = bufferToCompress.data().get(dataStartPos + i);
+            _compressByteArray = bufferToCompress.data().array();
         }
         _compressedBytesOutputStream.reset();
         try
         {
             // write bytes to compress
-            _deflaterOutputStream.write(_compressByteArray, 0, lenToCompress);
+            _deflaterOutputStream.write(_compressByteArray, dataStartPos, lenToCompress);
             // flush bytes to compress
             _deflaterOutputStream.flush();
         }
@@ -178,21 +187,29 @@ class ZlibCompressor extends Compressor
             _deflaterOutputStream = new DeflaterOutputStream(_compressedBytesOutputStream, _deflater,
                     getMaxCompressedLength(_maxCompressionLen), true);
         }
-        // lazily initialize _compressByteArray buffer since we don't know size up front
-        if (_compressByteArray == null)
+        if (!bufferToCompress.hasArray())
         {
-            _compressByteArray = new byte[_maxCompressionLen];
+            // lazily initialize _compressByteArray buffer since we don't know size up front
+            if (_compressByteArray == null)
+            {
+                _compressByteArray = new byte[_maxCompressionLen];
+            }
+            // copy bufferToCompress contents to _compressByteArray
+            for (int i = 0; i < lenToCompress; i++)
+            {
+                _compressByteArray[i] = bufferToCompress.get(dataStartPos + i);
+            }
+            dataStartPos = 0;
         }
-        // copy bufferToCompress contents to _compressByteArray
-        for (int i = 0; i < lenToCompress; i++)
+        else
         {
-            _compressByteArray[i] = bufferToCompress.get(dataStartPos + i);
+            _compressByteArray = bufferToCompress.array();
         }
         _compressedBytesOutputStream.reset();
         try
         {
             // write bytes to compress
-            _deflaterOutputStream.write(_compressByteArray, 0, lenToCompress);
+            _deflaterOutputStream.write(_compressByteArray, dataStartPos, lenToCompress);
             // flush bytes to compress
             _deflaterOutputStream.flush();
         }

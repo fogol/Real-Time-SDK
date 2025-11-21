@@ -53,45 +53,117 @@ import static com.refinitiv.eta.transport.WebSocketFrameParser._WS_MAX_HEADER_LE
 
 class RsslSocketChannel extends EtaNode implements Channel
 {
+    long _max_BigBuffer_MemUsage = 30 * 1024 * 1024; // Max 30MB of stored BigBuffers
+
     private WSocketOpts wSocketOpts;
 
-    class BigBuffersPool
+    class LimitedPool extends Pool
     {
-        Pool[] _pools = new Pool[32];
+        long poolSize;
+        PoolArray parent;
+
+        LimitedPool(Object o) {
+            super(o);
+        }
+
+        LimitedPool(Object o, PoolArray parent , long poolSize) {
+            super(o);
+            this.poolSize = poolSize;
+            this.parent = parent;
+        }
+
+        private void addToPool(EtaNode node, int size)
+        {
+            if (parent.memoryUsage + size < _max_BigBuffer_MemUsage)
+            {
+                parent.memoryUsage = parent.memoryUsage + size;
+                node._inPool = true;
+                _queue.add(node);
+            }
+        }
+
+        @Override
+        void add(EtaNode node)
+        {
+            if (node instanceof BigBuffer)
+            {
+                BigBuffer bb = (BigBuffer)node;
+                addToPool(bb, bb._data.capacity());
+            }
+            else if (node instanceof ByteBufferPair)
+            {
+                ByteBufferPair bbp = (ByteBufferPair)node;
+                addToPool(bbp, bbp.buffer().capacity());
+            }
+        }
+
+        @Override
+        EtaNode poll()
+        {
+            EtaNode node = super.poll();
+            if (node != null) parent.memoryUsage = parent.memoryUsage - poolSize;
+            return node;
+        }
+    }
+
+    class PoolArray
+    {
+        LimitedPool[] _pools;
         int _maxSize = 0;
         int _maxPool = 0;
         int _fragmentSize;
         RsslSocketChannel _poolOwner;
+        long memoryUsage = 0;
+
+        PoolArray(int fragmentSize, RsslSocketChannel poolOwner)
+        {
+            _maxSize = fragmentSize * 2;
+            _fragmentSize = fragmentSize;
+            _poolOwner = poolOwner;
+
+            _pools = new LimitedPool[32];
+        }
+    }
+
+    class BigBuffersPool
+    {
+        PoolArray _pools;
+        PoolArray _arrayBackedPools;
 
         BigBuffersPool(int fragmentSize, RsslSocketChannel poolOwner)
         {
-            // this pool should be created after the fragment size is known
-            _poolOwner = poolOwner;
-            _fragmentSize = fragmentSize;
-            _maxSize = fragmentSize * 2;
+            _pools = new PoolArray(fragmentSize, poolOwner);
+            _arrayBackedPools = new PoolArray(fragmentSize, poolOwner);
         }
 
         EtaNode poll(int size, boolean isWriteBuffer)
         {
+            return poll(size, isWriteBuffer, false);
+        }
+
+        EtaNode poll(int size, boolean isWriteBuffer, boolean arrayBacked)
+        {
+            PoolArray pools = arrayBacked ? _arrayBackedPools : _pools;
+
             EtaNode buffer = null;
             // determine which pool to use
-            int poolSize = _fragmentSize * 2;
+            int poolSize = pools._fragmentSize * 2;
             int poolIndex = 0;
             while (size > poolSize)
             {
                 poolSize = poolSize * 2;
                 poolIndex++;
             }
-            if (poolSize > _maxSize)
+            if (poolSize > pools._maxSize)
             {
-                _maxSize = poolSize;
-                _maxPool = poolIndex;
+                pools._maxSize = poolSize;
+                pools._maxPool = poolIndex;
                 // create pool and a buffer of this size
-                Pool pool = new Pool(_poolOwner);
-                _pools[poolIndex] = pool;
+                LimitedPool pool = new LimitedPool(pools._poolOwner, pools, poolSize);
+                pools._pools[poolIndex] = pool;
                 if (isWriteBuffer)
                 {
-                    return new BigBuffer(pool, poolSize);
+                    return new BigBuffer(pool, poolSize, arrayBacked);
                 }
                 else
                 {
@@ -99,12 +171,12 @@ class RsslSocketChannel extends EtaNode implements Channel
                 }
             }
 
-            // The size is smaller then max, so traverse through pools to find available buffer
-            for (int i = poolIndex; i <= _maxPool; i++)
+            // The size is smaller than max, so traverse through pools to find available buffer
+            for (int i = poolIndex; i <= pools._maxPool; i++)
             {
-                if (_pools[i] != null)
+                if (pools._pools[i] != null)
                 {
-                    buffer = _pools[i].poll();
+                    buffer = pools._pools[i].poll();
                     if (buffer != null)
                         return buffer;
                 }
@@ -112,18 +184,18 @@ class RsslSocketChannel extends EtaNode implements Channel
 
             // There was no available buffer, so create new.
             // First check if the pool exists.
-            if (_pools[poolIndex] == null)
+            if (pools._pools[poolIndex] == null)
             {
-                Pool pool = new Pool(_poolOwner);
-                _pools[poolIndex] = pool;
+                LimitedPool pool = new LimitedPool(pools._poolOwner, pools, poolSize);
+                pools._pools[poolIndex] = pool;
             }
             if (isWriteBuffer)
             {
-                return new BigBuffer(_pools[poolIndex], poolSize);
+                return new BigBuffer(pools._pools[poolIndex], poolSize, arrayBacked);
             }
             else
             {
-                return new ByteBufferPair(_pools[poolIndex], poolSize, true);
+                return new ByteBufferPair(pools._pools[poolIndex], poolSize, true);
             }
         }
     }
@@ -317,7 +389,7 @@ class RsslSocketChannel extends EtaNode implements Channel
     /* The number of times we ignored an HTTP response while connecting through a proxy */
     protected int _ignoredConnectResponses = 0;
 
-    /* A pool of ByteBufferPair} used to reassemble fragmented messages
+    /* A pool of ByteBufferPair used to reassemble fragmented messages
      * (the main "read IO buffer" is also acquired from this pool).
      * Using a Red-Black tree to sort the buffers by size ensures all operations on the
      * pool (search, insert, remove) happen in O(log n) time.
@@ -1662,7 +1734,7 @@ class RsslSocketChannel extends EtaNode implements Channel
             TransportBufferImpl tBuffer = sBuffer.getBufferSliceForFragment(_internalMaxFragmentSize);
 
             // get big buffer from the pool, it returns non null
-            buffer = (BigBuffer)_bigBuffersPool.poll(size, true);
+            buffer = (BigBuffer)_bigBuffersPool.poll(size, true, _sessionOutCompression > CompressionTypes.NONE);
             buffer._data.position(0);
             buffer._length = size;
             buffer.id();
@@ -1764,7 +1836,7 @@ class RsslSocketChannel extends EtaNode implements Channel
 
     protected TransportBufferImpl getBufferInternal(int size, boolean packedBuffer, int headerLength)
     {
-        // This method should be called when the buffer size + header is less then fragment size.
+        // This method should be called when the buffer size + header is less than fragment size.
         // The calling method chain should have lock set.
         TransportBufferImpl buffer = null;
 

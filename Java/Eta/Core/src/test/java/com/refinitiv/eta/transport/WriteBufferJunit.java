@@ -1419,47 +1419,110 @@ public class WriteBufferJunit
             assertNotNull(buffer1);
             assertEquals(24588, buffer1.data().capacity());
             assertEquals(1, channel.bufferUsage(error));
-            assertEquals(null, ((RsslSocketChannel)channel)._bigBuffersPool._pools[0]);
-            assertNotNull(((RsslSocketChannel)channel)._bigBuffersPool._pools[1]);
-            assertEquals(0, ((RsslSocketChannel)channel)._bigBuffersPool._pools[1]._queue._size);
-            assertEquals(24588, ((RsslSocketChannel)channel)._bigBuffersPool._maxSize);
+            assertEquals(null, ((RsslSocketChannel)channel)._bigBuffersPool._pools._pools[0]);
+            assertNotNull(((RsslSocketChannel)channel)._bigBuffersPool._pools._pools[1]);
+            assertEquals(0, ((RsslSocketChannel)channel)._bigBuffersPool._pools._pools[1]._queue._size);
+            assertEquals(24588, ((RsslSocketChannel)channel)._bigBuffersPool._pools._maxSize);
             buffer1.data().position(6600);
             
             assertEquals(0, channel.write(buffer1, wa, error));
             assertEquals(0, channel.bufferUsage(error));
-            assertEquals(1, ((RsslSocketChannel)channel)._bigBuffersPool._pools[1]._queue._size);
+            assertEquals(1, ((RsslSocketChannel)channel)._bigBuffersPool._pools._pools[1]._queue._size);
             
             TransportBuffer buffer2 = channel.getBuffer(6244, false, error);
             assertNotNull(buffer2);
             assertEquals(buffer1, buffer2);
             assertEquals(1, channel.bufferUsage(error));
-            assertEquals(null, ((RsslSocketChannel)channel)._bigBuffersPool._pools[0]);
-            assertNotNull(((RsslSocketChannel)channel)._bigBuffersPool._pools[1]);
-            assertEquals(0, ((RsslSocketChannel)channel)._bigBuffersPool._pools[1]._queue._size);
+            assertEquals(null, ((RsslSocketChannel)channel)._bigBuffersPool._pools._pools[0]);
+            assertNotNull(((RsslSocketChannel)channel)._bigBuffersPool._pools._pools[1]);
+            assertEquals(0, ((RsslSocketChannel)channel)._bigBuffersPool._pools._pools[1]._queue._size);
             buffer2.data().position(6200);
             channel.releaseBuffer(buffer2, error);
             assertEquals(0, channel.bufferUsage(error));
-            assertEquals(1, ((RsslSocketChannel)channel)._bigBuffersPool._pools[1]._queue._size);
+            assertEquals(1, ((RsslSocketChannel)channel)._bigBuffersPool._pools._pools[1]._queue._size);
             
             buffer1 = channel.getBuffer(6244, false, error);
             buffer2 = channel.getBuffer(6244, false, error);
             assertEquals(2, channel.bufferUsage(error));
             assertEquals(24588, buffer1.data().capacity());
             assertEquals(12294, buffer2.data().capacity());
-            assertNotNull(((RsslSocketChannel)channel)._bigBuffersPool._pools[0]);
-            assertNotNull(((RsslSocketChannel)channel)._bigBuffersPool._pools[1]);
-            assertEquals(0, ((RsslSocketChannel)channel)._bigBuffersPool._pools[0]._queue._size);
-            assertEquals(0, ((RsslSocketChannel)channel)._bigBuffersPool._pools[1]._queue._size);
+            assertNotNull(((RsslSocketChannel)channel)._bigBuffersPool._pools._pools[0]);
+            assertNotNull(((RsslSocketChannel)channel)._bigBuffersPool._pools._pools[1]);
+            assertEquals(0, ((RsslSocketChannel)channel)._bigBuffersPool._pools._pools[0]._queue._size);
+            assertEquals(0, ((RsslSocketChannel)channel)._bigBuffersPool._pools._pools[1]._queue._size);
             
             buffer1.data().position(6100);
             assertEquals(6103, channel.write(buffer1, wa, error));
             assertEquals(2, channel.bufferUsage(error));
             buffer2.data().position(6103);
             assertEquals(0, channel.write(buffer2, wa, error));
-            assertEquals(1, ((RsslSocketChannel)channel)._bigBuffersPool._pools[1]._queue._size);
+            assertEquals(1, ((RsslSocketChannel)channel)._bigBuffersPool._pools._pools[1]._queue._size);
             assertEquals(0, channel.bufferUsage(error));
-            assertEquals(1, ((RsslSocketChannel)channel)._bigBuffersPool._pools[0]._queue._size);
+            assertEquals(1, ((RsslSocketChannel)channel)._bigBuffersPool._pools._pools[0]._queue._size);
             
+            initChannel.close(error);
+        }
+        finally
+        {
+            if (channel != null)
+                channel.close(error);
+            assertEquals(TransportReturnCodes.SUCCESS, Transport.uninitialize());
+        }
+    }
+
+    @Test
+    public void bigBuffersPoolLimitTest()
+    {
+        final Error error = TransportFactory.createError();
+        Channel channel = null;
+        ConnectOptions connectOpts = getDefaultConnectOptions();
+        WriteArgs wa = TransportFactory.createWriteArgs();
+
+        try
+        {
+            InitArgs initArgs = TransportFactory.createInitArgs();
+            initArgs.globalLocking(false);
+            assertEquals(TransportReturnCodes.SUCCESS,
+                    Transport.initialize(initArgs, error));
+            // need to create ProtocolInt for Socket, so need to connect
+            Channel initChannel = Transport.connect(connectOpts, error);
+            assertNotNull(initChannel);
+            channel = getNetworkReplayChannel(Transport._transports[0], 2);
+            assertNotNull(channel);
+            try
+            {
+                while (!((RsslSocketChannel)channel).scktChannel().finishConnect()) {}
+            } catch (Exception e) {}
+            ((RsslSocketChannel)channel)._state = ChannelState.ACTIVE;
+            ((RsslSocketChannel)channel)._isJunitTest = true;
+            int errorCode = error.errorId();
+            assertEquals(TransportReturnCodes.SUCCESS, errorCode);
+            assertEquals(0, channel.bufferUsage(error));
+
+            ((RsslSocketChannel)channel)._max_BigBuffer_MemUsage = 80_000;
+
+            TransportBuffer buffer1 = channel.getBuffer(24_576, false, error);
+            assertNotNull(buffer1);
+
+            TransportBuffer buffer2 = channel.getBuffer(24_576, false, error);
+            assertNotNull(buffer2);
+
+            TransportBuffer buffer3 = channel.getBuffer(49_152, false, error);
+            assertNotNull(buffer3);
+
+            channel.releaseBuffer(buffer2, new ErrorImpl());
+            channel.releaseBuffer(buffer3, new ErrorImpl());
+
+            assertTrue(((RsslSocketChannel)channel)._bigBuffersPool._pools.memoryUsage < 75_000);
+
+            channel.releaseBuffer(buffer1, new ErrorImpl());
+
+            // buffer1 didn't make it back into the pool because its memory limit would be exceeded
+            assertTrue(((RsslSocketChannel)channel)._bigBuffersPool._pools.memoryUsage < 75_000);
+
+            assertEquals(1, ((RsslSocketChannel)channel)._bigBuffersPool._pools._pools[1].size()); // buffer2 is here
+            assertEquals(1, ((RsslSocketChannel)channel)._bigBuffersPool._pools._pools[2].size()); // buffer3 is here
+
             initChannel.close(error);
         }
         finally

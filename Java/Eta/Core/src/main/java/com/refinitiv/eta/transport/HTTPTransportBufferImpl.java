@@ -30,6 +30,11 @@ class HTTPTransportBufferImpl extends TransportBufferImpl
         super(pool, size);
     }
 
+    HTTPTransportBufferImpl(Pool pool, int size, boolean arrayBacked)
+    {
+        super(pool, size, arrayBacked);
+    }
+
     HTTPTransportBufferImpl(Pool pool)
     {
         super(pool);

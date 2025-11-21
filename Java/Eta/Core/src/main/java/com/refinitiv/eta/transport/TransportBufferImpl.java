@@ -79,6 +79,16 @@ class TransportBufferImpl extends EtaNode implements TransportBuffer
         _length = size;
     }
 
+    TransportBufferImpl(Pool pool, int size, boolean arrayBacked)
+    {
+        if (arrayBacked) _data = ByteBuffer.wrap(new byte[size]);
+        else _data = ByteBuffer.allocateDirect(size);
+
+        _startPosition = 0;
+        pool(pool);
+        _length = size;
+    }
+
     TransportBufferImpl(Pool pool)
     {
         pool(pool);

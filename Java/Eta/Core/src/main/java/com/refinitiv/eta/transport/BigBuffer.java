@@ -24,6 +24,12 @@ class BigBuffer extends HTTPTransportBufferImpl
         _isWriteBuffer = true;
     }
 
+    BigBuffer(Pool pool, int size, boolean arrayBacked)
+    {
+        super(pool, size, arrayBacked);
+        _isWriteBuffer = true;
+    }
+
     @Override
     boolean isBigBuffer()
     {

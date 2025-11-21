@@ -1157,7 +1157,7 @@ class WSProtocolFunctions implements ProtocolFunctions {
             TransportBufferImpl tBuffer = sBuffer.getBufferSliceForFragment(_rsslSocketChannel._internalMaxFragmentSize);
 
             // get big buffer from the pool, it returns non null
-            buffer = (BigBuffer)_rsslSocketChannel._bigBuffersPool.poll(size, true);
+            buffer = (BigBuffer)_rsslSocketChannel._bigBuffersPool.poll(size, true, _rsslSocketChannel._sessionOutCompression > CompressionTypes.NONE);
             buffer._data.position(0);
             
             if(_rsslSocketChannel.protocolType() == Codec.RWF_PROTOCOL_TYPE)
