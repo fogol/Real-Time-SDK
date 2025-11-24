@@ -9,19 +9,28 @@ There are three types of RTSDK releases that append a letter directly followed b
 "E" releases (E-Loads) are emergency RTSDK releases that are uploaded to MyAccount and Developer Community but not to GitHub. Also note that emergency releases may only be partial (i.e., Java or C++/C only).
 
 ----------------------------------------------------------------------------------------
-CURRENT RELEASE HIGHLIGHTS - RTSDK Java 2.3.1.G1 aka EMA/ETA 3.9.1.G1 aka 3.9.1.1
+CURRENT RELEASE HIGHLIGHTS - RTSDK Java 2.3.1.G2 aka EMA/ETA 3.9.1.G2 aka 3.9.1.3
 ----------------------------------------------------------------------------------------
 
 This is a maintenance release with critical fixes for customer issues.
 
 Customer Issues Resolved
 ------------------------
-- [Case Number: 15088925] - [RTSDK-10072] - Fixes to exceptions with multiple Consumers started in one application
-- [Case Number: 15242251] - [RTSDK-10184] - EMA Java com.refinitiv.eta.json.util.UtilQueue.growPool threw ArrayIndexOutOfBoundsException
+- [Case Number: 15439870] - [RTSDK-10325] - ArrayOutOfBoundsException when process message in EMA and ETA Java 
 
 ----------------------------------------------------------------------------------------
 FULL CHANGELOG
 ----------------------------------------------------------------------------------------
+
+--------------------------------------------
+RTSDK Java Release 2.3.1.G2 (Nov 25, 2025)
+--------------------------------------------
+
+This is a maintenance release with a critical fix.
+
+EMA Java 3.9.1.G2 Issues Resolved
+---------------------------------
+- [RTSDK-10325] - ArrayOutOfBoundsException when process message in EMA and ETA Java [Case Number: 15439870]
 
 --------------------------------------------
 RTSDK Java Release 2.3.1.G1 (Sep 30, 2025)
@@ -29,7 +38,7 @@ RTSDK Java Release 2.3.1.G1 (Sep 30, 2025)
 
 This is a maintenance release with critical fixes for customer issues.
 
-Both ETA Java and EMA Java 3.9.1.L2 Issues Resolved
+Both ETA Java and EMA Java 3.9.1.G1 Issues Resolved
 ---------------------------------------------------
 - [RTSDK-10072] - Fixes to exceptions with multiple Consumers started in one application [Case Number: 15088925]
 - [RTSDK-10184] - EMA Java com.refinitiv.eta.json.util.UtilQueue.growPool threw ArrayIndexOutOfBoundsException [Case Number: 15242251]

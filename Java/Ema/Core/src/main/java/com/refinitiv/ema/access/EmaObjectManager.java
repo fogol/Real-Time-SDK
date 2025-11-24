@@ -9,11 +9,15 @@
 package com.refinitiv.ema.access;
 
 import java.nio.ByteBuffer;
+
 import java.util.ArrayList;
+import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.List;
+
 import java.util.concurrent.ConcurrentLinkedDeque;
-import java.util.ArrayDeque;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import com.refinitiv.eta.valueadd.common.VaPool;
 
@@ -25,6 +29,7 @@ class EmaObjectManager
 	private final static int MAX_BYTE_BUFFER_CAPABILITY = 2000;
 	private final static int DEFAULT_ETA_CONTAINER_SIZE = 10;
 
+	private Lock _byteBufferLock = null;
 	private List<ByteBuffer>[] _byteBufferList;
 	private boolean _intialized;
 	
@@ -113,6 +118,11 @@ class EmaObjectManager
 	
 	EmaObjectManager(boolean globalLock)
 	{
+		if (globalLock)
+		{
+			_byteBufferLock = new ReentrantLock();
+		}
+
 		_ommIntPool = new VaPool(globalLock);
 		_ommUIntPool = new VaPool(globalLock);
 		_ommFloatPool = new VaPool(globalLock);
@@ -375,33 +385,44 @@ class EmaObjectManager
 		int pos = length / DEFAULT_BYTE_BUFFER_SIZE;
 		ByteBuffer retVal;
 
-		if (pos < MAX_NUM_BYTE_BUFFER)
-		{
-			if (!_byteBufferList[pos].isEmpty())
-			{
-				retVal = _byteBufferList[pos].remove(_byteBufferList[pos].size() - 1);
-				retVal.clear();
-				return retVal;
-			}
+		if (_byteBufferLock != null)
+			_byteBufferLock.lock();
 
-			return ByteBuffer.allocate((pos + 1) * DEFAULT_BYTE_BUFFER_SIZE);
-		} else
+		try
 		{
-			if (!_byteBufferList[MAX_NUM_BYTE_BUFFER].isEmpty())
+			if (pos < MAX_NUM_BYTE_BUFFER)
 			{
-				int size = _byteBufferList[MAX_NUM_BYTE_BUFFER].size() - 1;
-				for (int index = size; index >= 0; --index)
+				if (!_byteBufferList[pos].isEmpty())
 				{
-					if (length < _byteBufferList[MAX_NUM_BYTE_BUFFER].get(index).capacity())
+					retVal = _byteBufferList[pos].remove(_byteBufferList[pos].size() - 1);
+					retVal.clear();
+					return retVal;
+				}
+
+				return ByteBuffer.allocate((pos + 1) * DEFAULT_BYTE_BUFFER_SIZE);
+			} else
+			{
+				if (!_byteBufferList[MAX_NUM_BYTE_BUFFER].isEmpty())
+				{
+					int size = _byteBufferList[MAX_NUM_BYTE_BUFFER].size() - 1;
+					for (int index = size; index >= 0; --index)
 					{
-						retVal = _byteBufferList[MAX_NUM_BYTE_BUFFER].remove(index);
-						retVal.clear();
-						return retVal;
+						if (length < _byteBufferList[MAX_NUM_BYTE_BUFFER].get(index).capacity())
+						{
+							retVal = _byteBufferList[MAX_NUM_BYTE_BUFFER].remove(index);
+							retVal.clear();
+							return retVal;
+						}
 					}
 				}
-			}
 
-			return ByteBuffer.allocate(length);
+				return ByteBuffer.allocate(length);
+			}
+		}
+		finally
+		{
+			if (_byteBufferLock != null)
+				_byteBufferLock.unlock();
 		}
 	}
 
@@ -410,12 +431,23 @@ class EmaObjectManager
 		if (buffer == null)
 			return;
 
-		int pos = buffer.capacity() / DEFAULT_BYTE_BUFFER_SIZE - 1;
+		if (_byteBufferLock != null)
+			_byteBufferLock.lock();
 
-		if (pos < MAX_NUM_BYTE_BUFFER)
-			_byteBufferList[pos].add(buffer);
-		else
-			_byteBufferList[MAX_NUM_BYTE_BUFFER].add(buffer);
+		try
+		{
+			int pos = buffer.capacity() / DEFAULT_BYTE_BUFFER_SIZE - 1;
+
+			if (pos < MAX_NUM_BYTE_BUFFER)
+				_byteBufferList[pos].add(buffer);
+			else
+				_byteBufferList[MAX_NUM_BYTE_BUFFER].add(buffer);
+		}
+		finally
+		{
+			if (_byteBufferLock != null)
+				_byteBufferLock.unlock();
+		}
 	}
 	
 	@SuppressWarnings("unchecked")
