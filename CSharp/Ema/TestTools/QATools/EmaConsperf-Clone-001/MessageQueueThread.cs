@@ -44,26 +44,23 @@ public class MessageQueueThread
         {
             if (_messageQueue.TryDequeue(out var messageWrapper))
             {
-                switch (messageWrapper.BaseMsg.DataType)
+                switch (messageWrapper)
                 {
-                    case DataType.DataTypes.REFRESH_MSG:
-                        var refreshMsgWrapper = (MsgWrapper<RefreshMsg>)messageWrapper;
+                    case MsgWrapper<RefreshMsg> refreshMsgWrapper:
 
                         _msgProcessor.ProcessRefreshMsg(refreshMsgWrapper.Msg, refreshMsgWrapper.Handle, refreshMsgWrapper.Closure);
 
                         _refreshMsgPool.Return(refreshMsgWrapper);
 
                         break;
-                    case DataType.DataTypes.UPDATE_MSG:
-                        var updateMsgWrapper = (MsgWrapper<UpdateMsg>)messageWrapper;
+                    case MsgWrapper<UpdateMsg> updateMsgWrapper:
 
                         _msgProcessor.ProcessUpdateMsg(updateMsgWrapper.Msg);
 
                         _updateMsgPool.Return(updateMsgWrapper);
 
                         break;
-                    case DataType.DataTypes.STATUS_MSG:
-                        var statusMsgWrapper = (MsgWrapper<StatusMsg>)messageWrapper;
+                    case MsgWrapper<StatusMsg> statusMsgWrapper:
 
                         _msgProcessor.ProcessStatusMsg(statusMsgWrapper.Msg, statusMsgWrapper.Closure);
 

@@ -6,9 +6,10 @@
  *|-----------------------------------------------------------------------------
  */
 
+using System;
+
 using LSEG.Ema.Access;
 using LSEG.Ema.PerfTools.Common;
-using System;
 
 namespace LSEG.Ema.PerfTools.ConsPerf
 {
@@ -61,6 +62,12 @@ namespace LSEG.Ema.PerfTools.ConsPerf
 
         public uint EncryptionProtocol; /* Tls version. */
 
+        public bool EnableMessageQueue;       /* Enable message queue for decoding messages by a separate thread. */
+        public int CloneMsgBufferSize;        /* The size of cloned message buffer */
+        public int RefreshMsgPoolSize;        /* Maximum number of refresh message in its pool */
+        public int StatusMsgPoolSize;         /* Maximum number of status message in its pool */
+        public int UpdateMsgPoolSize;         /* Maximum number of update message in its pool */
+
         internal EmaConsPerfConfig()
         {
             CommandLine.ProgName("ConsPerf");
@@ -91,6 +98,12 @@ namespace LSEG.Ema.PerfTools.ConsPerf
             CommandLine.AddOption("consumerName", "", "Name of the Consumer component in config file EmaConfig.xml that will be usd to configure connection.");
             CommandLine.AddOption("spTLSv1.2", false, "Specifies that TLSv1.2 can be used for an encrypted connection");
             CommandLine.AddOption("spTLSv1.3", false, "Specifies that TLSv1.3 can be used for an encrypted connection");
+
+            CommandLine.AddOption("enableMessageQueue", false, "Enable message queue to decode messages by a seperate thread.");
+            CommandLine.AddOption("cloneMsgBufSize", 1024, "Specifying buffer size for the cloned message");
+            CommandLine.AddOption("refreshMsgPoolSize", 5000, "Specifying the maximum number of refresh message in its pool");
+            CommandLine.AddOption("updateMsgPoolSize", 15000, "Specifying the maximum number of update message in its pool");
+            CommandLine.AddOption("statusMsgPoolSize", 5000, "Specifying the maximum number of status message in its pool");
         }
 
         /// <summary>
@@ -136,6 +149,8 @@ namespace LSEG.Ema.PerfTools.ConsPerf
             if (CommandLine.BoolValue("spTLSv1.3"))
                 EncryptionProtocol |= EmaConfig.EncryptedTLSProtocolFlags.TLSv1_3;
 
+            EnableMessageQueue = CommandLine.BoolValue("enableMessageQueue");
+
             try
             {
                 SteadyStateTime = CommandLine.IntValue("steadyStateTime");
@@ -150,6 +165,11 @@ namespace LSEG.Ema.PerfTools.ConsPerf
                 LatencyPostsPerSec = CommandLine.IntValue("postingLatencyRate");
                 GenMsgsPerSec = CommandLine.IntValue("genericMsgRate");
                 LatencyGenMsgsPerSec = CommandLine.IntValue("genericMsgLatencyRate");
+
+                CloneMsgBufferSize = CommandLine.IntValue("cloneMsgBufSize");
+                RefreshMsgPoolSize = CommandLine.IntValue("refreshMsgPoolSize");
+                StatusMsgPoolSize = CommandLine.IntValue("statusMsgPoolSize");
+                UpdateMsgPoolSize = CommandLine.IntValue("updateMsgPoolSize");
             }
             catch (Exception ile)
             {
@@ -265,6 +285,34 @@ namespace LSEG.Ema.PerfTools.ConsPerf
                 Environment.Exit(-1);
             }
 
+            if (CloneMsgBufferSize < 1)
+            {
+                Console.Error.WriteLine("Config Error: clone msg buffer size cannot be less than 1.");
+                Console.Error.WriteLine(CommandLine.OptionHelpString());
+                Environment.Exit(-1);
+            }
+
+            if (RefreshMsgPoolSize < 1)
+            {
+                Console.Error.WriteLine("Config Error: refresh message pool size cannot be less than 1.");
+                Console.Error.WriteLine(CommandLine.OptionHelpString());
+                Environment.Exit(-1);
+            }
+
+            if (StatusMsgPoolSize < 1)
+            {
+                Console.Error.WriteLine("Config Error: status message pool size cannot be less than 1.");
+                Console.Error.WriteLine(CommandLine.OptionHelpString());
+                Environment.Exit(-1);
+            }
+
+            if (UpdateMsgPoolSize < 1)
+            {
+                Console.Error.WriteLine("Config Error: update message pool size cannot be less than 1.");
+                Console.Error.WriteLine(CommandLine.OptionHelpString());
+                Environment.Exit(-1);
+            }
+
             RequestsPerTick = ItemRequestsPerSec / TicksPerSec;
 
             RequestsPerTickRemainder = ItemRequestsPerSec % TicksPerSec;
@@ -284,17 +332,6 @@ namespace LSEG.Ema.PerfTools.ConsPerf
         /* Create config string. */
         private void CreateConfigString()
         {
-            string useOperationModelUsageString;
-
-            if (UseUserDispatch)
-            {
-                useOperationModelUsageString = "USER_DISPATCH";
-            }
-            else
-            {
-                useOperationModelUsageString = "API_DISPATCH";
-            }
-
             _configString = "--- TEST INPUTS ---\n\n" +
                     "       Steady State Time: " + SteadyStateTime + " sec\n" +
                     " Delay Steady State Time: " + DelaySteadyStateCalc + " msec\n" +
@@ -314,11 +351,20 @@ namespace LSEG.Ema.PerfTools.ConsPerf
                     "               Data File: " + MsgFilename + "\n" +
                     "            Summary File: " + SummaryFilename + "\n" +
                     "              Stats File: " + StatsFilename + "\n" +
-                    "        Latency Log File: " + (LatencyLogFilename != null && LatencyLogFilename!.Length > 0 ? LatencyLogFilename : "(none)") + "\n" +
+                    "        Latency Log File: " + (!string.IsNullOrEmpty(LatencyLogFilename) ? LatencyLogFilename : "(none)") + "\n" +
                     "               Tick Rate: " + TicksPerSec + "\n" +
-                    "        DowncastDecoding: " + (DowncastDecoding ? "True" : "False") + "\n" +
-                    "    OperationModel Usage: " + useOperationModelUsageString + "\n" +
-                    "       Security Protocol: " + (EncryptedTLSProtocolFlags)EncryptionProtocol + "\n";
+                    "        DowncastDecoding: " + (DowncastDecoding ? "Yes" : "No") + "\n" +
+                    "    OperationModel Usage: " + (UseUserDispatch ? "USER_DISPATCH" : "API_DISPATCH") + "\n" +
+                    "       Security Protocol: " + (EncryptedTLSProtocolFlags)EncryptionProtocol + "\n" +
+                    "      EnableMessageQueue: " + (EnableMessageQueue ? "Yes" : "No") + "\n";
+            if (EnableMessageQueue)
+            {
+                _configString +=
+                    "  Cloned msg buffer size: " + CloneMsgBufferSize + "\n" +
+                    "   Refresh msg pool size: " + RefreshMsgPoolSize + "\n" +
+                    "    Status msg pool size: " + StatusMsgPoolSize + "\n" +
+                    "    Update msg pool size: " + UpdateMsgPoolSize + "\n";
+            }
         }
 
         public override string ToString()

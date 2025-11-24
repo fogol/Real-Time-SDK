@@ -6,13 +6,15 @@
  *|-----------------------------------------------------------------------------
  */
 
-using LSEG.Ema.PerfTools.Common;
+using System.Collections.Concurrent;
+
 using LSEG.Ema.Access;
+using LSEG.Ema.PerfTools.Common;
 using LSEG.Eta.Rdm;
 
 namespace LSEG.Ema.PerfTools.ConsPerf
 {
-    public class ConsumerThread : IOmmConsumerClient
+    public class ConsumerThread : IOmmConsumerClient, IMsgProcessor
     {
         private const int LATENCY_RANDOM_ARRAY_SET_COUNT = 20;
         private const string DEFAULT_PERF_CONSUMER_CONFIG_NAME = "Perf_Consumer_1";
@@ -52,6 +54,12 @@ namespace LSEG.Ema.PerfTools.ConsPerf
         private bool _haveMarketPriceGenMsgItems; /* indicates there are generic msg items in the item list */
         private int _postMsgItemIndex;
 
+        private readonly ConcurrentQueue<MsgWrapper>? _messageQueue;
+        private readonly Pool<MsgWrapper<RefreshMsg>>? _refreshMsgPool;
+        private readonly Pool<MsgWrapper<UpdateMsg>>? _updateMsgPool;
+        private readonly Pool<MsgWrapper<StatusMsg>>? _statusMsgPool;
+        private readonly MessageQueueThread? _messageQueueThread;
+
 #pragma warning disable CS8618
         public ConsumerThread(ConsumerThreadInfo consInfo, 
             EmaConsPerfConfig consConfig, 
@@ -73,6 +81,18 @@ namespace LSEG.Ema.PerfTools.ConsPerf
             _requestListIndex = 0;
             _marketPriceDecoder = new MarketPriceDecoder(_postUserInfo);
             _itemEncoder = new ItemEncoder(_xmlMsgData);
+
+            if (consConfig.EnableMessageQueue)
+            {
+                _messageQueue = new();
+                _refreshMsgPool = new(() => new MsgWrapper<RefreshMsg>(new(consConfig.CloneMsgBufferSize)), consConfig.RefreshMsgPoolSize, consConfig.RefreshMsgPoolSize);
+                _updateMsgPool = new(() => new MsgWrapper<UpdateMsg>(new(consConfig.CloneMsgBufferSize)), consConfig.UpdateMsgPoolSize, consConfig.UpdateMsgPoolSize);
+                _statusMsgPool = new(() => new MsgWrapper<StatusMsg>(new(consConfig.CloneMsgBufferSize)), consConfig.StatusMsgPoolSize, consConfig.StatusMsgPoolSize);
+                _messageQueueThread = new(_messageQueue, _refreshMsgPool, _updateMsgPool, _statusMsgPool, this);
+                var thread = new Thread(_messageQueueThread.Run);
+                thread.Start();
+                Console.WriteLine($"Executing MessageQueueThread {thread.ManagedThreadId}");
+            }
         }
 #pragma warning restore CS8618
 
@@ -642,7 +662,7 @@ namespace LSEG.Ema.PerfTools.ConsPerf
         protected void ShutdownConsumer(string text)
         {
             Console.WriteLine(text);
-            //_shutdownCallback.Shutdown();
+            _messageQueueThread?.Shutdown();
             _consThreadInfo.ShutdownAck = true;
             _consumer.Uninitialize();
             return;
@@ -650,6 +670,20 @@ namespace LSEG.Ema.PerfTools.ConsPerf
 
 
         public void OnRefreshMsg(RefreshMsg refreshMsg, IOmmConsumerEvent consumerEvent)
+        {
+            if (_messageQueue == null)
+                ProcessRefreshMsg(refreshMsg, consumerEvent.Handle, consumerEvent.Closure);
+            else
+            {
+                var wrapper = _refreshMsgPool!.Get();
+                wrapper.Handle = consumerEvent.Handle;
+                wrapper.Closure = consumerEvent.Closure;
+                refreshMsg.Copy(wrapper.Msg);
+                _messageQueue.Enqueue(wrapper);
+            }
+        }
+
+        public void ProcessRefreshMsg(RefreshMsg refreshMsg, long handle, object? closure)
         {
             _consThreadInfo.Stats!.RefreshCount.Increment();
 
@@ -672,10 +706,11 @@ namespace LSEG.Ema.PerfTools.ConsPerf
 
                 if (refreshMsg.Complete())
                 {
-                    ((ItemInfo)consumerEvent.Closure!).ClientHandle = consumerEvent.Handle;
+                    var itemInfo = (ItemInfo)closure!;
+                    itemInfo.ClientHandle = handle;
                     if (refreshMsg.State().DataState == OmmState.DataStates.OK)
                     {
-                        _itemRequestList[((ItemInfo)consumerEvent.Closure).ItemId].RequestState = (int)ItemRequestState.HAS_REFRESH;
+                        _itemRequestList[itemInfo.ItemId].RequestState = (int)ItemRequestState.HAS_REFRESH;
                         _consThreadInfo.Stats.RefreshCompleteCount.Increment();
                         if (_consThreadInfo.Stats.RefreshCompleteCount.GetTotal() == _requestListSize)
                         {
@@ -687,8 +722,21 @@ namespace LSEG.Ema.PerfTools.ConsPerf
             }
         }
 
-
         public void OnUpdateMsg(UpdateMsg updateMsg, IOmmConsumerEvent consumerEvent)
+        {
+            if (_messageQueue == null)
+                ProcessUpdateMsg(updateMsg);
+            else
+            {
+                var wrapper = _updateMsgPool!.Get();
+                wrapper.Handle = consumerEvent.Handle;
+                wrapper.Closure = consumerEvent.Closure;
+                updateMsg.Copy(wrapper.Msg);
+                _messageQueue.Enqueue(wrapper);
+            }
+        }
+
+        public void ProcessUpdateMsg(UpdateMsg updateMsg)
         {
             if (_consThreadInfo.Stats!.ImageRetrievalEndTime > 0)
             {
@@ -707,21 +755,35 @@ namespace LSEG.Ema.PerfTools.ConsPerf
             }
         }
 
-
         public void OnStatusMsg(StatusMsg statusMsg, IOmmConsumerEvent consumerEvent)
         {
+            if (_messageQueue == null)
+                ProcessStatusMsg(statusMsg, consumerEvent.Closure);
+            else
+            {
+                var wrapper = _statusMsgPool!.Get();
+                wrapper.Handle = consumerEvent.Handle;
+                wrapper.Closure = consumerEvent.Closure;
+                statusMsg.Copy(wrapper.Msg);
+                _messageQueue.Enqueue(wrapper);
+            }
+        }
+
+        public void ProcessStatusMsg(StatusMsg statusMsg, object? closure)
+        {
             _consThreadInfo.Stats!.StatusCount.Increment();
+            
+            var itemInfo = (ItemInfo)closure!;
 
             if (statusMsg.State().DataState == OmmState.DataStates.SUSPECT)
             {
-                ((ItemInfo)consumerEvent.Closure!).ClientHandle = -1;
+                itemInfo.ClientHandle = -1;
             }
             if (statusMsg.HasState && (statusMsg.State().StreamState == OmmState.StreamStates.CLOSED
                     || statusMsg.State().StreamState == OmmState.StreamStates.CLOSED_RECOVER
                     || statusMsg.State().StreamState == OmmState.StreamStates.CLOSED_REDIRECTED))
             {
-                ShutdownConsumer("Received unexpected final state for item: " + statusMsg.State().ToString() +
-                        _itemRequestList[((ItemInfo)consumerEvent.Closure!).ItemId].ItemName);
+                ShutdownConsumer($"Received unexpected final state ({statusMsg.State().ToString()}) for item: {_itemRequestList[itemInfo.ItemId].ItemName}");
                 return;
             }
         }

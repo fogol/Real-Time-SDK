@@ -383,9 +383,9 @@ namespace LSEG.Ema.PerfTools.ConsPerf
             if (_cpuUsageStats.Count > 0)
             {
                 fileWriter.Write("  CPU/Memory Samples: {0}\n", _cpuUsageStats.Count);
-                fileWriter.Write("  CPU Usage max (%%): {0:0.00}\n", _cpuUsageStats.MaxValue);
-                fileWriter.Write("  CPU Usage min (%%): {0:0.00}\n", _cpuUsageStats.MinValue);
-                fileWriter.Write("  CPU Usage avg (%%): {0:0.00}\n", _cpuUsageStats.Average);
+                fileWriter.Write("  CPU Usage max (%): {0:0.00}\n", _cpuUsageStats.MaxValue);
+                fileWriter.Write("  CPU Usage min (%): {0:0.00}\n", _cpuUsageStats.MinValue);
+                fileWriter.Write("  CPU Usage avg (%): {0:0.00}\n", _cpuUsageStats.Average);
                 fileWriter.Write("  Memory Usage max (MB): {0:0.00}\n", _memUsageStats.MaxValue);
                 fileWriter.Write("  Memory Usage min (MB): {0:0.00}\n", _memUsageStats.MinValue);
                 fileWriter.Write("  Memory Usage avg (MB): {0:0.00}\n", _memUsageStats.Average);

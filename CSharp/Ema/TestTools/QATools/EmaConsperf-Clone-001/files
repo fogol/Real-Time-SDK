@@ -1,0 +1,8 @@
+#file,location
+ConsumerThread.cs,PerfTools/EMA_ConsPerf
+EmaConsPerf.cs,PerfTools/EMA_ConsPerf
+EmaConsPerfConfig.cs,PerfTools/EMA_ConsPerf
+IMsgProcessor.cs,PerfTools/EMA_ConsPerf
+MessageQueueThread.cs,PerfTools/EMA_ConsPerf
+MsgWrapper.cs,PerfTools/EMA_ConsPerf
+Pool.cs,PerfTools/EMA_ConsPerf

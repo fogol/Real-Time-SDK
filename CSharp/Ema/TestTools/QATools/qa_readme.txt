@@ -1086,3 +1086,8 @@ emajconsperf-Rto-001
            -uname <username> -password <password> -clientId <clientId> \
              -tickRate 1000 -steadyStateTime 300 \
              -itemFile 350k.xml -consumerName Perf_Consumer_WSJSON_1"
+
+Module:  EmaConsperf
+----------------------------------
+EmaConsperf-Clone-001
+    Performance tool that adds message cloning & processing them in separate thread.
