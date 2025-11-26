@@ -159,6 +159,7 @@ namespace LSEG.Ema.Access.Tests.OmmConsumerTests
         }
 
         [Fact]
+        [LogTestName]
         public void SecondUninitializeTest()
         {
             // Arrange
@@ -190,6 +191,7 @@ namespace LSEG.Ema.Access.Tests.OmmConsumerTests
         }
 
         [Fact]
+        [LogTestName]
         public void LoginRequestTimeoutTest()
         {
             OmmConsumerConfig config = new OmmConsumerConfig();
@@ -200,6 +202,7 @@ namespace LSEG.Ema.Access.Tests.OmmConsumerTests
         }
 
         [Fact]
+        [LogTestName]
         public void LoginRejectByProviderTest()
         {
             ProviderSessionOptions providerSessionOpts = new ProviderSessionOptions();
@@ -227,6 +230,7 @@ namespace LSEG.Ema.Access.Tests.OmmConsumerTests
         }
 
         [Fact]
+        [LogTestName]
         public void LoginRejectByProviderWithClientTest()
         {
             ProviderSessionOptions providerSessionOpts = new ProviderSessionOptions();
@@ -273,6 +277,7 @@ namespace LSEG.Ema.Access.Tests.OmmConsumerTests
         }
 
         [Fact]
+        [LogTestName]
         public void DirectorRequestTimeoutTest()
         {
             ProviderSessionOptions providerSessionOpts = new ProviderSessionOptions();
@@ -295,6 +300,7 @@ namespace LSEG.Ema.Access.Tests.OmmConsumerTests
         }
 
         [Fact]
+        [LogTestName]
         public void CreateValidOmmConsumerTest() // Receives both login and directory refersh messages.
         {
             ProviderSessionOptions providerSessionOpts = new ProviderSessionOptions();
@@ -320,6 +326,7 @@ namespace LSEG.Ema.Access.Tests.OmmConsumerTests
         [Theory]
         [InlineData(false)]
         [InlineData(true)]
+        [LogTestName]
         public void RegisterAndUnRegisterSourceDirectoryReqTest(bool userDispatch = false) // Receives both login and directory refersh messages.
         {
             ProviderSessionOptions providerSessionOpts = new ProviderSessionOptions();
@@ -540,6 +547,7 @@ namespace LSEG.Ema.Access.Tests.OmmConsumerTests
         [Theory]
         [InlineData(false)]
         [InlineData(true)]
+        [LogTestName]
         public void RegisterAndUnRegisterLoginReqTest(bool userDispatch = false) // Receives both login and directory refersh messages.
         {
             ProviderSessionOptions providerSessionOpts = new ProviderSessionOptions();
@@ -679,6 +687,7 @@ namespace LSEG.Ema.Access.Tests.OmmConsumerTests
         [Theory]
         [InlineData(false)]
         [InlineData(true)]
+        [LogTestName]
         public void RegisterSingleMarketDataRequestTest(bool userDispatch = false)
         {
             ProviderSessionOptions providerSessionOpts = new ProviderSessionOptions();
@@ -770,6 +779,7 @@ namespace LSEG.Ema.Access.Tests.OmmConsumerTests
         [Theory]
         [InlineData(false)]
         [InlineData(true)]
+        [LogTestName]
         public void RegisterSingleMarketData_InvalidServiceNameTest(bool userDispatch = false)
         {
             ProviderSessionOptions providerSessionOpts = new ProviderSessionOptions();
@@ -852,6 +862,7 @@ namespace LSEG.Ema.Access.Tests.OmmConsumerTests
         [Theory]
         [InlineData(false)]
         [InlineData(true)]
+        [LogTestName]
         public void RegisterSingleMarketData_UnknownDomainNameTest(bool userDispatch = false)
         {
             ProviderSessionOptions providerSessionOpts = new ProviderSessionOptions();
@@ -933,6 +944,7 @@ namespace LSEG.Ema.Access.Tests.OmmConsumerTests
         [Theory]
         [InlineData(false)]
         [InlineData(true)]
+        [LogTestName]
         public void RegisterSingleMarketData_RequestTimeoutTest(bool userDispatch = false)
         {
             ProviderSessionOptions providerSessionOpts = new ProviderSessionOptions();
@@ -1015,6 +1027,7 @@ namespace LSEG.Ema.Access.Tests.OmmConsumerTests
         [Theory]
         [InlineData(false)]
         [InlineData(true)]
+        [LogTestName]
         public void RegisterSingleMarketData_RejectItemReqTest(bool userDispatch = false)
         {
             ProviderSessionOptions providerSessionOpts = new ProviderSessionOptions();
@@ -1094,6 +1107,7 @@ namespace LSEG.Ema.Access.Tests.OmmConsumerTests
         }
 
         [Fact]
+        [LogTestName]
         public void RegisterBatchRequestWithEmptyListTest()
         {
             var exception = Assert.ThrowsAny<OmmException>(() =>
@@ -1117,6 +1131,7 @@ namespace LSEG.Ema.Access.Tests.OmmConsumerTests
         [Theory]
         [InlineData(false)]
         [InlineData(true)]
+        [LogTestName]
         public void RegisterBatchMarketDataItemTest(bool userDispatch = false)
         {
             ProviderSessionOptions providerSessionOpts = new ProviderSessionOptions();
@@ -1245,6 +1260,7 @@ namespace LSEG.Ema.Access.Tests.OmmConsumerTests
         [Theory]
         [InlineData(false)]
         [InlineData(true)]
+        [LogTestName]
         public void RegisterViewMarketDataItemTest(bool userDispatch = false)
         {
             ProviderSessionOptions providerSessionOpts = new ProviderSessionOptions();
@@ -1389,6 +1405,7 @@ namespace LSEG.Ema.Access.Tests.OmmConsumerTests
         }
 
         [Fact]
+        [LogTestName]
         public void SubmitAndReissueWithInvalidHandleTest()
         {
             ProviderSessionOptions providerSessionOpts = new ProviderSessionOptions();
@@ -1446,6 +1463,7 @@ namespace LSEG.Ema.Access.Tests.OmmConsumerTests
         }
 
         [Fact]
+        [LogTestName]
         public void NotifyWithIOmmConsumerErrorClientTest()
         {
             ProviderSessionOptions providerSessionOpts = new ProviderSessionOptions();
@@ -1508,6 +1526,7 @@ namespace LSEG.Ema.Access.Tests.OmmConsumerTests
         }
 
         [Fact]
+        [LogTestName]
         public void ReissueViewChangeTest()
         {
             ProviderSessionOptions providerSessionOpts = new ProviderSessionOptions();
@@ -1641,6 +1660,7 @@ namespace LSEG.Ema.Access.Tests.OmmConsumerTests
         }
 
         [Fact]
+        [LogTestName]
         public void SubmitOnStreamPostMsgTest()
         {
             ProviderSessionOptions providerSessionOpts = new ProviderSessionOptions();
@@ -1764,6 +1784,7 @@ namespace LSEG.Ema.Access.Tests.OmmConsumerTests
 
 
         [Fact]
+        [LogTestName]
         public void SubmitOffStreamPostMsgTest()
         {
             ProviderSessionOptions providerSessionOpts = new ProviderSessionOptions();
@@ -1891,6 +1912,7 @@ namespace LSEG.Ema.Access.Tests.OmmConsumerTests
         }
 
         [Fact]
+        [LogTestName]
         public void SubmitGenericMsgTest()
         {
             ProviderSessionOptions providerSessionOpts = new ProviderSessionOptions();
@@ -2005,6 +2027,7 @@ namespace LSEG.Ema.Access.Tests.OmmConsumerTests
         [Theory]
         [InlineData(false)]
         [InlineData(true)]
+        [LogTestName]
         public void RegisterMarketDataStreamingAndSnapshotRequestsTest(bool userDispatch = false)
         {
             ProviderSessionOptions providerSessionOpts = new ProviderSessionOptions();
@@ -2055,7 +2078,7 @@ namespace LSEG.Ema.Access.Tests.OmmConsumerTests
                 Assert.True(handle > 0);
 
                 long handle2 = consumer.RegisterClient(requestMsg2, consumerClient, this);
-
+                   
                 Assert.True(handle2 > 0);
 
                 /* Checks the expected RefreshMsg from the market data request */

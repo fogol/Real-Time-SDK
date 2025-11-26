@@ -1070,6 +1070,127 @@ namespace LSEG.Eta.Transports.Tests
         }
 
         [Fact]
+        public void TransportWriteBigBufferWouldBlockTest()
+        {
+            ConnectOptions conOpt = new ConnectOptions();
+            CustomMockChannel mockChannel = new CustomMockChannel();
+            
+            mockChannel.CreateNetworkBuffer(500000);
+            
+            MockChannel.WriteActions[] writeActions = new MockChannel.WriteActions[150];
+            
+            writeActions[0] = MockChannel.WriteActions.WOULD_BLOCK;
+            for (int i = 1; i < 150; i++) writeActions[i] = MockChannel.WriteActions.NORMAL;
+
+            mockChannel.ActionsPattern = writeActions;
+
+            InitArgs initArgs = new InitArgs
+            {
+                GlobalLocking = true
+            };
+
+            Transport.Initialize(initArgs, out Error error);
+
+            ChannelBase channel = new ChannelBase(conOpt, mockChannel, ChannelState.ACTIVE, 1000);
+
+            byte[] dataByteArray = new byte[442152];
+
+            for (int i = 0; i <  dataByteArray.Length; i++) dataByteArray[i] = 0xFF;
+
+            ITransportBuffer messageBuffer = channel.GetBuffer(dataByteArray.Length + 100, false, out error);
+
+            Assert.NotNull(messageBuffer);
+            Assert.Null(error);
+
+            messageBuffer.Data.Put(dataByteArray);
+
+            TransportReturnCode ret = channel.Write(messageBuffer, new WriteArgs()
+            {
+                Flags = WriteFlags.DIRECT_SOCKET_WRITE
+            }, out error);
+
+            Assert.Equal(TransportReturnCode.WRITE_CALL_AGAIN, ret);
+
+            ret = channel.Flush(out error);
+
+            Assert.True(ret >= TransportReturnCode.SUCCESS);
+
+            ret = channel.Write(messageBuffer, new WriteArgs()
+            {
+                Flags = WriteFlags.DIRECT_SOCKET_WRITE
+            }, out error);
+
+            Assert.True(ret >= TransportReturnCode.SUCCESS);
+
+            ByteBuffer nb = mockChannel.GetNetworkBuffer();
+
+            nb.Flip();
+            Assert.Equal(442594, nb.Limit); // 442152 bytes of message + 10 bytes first header, 6 bytes subsequent headers
+
+            // Check that the whole message is present (442152 bytes)
+            int count = 0;
+            for (int i = 0; i < nb.Contents.Length; i++)
+            {
+                if (nb.Contents[i] == 0xFF) count++;
+            }
+
+            Assert.Equal(442152, count);
+
+            mockChannel.CreateNetworkBuffer(500000);
+
+            writeActions = new MockChannel.WriteActions[60];
+
+            for (int i = 0; i < 60; i += 3)
+            {
+                writeActions[i] = MockChannel.WriteActions.WOULD_BLOCK;
+                for (int j = 1; j < 3; j++) writeActions[i + j] = MockChannel.WriteActions.NORMAL;
+            }
+
+            mockChannel.ActionsPattern = writeActions;
+            mockChannel.ActionIndex = 0;
+
+            messageBuffer = channel.GetBuffer(dataByteArray.Length + 100, false, out error);
+
+            messageBuffer.Data.Put(dataByteArray);
+
+            ret = channel.Write(messageBuffer, new WriteArgs()
+            {
+                Flags = WriteFlags.DIRECT_SOCKET_WRITE
+            }, out error);
+
+            count = 0;
+            while (ret < TransportReturnCode.SUCCESS)
+            {
+                count++;
+                ret = channel.Flush(out error);
+                ret = channel.Write(messageBuffer, new WriteArgs()
+                {
+                    Flags = WriteFlags.DIRECT_SOCKET_WRITE
+                }, out error);
+            }
+
+            Assert.True(count > 0);
+
+            nb = mockChannel.GetNetworkBuffer();
+
+            nb.Flip();
+            Assert.Equal(442594, nb.Limit); // 442152 bytes of message + 10 bytes first header, 6 bytes subsequent headers
+
+            // Check that the whole message is present (442152 bytes)
+            count = 0;
+            for (int i = 0; i < nb.Contents.Length; i++)
+            {
+                if (nb.Contents[i] == 0xFF) count++;
+            }
+
+            Assert.Equal(442152, count);
+
+            Assert.Equal(TransportReturnCode.SUCCESS, channel.Close(out error));
+
+            Transport.Uninitialize();
+        }
+
+        [Fact]
         public void TransportWriteFailedTest()
         {
             ConnectOptions conOpt = new ConnectOptions();

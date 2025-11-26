@@ -331,11 +331,23 @@ internal class DictionaryHandler
                 return ReactorReturnCode.FAILURE;
             }
 
+            ReactorReturnCode retCode = chnl.Submit(msgBuf, m_SubmitOptions, out var submitError);
+
             // send dictionary response
-            if (chnl.Submit(msgBuf, m_SubmitOptions, out var submitError) != ReactorReturnCode.SUCCESS)
+            if (retCode != ReactorReturnCode.SUCCESS)
             {
-                Assert.Fail($"ReactorChannel.Submit failed: {submitError}");
-                return ReactorReturnCode.FAILURE;
+                int count = 0;
+                while (retCode == ReactorReturnCode.WRITE_CALL_AGAIN && count++ < 1000)
+                {
+                    retCode = chnl.Submit(msgBuf, m_SubmitOptions, out var err);
+                    if (retCode == ReactorReturnCode.SUCCESS) break;
+                }
+
+                if (retCode != ReactorReturnCode.SUCCESS)
+                {
+                    Assert.Fail($"ReactorChannel.Submit failed: {submitError}");
+                    return ReactorReturnCode.FAILURE;
+                }
             }
 
             // break out of loop when all dictionary responses sent

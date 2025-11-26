@@ -1772,14 +1772,19 @@ namespace LSEG.Eta.Internal.Interfaces
             }
             
             // Gets buffers for the rest of the data and copy data to the buffers
-            while(bytesLeft > 0)
+            while (bytesLeft > 0)
             {
                 TransportBuffer nextBuffer = GetBufferInternal(InternalFragmentSize - RipcDataMessage.HeaderSize, false, RipcDataMessage.HeaderSize);
-                if(nextBuffer is null)
+                if (nextBuffer is null)
                 {
                     ret = (TransportReturnCode)FlushInternal(out error);
-                    if(ret < TransportReturnCode.SUCCESS)
+                    if (ret < TransportReturnCode.SUCCESS)
                     {
+                        if (ret == TransportReturnCode.WRITE_FLUSH_FAILED)
+                        {
+                            bigBuffer.IsWritePaused = true;
+                            return TransportReturnCode.WRITE_CALL_AGAIN;
+                        }
                         return ret;
                     }
 

@@ -44,7 +44,7 @@ namespace LSEG.Eta.Tests
         public event Transports.ConnectionStateChangeHandler OnDisconnected;
         public event Transports.ConnectionStateChangeHandler OnError;
 
-        private ByteBuffer m_networkBuffer = new ByteBuffer(131072); // Default to write mode
+        internal ByteBuffer m_networkBuffer = new ByteBuffer(131072); // Default to write mode
 
         public int MaxWrite { get; set; }
 
@@ -92,9 +92,9 @@ namespace LSEG.Eta.Tests
             return m_networkBuffer;
         }
 
-        private int GetMaxWrite(int writeBufferLength)
+        internal int GetMaxWrite(int writeBufferLength)
         {
-            if(MaxWrite == -1)
+            if (MaxWrite == -1)
             {
                 return writeBufferLength;
             }
@@ -382,7 +382,7 @@ namespace LSEG.Eta.Tests
             throw new NotImplementedException();
         }
 
-        public int Send(IList<ArraySegment<byte>> buffers, out Error error)
+        public virtual int Send(IList<ArraySegment<byte>> buffers, out Error error)
         {
             error = null;
             int byteWritten = 0;
