@@ -148,9 +148,10 @@ namespace LSEG.Eta.ValueAdd.Reactor
         /// <param name="submitOptions"></param>
         /// <param name="fromCloseMsg"></param>
         /// <param name="errorInfo"></param>
+        /// <param name="fromPendingList"></param>
         /// <returns></returns>
         [MethodImpl(MethodImplOptions.AggressiveOptimization | MethodImplOptions.AggressiveInlining)]
-        public ReactorReturnCode SendMsg(IMsg msg, ReactorSubmitOptions submitOptions, bool fromCloseMsg, out ReactorErrorInfo? errorInfo)
+        public ReactorReturnCode SendMsg(IMsg msg, ReactorSubmitOptions submitOptions, bool fromCloseMsg, out ReactorErrorInfo? errorInfo, bool fromPendingList = false)
         {
             errorInfo = null;
             ReactorReturnCode ret = ReactorReturnCode.SUCCESS;
@@ -190,7 +191,7 @@ namespace LSEG.Eta.ValueAdd.Reactor
                         // Waits until View refresh is applied.
                         WlHandler!.AddPendingRequest(null!);
 
-                        return ReactorReturnCode.SUCCESS;
+                        if (!fromPendingList) return ReactorReturnCode.SUCCESS;
                     }
                 }
                 else
