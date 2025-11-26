@@ -2,7 +2,7 @@
  *|            This source code is provided under the Apache 2.0 license
  *|  and is provided AS IS with no warranty or guarantee of fit for purpose.
  *|                See the project's LICENSE.md for details.
- *|           Copyright (C) 2015-2016,2019-2020,2024 LSEG. All rights reserved.
+ *|           Copyright (C) 2015-2025 LSEG. All rights reserved.
  *|-----------------------------------------------------------------------------
  */
 
@@ -65,6 +65,8 @@ namespace ema {
 
 namespace access {
 
+class AckMsgImpl;
+
 class EMA_ACCESS_API AckMsg : public Msg
 {
 public :
@@ -103,11 +105,21 @@ public :
 	*/
 	AckMsg();
 
+	/** Constructs AckMsg and reserves specified amount of memory for storing its data.
+		@param[in] size reserved memory buffer size
+	*/
+	explicit AckMsg(UInt32 size);
+
 	/** Copy constructor.
 		\remark this is used to copy and process AckMsg outside of EMA's callback methods.
 		\remark this method does not support passing in just encoded AckMsg in the application space.
 	*/
 	AckMsg( const AckMsg& other );
+
+	/** Move constructor.
+		\remark Created instance acquires all resources from the passed in message.
+	 */
+	AckMsg( AckMsg&& other ) noexcept;
 	//@}
 
 	///@name Destructor
@@ -211,6 +223,19 @@ public :
 
 	///@name Operations
 	//@{
+
+	/** Performs deep copy of the operand into the current message.
+		\remark this is used to copy and process messages outside of EMA's callback methods.
+		@return reference to this object
+	 */
+	AckMsg& operator=( const AckMsg& );
+
+	/** Moves resources from the operand into the current message.
+		\remark Operand is left in "empty" state.
+		@return reference to this object
+	 */
+	AckMsg& operator=( AckMsg&& ) noexcept;
+
 	/** Clears the AckMsg.
 		\remark Invoking clear() method clears all the values and resets all the defaults
 		@return reference to this object
@@ -319,16 +344,16 @@ public :
 
 private :
 
-	friend class ItemCallbackClient;
-	friend class LoginCallbackClient;
+	friend class MsgImpl;
 
 	const EmaString& toString( UInt64 indent ) const;
 
 	Decoder& getDecoder();
 
-	AckMsg& operator=( const AckMsg& );
-
 	mutable EmaString		_toString;
+
+	AckMsgImpl* impl();
+	const AckMsgImpl* impl() const;
 };
 
 }

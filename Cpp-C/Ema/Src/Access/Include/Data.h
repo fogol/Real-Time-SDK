@@ -100,15 +100,15 @@ private :
 
 	friend class Decoder;
 	friend class StaticDecoder;
-	friend class MsgDecoder;
+	friend class MsgImpl;
 
-	friend class AckMsgEncoder;
-	friend class GenericMsgEncoder;
-	friend class PostMsgEncoder;
-	friend class ReqMsgEncoder;
-	friend class RefreshMsgEncoder;
-	friend class StatusMsgEncoder;
-	friend class UpdateMsgEncoder;
+	friend class AckMsgImpl;
+	friend class GenericMsgImpl;
+	friend class PostMsgImpl;
+	friend class ReqMsgImpl;
+	friend class RefreshMsgImpl;
+	friend class StatusMsgImpl;
+	friend class UpdateMsgImpl;
 
 	friend class ElementListEncoder;
 	friend class FieldListEncoder;

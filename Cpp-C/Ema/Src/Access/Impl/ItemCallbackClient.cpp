@@ -2,7 +2,7 @@
  *|            This source code is provided under the Apache 2.0 license
  *|  and is provided AS IS with no warranty or guarantee of fit for purpose.
  *|                See the project's LICENSE.md for details.
- *|           Copyright (C) 2015-2021,2024-2025 LSEG. All rights reserved.
+ *|           Copyright (C) 2015-2025 LSEG. All rights reserved.
  *|-----------------------------------------------------------------------------
  */
 
@@ -20,9 +20,9 @@
 #include "GenericMsg.h"
 #include "StaticDecoder.h"
 #include "Decoder.h"
-#include "ReqMsgEncoder.h"
-#include "GenericMsgEncoder.h"
-#include "PostMsgEncoder.h"
+#include "ReqMsgImpl.h"
+#include "GenericMsgImpl.h"
+#include "PostMsgImpl.h"
 #include "OmmState.h"
 #include "Utilities.h"
 #include "RdmUtilities.h"
@@ -380,14 +380,13 @@ bool ProviderItem::modify( const ReqMsg& reqMsg )
 {
 	if ( _closedInfo ) return false;
 
-	const ReqMsgEncoder& reqMsgEncoder = static_cast<const ReqMsgEncoder&>(reqMsg.getEncoder());
+	ReqMsgImpl& reqMsgEncoder = const_cast<ReqMsgImpl&>(*MsgImpl::getImpl(reqMsg));
 
 	if (reqMsgEncoder.hasServiceName())
 	{
 		if ( _specifiedServiceInReq &&( reqMsgEncoder.getServiceName() == _serviceName ) )
 		{
-			reqMsgEncoder.getRsslRequestMsg()->msgBase.msgKey.serviceId = (UInt16)_serviceId;
-			reqMsgEncoder.getRsslRequestMsg()->msgBase.msgKey.flags |= RSSL_MKF_HAS_SERVICE_ID;
+			reqMsgEncoder.setServiceId( (UInt16)_serviceId );
 		}
 		else
 		{
@@ -400,12 +399,12 @@ bool ProviderItem::modify( const ReqMsg& reqMsg )
 			return false;
 		}
 	}
-	else if ( reqMsgEncoder.getRsslRequestMsg()->msgBase.msgKey.flags & RSSL_MKF_HAS_SERVICE_ID )
+	else if ( reqMsgEncoder.hasServiceId() )
 	{
-		if ( !_specifiedServiceInReq || ( reqMsgEncoder.getRsslRequestMsg()->msgBase.msgKey.serviceId != (UInt16)_serviceId ) )
+		if ( !_specifiedServiceInReq || ( reqMsgEncoder.getServiceId() != (UInt16)_serviceId ) )
 		{
 			EmaString temp("Service id of '");
-			temp.append(reqMsgEncoder.getRsslRequestMsg()->msgBase.msgKey.serviceId)
+			temp.append(reqMsgEncoder.getServiceId())
 				.append("' does not match existing request")
 				.append("Instance name='").append(_ommCommonImpl.getInstanceName()).append("'.");
 
@@ -417,18 +416,17 @@ bool ProviderItem::modify( const ReqMsg& reqMsg )
 	{
 		if ( _specifiedServiceInReq )
 		{
-			reqMsgEncoder.getRsslRequestMsg()->msgBase.msgKey.serviceId = (UInt16)_serviceId;
-			reqMsgEncoder.getRsslRequestMsg()->msgBase.msgKey.flags |= RSSL_MKF_HAS_SERVICE_ID;
+			reqMsgEncoder.setServiceId( (UInt16)_serviceId );
 		}
 	}
 
-	if (reqMsgEncoder.getRsslRequestMsg()->msgBase.msgKey.flags & RSSL_MKF_HAS_NAME)
+	if (reqMsgEncoder.hasName())
 	{
-		if ((reqMsgEncoder.getRsslRequestMsg()->msgBase.msgKey.name.length != _msgKey.name.length) ||
-			memcmp(reqMsgEncoder.getRsslRequestMsg()->msgBase.msgKey.name.data, _msgKey.name.data, _msgKey.name.length) != 0)
+		if ((reqMsgEncoder.getName().length() != _msgKey.name.length) ||
+			memcmp(reqMsgEncoder.getName().c_str(), _msgKey.name.data, _msgKey.name.length) != 0)
 		{
 			EmaString temp("Name of '");
-			temp.append(reqMsgEncoder.getRsslRequestMsg()->msgBase.msgKey.name.data)
+			temp.append(reqMsgEncoder.getName())
 				.append("' does not match existing request.")
 				.append("Instance name='").append(_ommCommonImpl.getInstanceName()).append("'.");
 
@@ -438,13 +436,11 @@ bool ProviderItem::modify( const ReqMsg& reqMsg )
 	}
 	else
 	{
-		reqMsgEncoder.getRsslRequestMsg()->msgBase.msgKey.name.data = _msgKey.name.data;
-		reqMsgEncoder.getRsslRequestMsg()->msgBase.msgKey.name.length = _msgKey.name.length;
-		reqMsgEncoder.getRsslRequestMsg()->msgBase.msgKey.nameType = _msgKey.nameType;
-		reqMsgEncoder.getRsslRequestMsg()->msgBase.msgKey.flags |= RSSL_MKF_HAS_NAME;
+		reqMsgEncoder.setName( EmaString(_msgKey.name.data, _msgKey.name.length) );
+		reqMsgEncoder.setNameType( _msgKey.nameType );
 	}
 
-	return submit(static_cast<const ReqMsgEncoder&>(reqMsg.getEncoder()).getRsslRequestMsg());
+	return submit(MsgImpl::getImpl(reqMsg)->getRsslRequestMsg());
 }
 
 SingleItem* SingleItem::create( OmmBaseImpl& ommBaseImpl, OmmConsumerClient& ommConsClient, void* closure, Item* pParentItem )
@@ -498,7 +494,7 @@ void SingleItem::setDirectory(Directory* directory)
 
 bool SingleItem::open( const ReqMsg& reqMsg )
 {
-	const ReqMsgEncoder& reqMsgEncoder = static_cast<const ReqMsgEncoder&>( reqMsg.getEncoder() );
+	const ReqMsgImpl& reqMsgEncoder = *MsgImpl::getImpl(reqMsg);
 	
 	const Directory* pDirectory = 0;
 
@@ -749,7 +745,7 @@ bool SingleItem::reSubmit(bool reroute)
 
 bool SingleItem::modify( const ReqMsg& reqMsg )
 {
-	return submit( static_cast<const ReqMsgEncoder&>( reqMsg.getEncoder() ).getRsslRequestMsg() );
+	return submit( MsgImpl::getImpl(reqMsg)->getRsslRequestMsg() );
 }
 
 bool SingleItem::close()
@@ -782,7 +778,7 @@ bool SingleItem::sendClose()
 
 bool SingleItem::submit( const PostMsg& postMsg )
 {
-	const PostMsgEncoder& postMsgEncoder = static_cast<const PostMsgEncoder&>( postMsg.getEncoder() );
+	const PostMsgImpl& postMsgEncoder = *MsgImpl::getImpl( postMsg );
 	if (_ommBaseImpl.getConsumerRoutingSession() != NULL)
 	{
 		if (sessionChannel == NULL)
@@ -814,7 +810,7 @@ bool SingleItem::submit( const PostMsg& postMsg )
 			serviceNameBuffer.data = (char*)serviceName.c_str();
 			serviceNameBuffer.length = serviceName.length();
 
-			return submit(static_cast<const PostMsgEncoder&>(postMsg.getEncoder()).getRsslPostMsg(), &serviceNameBuffer);
+			return submit(MsgImpl::getImpl(postMsg)->getRsslPostMsg(), &serviceNameBuffer);
 		}
 		else
 		{
@@ -836,7 +832,7 @@ bool SingleItem::submit( const PostMsg& postMsg )
 
 			postMsgEncoder.getRsslPostMsg()->msgBase.msgKey.flags &= ~RSSL_MKF_HAS_SERVICE_ID;
 
-			return submit(static_cast<const PostMsgEncoder&>(postMsg.getEncoder()).getRsslPostMsg(), &serviceNameBuffer);
+			return submit(MsgImpl::getImpl(postMsg)->getRsslPostMsg(), &serviceNameBuffer);
 		}
 	}
 	else
@@ -860,16 +856,17 @@ bool SingleItem::submit( const PostMsg& postMsg )
 			serviceNameBuffer.data = (char*)serviceName.c_str();
 			serviceNameBuffer.length = serviceName.length();
 
-			return submit(static_cast<const PostMsgEncoder&>(postMsg.getEncoder()).getRsslPostMsg(), &serviceNameBuffer);
+			return submit(MsgImpl::getImpl(postMsg)->getRsslPostMsg(), &serviceNameBuffer);
 		}
 
-		return submit(static_cast<const PostMsgEncoder&>(postMsg.getEncoder()).getRsslPostMsg(), NULL);
+		return submit(MsgImpl::getImpl(postMsg)->getRsslPostMsg(), NULL);
 	}
 }
 
 bool SingleItem::submit( const GenericMsg& genMsg )
 {
-	const GenericMsgEncoder& genericMsgEncoder = static_cast<const GenericMsgEncoder&>(genMsg.getEncoder());
+	const GenericMsgImpl& genericMsgEncoder = *MsgImpl::getImpl(genMsg);
+
 	if (_ommBaseImpl.getConsumerRoutingSession() != NULL)
 	{
 		if (sessionChannel == NULL)
@@ -885,7 +882,7 @@ bool SingleItem::submit( const GenericMsg& genMsg )
 			ConsumerRoutingService** pRoutingServicePtr = _ommBaseImpl.getConsumerRoutingSession()->serviceById.find(genericMsgEncoder.getRsslGenericMsg()->msgBase.msgKey.serviceId);
 			if (!pRoutingServicePtr)
 			{
-				return submit(static_cast<const GenericMsgEncoder&>(genMsg.getEncoder()).getRsslGenericMsg());
+				return submit(MsgImpl::getImpl(genMsg)->getRsslGenericMsg());
 			}
 
 			ConsumerRoutingService* pRoutingService = *pRoutingServicePtr;
@@ -896,22 +893,22 @@ bool SingleItem::submit( const GenericMsg& genMsg )
 
 				if (pDirectoryPtr == NULL)
 				{
-					return submit(static_cast<const GenericMsgEncoder&>(genMsg.getEncoder()).getRsslGenericMsg());
+					return submit(MsgImpl::getImpl(genMsg)->getRsslGenericMsg());
 				}
 				Directory* pDirectory = *pDirectoryPtr;
 
 				genericMsgEncoder.getRsslGenericMsg()->msgBase.msgKey.serviceId = (RsslUInt16)pDirectory->getService()->serviceId;
 
-				return submit(static_cast<const GenericMsgEncoder&>(genMsg.getEncoder()).getRsslGenericMsg());
+				return submit(MsgImpl::getImpl(genMsg)->getRsslGenericMsg());
 			}
 			else
 			{
-				return submit(static_cast<const GenericMsgEncoder&>(genMsg.getEncoder()).getRsslGenericMsg());
+				return submit(MsgImpl::getImpl(genMsg)->getRsslGenericMsg());
 			}
 		}
 	}
 
-	return submit( static_cast<const GenericMsgEncoder&>( genMsg.getEncoder() ).getRsslGenericMsg() );
+	return submit(MsgImpl::getImpl(genMsg)->getRsslGenericMsg());
 }
 
 void SingleItem::remove()
@@ -1328,8 +1325,7 @@ bool SingleItem::submit( RsslPostMsg* pRsslPostMsg, RsslBuffer* pServiceName )
 // This is used for a non-batch request.
 void SingleItem::setReqMsg(const ReqMsg& reqMsg, EmaString* name)
 {
-	const ReqMsgEncoder& reqMsgEncoder = static_cast<const ReqMsgEncoder&>(reqMsg.getEncoder());
-
+	const ReqMsgImpl& reqMsgEncoder = *MsgImpl::getImpl(reqMsg);
 
 	// Shallow copy the request message here
 	_requestMsg = *reqMsgEncoder.getRsslRequestMsg();
@@ -1440,7 +1436,7 @@ bool NiProviderSingleItem::open( const ReqMsg& reqMsg )
 	EmaString serviceName;
 	UInt64 serviceId = 0;
 
-	const ReqMsgEncoder& reqMsgEncoder = static_cast<const ReqMsgEncoder&>( reqMsg.getEncoder() );
+	const ReqMsgImpl& reqMsgEncoder = *MsgImpl::getImpl(reqMsg);
 
 	if ( reqMsgEncoder.hasServiceName() )
 	{
@@ -1672,7 +1668,7 @@ bool NiProviderSingleItem::submit( RsslCloseMsg* pRsslCloseMsg )
 	return true;
 }
 
-void NiProviderSingleItem::scheduleItemClosedStatus( const ReqMsgEncoder& reqMsgEncoder, const EmaString& text )
+void NiProviderSingleItem::scheduleItemClosedStatus( const ReqMsgImpl& reqMsgEncoder, const EmaString& text )
 {
 	if ( _closedInfo ) return;
 
@@ -1740,7 +1736,7 @@ bool IProviderSingleItem::open(const ReqMsg& reqMsg)
 	EmaString serviceName;
 	UInt64 serviceId = 0;
 
-	const ReqMsgEncoder& reqMsgEncoder = static_cast<const ReqMsgEncoder&>(reqMsg.getEncoder());
+	const ReqMsgImpl& reqMsgEncoder = *MsgImpl::getImpl(reqMsg);
 
 	if (reqMsgEncoder.hasServiceName())
 	{
@@ -1833,7 +1829,7 @@ bool IProviderSingleItem::close()
 
 bool IProviderSingleItem::submit(const GenericMsg& genMsg)
 {
-	return submit(static_cast<const GenericMsgEncoder&>(genMsg.getEncoder()).getRsslGenericMsg());
+	return submit(MsgImpl::getImpl(genMsg)->getRsslGenericMsg());
 }
 
 void IProviderSingleItem::remove()
@@ -1983,7 +1979,7 @@ bool IProviderSingleItem::submit(RsslGenericMsg* pRsslGenericMsg)
 	return false;
 }
 
-void IProviderSingleItem::scheduleItemClosedStatus(const ReqMsgEncoder& reqMsgEncoder, const EmaString& text)
+void IProviderSingleItem::scheduleItemClosedStatus(const ReqMsgImpl& reqMsgEncoder, const EmaString& text)
 {
 	if (_closedInfo) return;
 
@@ -2043,7 +2039,7 @@ void ItemCallbackClient::sendItemStatus( void* pInfo )
 
 	StaticDecoder::setRsslData( &statusMsg, (RsslMsg*)&rsslStatusMsg, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, 0 );
 	
-	statusMsg.getDecoder().setServiceName( pClosedStatusInfo->getServiceName().c_str(), pClosedStatusInfo->getServiceName().length() );
+	MsgImpl::getImpl(statusMsg)->setServiceNameInt( pClosedStatusInfo->getServiceName() );
 
 	Item* item = pClosedStatusInfo->getItem();
 
@@ -2057,7 +2053,7 @@ void ItemCallbackClient::sendItemStatus( void* pInfo )
 	item->remove();
 }
 
-void SingleItem::scheduleItemClosedStatus( const ReqMsgEncoder& reqMsgEncoder, const EmaString& text )
+void SingleItem::scheduleItemClosedStatus( const ReqMsgImpl& reqMsgEncoder, const EmaString& text )
 {
 	if (_closedInfo == NULL)
 	{
@@ -2067,7 +2063,7 @@ void SingleItem::scheduleItemClosedStatus( const ReqMsgEncoder& reqMsgEncoder, c
 	new TimeOut( _ommBaseImpl, 1000, ItemCallbackClient::sendItemStatus, _closedInfo, true );
 }
 
-void SingleItem::scheduleItemSuspectStatus(const ReqMsgEncoder& reqMsgEncoder, const EmaString& text)
+void SingleItem::scheduleItemSuspectStatus(const ReqMsgImpl& reqMsgEncoder, const EmaString& text)
 {
 	if (_closedInfo == NULL)
 	{
@@ -2079,7 +2075,7 @@ void SingleItem::scheduleItemSuspectStatus(const ReqMsgEncoder& reqMsgEncoder, c
 	new TimeOut(_ommBaseImpl, 1000, ItemCallbackClient::sendItemStatus, _closedInfo, true);
 }
 
-ItemStatusInfo::ItemStatusInfo( Item* pItem, const ReqMsgEncoder& reqMsgEncoder, const EmaString& text ) :
+ItemStatusInfo::ItemStatusInfo( Item* pItem, const ReqMsgImpl& reqMsgEncoder, const EmaString& text ) :
 	_msgKey(),
 	_statusText( text ),
 	_serviceName(),
@@ -2101,7 +2097,7 @@ ItemStatusInfo::ItemStatusInfo( Item* pItem, const ReqMsgEncoder& reqMsgEncoder,
 
 		if ( !_msgKey.name.data )
 		{
-			const char* text = "Failed to allocate memory in ClosedStatusInfo( Item* , const ReqMsgEncoder& , const EmaString& ).";
+			const char* text = "Failed to allocate memory in ClosedStatusInfo( Item* , const ReqMsgImpl& , const EmaString& ).";
 			throwMeeException( text );
 		}
 
@@ -2113,7 +2109,7 @@ ItemStatusInfo::ItemStatusInfo( Item* pItem, const ReqMsgEncoder& reqMsgEncoder,
 		_msgKey.encAttrib.data = (char*) malloc( reqMsgEncoder.getRsslRequestMsg()->msgBase.msgKey.encAttrib.length + 1 );
 		if (!_msgKey.encAttrib.data)
 		{
-			throwMeeException("Failed to allocate memory for encoded attrib in ClosedStatusInfo( Item* , const ReqMsgEncoder& , const EmaString& ).");
+			throwMeeException("Failed to allocate memory for encoded attrib in ClosedStatusInfo( Item* , const ReqMsgImpl& , const EmaString& ).");
 		}
 		_msgKey.encAttrib.length = reqMsgEncoder.getRsslRequestMsg()->msgBase.msgKey.encAttrib.length + 1;
 	}
@@ -2982,7 +2978,7 @@ const Directory* SubItem::getDirectory()
 	return 0;
 }
 
-void SubItem::scheduleItemClosedStatus( const ReqMsgEncoder& reqMsgEncoder, const EmaString& text )
+void SubItem::scheduleItemClosedStatus( const ReqMsgImpl& reqMsgEncoder, const EmaString& text )
 {
 	if ( _closedInfo ) return;
 
@@ -2993,7 +2989,7 @@ void SubItem::scheduleItemClosedStatus( const ReqMsgEncoder& reqMsgEncoder, cons
 
 bool SubItem::open( const ReqMsg& reqMsg )
 {
-	const ReqMsgEncoder& reqMsgEncoder = static_cast<const ReqMsgEncoder&>( reqMsg.getEncoder() );
+	const ReqMsgImpl& reqMsgEncoder = *MsgImpl::getImpl(reqMsg);
 	
 	if ( reqMsgEncoder.hasServiceName() )
 	{
@@ -3041,7 +3037,7 @@ bool SubItem::open( const ReqMsg& reqMsg )
 
 bool SubItem::modify( const ReqMsg& reqMsg )
 {
-	const ReqMsgEncoder& reqMsgEncoder = static_cast<const ReqMsgEncoder&>( reqMsg.getEncoder() );
+	const ReqMsgImpl& reqMsgEncoder = *MsgImpl::getImpl(reqMsg);
 
 	reqMsgEncoder.getRsslRequestMsg()->msgBase.streamId = _streamId;
 
@@ -3050,7 +3046,7 @@ bool SubItem::modify( const ReqMsg& reqMsg )
 
 bool SubItem::submit( const PostMsg& postMsg )
 {
-	const PostMsgEncoder& postMsgEncoder = static_cast<const PostMsgEncoder&>( postMsg.getEncoder() );
+	const PostMsgImpl& postMsgEncoder = *MsgImpl::getImpl(postMsg);
 
 	postMsgEncoder.getRsslPostMsg()->msgBase.streamId = _streamId;
 
@@ -3059,7 +3055,7 @@ bool SubItem::submit( const PostMsg& postMsg )
 
 bool SubItem::submit( const GenericMsg& genMsg )
 {
-	const GenericMsgEncoder& genMsgEncoder = static_cast<const GenericMsgEncoder&>( genMsg.getEncoder() );
+	const GenericMsgImpl& genMsgEncoder = *MsgImpl::getImpl(genMsg);
 
 	genMsgEncoder.getRsslGenericMsg()->msgBase.streamId = _streamId;
 	if (genMsgEncoder.getRsslGenericMsg()->msgBase.domainType == 0)
@@ -3173,7 +3169,9 @@ void ItemList::removeItem( Item* pItem )
 
 ItemCallbackClient::ItemCallbackClient( OmmBaseImpl& ommBaseImpl ) :
 	_refreshMsg(),
+	_refreshMsgImpl(MsgImpl::getImpl(_refreshMsg)),
 	_updateMsg(),
+	_updateMsgImpl(MsgImpl::getImpl(_updateMsg)),
 	_statusMsg(),
 	_genericMsg(),
 	_ackMsg(),
@@ -3204,7 +3202,9 @@ ItemCallbackClient::ItemCallbackClient( OmmBaseImpl& ommBaseImpl ) :
 
 ItemCallbackClient::ItemCallbackClient( OmmServerBaseImpl& ommServerBaseImpl ) :
 	_refreshMsg(),
+	_refreshMsgImpl(MsgImpl::getImpl(_refreshMsg)),
 	_updateMsg(),
+	_updateMsgImpl(MsgImpl::getImpl(_updateMsg)),
 	_statusMsg(),
 	_genericMsg(),
 	_ackMsg(),
@@ -3344,7 +3344,7 @@ RsslReactorCallbackRet ItemCallbackClient::processCallback( RsslTunnelStream* pR
 
 	Item* item = (Item*)( pRsslTunnelStream->userSpecPtr );
 
-	_statusMsg.getDecoder().setServiceName( item->getDirectory()->getName().c_str(), item->getDirectory()->getName().length() );
+	MsgImpl::getImpl(_statusMsg)->setServiceNameInt( item->getDirectory()->getName() );
 
 	_ommCommonImpl.msgDispatched();
 	item->setEventChannel((void*)pRsslTunnelStream->pReactorChannel);
@@ -3569,9 +3569,10 @@ RsslReactorCallbackRet ItemCallbackClient::processRefreshMsg( RsslTunnelStream* 
 		channel = channel->getParentChannel();
 	}
 
-	StaticDecoder::setRsslData( &_refreshMsg, pTunnelStreamMsgEvent->pRsslMsg,
+	_refreshMsgImpl->_decoder.setRsslData(
 		pTunnelStreamMsgEvent->pReactorChannel->majorVersion,
 		pTunnelStreamMsgEvent->pReactorChannel->minorVersion,
+		pTunnelStreamMsgEvent->pRsslMsg,
 		channel->getDictionary() ? channel->getDictionary()->getRsslDictionary() : 0);
 
 	_ommCommonImpl.msgDispatched();
@@ -3579,12 +3580,12 @@ RsslReactorCallbackRet ItemCallbackClient::processRefreshMsg( RsslTunnelStream* 
 	item->onAllMsg( _refreshMsg );
 	item->onRefreshMsg( _refreshMsg );
 
-	if ( _refreshMsg.getState().getStreamState() == OmmState::NonStreamingEnum )
+	if ( _refreshMsgImpl->getState().getStreamState() == OmmState::NonStreamingEnum )
 	{
-		if ( _refreshMsg.getComplete() )
+		if ( _refreshMsgImpl->getComplete() )
 			item->remove();
 	}
-	else if ( _refreshMsg.getState().getStreamState() != OmmState::OpenEnum )
+	else if ( _refreshMsgImpl->getState().getStreamState() != OmmState::OpenEnum )
 	{
 		item->remove();
 	}
@@ -3600,10 +3601,11 @@ RsslReactorCallbackRet ItemCallbackClient::processUpdateMsg( RsslTunnelStream* p
 		channel = channel->getParentChannel();
 	}
 
-	StaticDecoder::setRsslData( &_updateMsg, pTunnelStreamMsgEvent->pRsslMsg,
+	_updateMsgImpl->_decoder.setRsslData(
 		pTunnelStreamMsgEvent->pReactorChannel->majorVersion,
 		pTunnelStreamMsgEvent->pReactorChannel->minorVersion,
-		channel->getDictionary() ? channel->getDictionary()->getRsslDictionary() : 0);
+		pTunnelStreamMsgEvent->pRsslMsg,
+		channel->getDictionary() ? channel->getDictionary()->getRsslDictionary() : nullptr);
 
 	_ommCommonImpl.msgDispatched();
 
@@ -3869,9 +3871,10 @@ RsslReactorCallbackRet ItemCallbackClient::processRefreshMsg( RsslMsg* pRsslMsg,
 	NiProviderDictionaryItem* pNIProvDictionaryItem = NULL;
 	IProviderDictionaryItem* pIProvDictionaryItem = NULL;
 
-	StaticDecoder::setRsslData( &_refreshMsg, pRsslMsg,
+	_refreshMsgImpl->_decoder.setRsslData(
 		pRsslReactorChannel->majorVersion,
 		pRsslReactorChannel->minorVersion,
+		pRsslMsg,
 		pRsslDataDictionary );
 	
 	switch (item->getType())
@@ -3887,24 +3890,24 @@ RsslReactorCallbackRet ItemCallbackClient::processRefreshMsg( RsslMsg* pRsslMsg,
 			{
 				if (!pSingleItem->getServiceListName().empty())
 				{
-					_refreshMsg.getDecoder().setServiceName(pSingleItem->getServiceListName().c_str(), pSingleItem->getServiceListName().length());
+					_refreshMsgImpl->setServiceNameInt(pSingleItem->getServiceListName());
 				}
 				else
 				{
-					_refreshMsg.getDecoder().setServiceName(pSingleItem->getDirectory()->getName().c_str(), pSingleItem->getDirectory()->getName().length());
+					_refreshMsgImpl->setServiceNameInt(pSingleItem->getDirectory()->getName());
 				}
 
 				if (pSingleItem->getDirectory()->hasGeneratedServiceId())
 				{
-					_refreshMsg.getDecoder().setServiceId((UInt16)pSingleItem->getDirectory()->getGeneratedServiceId());
+					_refreshMsgImpl->setServiceId((UInt16)pSingleItem->getDirectory()->getGeneratedServiceId());
 				}
 			}
 			else
 			{
-				_refreshMsg.getDecoder().setServiceName(NULL, 0);
+				_refreshMsgImpl->resetServiceName();
 			}
 
-			if (_refreshMsg.getState().getStreamState() == OmmState::OpenEnum && _refreshMsg.getState().getDataState() == OmmState::OkEnum)
+			if (_refreshMsgImpl->getState().getStreamState() == OmmState::OpenEnum && _refreshMsgImpl->getState().getDataState() == OmmState::OkEnum)
 			{
 				if (_ommCommonImpl.getImplType() == OmmCommonImpl::ConsumerEnum)
 				{
@@ -3932,14 +3935,14 @@ RsslReactorCallbackRet ItemCallbackClient::processRefreshMsg( RsslMsg* pRsslMsg,
 		case Item::NiProviderDictionaryItemEnum:
 			pNIProvDictionaryItem = static_cast<NiProviderDictionaryItem*>(item);
 			
-			_refreshMsg.getDecoder().setServiceName(pNIProvDictionaryItem->getServiceName().c_str(), pNIProvDictionaryItem->getServiceName().length());
-			_refreshMsg.getDecoder().setServiceId((UInt16)pNIProvDictionaryItem->getServiceId());
+			_refreshMsgImpl->setServiceNameInt(pNIProvDictionaryItem->getServiceName());
+			_refreshMsgImpl->setServiceId((UInt16)pNIProvDictionaryItem->getServiceId());
 			break;
 		case Item::IProviderDictionaryItemEnum:
 			pIProvDictionaryItem = static_cast<IProviderDictionaryItem*>(item);
 
-			_refreshMsg.getDecoder().setServiceName(pIProvDictionaryItem->getServiceName().c_str(), pIProvDictionaryItem->getServiceName().length());
-			_refreshMsg.getDecoder().setServiceId((UInt16)pIProvDictionaryItem->getServiceId());
+			_refreshMsgImpl->setServiceNameInt(pIProvDictionaryItem->getServiceName());
+			_refreshMsgImpl->setServiceId((UInt16)pIProvDictionaryItem->getServiceId());
 			break;
 	}
 
@@ -3949,12 +3952,12 @@ RsslReactorCallbackRet ItemCallbackClient::processRefreshMsg( RsslMsg* pRsslMsg,
 	item->onAllMsg( _refreshMsg );
 	item->onRefreshMsg( _refreshMsg );
 
-	if ( _refreshMsg.getState().getStreamState() == OmmState::NonStreamingEnum )
+	if ( _refreshMsgImpl->getState().getStreamState() == OmmState::NonStreamingEnum )
 	{
-		if ( _refreshMsg.getComplete() )
+		if ( _refreshMsgImpl->getComplete() )
 			item->remove();
 	}
-	else if ( _refreshMsg.getState().getStreamState() != OmmState::OpenEnum )
+	else if ( _refreshMsgImpl->getState().getStreamState() != OmmState::OpenEnum )
 	{
 		item->remove();
 	}
@@ -3968,9 +3971,10 @@ RsslReactorCallbackRet ItemCallbackClient::processUpdateMsg( RsslMsg* pRsslMsg, 
 	NiProviderDictionaryItem* pNIProvDictionaryItem = NULL;
 	IProviderDictionaryItem* pIProvDictionaryItem = NULL;
 
-	StaticDecoder::setRsslData( &_updateMsg, pRsslMsg,
+	_updateMsgImpl->_decoder.setRsslData(
 		pRsslReactorChannel->majorVersion,
 		pRsslReactorChannel->minorVersion,
+		pRsslMsg,
 		pRsslDataDictionary );
 
 	switch (item->getType())
@@ -3986,34 +3990,34 @@ RsslReactorCallbackRet ItemCallbackClient::processUpdateMsg( RsslMsg* pRsslMsg, 
 			{
 				if (!pSingleItem->getServiceListName().empty())
 				{
-					_updateMsg.getDecoder().setServiceName(pSingleItem->getServiceListName().c_str(), pSingleItem->getServiceListName().length());
+					_updateMsgImpl->setServiceNameInt(pSingleItem->getServiceListName());
 				}
 				else
 				{
-					_updateMsg.getDecoder().setServiceName(pSingleItem->getDirectory()->getName().c_str(), pSingleItem->getDirectory()->getName().length());
+					_updateMsgImpl->setServiceNameInt(pSingleItem->getDirectory()->getName());
 				}
 
 				if (pSingleItem->getDirectory()->hasGeneratedServiceId())
 				{
-					_updateMsg.getDecoder().setServiceId((UInt16)pSingleItem->getDirectory()->getGeneratedServiceId());
+					_updateMsgImpl->setServiceId((UInt16)pSingleItem->getDirectory()->getGeneratedServiceId());
 				}
 			}
 			else
 			{
-				_updateMsg.getDecoder().setServiceName(NULL, 0);
+				_updateMsgImpl->resetServiceName();
 			}
 			break;
 		case Item::NiProviderDictionaryItemEnum:
 			pNIProvDictionaryItem = static_cast<NiProviderDictionaryItem*>(item);
 
-			_updateMsg.getDecoder().setServiceName(pNIProvDictionaryItem->getServiceName().c_str(), pNIProvDictionaryItem->getServiceName().length());
-			_updateMsg.getDecoder().setServiceId((UInt16)pNIProvDictionaryItem->getServiceId());
+			_updateMsgImpl->setServiceNameInt(pNIProvDictionaryItem->getServiceName());
+			_updateMsgImpl->setServiceId((UInt16)pNIProvDictionaryItem->getServiceId());
 			break;
 		case Item::IProviderDictionaryItemEnum:
 			pIProvDictionaryItem = static_cast<IProviderDictionaryItem*>(item);
 
-			_updateMsg.getDecoder().setServiceName(pIProvDictionaryItem->getServiceName().c_str(), pIProvDictionaryItem->getServiceName().length());
-			_updateMsg.getDecoder().setServiceId((UInt16)pIProvDictionaryItem->getServiceId());
+			_updateMsgImpl->setServiceNameInt(pIProvDictionaryItem->getServiceName());
+			_updateMsgImpl->setServiceId((UInt16)pIProvDictionaryItem->getServiceId());
 			break;
 	}
 
@@ -4064,21 +4068,21 @@ RsslReactorCallbackRet ItemCallbackClient::processStatusMsg( RsslMsg* pRsslMsg, 
 				{
 					if (!pSingleItem->getServiceListName().empty())
 					{
-						_statusMsg.getDecoder().setServiceName(pSingleItem->getServiceListName().c_str(), pSingleItem->getServiceListName().length());
+						MsgImpl::getImpl(_statusMsg)->setServiceNameInt(pSingleItem->getServiceListName());
 					}
 					else
 					{
-						_statusMsg.getDecoder().setServiceName(pSingleItem->getDirectory()->getName().c_str(), pSingleItem->getDirectory()->getName().length());
+						MsgImpl::getImpl(_statusMsg)->setServiceNameInt(pSingleItem->getDirectory()->getName());
 					}
 
 					if (pSingleItem->getDirectory()->hasGeneratedServiceId())
 					{
-						_statusMsg.getDecoder().setServiceId((UInt16)pSingleItem->getDirectory()->getGeneratedServiceId());
+						MsgImpl::getImpl(_statusMsg)->setServiceId((UInt16)pSingleItem->getDirectory()->getGeneratedServiceId());
 					}
 				}
 				else
 				{
-					_statusMsg.getDecoder().setServiceName(NULL, 0);
+					MsgImpl::getImpl(_statusMsg)->resetServiceName();
 				}
 
 				// Move this request to the item callback handler's list if this is request routing.  It will stay there until the OmmConsumer closes, like a standard batch request.
@@ -4099,21 +4103,21 @@ RsslReactorCallbackRet ItemCallbackClient::processStatusMsg( RsslMsg* pRsslMsg, 
 			{
 				if (!pSingleItem->getServiceListName().empty())
 				{
-					_statusMsg.getDecoder().setServiceName(pSingleItem->getServiceListName().c_str(), pSingleItem->getServiceListName().length());
+					MsgImpl::getImpl(_statusMsg)->setServiceNameInt(pSingleItem->getServiceListName());
 				}
 				else
 				{
-					_statusMsg.getDecoder().setServiceName(pSingleItem->getDirectory()->getName().c_str(), pSingleItem->getDirectory()->getName().length());
+					MsgImpl::getImpl(_statusMsg)->setServiceNameInt(pSingleItem->getDirectory()->getName());
 				}
 
 				if (pSingleItem->getDirectory()->hasGeneratedServiceId())
 				{
-					_statusMsg.getDecoder().setServiceId((UInt16)pSingleItem->getDirectory()->getGeneratedServiceId());
+					MsgImpl::getImpl(_statusMsg)->setServiceId((UInt16)pSingleItem->getDirectory()->getGeneratedServiceId());
 				}
 			}
 			else
 			{
-				_statusMsg.getDecoder().setServiceName(NULL, 0);
+				MsgImpl::getImpl(_statusMsg)->resetServiceName();
 			}
 
 			// This checks to see if the enhanced routing is turned on.  If so, we may need to immediately re-route the requests.
@@ -4220,15 +4224,15 @@ RsslReactorCallbackRet ItemCallbackClient::processStatusMsg( RsslMsg* pRsslMsg, 
 		{
 			NiProviderDictionaryItem* pNIProvDictionaryItem = static_cast<NiProviderDictionaryItem*>(item);
 
-			_statusMsg.getDecoder().setServiceName(pNIProvDictionaryItem->getServiceName().c_str(), pNIProvDictionaryItem->getServiceName().length());
-			_statusMsg.getDecoder().setServiceId((UInt16)pNIProvDictionaryItem->getServiceId());
+			MsgImpl::getImpl(_statusMsg)->setServiceNameInt(pNIProvDictionaryItem->getServiceName());
+			MsgImpl::getImpl(_statusMsg)->setServiceId((UInt16)pNIProvDictionaryItem->getServiceId());
 		}
 		else if (item->getType() == Item::IProviderDictionaryItemEnum)
 		{
 			IProviderDictionaryItem* pIProvDictionaryItem = static_cast<IProviderDictionaryItem*>(item);
 
-			_statusMsg.getDecoder().setServiceName(pIProvDictionaryItem->getServiceName().c_str(), pIProvDictionaryItem->getServiceName().length());
-			_statusMsg.getDecoder().setServiceId((UInt16)pIProvDictionaryItem->getServiceId());
+			MsgImpl::getImpl(_statusMsg)->setServiceNameInt(pIProvDictionaryItem->getServiceName());
+			MsgImpl::getImpl(_statusMsg)->setServiceId((UInt16)pIProvDictionaryItem->getServiceId());
 		}
 	}
 
@@ -4282,34 +4286,34 @@ RsslReactorCallbackRet ItemCallbackClient::processGenericMsg( RsslMsg* pRsslMsg,
 			{
 				if (!pSingleItem->getServiceListName().empty())
 				{
-					_genericMsg.getDecoder().setServiceName(pSingleItem->getServiceListName().c_str(), pSingleItem->getServiceListName().length());
+					MsgImpl::getImpl(_genericMsg)->setServiceNameInt(pSingleItem->getServiceListName());
 				}
 				else
 				{
-					_genericMsg.getDecoder().setServiceName(pSingleItem->getDirectory()->getName().c_str(), pSingleItem->getDirectory()->getName().length());
+					MsgImpl::getImpl(_genericMsg)->setServiceNameInt(pSingleItem->getDirectory()->getName());
 				}
 
 				if (pSingleItem->getDirectory()->hasGeneratedServiceId())
 				{
-					_genericMsg.getDecoder().setServiceId((UInt16)pSingleItem->getDirectory()->getGeneratedServiceId());
+					MsgImpl::getImpl(_genericMsg)->setServiceId((UInt16)pSingleItem->getDirectory()->getGeneratedServiceId());
 				}
 			}
 			else
 			{
-				_genericMsg.getDecoder().setServiceName(NULL, 0);
+				MsgImpl::getImpl(_genericMsg)->resetServiceName();
 			}
 			break;
 		case Item::NiProviderDictionaryItemEnum:
 			pNIProvDictionaryItem = static_cast<NiProviderDictionaryItem*>(item);
 
-			_genericMsg.getDecoder().setServiceName(pNIProvDictionaryItem->getServiceName().c_str(), pNIProvDictionaryItem->getServiceName().length());
-			_genericMsg.getDecoder().setServiceId((UInt16)pNIProvDictionaryItem->getServiceId());
+			MsgImpl::getImpl(_genericMsg)->setServiceNameInt(pNIProvDictionaryItem->getServiceName());
+			MsgImpl::getImpl(_genericMsg)->setServiceId((UInt16)pNIProvDictionaryItem->getServiceId());
 			break;
 		case Item::IProviderDictionaryItemEnum:
 			pIProvDictionaryItem = static_cast<IProviderDictionaryItem*>(item);
 
-			_genericMsg.getDecoder().setServiceName(pIProvDictionaryItem->getServiceName().c_str(), pIProvDictionaryItem->getServiceName().length());
-			_genericMsg.getDecoder().setServiceId((UInt16)pIProvDictionaryItem->getServiceId());
+			MsgImpl::getImpl(_genericMsg)->setServiceNameInt(pIProvDictionaryItem->getServiceName());
+			MsgImpl::getImpl(_genericMsg)->setServiceId((UInt16)pIProvDictionaryItem->getServiceId());
 			break;
 	}
 
@@ -4347,34 +4351,34 @@ RsslReactorCallbackRet ItemCallbackClient::processAckMsg( RsslMsg* pRsslMsg, Rss
 			{
 				if (!pSingleItem->getServiceListName().empty())
 				{
-					_ackMsg.getDecoder().setServiceName(pSingleItem->getServiceListName().c_str(), pSingleItem->getServiceListName().length());
+					MsgImpl::getImpl(_ackMsg)->setServiceNameInt(pSingleItem->getServiceListName());
 				}
 				else
 				{
-					_ackMsg.getDecoder().setServiceName(pSingleItem->getDirectory()->getName().c_str(), pSingleItem->getDirectory()->getName().length());
+					MsgImpl::getImpl(_ackMsg)->setServiceNameInt(pSingleItem->getDirectory()->getName());
 				}
 
 				if (pSingleItem->getDirectory()->hasGeneratedServiceId())
 				{
-					_ackMsg.getDecoder().setServiceId((UInt16)pSingleItem->getDirectory()->getGeneratedServiceId());
+					MsgImpl::getImpl(_ackMsg)->setServiceId((UInt16)pSingleItem->getDirectory()->getGeneratedServiceId());
 				}
 			}
 			else
 			{
-				_ackMsg.getDecoder().setServiceName(NULL, 0);
+				MsgImpl::getImpl(_ackMsg)->resetServiceName();
 			}
 			break;
 		case Item::NiProviderDictionaryItemEnum:
 			pNIProvDictionaryItem = static_cast<NiProviderDictionaryItem*>(item);
 
-			_ackMsg.getDecoder().setServiceName(pNIProvDictionaryItem->getServiceName().c_str(), pNIProvDictionaryItem->getServiceName().length());
-			_ackMsg.getDecoder().setServiceId((UInt16)pNIProvDictionaryItem->getServiceId());
+			MsgImpl::getImpl(_ackMsg)->setServiceNameInt(pNIProvDictionaryItem->getServiceName());
+			MsgImpl::getImpl(_ackMsg)->setServiceId((UInt16)pNIProvDictionaryItem->getServiceId());
 			break;
 		case Item::IProviderDictionaryItemEnum:
 			pIProvDictionaryItem = static_cast<IProviderDictionaryItem*>(item);
 
-			_ackMsg.getDecoder().setServiceName(pIProvDictionaryItem->getServiceName().c_str(), pIProvDictionaryItem->getServiceName().length());
-			_ackMsg.getDecoder().setServiceId((UInt16)pIProvDictionaryItem->getServiceId());
+			MsgImpl::getImpl(_ackMsg)->setServiceNameInt(pIProvDictionaryItem->getServiceName());
+			MsgImpl::getImpl(_ackMsg)->setServiceId((UInt16)pIProvDictionaryItem->getServiceId());
 			break;
 	}
 
@@ -4398,9 +4402,9 @@ UInt64 ItemCallbackClient::registerClient( const ReqMsg& reqMsg, OmmConsumerClie
 
 	if ( !parentHandle )
 	{
-		const ReqMsgEncoder& reqMsgEncoder = static_cast<const ReqMsgEncoder&>( reqMsg.getEncoder() );
+		const ReqMsgImpl& reqMsgEncoder = *MsgImpl::getImpl(reqMsg);
 
-		switch ( reqMsgEncoder.getRsslRequestMsg()->msgBase.domainType )
+		switch ( reqMsgEncoder.getDomainType() )
 		{
 		case RSSL_DMT_LOGIN :
 			{
@@ -4708,7 +4712,7 @@ UInt64 ItemCallbackClient::registerClient( const ReqMsg& reqMsg, OmmProviderClie
 
 	if ( !parentHandle )
 	{
-		const ReqMsgEncoder& reqMsgEncoder = static_cast<const ReqMsgEncoder&>( reqMsg.getEncoder() );
+		const ReqMsgImpl& reqMsgEncoder = *MsgImpl::getImpl(reqMsg);
 
 		switch ( reqMsgEncoder.getRsslRequestMsg()->msgBase.domainType )
 		{
@@ -4926,7 +4930,7 @@ bool ItemCallbackClient::isStreamIdInUse( int nextStreamId )
 
 bool ItemCallbackClient::splitAndSendSingleRequest(const ReqMsg& reqMsg, OmmConsumerClient& ommConsClient, void* closure)
 {
-	const ReqMsgEncoder& reqMsgEncoder = static_cast<const ReqMsgEncoder&>(reqMsg.getEncoder());
+	const ReqMsgImpl& reqMsgEncoder = *MsgImpl::getImpl(reqMsg);
 	RsslRequestMsg* rsslReqMsg = reqMsgEncoder.getRsslRequestMsg();
 	rsslReqMsg->flags &= ~RSSL_RQMF_HAS_BATCH;
 

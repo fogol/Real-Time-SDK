@@ -59,6 +59,8 @@ namespace ema {
 
 namespace access {
 
+class PostMsgImpl;
+
 class EMA_ACCESS_API PostMsg : public Msg
 {
 public :
@@ -81,11 +83,21 @@ public :
 	 */
 	PostMsg();
 
+	/** Constructs PostMsg and reserves specified amount of memory for storing its data.
+		@param[in] size reserved memory buffer size
+	*/
+	explicit PostMsg(UInt32 size);
+
 	/** Copy constructor.
 		\remark this is used to copy and process PostMsg outside of EMA's callback methods.
 		\remark this method does not support passing in just encoded PostMsg in the application space.
 	*/
 	PostMsg( const PostMsg& other );
+
+	/** Move constructor.
+		\remark Created instance acquires all resources from the passed in message.
+	 */
+	PostMsg( PostMsg&& ) noexcept;
 	//@}
 
 	///@name Destructor
@@ -223,6 +235,19 @@ public :
 
 	///@name Operations
 	//@{
+
+	/** Performs deep copy of the operand into the current message.
+		\remark this is used to copy and process messages outside of EMA's callback methods.
+		@return reference to this object
+	 */
+	PostMsg& operator=( const PostMsg& );
+
+	/** Moves resources from the operand into the current message.
+		\remark Operand is left in "empty" state.
+		@return reference to this object
+	 */
+	PostMsg& operator=( PostMsg&& ) noexcept;
+
 	/** Clears the PostMsg.
 		\remark Invoking clear() method clears all the values and resets all the defaults
 		@return reference to this object
@@ -351,7 +376,8 @@ public :
 
 private :
 
-	friend class MarketItemHandler;
+	friend class MsgImpl;
+
 	mutable EmaString		_toString;
 	mutable EmaString		_postUserRightsString;
 
@@ -359,7 +385,8 @@ private :
 
 	Decoder& getDecoder();
 
-	PostMsg& operator=( const PostMsg& );
+	PostMsgImpl* impl();
+	const PostMsgImpl* impl() const;
 };
 
 }

@@ -41,7 +41,7 @@ class ReqMsg;
 class PostMsg;
 class Channel;
 class Directory;
-class ReqMsgEncoder;
+class ReqMsgImpl;
 class OmmState;
 class Item;
 class TunnelStreamRequest;
@@ -163,7 +163,7 @@ class ItemStatusInfo
 {
 public :
 
-	ItemStatusInfo( Item* , const ReqMsgEncoder& , const EmaString& );
+	ItemStatusInfo( Item* , const ReqMsgImpl& , const EmaString& );
 
 	ItemStatusInfo( Item* , const TunnelStreamRequest& , const EmaString& );
 
@@ -257,7 +257,7 @@ public :
 	virtual bool submit( RsslRequestMsg* ) = 0;
 	virtual bool submit( RsslCloseMsg*) = 0;
 
-	virtual void scheduleItemClosedStatus( const ReqMsgEncoder&, const EmaString& ) = 0;
+	virtual void scheduleItemClosedStatus( const ReqMsgImpl&, const EmaString& ) = 0;
 
 	virtual bool processInitialResp( RsslRefreshMsg* rsslRefreshMsg, bool checkPrivateStream );
 
@@ -359,9 +359,9 @@ public :
 
 
 	ItemType getType() const;
-	void scheduleItemClosedStatus(const ReqMsgEncoder&, const EmaString&);
+	void scheduleItemClosedStatus(const ReqMsgImpl&, const EmaString&);
 
-	void scheduleItemSuspectStatus(const ReqMsgEncoder&, const EmaString&);
+	void scheduleItemSuspectStatus(const ReqMsgImpl&, const EmaString&);
 
 protected :
 
@@ -419,7 +419,7 @@ protected:
 
 	virtual ~NiProviderSingleItem();
 
-	void scheduleItemClosedStatus( const ReqMsgEncoder&, const EmaString& );
+	void scheduleItemClosedStatus( const ReqMsgImpl&, const EmaString& );
 
 	void scheduleItemClosedRecoverableStatus(const EmaString&);
 
@@ -460,7 +460,7 @@ protected:
 
 	virtual ~IProviderSingleItem();
 
-	void scheduleItemClosedStatus(const ReqMsgEncoder&, const EmaString&);
+	void scheduleItemClosedStatus(const ReqMsgImpl&, const EmaString&);
 
 	void scheduleItemClosedRecoverableStatus(const EmaString&);
 
@@ -589,7 +589,7 @@ protected :
 
 	virtual ~SubItem();
 
-	void scheduleItemClosedStatus( const ReqMsgEncoder& , const EmaString& );
+	void scheduleItemClosedStatus( const ReqMsgImpl& , const EmaString& );
 
 private :
 
@@ -657,8 +657,10 @@ private :
 	static const EmaString			_clientName;
 
 	RefreshMsg						_refreshMsg;
+	RefreshMsgImpl*						_refreshMsgImpl;
 
 	UpdateMsg						_updateMsg;
+	UpdateMsgImpl*						_updateMsgImpl;
 
 	StatusMsg						_statusMsg;
 

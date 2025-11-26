@@ -17,6 +17,7 @@
 #include "Decoder.h"
 #include "ExceptionTranslator.h"
 #include "OmmInvalidUsageException.h"
+#include "MsgImpl.h"
 
 #include <new>
 
@@ -232,7 +233,7 @@ RsslReactorCallbackRet DictionaryHandler::dictionaryCallback(RsslReactor* pReact
 						pReactorChannel->minorVersion,
 						rsslDataDictonary);
 
-					ommServerBaseImpl->_reqMsg.getDecoder().setServiceName((*serviceNamePtr)->c_str(), (*serviceNamePtr)->length());
+					MsgImpl::getImpl(ommServerBaseImpl->_reqMsg)->setServiceNameInt(**serviceNamePtr);
 				}
 				else
 				{
@@ -341,7 +342,7 @@ RsslReactorCallbackRet DictionaryHandler::dictionaryCallback(RsslReactor* pReact
 
 						if (serviceNamePtr)
 						{
-							ommServerBaseImpl->_reqMsg.getDecoder().setServiceName((*serviceNamePtr)->c_str(), (*serviceNamePtr)->length());
+							MsgImpl::getImpl(ommServerBaseImpl->_reqMsg)->setServiceNameInt(**serviceNamePtr);
 						}
 					}
 					else

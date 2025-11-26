@@ -2,7 +2,7 @@
  *|            This source code is provided under the Apache 2.0 license
  *|  and is provided AS IS with no warranty or guarantee of fit for purpose.
  *|                See the project's LICENSE.md for details.
- *|           Copyright (C) 2016-2021,2024-2025 LSEG. All rights reserved.
+ *|           Copyright (C) 2016-2025 LSEG. All rights reserved.
  *|-----------------------------------------------------------------------------
  */
 
@@ -11,12 +11,11 @@
 #include "OmmIProviderConfigImpl.h"
 #include "ItemInfo.h"
 #include "ClientSession.h"
-#include "RefreshMsgEncoder.h"
-#include "ReqMsgEncoder.h"
-#include "UpdateMsgEncoder.h"
-#include "StatusMsgEncoder.h"
-#include "GenericMsgEncoder.h"
-#include "AckMsgEncoder.h"
+#include "RefreshMsgImpl.h"
+#include "ReqMsgImpl.h"
+#include "UpdateMsgImpl.h"
+#include "GenericMsgImpl.h"
+#include "AckMsgImpl.h"
 #include "Utilities.h"
 #include "EmaRdm.h"
 #include "OmmQosDecoder.h"
@@ -28,6 +27,7 @@
 #include "ExceptionTranslator.h"
 #include "OmmInvalidUsageException.h"
 #include "PackedMsgImpl.h"
+#include "StatusMsgImpl.h"
 
 #ifdef WIN32
 #pragma warning( disable : 4355)
@@ -230,7 +230,7 @@ UInt64 OmmIProviderImpl::registerClient(const ReqMsg& reqMsg, OmmProviderClient&
 {
 	_userLock.lock();
 
-	const ReqMsgEncoder& reqMsgEncoder = static_cast<const ReqMsgEncoder&>(reqMsg.getEncoder());
+	const ReqMsgImpl& reqMsgEncoder = *MsgImpl::getImpl(reqMsg);
 
 	if (reqMsgEncoder.getRsslRequestMsg()->msgBase.domainType != ema::rdm::MMT_DICTIONARY)
 	{
@@ -266,7 +266,7 @@ void OmmIProviderImpl::reissue(const ReqMsg& reqMsg, UInt64 handle)
 {
 	_userLock.lock();
 
-	const ReqMsgEncoder& reqMsgEncoder = static_cast<const ReqMsgEncoder&>(reqMsg.getEncoder());
+	const ReqMsgImpl& reqMsgEncoder = *MsgImpl::getImpl(reqMsg);
 
 	if ( reqMsgEncoder.isDomainTypeSet() && reqMsgEncoder.getRsslRequestMsg()->msgBase.domainType != ema::rdm::MMT_DICTIONARY )
 	{
@@ -292,7 +292,7 @@ void OmmIProviderImpl::submit(const GenericMsg& genericMsg, UInt64 handle)
 {
 	RsslReactorSubmitMsgOptions submitMsgOpts;
 	rsslClearReactorSubmitMsgOptions(&submitMsgOpts);
-	const GenericMsgEncoder& genericMsgEncoder = static_cast<const GenericMsgEncoder&>(genericMsg.getEncoder());
+	const GenericMsgImpl& genericMsgEncoder = *MsgImpl::getImpl(genericMsg);
 	submitMsgOpts.pRsslMsg = (RsslMsg*)genericMsgEncoder.getRsslGenericMsg();
 
 	_userLock.lock();
@@ -347,7 +347,8 @@ void OmmIProviderImpl::submit(const RefreshMsg& refreshMsg, UInt64 handle)
 {
 	RsslReactorSubmitMsgOptions submitMsgOpts;
 	rsslClearReactorSubmitMsgOptions(&submitMsgOpts);
-	const RefreshMsgEncoder& refreshMsgEncoder = static_cast<const RefreshMsgEncoder&>(refreshMsg.getEncoder());
+
+	const RefreshMsgImpl& refreshMsgEncoder = *MsgImpl::getImpl(refreshMsg);
 	submitMsgOpts.pRsslMsg = (RsslMsg*)refreshMsgEncoder.getRsslRefreshMsg();
 
 	_userLock.lock();
@@ -603,7 +604,8 @@ void OmmIProviderImpl::submit(const UpdateMsg& updateMsg, UInt64 handle)
 {
 	RsslReactorSubmitMsgOptions submitMsgOpts;
 	rsslClearReactorSubmitMsgOptions(&submitMsgOpts);
-	const UpdateMsgEncoder& updateMsgEncoder = static_cast<const UpdateMsgEncoder&>(updateMsg.getEncoder());
+
+	const UpdateMsgImpl& updateMsgEncoder = *MsgImpl::getImpl(updateMsg);
 	submitMsgOpts.pRsslMsg = (RsslMsg*)updateMsgEncoder.getRsslUpdateMsg();
 
 	_userLock.lock();
@@ -781,8 +783,9 @@ void OmmIProviderImpl::submit(const StatusMsg& statusMsg, UInt64 handle)
 {
 	RsslReactorSubmitMsgOptions submitMsgOpts;
 	rsslClearReactorSubmitMsgOptions(&submitMsgOpts);
-	const StatusMsgEncoder& statusMsgEncoder = static_cast<const StatusMsgEncoder&>(statusMsg.getEncoder());
-	submitMsgOpts.pRsslMsg = (RsslMsg*)statusMsgEncoder.getRsslStatusMsg();
+
+	const StatusMsgImpl* pStatusImpl = MsgImpl::getImpl(statusMsg);
+	submitMsgOpts.pRsslMsg = (RsslMsg*)pStatusImpl->getRsslMsg();
 
 	_userLock.lock();
 
@@ -865,9 +868,9 @@ void OmmIProviderImpl::submit(const StatusMsg& statusMsg, UInt64 handle)
 	}
 	else if (submitMsgOpts.pRsslMsg->msgBase.domainType == ema::rdm::MMT_DICTIONARY)
 	{
-		if (statusMsgEncoder.hasServiceName())
+		if (pStatusImpl->hasServiceName())
 		{
-			if ( encodeServiceIdFromName(statusMsgEncoder.getServiceName(), submitMsgOpts.pRsslMsg->msgBase.msgKey.serviceId,
+			if ( encodeServiceIdFromName(pStatusImpl->getServiceName(), submitMsgOpts.pRsslMsg->msgBase.msgKey.serviceId,
 				submitMsgOpts.pRsslMsg->msgBase) )
 			{
 				submitMsgOpts.pRsslMsg->statusMsg.flags |= RSSL_STMF_HAS_MSG_KEY;
@@ -877,7 +880,7 @@ void OmmIProviderImpl::submit(const StatusMsg& statusMsg, UInt64 handle)
 				return;
 			}
 		}
-		else if (statusMsgEncoder.hasServiceId())
+		else if (pStatusImpl->hasServiceId())
 		{
 			if (validateServiceId(submitMsgOpts.pRsslMsg->msgBase.msgKey.serviceId, submitMsgOpts.pRsslMsg->msgBase) == false)
 			{
@@ -942,9 +945,9 @@ void OmmIProviderImpl::submit(const StatusMsg& statusMsg, UInt64 handle)
 		pReactorChannel = itemInfo->getClientSession()->getChannel();
 		submitMsgOpts.pRsslMsg->msgBase.streamId = itemInfo->getStreamId();
 
-		if (statusMsgEncoder.hasServiceName())
+		if (pStatusImpl->hasServiceName())
 		{
-			if ( encodeServiceIdFromName(statusMsgEncoder.getServiceName(), submitMsgOpts.pRsslMsg->msgBase.msgKey.serviceId,
+			if ( encodeServiceIdFromName(pStatusImpl->getServiceName(), submitMsgOpts.pRsslMsg->msgBase.msgKey.serviceId,
 				submitMsgOpts.pRsslMsg->msgBase) )
 			{
 				submitMsgOpts.pRsslMsg->statusMsg.flags |= RSSL_STMF_HAS_MSG_KEY;
@@ -954,7 +957,7 @@ void OmmIProviderImpl::submit(const StatusMsg& statusMsg, UInt64 handle)
 				return;
 			}
 		}
-		else if (statusMsgEncoder.hasServiceId())
+		else if (pStatusImpl->hasServiceId())
 		{
 			if (validateServiceId(submitMsgOpts.pRsslMsg->msgBase.msgKey.serviceId, submitMsgOpts.pRsslMsg->msgBase) == false)
 			{
@@ -1291,7 +1294,8 @@ void OmmIProviderImpl::submit(const AckMsg& ackMsg, UInt64 handle)
 {
 	RsslReactorSubmitMsgOptions submitMsgOpts;
 	rsslClearReactorSubmitMsgOptions(&submitMsgOpts);
-	const AckMsgEncoder& ackMsgEncoder = static_cast<const AckMsgEncoder&>(ackMsg.getEncoder());
+
+	const AckMsgImpl& ackMsgEncoder = *MsgImpl::getImpl(ackMsg);
 	submitMsgOpts.pRsslMsg = (RsslMsg*)ackMsgEncoder.getRsslAckMsg();
 
 	_userLock.lock();

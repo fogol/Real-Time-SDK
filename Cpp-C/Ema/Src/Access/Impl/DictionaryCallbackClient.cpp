@@ -13,7 +13,7 @@
 #include "DirectoryCallbackClient.h"
 #include "Utilities.h"
 #include "ReqMsg.h"
-#include "ReqMsgEncoder.h"
+#include "ReqMsgImpl.h"
 #include "StaticDecoder.h"
 #include "Decoder.h"
 #include "OmmNiProviderImpl.h"
@@ -1497,13 +1497,13 @@ RsslReactorCallbackRet DictionaryCallbackClient::processRefreshMsg( RsslBuffer* 
 		rsslRefreshMsg.flags &= ~RSSL_RFMF_REFRESH_COMPLETE;
 	}
 
-	StaticDecoder::setRsslData(&_refreshMsg, (RsslMsg*)&rsslRefreshMsg, majorVersion, minorVersion, 0);
+	MsgImpl::getImpl(_refreshMsg)->_decoder.setRsslData(majorVersion, minorVersion, (RsslMsg*)&rsslRefreshMsg, nullptr);
 
 	if (dictionaryItem->getDirectory() && _refreshMsg.hasServiceId())
 	{
 		if (_refreshMsg.getServiceId() == dictionaryItem->getDirectory()->getId())
 		{
-			_refreshMsg.getDecoder().setServiceName(dictionaryItem->getDirectory()->getName().c_str(), dictionaryItem->getDirectory()->getName().length());
+			MsgImpl::getImpl(_refreshMsg)->setServiceNameInt(dictionaryItem->getDirectory()->getName());
 		}
 	}
 
@@ -1535,7 +1535,7 @@ RsslReactorCallbackRet DictionaryCallbackClient::processStatusMsg( RsslBuffer* m
 	{
 		if ( _statusMsg.getServiceId() == dictionaryItem->getDirectory()->getId() )
 		{
-			_statusMsg.getDecoder().setServiceName( dictionaryItem->getDirectory()->getName().c_str(), dictionaryItem->getDirectory()->getName().length() );
+			MsgImpl::getImpl(_statusMsg)->setServiceNameInt( dictionaryItem->getDirectory()->getName() );
 		}
 	}
 
@@ -1720,14 +1720,14 @@ bool DictionaryItem::isRemoved()
 
 bool DictionaryItem::open( const ReqMsg& reqMsg )
 {
-	const ReqMsgEncoder& reqMsgEncoder = static_cast<const ReqMsgEncoder&>( reqMsg.getEncoder() );
+	const ReqMsgImpl* reqMsgEncoder = MsgImpl::getImpl(reqMsg);
 
-	_name = EmaString( reqMsgEncoder.getRsslRequestMsg()->msgBase.msgKey.name.data, reqMsgEncoder.getRsslRequestMsg()->msgBase.msgKey.name.length );
+	_name = reqMsgEncoder->getName();
 
-	if ( reqMsgEncoder.getRsslRequestMsg()->msgBase.msgKey.flags & RSSL_MKF_HAS_FILTER )
-		_filter = reqMsgEncoder.getRsslRequestMsg()->msgBase.msgKey.filter;
+	if ( reqMsgEncoder->hasFilter() )
+		_filter = reqMsgEncoder->getFilter();
 
-	if ( reqMsgEncoder.hasServiceName() || ( reqMsgEncoder.getRsslRequestMsg()->msgBase.msgKey.flags & RSSL_MKF_HAS_SERVICE_ID ) )
+	if ( reqMsg.hasServiceName() || ( reqMsg.hasServiceId() ) )
 	{
 		return SingleItem::open( reqMsg );
 	}
@@ -2015,9 +2015,9 @@ NiProviderDictionaryItem* NiProviderDictionaryItem::create(OmmBaseImpl& ommBaseI
 
 bool NiProviderDictionaryItem::modify( const ReqMsg& reqMsg )
 {
-	const ReqMsgEncoder& reqMsgEncoder = static_cast<const ReqMsgEncoder&>(reqMsg.getEncoder());
+	ReqMsgImpl* reqMsgEncoder = const_cast<ReqMsgImpl*>(MsgImpl::getImpl(reqMsg));
 
-	reqMsgEncoder.getRsslRequestMsg()->msgBase.domainType = MMT_DICTIONARY;
+	reqMsgEncoder->setDomainType( MMT_DICTIONARY );
 
 	return ProviderItem::modify( reqMsg );
 }
@@ -2047,9 +2047,9 @@ IProviderDictionaryItem* IProviderDictionaryItem::create(OmmServerBaseImpl& ommS
 
 bool IProviderDictionaryItem::modify(const ReqMsg& reqMsg)
 {
-	const ReqMsgEncoder& reqMsgEncoder = static_cast<const ReqMsgEncoder&>(reqMsg.getEncoder());
+	ReqMsgImpl* reqMsgEncoder = const_cast<ReqMsgImpl*>(MsgImpl::getImpl(reqMsg));
 
-	reqMsgEncoder.getRsslRequestMsg()->msgBase.domainType = MMT_DICTIONARY;
+	reqMsgEncoder->setDomainType( MMT_DICTIONARY );
 
 	return ProviderItem::modify( reqMsg );
 }

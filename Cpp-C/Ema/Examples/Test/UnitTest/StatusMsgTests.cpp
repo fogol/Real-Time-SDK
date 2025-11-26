@@ -2,15 +2,17 @@
  *|            This source code is provided under the Apache 2.0 license
  *|  and is provided AS IS with no warranty or guarantee of fit for purpose.
  *|                See the project's LICENSE.md for details.
- *|           Copyright (C) 2018-2020,2024 LSEG. All rights reserved.
+ *|        Copyright (C) 2019-2025 LSEG. All rights reserved.
  *|-----------------------------------------------------------------------------
  */
+
+#include <array>
+#include <utility>
 
 #include "TestUtilities.h"
 
 using namespace refinitiv::ema::access;
 using namespace refinitiv::ema::rdm;
-using namespace std;
 
 TEST(StatusMsgTests, testStatusMsgInStatusMsg)
 {
@@ -19,19 +21,19 @@ TEST(StatusMsgTests, testStatusMsgInStatusMsg)
 	{
 		StatusMsg sMsg;
 
-		sMsg.state( OmmState::OpenEnum, OmmState::OkEnum, OmmState::NoneEnum, "Status Text" )
-		.payload(
-		  StatusMsg().state( OmmState::OpenEnum, OmmState::OkEnum, OmmState::NoneEnum, "HPStatus Text" ) );
+		sMsg.state(OmmState::OpenEnum, OmmState::OkEnum, OmmState::NoneEnum, "Status Text")
+			.payload(
+				StatusMsg().state(OmmState::OpenEnum, OmmState::OkEnum, OmmState::NoneEnum, "HPStatus Text"));
 
-		StaticDecoder::setData( &sMsg, 0 );
+		StaticDecoder::setData(&sMsg, 0);
 
 
-		EXPECT_TRUE( true ) << "StatusMsg in StatusMsg - exception not expected" ;
+		EXPECT_TRUE(true) << "StatusMsg in StatusMsg - exception not expected";
 
 	}
-	catch ( const OmmException& )
+	catch (const OmmException&)
 	{
-		EXPECT_FALSE( true ) << "StatusMsg in StatusMsg - exception not expected" ;
+		EXPECT_FALSE(true) << "StatusMsg in StatusMsg - exception not expected";
 	}
 }
 
@@ -42,50 +44,51 @@ TEST(StatusMsgTests, testStatusMsgDecode)
 	// load dictionary for decoding of the field list
 	RsslDataDictionary dictionary;
 
-	ASSERT_TRUE(loadDictionaryFromFile( &dictionary )) << "Failed to load dictionary";
+	ASSERT_TRUE(loadDictionaryFromFile(&dictionary)) << "Failed to load dictionary";
 
 	try
 	{
 		RsslStatusMsg status;
 
-		rsslClearStatusMsg( &status );
+		rsslClearStatusMsg(&status);
 
 		RsslMsgKey msgKey;
 
-		rsslClearMsgKey( &msgKey );
+		rsslClearMsgKey(&msgKey);
 
 		RsslBuffer nameBuffer;
-		nameBuffer.data = const_cast<char*>( "ABCDEF" );
+		nameBuffer.data = const_cast<char*>("ABCDEF");
 		nameBuffer.length = 6;
 
 		msgKey.name = nameBuffer;
-		rsslMsgKeyApplyHasName( &msgKey );
+		rsslMsgKeyApplyHasName(&msgKey);
 
 		msgKey.nameType = 1;
-		rsslMsgKeyApplyHasNameType( &msgKey );
+		rsslMsgKeyApplyHasNameType(&msgKey);
 
 		msgKey.serviceId = 2;
-		rsslMsgKeyApplyHasServiceId( &msgKey );
+		rsslMsgKeyApplyHasServiceId(&msgKey);
 
 		msgKey.identifier = 4;
-		rsslMsgKeyApplyHasIdentifier( &msgKey );
+		rsslMsgKeyApplyHasIdentifier(&msgKey);
 
 		msgKey.filter = 8;
-		rsslMsgKeyApplyHasFilter( &msgKey );
+		rsslMsgKeyApplyHasFilter(&msgKey);
 
+		std::array<char, 1000> rsslBufData;
 		RsslBuffer rsslBuf;
-		rsslBuf.length = 1000;
-		rsslBuf.data = ( char* )malloc( sizeof( char ) * 1000 );
+		rsslBuf.length = (UInt32)rsslBufData.size();
+		rsslBuf.data = (char*)rsslBufData.data();
 
 		EmaString inText;
-		encodeFieldList( rsslBuf, inText );
+		encodeFieldList(rsslBuf, inText);
 
 		msgKey.attribContainerType = RSSL_DT_FIELD_LIST;
 		msgKey.encAttrib = rsslBuf;
-		rsslMsgKeyApplyHasAttrib( &msgKey );
+		rsslMsgKeyApplyHasAttrib(&msgKey);
 
 		status.msgBase.msgKey = msgKey;
-		rsslStatusMsgApplyHasMsgKey( &status );
+		rsslStatusMsgApplyHasMsgKey(&status);
 
 		status.msgBase.encDataBody = rsslBuf;
 		status.msgBase.containerType = RSSL_DT_FIELD_LIST;
@@ -103,141 +106,136 @@ TEST(StatusMsgTests, testStatusMsgDecode)
 
 		StatusMsg respMsg;
 
-		StaticDecoder::setRsslData( &respMsg, ( RsslMsg* )&status, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary );
+		StaticDecoder::setRsslData(&respMsg, (RsslMsg*)&status, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary);
 
-		EXPECT_TRUE( respMsg.hasMsgKey() ) << "StatusMsg::hasMsgKey() == true" ;
+		EXPECT_TRUE(respMsg.hasMsgKey()) << "StatusMsg::hasMsgKey() == true";
 
-		EXPECT_TRUE( respMsg.hasName() ) << "StatusMsg::hasName() == true" ;
+		EXPECT_TRUE(respMsg.hasName()) << "StatusMsg::hasName() == true";
 
-		EXPECT_STREQ( respMsg.getName(), "ABCDEF" ) << "StatusMsg::getName()" ;
+		EXPECT_STREQ(respMsg.getName(), "ABCDEF") << "StatusMsg::getName()";
 
-		EXPECT_TRUE( respMsg.hasNameType() ) << "StatusMsg::hasNameType() == true" ;
+		EXPECT_TRUE(respMsg.hasNameType()) << "StatusMsg::hasNameType() == true";
 
-		EXPECT_EQ( respMsg.getNameType(), 1 ) << "StatusMsg::getNameType()" ;
+		EXPECT_EQ(respMsg.getNameType(), 1) << "StatusMsg::getNameType()";
 
-		EXPECT_TRUE( respMsg.hasServiceId() ) << "StatusMsg::hasServiceId() == true" ;
+		EXPECT_TRUE(respMsg.hasServiceId()) << "StatusMsg::hasServiceId() == true";
 
-		EXPECT_EQ( respMsg.getServiceId(), 2 ) << "StatusMsg::getServiceId()" ;
+		EXPECT_EQ(respMsg.getServiceId(), 2) << "StatusMsg::getServiceId()";
 
-		EXPECT_TRUE( respMsg.hasId() ) << "StatusMsg::hasId() == true" ;
+		EXPECT_TRUE(respMsg.hasId()) << "StatusMsg::hasId() == true";
 
-		EXPECT_EQ( respMsg.getId(), 4 ) << "StatusMsg::getId()" ;
+		EXPECT_EQ(respMsg.getId(), 4) << "StatusMsg::getId()";
 
-		EXPECT_TRUE( respMsg.hasFilter() ) << "StatusMsg::hasFilter() == true" ;
+		EXPECT_TRUE(respMsg.hasFilter()) << "StatusMsg::hasFilter() == true";
 
-		EXPECT_EQ( respMsg.getFilter(), 8 ) << "StatusMsg::getFilter()" ;
+		EXPECT_EQ(respMsg.getFilter(), 8) << "StatusMsg::getFilter()";
 
-		EXPECT_EQ( respMsg.getAttrib().getDataType(), DataType::FieldListEnum ) << "StatusMsg::getAttribType()" ;
+		EXPECT_EQ(respMsg.getAttrib().getDataType(), DataType::FieldListEnum) << "StatusMsg::getAttribType()";
 
-		EXPECT_EQ( respMsg.getPayload().getDataType(), DataType::FieldListEnum ) << "StatusMsg::getPayloadType()" ;
+		EXPECT_EQ(respMsg.getPayload().getDataType(), DataType::FieldListEnum) << "StatusMsg::getPayloadType()";
 
-		EXPECT_EQ( respMsg.getState().getStatusCode(), OmmState::NoneEnum ) << "StatusMsg::getState()::getCode()" ;
+		EXPECT_EQ(respMsg.getState().getStatusCode(), OmmState::NoneEnum) << "StatusMsg::getState()::getCode()";
 
-		EXPECT_EQ( respMsg.getState().getDataState(), OmmState::OkEnum ) << "StatusMsg::getState()::getDataState()" ;
+		EXPECT_EQ(respMsg.getState().getDataState(), OmmState::OkEnum) << "StatusMsg::getState()::getDataState()";
 
-		EXPECT_EQ( respMsg.getState().getStreamState(), OmmState::OpenEnum ) << "StatusMsg::getState()::getStreamState()" ;
+		EXPECT_EQ(respMsg.getState().getStreamState(), OmmState::OpenEnum) << "StatusMsg::getState()::getStreamState()";
 
-		EXPECT_TRUE( true ) << "StatusMsg Decode - exception not expected" ;
-		
-		rsslBuf.length = 0;
-		free(rsslBuf.data);
-
+		EXPECT_TRUE(true) << "StatusMsg Decode - exception not expected";
 	}
-	catch ( const OmmException& )
+	catch (const OmmException&)
 	{
-		EXPECT_FALSE( true ) << "StatusMsg Decode - exception not expected" ;
+		EXPECT_FALSE(true) << "StatusMsg Decode - exception not expected";
 	}
 
-	rsslDeleteDataDictionary( &dictionary );
+	rsslDeleteDataDictionary(&dictionary);
 }
 
 TEST(StatusMsgTests, testStatusMsgNoState)
 {
-
 	try
 	{
 		RsslStatusMsg status;
 
-		rsslClearStatusMsg( &status );
+		rsslClearStatusMsg(&status);
 
 		RsslMsgKey msgKey;
 
-		rsslClearMsgKey( &msgKey );
+		rsslClearMsgKey(&msgKey);
 
 		RsslBuffer nameBuffer;
-		nameBuffer.data = const_cast<char*>( "ABCDEF" );
+		nameBuffer.data = const_cast<char*>("ABCDEF");
 		nameBuffer.length = 6;
 
 		msgKey.name = nameBuffer;
-		rsslMsgKeyApplyHasName( &msgKey );
+		rsslMsgKeyApplyHasName(&msgKey);
 
 		msgKey.nameType = 1;
-		rsslMsgKeyApplyHasNameType( &msgKey );
+		rsslMsgKeyApplyHasNameType(&msgKey);
 
 		msgKey.serviceId = 2;
-		rsslMsgKeyApplyHasServiceId( &msgKey );
+		rsslMsgKeyApplyHasServiceId(&msgKey);
 
 		msgKey.identifier = 4;
-		rsslMsgKeyApplyHasIdentifier( &msgKey );
+		rsslMsgKeyApplyHasIdentifier(&msgKey);
 
 		msgKey.filter = 8;
-		rsslMsgKeyApplyHasFilter( &msgKey );
+		rsslMsgKeyApplyHasFilter(&msgKey);
 
 		status.msgBase.msgKey = msgKey;
-		rsslStatusMsgApplyHasMsgKey( &status );
+		rsslStatusMsgApplyHasMsgKey(&status);
 
 		status.msgBase.encDataBody.data = 0;
-		status.msgBase.encDataBody.length  = 0;
+		status.msgBase.encDataBody.length = 0;
 		status.msgBase.containerType = RSSL_DT_NO_DATA;
 
 		StatusMsg respMsg;
 
-		StaticDecoder::setRsslData( &respMsg, ( RsslMsg* )&status, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, 0 );
+		StaticDecoder::setRsslData(&respMsg, (RsslMsg*)&status, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, 0);
 
-		EXPECT_TRUE( respMsg.hasMsgKey() ) << "StatusMsg::hasMsgKey() == true" ;
+		EXPECT_TRUE(respMsg.hasMsgKey()) << "StatusMsg::hasMsgKey() == true";
 
-		EXPECT_TRUE( respMsg.hasName() ) << "StatusMsg::hasName() == true" ;
+		EXPECT_TRUE(respMsg.hasName()) << "StatusMsg::hasName() == true";
 
-		EXPECT_STREQ( respMsg.getName(), "ABCDEF" ) << "StatusMsg::getName()" ;
+		EXPECT_STREQ(respMsg.getName(), "ABCDEF") << "StatusMsg::getName()";
 
-		EXPECT_TRUE( respMsg.hasNameType() ) << "StatusMsg::hasNameType() == true" ;
+		EXPECT_TRUE(respMsg.hasNameType()) << "StatusMsg::hasNameType() == true";
 
-		EXPECT_EQ( respMsg.getNameType(), 1 ) << "StatusMsg::getNameType()" ;
+		EXPECT_EQ(respMsg.getNameType(), 1) << "StatusMsg::getNameType()";
 
-		EXPECT_TRUE( respMsg.hasServiceId() ) << "StatusMsg::hasServiceId() == true" ;
+		EXPECT_TRUE(respMsg.hasServiceId()) << "StatusMsg::hasServiceId() == true";
 
-		EXPECT_EQ( respMsg.getServiceId(), 2 ) << "StatusMsg::getServiceId()" ;
+		EXPECT_EQ(respMsg.getServiceId(), 2) << "StatusMsg::getServiceId()";
 
-		EXPECT_TRUE( respMsg.hasId() ) << "StatusMsg::hasId() == true" ;
+		EXPECT_TRUE(respMsg.hasId()) << "StatusMsg::hasId() == true";
 
-		EXPECT_EQ( respMsg.getId(), 4 ) << "StatusMsg::getId()" ;
+		EXPECT_EQ(respMsg.getId(), 4) << "StatusMsg::getId()";
 
-		EXPECT_TRUE( respMsg.hasFilter() ) << "StatusMsg::hasFilter() == true" ;
+		EXPECT_TRUE(respMsg.hasFilter()) << "StatusMsg::hasFilter() == true";
 
-		EXPECT_EQ( respMsg.getFilter(), 8 ) << "StatusMsg::getFilter()" ;
+		EXPECT_EQ(respMsg.getFilter(), 8) << "StatusMsg::getFilter()";
 
-		EXPECT_EQ( respMsg.getAttrib().getDataType(), DataType::NoDataEnum ) << "StatusMsg::getAttribType()" ;
+		EXPECT_EQ(respMsg.getAttrib().getDataType(), DataType::NoDataEnum) << "StatusMsg::getAttribType()";
 
-		EXPECT_EQ( respMsg.getPayload().getDataType(), DataType::NoDataEnum ) << "StatusMsg::getPayloadType()" ;
+		EXPECT_EQ(respMsg.getPayload().getDataType(), DataType::NoDataEnum) << "StatusMsg::getPayloadType()";
 
-		EXPECT_FALSE( respMsg.hasState() ) << "StatusMsg::hasState() == false" ;
+		EXPECT_FALSE(respMsg.hasState()) << "StatusMsg::hasState() == false";
 
-		EXPECT_TRUE( true ) << "StatusMsg NoState - exception not expected" ;
+		EXPECT_TRUE(true) << "StatusMsg NoState - exception not expected";
 
 		try
 		{
 			respMsg.getState();
-			EXPECT_FALSE( true ) << "StatusMsg NoState - exception expected" ;
+			EXPECT_FALSE(true) << "StatusMsg NoState - exception expected";
 		}
-		catch ( const OmmException& )
+		catch (const OmmException&)
 		{
-			EXPECT_TRUE( true ) << "StatusMsg NoState - exception expected" ;
+			EXPECT_TRUE(true) << "StatusMsg NoState - exception expected";
 		}
 
 	}
-	catch ( const OmmException& )
+	catch (const OmmException&)
 	{
-		EXPECT_FALSE( true ) << "StatusMsg NoState - exception not expected" ;
+		EXPECT_FALSE(true) << "StatusMsg NoState - exception not expected";
 	}
 }
 
@@ -249,23 +247,23 @@ TEST(StatusMsgTests, testStatusMsgContainsOpaqueDecodeAll)
 	try
 	{
 		RsslStatusMsg rsslStatusMsg;
-		rsslClearStatusMsg( &rsslStatusMsg );
+		rsslClearStatusMsg(&rsslStatusMsg);
 
 		RsslMsgKey msgKey;
-		rsslClearMsgKey( &msgKey );
+		rsslClearMsgKey(&msgKey);
 
 		RsslBuffer nameBuffer;
-		nameBuffer.data = const_cast<char*>( "ABCDEF" );
+		nameBuffer.data = const_cast<char*>("ABCDEF");
 		nameBuffer.length = 6;
 
 		msgKey.name = nameBuffer;
-		rsslMsgKeyApplyHasName( &msgKey );
+		rsslMsgKeyApplyHasName(&msgKey);
 
 		msgKey.nameType = 1;
-		rsslMsgKeyApplyHasNameType( &msgKey );
+		rsslMsgKeyApplyHasNameType(&msgKey);
 
 		msgKey.serviceId = 2;
-		rsslMsgKeyApplyHasServiceId( &msgKey );
+		rsslMsgKeyApplyHasServiceId(&msgKey);
 
 		rsslStatusMsg.msgBase.msgKey = msgKey;
 		rsslStatusMsg.msgBase.domainType = RSSL_DMT_MARKET_PRICE;
@@ -276,26 +274,26 @@ TEST(StatusMsgTests, testStatusMsgContainsOpaqueDecodeAll)
 		rsslBuf.length = 100;
 
 		RsslBuffer opaqueValue;
-		opaqueValue.data = ( char* )"482wfshfsrf2";
-		opaqueValue.length = static_cast<rtrUInt32> ( strlen( opaqueValue.data ) );
+		opaqueValue.data = (char*)"482wfshfsrf2";
+		opaqueValue.length = static_cast<rtrUInt32> (strlen(opaqueValue.data));
 
-		encodeNonRWFData( &rsslBuf, &opaqueValue );
+		encodeNonRWFData(&rsslBuf, &opaqueValue);
 
 		rsslStatusMsg.msgBase.encDataBody = rsslBuf;
 		rsslStatusMsg.msgBase.containerType = RSSL_DT_OPAQUE;
 
 		StatusMsg statusMsg;
 
-		StaticDecoder::setRsslData( &statusMsg, ( RsslMsg* )&rsslStatusMsg, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary );
+		StaticDecoder::setRsslData(&statusMsg, (RsslMsg*)&rsslStatusMsg, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary);
 
-		EXPECT_EQ( statusMsg.getPayload().getDataType(), DataType::OpaqueEnum ) << "StatusMsg::getPayload().getDataType() == DataType::OpaqueEnum" ;
+		EXPECT_EQ(statusMsg.getPayload().getDataType(), DataType::OpaqueEnum) << "StatusMsg::getPayload().getDataType() == DataType::OpaqueEnum";
 
-		EmaBuffer compareTo( opaqueValue.data, opaqueValue.length );
-		EXPECT_STREQ( statusMsg.getPayload().getOpaque().getBuffer(), compareTo ) << "StatusMsg::getPayload().getOpaque().getBuffer()" ;
+		EmaBuffer compareTo(opaqueValue.data, opaqueValue.length);
+		EXPECT_STREQ(statusMsg.getPayload().getOpaque().getBuffer(), compareTo) << "StatusMsg::getPayload().getOpaque().getBuffer()";
 	}
-	catch ( const OmmException& )
+	catch (const OmmException&)
 	{
-		EXPECT_FALSE( true ) << "UpdateMsg Decode with Opaque payload - exception not expected" ;
+		EXPECT_FALSE(true) << "UpdateMsg Decode with Opaque payload - exception not expected";
 	}
 }
 
@@ -307,23 +305,23 @@ TEST(StatusMsgTests, testStatusMsgContainsXmlDecodeAll)
 	try
 	{
 		RsslStatusMsg rsslStatusMsg;
-		rsslClearStatusMsg( &rsslStatusMsg );
+		rsslClearStatusMsg(&rsslStatusMsg);
 
 		RsslMsgKey msgKey;
-		rsslClearMsgKey( &msgKey );
+		rsslClearMsgKey(&msgKey);
 
 		RsslBuffer nameBuffer;
-		nameBuffer.data = const_cast<char*>( "ABCDEF" );
+		nameBuffer.data = const_cast<char*>("ABCDEF");
 		nameBuffer.length = 6;
 
 		msgKey.name = nameBuffer;
-		rsslMsgKeyApplyHasName( &msgKey );
+		rsslMsgKeyApplyHasName(&msgKey);
 
 		msgKey.nameType = 1;
-		rsslMsgKeyApplyHasNameType( &msgKey );
+		rsslMsgKeyApplyHasNameType(&msgKey);
 
 		msgKey.serviceId = 2;
-		rsslMsgKeyApplyHasServiceId( &msgKey );
+		rsslMsgKeyApplyHasServiceId(&msgKey);
 
 		rsslStatusMsg.msgBase.msgKey = msgKey;
 		rsslStatusMsg.msgBase.domainType = RSSL_DMT_MARKET_PRICE;
@@ -334,26 +332,26 @@ TEST(StatusMsgTests, testStatusMsgContainsXmlDecodeAll)
 		rsslBuf.length = 200;
 
 		RsslBuffer xmlValue;
-		xmlValue.data = ( char* )"<consumerList><consumer><name dataType=\"Ascii\" value=\"Consumer_1\"/></consumer></consumerList>";
-		xmlValue.length = static_cast<rtrUInt32> ( strlen( xmlValue.data ) );
+		xmlValue.data = (char*)"<consumerList><consumer><name dataType=\"Ascii\" value=\"Consumer_1\"/></consumer></consumerList>";
+		xmlValue.length = static_cast<rtrUInt32> (strlen(xmlValue.data));
 
-		encodeNonRWFData( &rsslBuf, &xmlValue );
+		encodeNonRWFData(&rsslBuf, &xmlValue);
 
 		rsslStatusMsg.msgBase.encDataBody = rsslBuf;
 		rsslStatusMsg.msgBase.containerType = RSSL_DT_XML;
 
 		StatusMsg statusMsg;
 
-		StaticDecoder::setRsslData( &statusMsg, ( RsslMsg* )&rsslStatusMsg, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary );
+		StaticDecoder::setRsslData(&statusMsg, (RsslMsg*)&rsslStatusMsg, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary);
 
-		EXPECT_EQ( statusMsg.getPayload().getDataType(), DataType::XmlEnum ) << "StatusMsg::getPayload().getDataType() == DataType::XmlEnum" ;
+		EXPECT_EQ(statusMsg.getPayload().getDataType(), DataType::XmlEnum) << "StatusMsg::getPayload().getDataType() == DataType::XmlEnum";
 
-		EmaBuffer compareTo( xmlValue.data, xmlValue.length );
-		EXPECT_STREQ( statusMsg.getPayload().getXml().getBuffer(), compareTo ) << "StatusMsg::getPayload().getXml().getBuffer()" ;
+		EmaBuffer compareTo(xmlValue.data, xmlValue.length);
+		EXPECT_STREQ(statusMsg.getPayload().getXml().getBuffer(), compareTo) << "StatusMsg::getPayload().getXml().getBuffer()";
 	}
-	catch ( const OmmException& )
+	catch (const OmmException&)
 	{
-		EXPECT_FALSE( true ) << "StatusMsg Decode with Xml payload - exception not expected" ;
+		EXPECT_FALSE(true) << "StatusMsg Decode with Xml payload - exception not expected";
 	}
 }
 
@@ -365,23 +363,23 @@ TEST(StatusMsgTests, testStatusMsgContainsJsonDecodeAll)
 	try
 	{
 		RsslStatusMsg rsslStatusMsg;
-		rsslClearStatusMsg( &rsslStatusMsg );
+		rsslClearStatusMsg(&rsslStatusMsg);
 
 		RsslMsgKey msgKey;
-		rsslClearMsgKey( &msgKey );
+		rsslClearMsgKey(&msgKey);
 
 		RsslBuffer nameBuffer;
-		nameBuffer.data = const_cast<char*>( "ABCDEF" );
+		nameBuffer.data = const_cast<char*>("ABCDEF");
 		nameBuffer.length = 6;
 
 		msgKey.name = nameBuffer;
-		rsslMsgKeyApplyHasName( &msgKey );
+		rsslMsgKeyApplyHasName(&msgKey);
 
 		msgKey.nameType = 1;
-		rsslMsgKeyApplyHasNameType( &msgKey );
+		rsslMsgKeyApplyHasNameType(&msgKey);
 
 		msgKey.serviceId = 2;
-		rsslMsgKeyApplyHasServiceId( &msgKey );
+		rsslMsgKeyApplyHasServiceId(&msgKey);
 
 		rsslStatusMsg.msgBase.msgKey = msgKey;
 		rsslStatusMsg.msgBase.domainType = RSSL_DMT_MARKET_PRICE;
@@ -392,26 +390,26 @@ TEST(StatusMsgTests, testStatusMsgContainsJsonDecodeAll)
 		rsslBuf.length = 200;
 
 		RsslBuffer jsonValue;
-		jsonValue.data = ( char* )"{\"consumerList\":{\"consumer\":{\"name\":\"\",\"dataType\":\"Ascii\",\"value\":\"Consumer_1\"}}}";
-		jsonValue.length = static_cast<rtrUInt32> ( strlen( jsonValue.data ) );
+		jsonValue.data = (char*)"{\"consumerList\":{\"consumer\":{\"name\":\"\",\"dataType\":\"Ascii\",\"value\":\"Consumer_1\"}}}";
+		jsonValue.length = static_cast<rtrUInt32> (strlen(jsonValue.data));
 
-		encodeNonRWFData( &rsslBuf, &jsonValue );
+		encodeNonRWFData(&rsslBuf, &jsonValue);
 
 		rsslStatusMsg.msgBase.encDataBody = rsslBuf;
 		rsslStatusMsg.msgBase.containerType = RSSL_DT_JSON;
 
 		StatusMsg statusMsg;
 
-		StaticDecoder::setRsslData( &statusMsg, ( RsslMsg* )&rsslStatusMsg, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary );
+		StaticDecoder::setRsslData(&statusMsg, (RsslMsg*)&rsslStatusMsg, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary);
 
-		EXPECT_EQ( statusMsg.getPayload().getDataType(), DataType::JsonEnum ) << "StatusMsg::getPayload().getDataType() == DataType::JsonEnum" ;
+		EXPECT_EQ(statusMsg.getPayload().getDataType(), DataType::JsonEnum) << "StatusMsg::getPayload().getDataType() == DataType::JsonEnum";
 
-		EmaBuffer compareTo( jsonValue.data, jsonValue.length );
-		EXPECT_STREQ( statusMsg.getPayload().getJson().getBuffer(), compareTo ) << "StatusMsg::getPayload().getJson().getBuffer()" ;
+		EmaBuffer compareTo(jsonValue.data, jsonValue.length);
+		EXPECT_STREQ(statusMsg.getPayload().getJson().getBuffer(), compareTo) << "StatusMsg::getPayload().getJson().getBuffer()";
 	}
-	catch ( const OmmException& )
+	catch (const OmmException&)
 	{
-		EXPECT_FALSE( true ) << "StatusMsg Decode with Json payload - exception not expected" ;
+		EXPECT_FALSE(true) << "StatusMsg Decode with Json payload - exception not expected";
 	}
 }
 
@@ -423,23 +421,23 @@ TEST(StatusMsgTests, testStatusMsgContainsAnsiPageDecodeAll)
 	try
 	{
 		RsslStatusMsg rsslStatusMsg;
-		rsslClearStatusMsg( &rsslStatusMsg );
+		rsslClearStatusMsg(&rsslStatusMsg);
 
 		RsslMsgKey msgKey;
-		rsslClearMsgKey( &msgKey );
+		rsslClearMsgKey(&msgKey);
 
 		RsslBuffer nameBuffer;
-		nameBuffer.data = const_cast<char*>( "ABCDEF" );
+		nameBuffer.data = const_cast<char*>("ABCDEF");
 		nameBuffer.length = 6;
 
 		msgKey.name = nameBuffer;
-		rsslMsgKeyApplyHasName( &msgKey );
+		rsslMsgKeyApplyHasName(&msgKey);
 
 		msgKey.nameType = 1;
-		rsslMsgKeyApplyHasNameType( &msgKey );
+		rsslMsgKeyApplyHasNameType(&msgKey);
 
 		msgKey.serviceId = 2;
-		rsslMsgKeyApplyHasServiceId( &msgKey );
+		rsslMsgKeyApplyHasServiceId(&msgKey);
 
 		rsslStatusMsg.msgBase.msgKey = msgKey;
 		rsslStatusMsg.msgBase.domainType = RSSL_DMT_MARKET_PRICE;
@@ -450,26 +448,26 @@ TEST(StatusMsgTests, testStatusMsgContainsAnsiPageDecodeAll)
 		rsslBuf.length = 100;
 
 		RsslBuffer ansiPageValue;
-		ansiPageValue.data = ( char* )"$&@^@FRHFSORFEQ(*YQ)(E#QRY";
-		ansiPageValue.length = static_cast<rtrUInt32> ( strlen( ansiPageValue.data ) );
+		ansiPageValue.data = (char*)"$&@^@FRHFSORFEQ(*YQ)(E#QRY";
+		ansiPageValue.length = static_cast<rtrUInt32> (strlen(ansiPageValue.data));
 
-		encodeNonRWFData( &rsslBuf, &ansiPageValue );
+		encodeNonRWFData(&rsslBuf, &ansiPageValue);
 
 		rsslStatusMsg.msgBase.encDataBody = rsslBuf;
 		rsslStatusMsg.msgBase.containerType = RSSL_DT_ANSI_PAGE;
 
 		StatusMsg statusMsg;
 
-		StaticDecoder::setRsslData( &statusMsg, ( RsslMsg* )&rsslStatusMsg, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary );
+		StaticDecoder::setRsslData(&statusMsg, (RsslMsg*)&rsslStatusMsg, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary);
 
-		EXPECT_EQ( statusMsg.getPayload().getDataType(), DataType::AnsiPageEnum ) << "StatusMsg::getPayload().getDataType() == DataType::AnsiPageEnum" ;
+		EXPECT_EQ(statusMsg.getPayload().getDataType(), DataType::AnsiPageEnum) << "StatusMsg::getPayload().getDataType() == DataType::AnsiPageEnum";
 
-		EmaBuffer compareTo( ansiPageValue.data, ansiPageValue.length );
-		EXPECT_STREQ( statusMsg.getPayload().getAnsiPage().getBuffer(), compareTo ) << "StatusMsg::getPayload().getAnsiPage().getBuffer()" ;
+		EmaBuffer compareTo(ansiPageValue.data, ansiPageValue.length);
+		EXPECT_STREQ(statusMsg.getPayload().getAnsiPage().getBuffer(), compareTo) << "StatusMsg::getPayload().getAnsiPage().getBuffer()";
 	}
-	catch ( const OmmException& )
+	catch (const OmmException&)
 	{
-		EXPECT_FALSE( true ) << "StatusMsg Decode with AnsiPage payload - exception not expected" ;
+		EXPECT_FALSE(true) << "StatusMsg Decode with AnsiPage payload - exception not expected";
 	}
 }
 
@@ -529,16 +527,16 @@ TEST(StatusMsgTests, testStatusMsgEncodeDecode)
 		"    domain=\"MarketPrice Domain\"\n"
 		"StatusMsgEnd\n";
 
-	ASSERT_TRUE(loadDictionaryFromFile( &dictionary )) << "Failed to load dictionary";
+	ASSERT_TRUE(loadDictionaryFromFile(&dictionary)) << "Failed to load dictionary";
 
 	DataDictionary emaDataDictionary, emaDataDictionaryEmpty;
 
 	try {
-		emaDataDictionary.loadFieldDictionary( "RDMFieldDictionaryTest" );
-		emaDataDictionary.loadEnumTypeDictionary( "enumtypeTest.def" );
+		emaDataDictionary.loadFieldDictionary("RDMFieldDictionaryTest");
+		emaDataDictionary.loadEnumTypeDictionary("enumtypeTest.def");
 	}
-	catch ( const OmmException& ) {
-		ASSERT_TRUE( false ) << "DataDictionary::loadFieldDictionary() failed to load dictionary information";
+	catch (const OmmException&) {
+		ASSERT_TRUE(false) << "DataDictionary::loadFieldDictionary() failed to load dictionary information";
 	}
 
 	try
@@ -546,93 +544,94 @@ TEST(StatusMsgTests, testStatusMsgEncodeDecode)
 		StatusMsg status, statusEmpty;
 
 		FieldList flEnc;
-		EmaEncodeFieldListAll( flEnc );
+		EmaEncodeFieldListAll(flEnc);
 
-		EmaBuffer itemGroup( "29", 2 );
-		EmaString name( "TRI.N" );
-		EmaString serviceName( "DIRECT_FEED" );
-		EmaBuffer extendedHeader( "extendedHeader", 6 );
+		EmaBuffer itemGroup("29", 2);
+		EmaString name("TRI.N");
+		EmaString serviceName("DIRECT_FEED");
+		EmaBuffer extendedHeader("extendedHeader", 6);
 
-		status.streamId( 3 );
+		status.streamId(3);
 
-		status.domainType( MMT_MARKET_PRICE );
-		status.state( OmmState::OpenEnum, OmmState::OkEnum, OmmState::NoneEnum, "Status Text" );
-		status.itemGroup( itemGroup );  //itemGroup is ok for status
-		status.name( name );
-//serviceName is only kept on the encoded RsslMsg
-		status.serviceName( serviceName );
-		status.nameType( 1 );
-		status.id( 4 );
-		status.filter( 8 );
+		status.domainType(MMT_MARKET_PRICE);
+		status.state(OmmState::OpenEnum, OmmState::OkEnum, OmmState::NoneEnum, "Status Text");
+		status.itemGroup(itemGroup);  //itemGroup is ok for status
+		status.name(name);
+		//serviceName is only kept on the encoded RsslMsg
+		// RTSDK-9613: Java doesn't set it, as once set it appears in toString status.serviceName(serviceName);
+		status.nameType(1);
+		status.id(4);
+		status.filter(8);
 
-		status.extendedHeader( extendedHeader );
-		status.attrib( flEnc );
-		status.payload( flEnc );  //there is no payload for status
-		EXPECT_EQ( status.toString(), "\ntoString() method could not be used for just encoded object. Use toString(dictionary) for just encoded object.\n" ) << "StatusMsg.toString() == toString() method could not be used for just encoded object. Use toString(dictionary) for just encoded object.";
+		status.extendedHeader(extendedHeader);
+		status.attrib(flEnc);
+		status.payload(flEnc);  //there is no payload for status
 
-		EXPECT_EQ( status.toString( emaDataDictionaryEmpty ), "\nDictionary is not loaded.\n" ) << "StatusMsg.toString() == Dictionary is not loaded.";
+		EXPECT_NE( -1, status.toString().find("ErrorCode=\"NoDictionary\"") ) << "StatusMsg.toString() == toString() method can be used for just encoded object when the dictionary was previously loaded. Use toString(dictionary) for just encoded object.";
 
-		EXPECT_EQ(statusEmpty.toString(emaDataDictionary), statusMsgEmptyString ) << "StatusMsg.toString() == statusMsgEmptyString";
+		EXPECT_STREQ(status.toString(emaDataDictionaryEmpty), "\nDictionary is not loaded.\n") << "StatusMsg.toString() == Dictionary is not loaded.";
 
-		EXPECT_EQ( status.toString( emaDataDictionary ), statusMsgString ) << "StatusMsg.toString() == statusMsgString";
+		EXPECT_STREQ(statusEmpty.toString(emaDataDictionary), statusMsgEmptyString) << "StatusMsg.toString() == statusMsgEmptyString";
 
-        StaticDecoder::setData(&status, &dictionary);
+		EXPECT_STREQ(status.toString(emaDataDictionary), statusMsgString) << "StatusMsg.toString() == statusMsgString";
 
-		StatusMsg statusMsgClone( status );
+		StaticDecoder::setData(&status, &dictionary);
+
+		StatusMsg statusMsgClone(status);
 		statusMsgClone.clear();
-		EXPECT_EQ( statusMsgClone.toString( emaDataDictionary ), statusMsgEmptyString ) << "StatusMsg.toString() == statusMsgEmptyString";
+		EXPECT_STREQ(statusMsgClone.toString(emaDataDictionary), statusMsgEmptyString) << "StatusMsg.toString() == statusMsgEmptyString";
 
-		EXPECT_EQ( status.toString(), statusMsgString ) << "StatusMsg.toString() == statusMsgString";
+		EXPECT_STREQ(status.toString(), statusMsgString) << "StatusMsg.toString() == statusMsgString";
 
-		EXPECT_TRUE( status.hasMsgKey() ) << "StatusMsg::hasMsgKey() == true" ;
+		EXPECT_TRUE(status.hasMsgKey()) << "StatusMsg::hasMsgKey() == true";
 
-		EXPECT_EQ( status.getStreamId(), 3 ) << "StatusMsg::getStreamId()" ;
+		EXPECT_EQ(status.getStreamId(), 3) << "StatusMsg::getStreamId()";
 
-		EXPECT_EQ( status.getDomainType(), MMT_MARKET_PRICE ) << "StatusMsg::getDomainType()" ;
+		EXPECT_EQ(status.getDomainType(), MMT_MARKET_PRICE) << "StatusMsg::getDomainType()";
 
-		EXPECT_EQ( status.getState().getStreamState(), OmmState::OpenEnum ) << "StatusMsg::getState().getStreamState()" ;
-		EXPECT_EQ( status.getState().getDataState(), OmmState::OkEnum ) << "StatusMsg::getState().getDataState()" ;
-		EXPECT_EQ( status.getState().getStatusCode(), OmmState::NoneEnum ) << "StatusMsg::getState().getStatusCode()" ;
-		EXPECT_STREQ( status.getState().toString(), "Open / Ok / None / 'Status Text'" ) << "StatusMsg::getState().toString()" ;
+		EXPECT_EQ(status.getState().getStreamState(), OmmState::OpenEnum) << "StatusMsg::getState().getStreamState()";
+		EXPECT_EQ(status.getState().getDataState(), OmmState::OkEnum) << "StatusMsg::getState().getDataState()";
+		EXPECT_EQ(status.getState().getStatusCode(), OmmState::NoneEnum) << "StatusMsg::getState().getStatusCode()";
+		EXPECT_STREQ(status.getState().toString(), "Open / Ok / None / 'Status Text'") << "StatusMsg::getState().toString()";
 
-		EXPECT_TRUE( status.hasItemGroup() ) << "StatusMsg::hasItemGroup() == true" ;
+		EXPECT_TRUE(status.hasItemGroup()) << "StatusMsg::hasItemGroup() == true";
 
-		EXPECT_TRUE( status.hasName() ) << "StatusMsg::hasName() == true" ;
-		EXPECT_STREQ( status.getName(), "TRI.N" ) << "StatusMsg::getName()" ;
+		EXPECT_TRUE(status.hasName()) << "StatusMsg::hasName() == true";
+		EXPECT_STREQ(status.getName(), "TRI.N") << "StatusMsg::getName()";
 
-		EXPECT_FALSE( status.hasServiceName() ) << "StatusMsg::hasServiceName() == false" ;
+		EXPECT_FALSE(status.hasServiceName()) << "StatusMsg::hasServiceName() == false";
 
-		EXPECT_TRUE( status.hasNameType() ) << "StatusMsg::hasNameType() == true" ;
-		EXPECT_EQ( status.getNameType(), 1 ) << "StatusMsg::getNameType()" ;
+		EXPECT_TRUE(status.hasNameType()) << "StatusMsg::hasNameType() == true";
+		EXPECT_EQ(status.getNameType(), 1) << "StatusMsg::getNameType()";
 
-		EXPECT_FALSE( status.hasServiceId() ) << "StatusMsg::hasServiceId() == false" ;
+		EXPECT_FALSE(status.hasServiceId()) << "StatusMsg::hasServiceId() == false";
 
-		EXPECT_TRUE( status.hasId() ) << "StatusMsg::hasId() == true" ;
-		EXPECT_EQ( status.getId(), 4 ) << "StatusMsg::getId()" ;
+		EXPECT_TRUE(status.hasId()) << "StatusMsg::hasId() == true";
+		EXPECT_EQ(status.getId(), 4) << "StatusMsg::getId()";
 
-		EXPECT_TRUE( status.hasFilter() ) << "StatusMsg::hasFilter() == true" ;
-		EXPECT_EQ( status.getFilter(), 8 ) << "StatusMsg::getFilter()" ;
+		EXPECT_TRUE(status.hasFilter()) << "StatusMsg::hasFilter() == true";
+		EXPECT_EQ(status.getFilter(), 8) << "StatusMsg::getFilter()";
 
-		EXPECT_TRUE( status.hasExtendedHeader() ) << "StatusMsg::hasExtendedHeader() == true" ;
-		EXPECT_STREQ( status.getExtendedHeader(), extendedHeader ) << "StatusMsg::getExtendedHeader()" ;
+		EXPECT_TRUE(status.hasExtendedHeader()) << "StatusMsg::hasExtendedHeader() == true";
+		EXPECT_STREQ(status.getExtendedHeader(), extendedHeader) << "StatusMsg::getExtendedHeader()";
 
-		EXPECT_EQ( status.getAttrib().getDataType(), DataType::FieldListEnum ) << "StatusMsg::getAttrib().getDataType() == DataType::FieldListEnum" ;
+		EXPECT_EQ(status.getAttrib().getDataType(), DataType::FieldListEnum) << "StatusMsg::getAttrib().getDataType() == DataType::FieldListEnum";
 		//get FieldList (in attrib) from statusMsg
-		const FieldList& flAttrib = static_cast<const FieldList&>( status.getAttrib().getData() );
+		const FieldList& flAttrib = static_cast<const FieldList&>(status.getAttrib().getData());
 		//decode FieldList (from attrib)
 		{
-		  SCOPED_TRACE("calling EmaDecodeFieldListAll");
-		  EmaDecodeFieldListAll( flAttrib );
+			SCOPED_TRACE("calling EmaDecodeFieldListAll");
+			EmaDecodeFieldListAll(flAttrib);
 		}
 
-		EXPECT_TRUE( true ) << "StatusMsg Encode and Decode - exception not expected" ;
+		EXPECT_TRUE(true) << "StatusMsg Encode and Decode - exception not expected";
 	}
-	catch ( const OmmException& )
+	catch (const OmmException&)
 	{
-		EXPECT_FALSE( true ) << "StatusMsg Encode and Decode - exception not expected" ;
+		EXPECT_FALSE(true) << "StatusMsg Encode and Decode - exception not expected";
 	}
 
-	rsslDeleteDataDictionary( &dictionary );
+	rsslDeleteDataDictionary(&dictionary);
 }
 
 //encoding by EMA and decoding by EMA
@@ -642,89 +641,89 @@ TEST(StatusMsgTests, testStatusMsgFieldListEncodeDecode)
 	// load dictionary for decoding of the field list
 	RsslDataDictionary dictionary;
 
-	ASSERT_TRUE(loadDictionaryFromFile( &dictionary )) << "Failed to load dictionary";
+	ASSERT_TRUE(loadDictionaryFromFile(&dictionary)) << "Failed to load dictionary";
 
 	try
 	{
 		StatusMsg status;
 
 		FieldList flEnc;
-		EmaEncodeFieldListAll( flEnc );
+		EmaEncodeFieldListAll(flEnc);
 
-		EmaBuffer itemGroup( "29", 2 );
-		EmaString name( "TRI.N" );
-		EmaString serviceName( "DIRECT_FEED" );
-		EmaBuffer extendedHeader( "extendedHeader", 6 );
+		EmaBuffer itemGroup("29", 2);
+		EmaString name("TRI.N");
+		EmaString serviceName("DIRECT_FEED");
+		EmaBuffer extendedHeader("extendedHeader", 6);
 
-		status.streamId( 3 );
+		status.streamId(3);
 
-		status.domainType( MMT_MARKET_PRICE );
-		status.state( OmmState::OpenEnum, OmmState::OkEnum, OmmState::NoneEnum, "Status Text" );
-		status.itemGroup( itemGroup );
-		status.name( name );
-		status.serviceName( serviceName );
-		status.nameType( 1 );
-		status.id( 4 );
-		status.filter( 8 );
+		status.domainType(MMT_MARKET_PRICE);
+		status.state(OmmState::OpenEnum, OmmState::OkEnum, OmmState::NoneEnum, "Status Text");
+		status.itemGroup(itemGroup);
+		status.name(name);
+		status.serviceName(serviceName);
+		status.nameType(1);
+		status.id(4);
+		status.filter(8);
 
-		status.extendedHeader( extendedHeader );
-		status.attrib( flEnc );
-		status.payload( flEnc );  //there is no payload for status
+		status.extendedHeader(extendedHeader);
+		status.attrib(flEnc);
+		status.payload(flEnc);  //there is no payload for status
 
 
 		//Now do EMA decoding of RespMsg
-		StaticDecoder::setData( &status, &dictionary );
+		StaticDecoder::setData(&status, &dictionary);
 
 
-		EXPECT_TRUE( status.hasMsgKey() ) << "StatusMsg::hasMsgKey() == true" ;
+		EXPECT_TRUE(status.hasMsgKey()) << "StatusMsg::hasMsgKey() == true";
 
-		EXPECT_EQ( status.getStreamId(), 3 ) << "StatusMsg::getStreamId()" ;
+		EXPECT_EQ(status.getStreamId(), 3) << "StatusMsg::getStreamId()";
 
-		EXPECT_EQ( status.getDomainType(), MMT_MARKET_PRICE ) << "StatusMsg::getDomainType()" ;
+		EXPECT_EQ(status.getDomainType(), MMT_MARKET_PRICE) << "StatusMsg::getDomainType()";
 
-		EXPECT_EQ( status.getState().getStreamState(), OmmState::OpenEnum ) << "StatusMsg::getState().getStreamState()" ;
-		EXPECT_EQ( status.getState().getDataState(), OmmState::OkEnum ) << "StatusMsg::getState().getDataState()" ;
-		EXPECT_EQ( status.getState().getStatusCode(), OmmState::NoneEnum ) << "StatusMsg::getState().getStatusCode()" ;
-		EXPECT_STREQ( status.getState().toString(), "Open / Ok / None / 'Status Text'" ) << "StatusMsg::getState().toString()" ;
+		EXPECT_EQ(status.getState().getStreamState(), OmmState::OpenEnum) << "StatusMsg::getState().getStreamState()";
+		EXPECT_EQ(status.getState().getDataState(), OmmState::OkEnum) << "StatusMsg::getState().getDataState()";
+		EXPECT_EQ(status.getState().getStatusCode(), OmmState::NoneEnum) << "StatusMsg::getState().getStatusCode()";
+		EXPECT_STREQ(status.getState().toString(), "Open / Ok / None / 'Status Text'") << "StatusMsg::getState().toString()";
 
-		EXPECT_TRUE( status.hasItemGroup() ) << "StatusMsg::hasItemGroup() == true" ;
+		EXPECT_TRUE(status.hasItemGroup()) << "StatusMsg::hasItemGroup() == true";
 
-		EXPECT_TRUE( status.hasName() ) << "StatusMsg::hasName() == true" ;
-		EXPECT_STREQ( status.getName(), "TRI.N" ) << "StatusMsg::getName()" ;
+		EXPECT_TRUE(status.hasName()) << "StatusMsg::hasName() == true";
+		EXPECT_STREQ(status.getName(), "TRI.N") << "StatusMsg::getName()";
 
-		EXPECT_FALSE( status.hasServiceName() ) << "StatusMsg::hasServiceName() == false" ;
+		EXPECT_FALSE(status.hasServiceName()) << "StatusMsg::hasServiceName() == false";
 
-		EXPECT_TRUE( status.hasNameType() ) << "StatusMsg::hasNameType() == true" ;
-		EXPECT_EQ( status.getNameType(), 1 ) << "StatusMsg::getNameType()" ;
+		EXPECT_TRUE(status.hasNameType()) << "StatusMsg::hasNameType() == true";
+		EXPECT_EQ(status.getNameType(), 1) << "StatusMsg::getNameType()";
 
-		EXPECT_FALSE( status.hasServiceId() ) << "StatusMsg::hasServiceId() == false" ;
+		EXPECT_FALSE(status.hasServiceId()) << "StatusMsg::hasServiceId() == false";
 
-		EXPECT_TRUE( status.hasId() ) << "StatusMsg::hasId() == true" ;
-		EXPECT_EQ( status.getId(), 4 ) << "StatusMsg::getId()" ;
+		EXPECT_TRUE(status.hasId()) << "StatusMsg::hasId() == true";
+		EXPECT_EQ(status.getId(), 4) << "StatusMsg::getId()";
 
-		EXPECT_TRUE( status.hasFilter() ) << "StatusMsg::hasFilter() == true" ;
-		EXPECT_EQ( status.getFilter(), 8 ) << "StatusMsg::getFilter()" ;
+		EXPECT_TRUE(status.hasFilter()) << "StatusMsg::hasFilter() == true";
+		EXPECT_EQ(status.getFilter(), 8) << "StatusMsg::getFilter()";
 
-		EXPECT_TRUE( status.hasExtendedHeader() ) << "StatusMsg::hasExtendedHeader() == true" ;
-		EXPECT_STREQ( status.getExtendedHeader(), extendedHeader ) << "StatusMsg::getExtendedHeader()" ;
+		EXPECT_TRUE(status.hasExtendedHeader()) << "StatusMsg::hasExtendedHeader() == true";
+		EXPECT_STREQ(status.getExtendedHeader(), extendedHeader) << "StatusMsg::getExtendedHeader()";
 
-		EXPECT_EQ( status.getAttrib().getDataType(), DataType::FieldListEnum ) << "StatusMsg::getAttrib().getDataType() == DataType::FieldListEnum" ;
+		EXPECT_EQ(status.getAttrib().getDataType(), DataType::FieldListEnum) << "StatusMsg::getAttrib().getDataType() == DataType::FieldListEnum";
 		//get FieldList (in attrib) from statusMsg
 		const FieldList& flAttrib = status.getAttrib().getFieldList();
 		//decode FieldList (from attrib)
 		{
-		  SCOPED_TRACE("calling EmaDecodeFieldListAll");
-		  EmaDecodeFieldListAll( flAttrib );
+			SCOPED_TRACE("calling EmaDecodeFieldListAll");
+			EmaDecodeFieldListAll(flAttrib);
 		}
 
-		EXPECT_TRUE( true ) << "StatusMsg FieldList Encode and Decode - exception not expected" ;
+		EXPECT_TRUE(true) << "StatusMsg FieldList Encode and Decode - exception not expected";
 	}
-	catch ( const OmmException& )
+	catch (const OmmException&)
 	{
-		EXPECT_FALSE( true ) << "StatusMsg FieldList Encode and Decode - exception not expected" ;
+		EXPECT_FALSE(true) << "StatusMsg FieldList Encode and Decode - exception not expected";
 	}
 
-	rsslDeleteDataDictionary( &dictionary );
+	rsslDeleteDataDictionary(&dictionary);
 }
 
 TEST(StatusMsgTests, testStatusMsgElementListEncodeDecode)
@@ -735,79 +734,79 @@ TEST(StatusMsgTests, testStatusMsgElementListEncodeDecode)
 		StatusMsg status;
 
 		ElementList elEnc;
-		EmaEncodeElementListAll( elEnc );
+		EmaEncodeElementListAll(elEnc);
 
-		EmaBuffer itemGroup( "29", 2 );
-		EmaString name( "TRI.N" );
-		EmaString serviceName( "DIRECT_FEED" );
-		EmaBuffer extendedHeader( "extendedHeader", 6 );
+		EmaBuffer itemGroup("29", 2);
+		EmaString name("TRI.N");
+		EmaString serviceName("DIRECT_FEED");
+		EmaBuffer extendedHeader("extendedHeader", 6);
 
-		status.streamId( 3 );
+		status.streamId(3);
 
-		status.domainType( MMT_MARKET_PRICE );
-		status.state( OmmState::OpenEnum, OmmState::OkEnum, OmmState::NoneEnum, "Status Text" );
-		status.itemGroup( itemGroup );
-		status.name( name );
-		status.serviceName( serviceName );
-		status.nameType( 1 );
-		status.id( 4 );
-		status.filter( 8 );
+		status.domainType(MMT_MARKET_PRICE);
+		status.state(OmmState::OpenEnum, OmmState::OkEnum, OmmState::NoneEnum, "Status Text");
+		status.itemGroup(itemGroup);
+		status.name(name);
+		status.serviceName(serviceName);
+		status.nameType(1);
+		status.id(4);
+		status.filter(8);
 
-		status.extendedHeader( extendedHeader );
-		status.attrib( elEnc );
-		status.payload( elEnc );
+		status.extendedHeader(extendedHeader);
+		status.attrib(elEnc);
+		status.payload(elEnc);
 
-		StaticDecoder::setData( &status, 0 );
+		StaticDecoder::setData(&status, 0);
 
 
-		EXPECT_TRUE( status.hasMsgKey() ) << "StatusMsg::hasMsgKey() == true" ;
+		EXPECT_TRUE(status.hasMsgKey()) << "StatusMsg::hasMsgKey() == true";
 
-		EXPECT_EQ( status.getStreamId(), 3 ) << "StatusMsg::getStreamId()" ;
+		EXPECT_EQ(status.getStreamId(), 3) << "StatusMsg::getStreamId()";
 
-		EXPECT_EQ( status.getDomainType(), MMT_MARKET_PRICE ) << "StatusMsg::getDomainType()" ;
+		EXPECT_EQ(status.getDomainType(), MMT_MARKET_PRICE) << "StatusMsg::getDomainType()";
 
-		EXPECT_EQ( status.getState().getStreamState(), OmmState::OpenEnum ) << "StatusMsg::getState().getStreamState()" ;
-		EXPECT_EQ( status.getState().getDataState(), OmmState::OkEnum ) << "StatusMsg::getState().getDataState()" ;
-		EXPECT_EQ( status.getState().getStatusCode(), OmmState::NoneEnum ) << "StatusMsg::getState().getStatusCode()" ;
-		EXPECT_STREQ( status.getState().toString(), "Open / Ok / None / 'Status Text'" ) << "StatusMsg::getState().toString()" ;
+		EXPECT_EQ(status.getState().getStreamState(), OmmState::OpenEnum) << "StatusMsg::getState().getStreamState()";
+		EXPECT_EQ(status.getState().getDataState(), OmmState::OkEnum) << "StatusMsg::getState().getDataState()";
+		EXPECT_EQ(status.getState().getStatusCode(), OmmState::NoneEnum) << "StatusMsg::getState().getStatusCode()";
+		EXPECT_STREQ(status.getState().toString(), "Open / Ok / None / 'Status Text'") << "StatusMsg::getState().toString()";
 
-		EXPECT_TRUE( status.hasItemGroup() ) << "StatusMsg::hasItemGroup() == true" ;
+		EXPECT_TRUE(status.hasItemGroup()) << "StatusMsg::hasItemGroup() == true";
 
-		EXPECT_TRUE( status.hasName() ) << "StatusMsg::hasName() == true" ;
-		EXPECT_STREQ( status.getName(), "TRI.N" ) << "StatusMsg::getName()" ;
+		EXPECT_TRUE(status.hasName()) << "StatusMsg::hasName() == true";
+		EXPECT_STREQ(status.getName(), "TRI.N") << "StatusMsg::getName()";
 
-		EXPECT_FALSE( status.hasServiceName() ) << "StatusMsg::hasServiceName() == false" ;
+		EXPECT_FALSE(status.hasServiceName()) << "StatusMsg::hasServiceName() == false";
 
-		EXPECT_TRUE( status.hasNameType() ) << "StatusMsg::hasNameType() == true" ;
-		EXPECT_EQ( status.getNameType(), 1 ) << "StatusMsg::getNameType()" ;
+		EXPECT_TRUE(status.hasNameType()) << "StatusMsg::hasNameType() == true";
+		EXPECT_EQ(status.getNameType(), 1) << "StatusMsg::getNameType()";
 
-		EXPECT_FALSE( status.hasServiceId() ) << "StatusMsg::hasServiceId() == false" ;
+		EXPECT_FALSE(status.hasServiceId()) << "StatusMsg::hasServiceId() == false";
 
-		EXPECT_TRUE( status.hasId() ) << "StatusMsg::hasId() == true" ;
-		EXPECT_EQ( status.getId(), 4 ) << "StatusMsg::getId()" ;
+		EXPECT_TRUE(status.hasId()) << "StatusMsg::hasId() == true";
+		EXPECT_EQ(status.getId(), 4) << "StatusMsg::getId()";
 
-		EXPECT_TRUE( status.hasFilter() ) << "StatusMsg::hasFilter() == true" ;
-		EXPECT_EQ( status.getFilter(), 8 ) << "StatusMsg::getFilter()" ;
+		EXPECT_TRUE(status.hasFilter()) << "StatusMsg::hasFilter() == true";
+		EXPECT_EQ(status.getFilter(), 8) << "StatusMsg::getFilter()";
 
-		EXPECT_TRUE( status.hasExtendedHeader() ) << "StatusMsg::hasExtendedHeader() == true" ;
-		EXPECT_STREQ( status.getExtendedHeader(), extendedHeader ) << "StatusMsg::getExtendedHeader()" ;
+		EXPECT_TRUE(status.hasExtendedHeader()) << "StatusMsg::hasExtendedHeader() == true";
+		EXPECT_STREQ(status.getExtendedHeader(), extendedHeader) << "StatusMsg::getExtendedHeader()";
 
-		EXPECT_EQ( status.getAttrib().getDataType(), DataType::ElementListEnum ) << "StatusMsg::getAttrib().getDataType() == DataType::ElementListEnum" ;
+		EXPECT_EQ(status.getAttrib().getDataType(), DataType::ElementListEnum) << "StatusMsg::getAttrib().getDataType() == DataType::ElementListEnum";
 
 		const ElementList& flAttrib = status.getAttrib().getElementList();
 
 
 		{
-		  SCOPED_TRACE("calling EmaDecodeElementListAll");
-		  EmaDecodeElementListAll( flAttrib );
+			SCOPED_TRACE("calling EmaDecodeElementListAll");
+			EmaDecodeElementListAll(flAttrib);
 		}
 
 
-		EXPECT_TRUE( true ) << "StatusMsg ElementList Encode and Decode - exception not expected" ;
+		EXPECT_TRUE(true) << "StatusMsg ElementList Encode and Decode - exception not expected";
 	}
-	catch ( const OmmException& )
+	catch (const OmmException&)
 	{
-		EXPECT_FALSE( true ) << "StatusMsg ElementList Encode and Decode - exception not expected" ;
+		EXPECT_FALSE(true) << "StatusMsg ElementList Encode and Decode - exception not expected";
 	}
 }
 
@@ -817,251 +816,94 @@ TEST(StatusMsgTests, testStatusMsgMapEncodeDecode)
 	// load dictionary for decoding of the field list
 	RsslDataDictionary dictionary;
 
-	ASSERT_TRUE(loadDictionaryFromFile( &dictionary )) << "Failed to load dictionary";
+	ASSERT_TRUE(loadDictionaryFromFile(&dictionary)) << "Failed to load dictionary";
 
 	try
 	{
 		StatusMsg status;
 
 		Map mapEnc;
-		EmaEncodeMapAll( mapEnc );
+		EmaEncodeMapAll(mapEnc);
 
-		EmaBuffer itemGroup( "29", 2 );
-		EmaString name( "TRI.N" );
-		EmaString serviceName( "DIRECT_FEED" );
-		EmaBuffer extendedHeader( "extendedHeader", 6 );
+		EmaBuffer itemGroup("29", 2);
+		EmaString name("TRI.N");
+		EmaString serviceName("DIRECT_FEED");
+		EmaBuffer extendedHeader("extendedHeader", 6);
 
-		status.streamId( 3 );
+		status.streamId(3);
 
-		status.domainType( MMT_MARKET_PRICE );
-		status.state( OmmState::OpenEnum, OmmState::OkEnum, OmmState::NoneEnum, "Status Text" );
-		status.itemGroup( itemGroup );
-		status.name( name );
-//serviceName is only kept on the encoded RsslMsg
-		status.serviceName( serviceName );
-		status.nameType( 1 );
-		status.id( 4 );
-		status.filter( 8 );
+		status.domainType(MMT_MARKET_PRICE);
+		status.state(OmmState::OpenEnum, OmmState::OkEnum, OmmState::NoneEnum, "Status Text");
+		status.itemGroup(itemGroup);
+		status.name(name);
+		//serviceName is only kept on the encoded RsslMsg
+		status.serviceName(serviceName);
+		status.nameType(1);
+		status.id(4);
+		status.filter(8);
 
-		status.extendedHeader( extendedHeader );
-		status.attrib( mapEnc );
-		status.payload( mapEnc );  //there is no payload for status
+		status.extendedHeader(extendedHeader);
+		status.attrib(mapEnc);
+		status.payload(mapEnc);  //there is no payload for status
 
 
 		//Now do EMA decoding of RespMsg
-		StaticDecoder::setData( &status, &dictionary );
+		StaticDecoder::setData(&status, &dictionary);
 
 
-		EXPECT_TRUE( status.hasMsgKey() ) << "StatusMsg::hasMsgKey() == true" ;
+		EXPECT_TRUE(status.hasMsgKey()) << "StatusMsg::hasMsgKey() == true";
 
-		EXPECT_EQ( status.getStreamId(), 3 ) << "StatusMsg::getStreamId()" ;
+		EXPECT_EQ(status.getStreamId(), 3) << "StatusMsg::getStreamId()";
 
-		EXPECT_EQ( status.getDomainType(), MMT_MARKET_PRICE ) << "StatusMsg::getDomainType()" ;
+		EXPECT_EQ(status.getDomainType(), MMT_MARKET_PRICE) << "StatusMsg::getDomainType()";
 
-		EXPECT_EQ( status.getState().getStreamState(), OmmState::OpenEnum ) << "StatusMsg::getState().getStreamState()" ;
-		EXPECT_EQ( status.getState().getDataState(), OmmState::OkEnum ) << "StatusMsg::getState().getDataState()" ;
-		EXPECT_EQ( status.getState().getStatusCode(), OmmState::NoneEnum ) << "StatusMsg::getState().getStatusCode()" ;
-		EXPECT_STREQ( status.getState().toString(), "Open / Ok / None / 'Status Text'" ) << "StatusMsg::getState().toString()" ;
+		EXPECT_EQ(status.getState().getStreamState(), OmmState::OpenEnum) << "StatusMsg::getState().getStreamState()";
+		EXPECT_EQ(status.getState().getDataState(), OmmState::OkEnum) << "StatusMsg::getState().getDataState()";
+		EXPECT_EQ(status.getState().getStatusCode(), OmmState::NoneEnum) << "StatusMsg::getState().getStatusCode()";
+		EXPECT_STREQ(status.getState().toString(), "Open / Ok / None / 'Status Text'") << "StatusMsg::getState().toString()";
 
-		EXPECT_TRUE( status.hasItemGroup() ) << "StatusMsg::hasItemGroup() == true" ;
+		EXPECT_TRUE(status.hasItemGroup()) << "StatusMsg::hasItemGroup() == true";
 
-		EXPECT_TRUE( status.hasName() ) << "StatusMsg::hasName() == true" ;
-		EXPECT_STREQ( status.getName(), "TRI.N" ) << "StatusMsg::getName()" ;
+		EXPECT_TRUE(status.hasName()) << "StatusMsg::hasName() == true";
+		EXPECT_STREQ(status.getName(), "TRI.N") << "StatusMsg::getName()";
 
-		EXPECT_FALSE( status.hasServiceName() ) << "StatusMsg::hasServiceName() == false" ;
+		EXPECT_FALSE(status.hasServiceName()) << "StatusMsg::hasServiceName() == false";
 
-		EXPECT_TRUE( status.hasNameType() ) << "StatusMsg::hasNameType() == true" ;
-		EXPECT_EQ( status.getNameType(), 1 ) << "StatusMsg::getNameType()" ;
+		EXPECT_TRUE(status.hasNameType()) << "StatusMsg::hasNameType() == true";
+		EXPECT_EQ(status.getNameType(), 1) << "StatusMsg::getNameType()";
 
-		EXPECT_FALSE( status.hasServiceId() ) << "StatusMsg::hasServiceId() == false" ;
+		EXPECT_FALSE(status.hasServiceId()) << "StatusMsg::hasServiceId() == false";
 
-		EXPECT_TRUE( status.hasId() ) << "StatusMsg::hasId() == true" ;
-		EXPECT_EQ( status.getId(), 4 ) << "StatusMsg::getId()" ;
+		EXPECT_TRUE(status.hasId()) << "StatusMsg::hasId() == true";
+		EXPECT_EQ(status.getId(), 4) << "StatusMsg::getId()";
 
-		EXPECT_TRUE( status.hasFilter() ) << "StatusMsg::hasFilter() == true" ;
-		EXPECT_EQ( status.getFilter(), 8 ) << "StatusMsg::getFilter()" ;
+		EXPECT_TRUE(status.hasFilter()) << "StatusMsg::hasFilter() == true";
+		EXPECT_EQ(status.getFilter(), 8) << "StatusMsg::getFilter()";
 
-		EXPECT_TRUE( status.hasExtendedHeader() ) << "StatusMsg::hasExtendedHeader() == true" ;
-		EXPECT_STREQ( status.getExtendedHeader(), extendedHeader ) << "StatusMsg::getExtendedHeader()" ;
+		EXPECT_TRUE(status.hasExtendedHeader()) << "StatusMsg::hasExtendedHeader() == true";
+		EXPECT_STREQ(status.getExtendedHeader(), extendedHeader) << "StatusMsg::getExtendedHeader()";
 
-		EXPECT_EQ( status.getAttrib().getDataType(), DataType::MapEnum ) << "StatusMsg::getAttrib().getDataType() == DataType::MapEnum" ;
+		EXPECT_EQ(status.getAttrib().getDataType(), DataType::MapEnum) << "StatusMsg::getAttrib().getDataType() == DataType::MapEnum";
 		//get Map (in attrib) from statusMsg
 		const Map& mapAttrib = status.getAttrib().getMap();
 		//decode Map (from attrib)
 		{
-		  SCOPED_TRACE("calling EmaDecodeMapAll");
-		  EmaDecodeMapAll( mapAttrib );
+			SCOPED_TRACE("calling EmaDecodeMapAll");
+			EmaDecodeMapAll(mapAttrib);
 		}
 
-		EXPECT_TRUE( true ) << "StatusMsg Map Encode and Decode - exception not expected" ;
+		EXPECT_TRUE(true) << "StatusMsg Map Encode and Decode - exception not expected";
 	}
-	catch ( const OmmException& )
+	catch (const OmmException&)
 	{
-		EXPECT_FALSE( true ) << "StatusMsg Map Encode and Decode - exception not expected" ;
+		EXPECT_FALSE(true) << "StatusMsg Map Encode and Decode - exception not expected";
 	}
 
-	rsslDeleteDataDictionary( &dictionary );
+	rsslDeleteDataDictionary(&dictionary);
 }
 
 
 TEST(StatusMsgTests, testStatusMsgtoString)
-{
-
-	// load dictionary for decoding of the field list
-	RsslDataDictionary dictionary;
-
-	ASSERT_TRUE(loadDictionaryFromFile( &dictionary )) << "Failed to load dictionary";
-
-	try
-	{
-		RsslStatusMsg status;
-
-		rsslClearStatusMsg( &status );
-
-		RsslMsgKey msgKey;
-
-		rsslClearMsgKey( &msgKey );
-
-		RsslBuffer nameBuffer;
-		nameBuffer.data = const_cast<char*>( "TRI.N" );
-		nameBuffer.length = 5;
-
-		msgKey.name = nameBuffer;
-		rsslMsgKeyApplyHasName( &msgKey );
-
-		msgKey.nameType = 1;
-		rsslMsgKeyApplyHasNameType( &msgKey );
-
-		msgKey.serviceId = 2;
-		rsslMsgKeyApplyHasServiceId( &msgKey );
-
-		msgKey.identifier = 4;
-		rsslMsgKeyApplyHasIdentifier( &msgKey );
-
-		msgKey.filter = 8;
-		rsslMsgKeyApplyHasFilter( &msgKey );
-
-		RsslBuffer rsslBuf;
-		rsslBuf.length = 1000;
-		rsslBuf.data = ( char* )malloc( sizeof( char ) * 1000 );
-
-		EmaString inText;
-		encodeFieldList( rsslBuf, inText );
-
-		msgKey.attribContainerType = RSSL_DT_FIELD_LIST;
-		msgKey.encAttrib = rsslBuf;
-		rsslMsgKeyApplyHasAttrib( &msgKey );
-
-		status.msgBase.msgKey = msgKey;
-		rsslStatusMsgApplyHasMsgKey( &status );
-
-		status.msgBase.encDataBody = rsslBuf;
-		status.msgBase.containerType = RSSL_DT_FIELD_LIST;
-
-		RsslState rsslState;
-
-		rsslState.code = RSSL_SC_INVALID_ARGUMENT;
-		rsslState.dataState = RSSL_DATA_NO_CHANGE;
-		rsslState.streamState = RSSL_STREAM_CLOSED_RECOVER;
-
-		RsslBuffer statusText;
-		statusText.data = const_cast<char*>( "Status Text" );
-		statusText.length = 11;
-
-
-		StatusMsg respMsg;
-
-		StaticDecoder::setRsslData( &respMsg, ( RsslMsg* )&status, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary );
-
-
-		EXPECT_TRUE( true ) << "StatusMsg toString Decode - exception not expected" ;
-
-		rsslBuf.length = 0;
-		free(rsslBuf.data);
-
-	}
-	catch ( const OmmException& )
-	{
-		EXPECT_FALSE( true ) << "StatusMsg toString Decode - exception not expected" ;
-	}
-
-	rsslDeleteDataDictionary( &dictionary );
-}
-
-TEST(StatusMsgTests, testStatusMsgError)
-{
-
-	{
-		try
-		{
-			StatusMsg msg;
-
-			ElementList attrib;
-
-			msg.attrib( attrib );
-
-			EXPECT_FALSE( true ) << "StatusMsg::attrib( Elementlist ) where ElementList is empty - exception expected" ;
-		}
-		catch ( const OmmException& )
-		{
-			EXPECT_TRUE( true ) << "StatusMsg::attrib( Elementlist ) where ElementList is empty - exception expected" ;
-		}
-	}
-
-	{
-		try
-		{
-			StatusMsg msg;
-
-			RefreshMsg attrib;
-
-			msg.attrib( attrib );
-
-			EXPECT_FALSE( true ) << "StatusMsg::attrib( RefreshMsg ) where RefreshMsg is empty - exception expected" ;
-		}
-		catch ( const OmmException& )
-		{
-			EXPECT_TRUE( true ) << "StatusMsg::attrib( RefreshMsg ) where RefreshMsg is empty - exception expected" ;
-		}
-	}
-
-	{
-		try
-		{
-			StatusMsg msg;
-
-			ElementList load;
-
-			msg.payload( load );
-
-			EXPECT_FALSE( true ) << "StatusMsg::payload( Elementlist ) where ElementList is empty - exception expected" ;
-		}
-		catch ( const OmmException& )
-		{
-			EXPECT_TRUE( true ) << "StatusMsg::payload( Elementlist ) where ElementList is empty - exception expected" ;
-		}
-	}
-
-	{
-		try
-		{
-			StatusMsg msg;
-
-			RefreshMsg load;
-
-			msg.payload( load );
-
-			EXPECT_FALSE( true ) << "StatusMsg::payload( RefreshMsg ) where RefreshMsg is empty - exception expected" ;
-		}
-		catch ( const OmmException& )
-		{
-			EXPECT_TRUE( true ) << "StatusMsg::payload( RefreshMsg ) where RefreshMsg is empty - exception expected" ;
-		}
-	}
-
-}
-
-TEST(StatusMsgTests, testStatusMsgClone)
 {
 
 	// load dictionary for decoding of the field list
@@ -1098,9 +940,10 @@ TEST(StatusMsgTests, testStatusMsgClone)
 		msgKey.filter = 8;
 		rsslMsgKeyApplyHasFilter(&msgKey);
 
+		std::array<char, 1000> rsslBufData;
 		RsslBuffer rsslBuf;
-		rsslBuf.length = 1000;
-		rsslBuf.data = (char*)malloc(sizeof(char) * 1000);
+		rsslBuf.length = (UInt32)rsslBufData.size();
+		rsslBuf.data = (char*)rsslBufData.data();
 
 		EmaString inText;
 		encodeFieldList(rsslBuf, inText);
@@ -1115,85 +958,97 @@ TEST(StatusMsgTests, testStatusMsgClone)
 		status.msgBase.encDataBody = rsslBuf;
 		status.msgBase.containerType = RSSL_DT_FIELD_LIST;
 
-		RsslState rsslState;
+		status.state.code = RSSL_SC_INVALID_ARGUMENT;
+		status.state.dataState = RSSL_DATA_NO_CHANGE;
+		status.state.streamState = RSSL_STREAM_CLOSED_RECOVER;
+		status.state.text.data = const_cast<char*>("Status Text");
+		status.state.text.length = 11;
 
-		rsslState.code = RSSL_SC_INVALID_ARGUMENT;
-		rsslState.dataState = RSSL_DATA_NO_CHANGE;
-		rsslState.streamState = RSSL_STREAM_CLOSED_RECOVER;
-
-		RsslBuffer statusText;
-		statusText.data = const_cast<char*>("Status Text");
-		statusText.length = 11;
-
-		RsslEncodeIterator encIter;
-
-		rsslClearEncodeIterator(&encIter);
-
-		/* set version information of the connection on the encode iterator so proper versioning can be performed */
-		rsslSetEncodeIteratorRWFVersion(&encIter, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION);
-		int retval = 0;
-
-		RsslBuffer msgBuf;
-		msgBuf.length = 2048;
-		msgBuf.data = (char*)malloc(sizeof(char) * 2048);
-
-		/* set the buffer on an RsslEncodeIterator */
-		if ((retval = rsslSetEncodeIteratorBuffer(&encIter, &msgBuf)) < RSSL_RET_SUCCESS)
-		{
-			//rsslReleaseBuffer(msgBuf, &error);
-			EXPECT_FALSE(true) << "rsslSetEncodeIteratorBuffer() failed with return code: " << retval << endl;
-		}
-
-		retval = rsslEncodeMsg(&encIter, (RsslMsg*)&status);
-
-		RsslMsg statusDecode;
-		RsslDecodeIterator decodeIter;
-
-		rsslClearDecodeIterator(&decodeIter);
-
-		// Set the RWF version to decode with this iterator 
-		rsslSetDecodeIteratorRWFVersion(&decodeIter, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION);
-
-		// Associates the RsslDecodeIterator with the RsslBuffer from which to decode.
-		if ((retval = rsslSetDecodeIteratorBuffer(&decodeIter, &msgBuf)) != RSSL_RET_SUCCESS)
-		{
-			EXPECT_FALSE(true) << "rsslSetDecodeIteratorBuffer() failed with return code: " << retval << endl;
-		}
-
-		// decode contents into the RsslMsg structure
-		retval = rsslDecodeMsg(&decodeIter, (RsslMsg*)&statusDecode);
-		if (retval != RSSL_RET_SUCCESS)
-		{
-			EXPECT_FALSE(true) << "rsslDecodeMsg() failed with return code: " << retval << endl;
-		}
 
 		StatusMsg respMsg;
 
-		StaticDecoder::setRsslData(&respMsg, (RsslMsg*)&statusDecode, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary);
+		StaticDecoder::setRsslData(&respMsg, (RsslMsg*)&status, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary);
 
-		// Clone message
-		StatusMsg cloneStatusMsg(respMsg);
-
-		EXPECT_TRUE(cloneStatusMsg.getDomainType() == respMsg.getDomainType()) << "Compare domainType";
-		EXPECT_TRUE(cloneStatusMsg.getStreamId() == respMsg.getStreamId()) << "Compare streamId";
-		EXPECT_TRUE(cloneStatusMsg.hasMsgKey() == respMsg.hasMsgKey()) << "Compare hasMsgKey";
-
-		EXPECT_STREQ(respMsg.toString(), cloneStatusMsg.toString()) << "Check equal toString()";
-
-		EXPECT_TRUE(true) << "StatusMsg Clone Success";
-
-		rsslBuf.length = 0;
-		free(rsslBuf.data);
-
-		msgBuf.length = 0;
-		free(msgBuf.data);
+		EXPECT_TRUE(true) << "StatusMsg toString Decode - exception not expected";
 	}
 	catch (const OmmException&)
 	{
-		EXPECT_FALSE(true) << "StatusMsg Clone - exception not expected";
+		EXPECT_FALSE(true) << "StatusMsg toString Decode - exception not expected";
 	}
 
 	rsslDeleteDataDictionary(&dictionary);
+}
+
+TEST(StatusMsgTests, testStatusMsgError)
+{
+	{
+		try
+		{
+			StatusMsg msg;
+
+			ElementList attrib;
+
+			msg.attrib(attrib);
+
+			EXPECT_FALSE(true) << "StatusMsg::attrib( Elementlist ) where ElementList is empty - exception expected";
+		}
+		catch (const OmmException&)
+		{
+			EXPECT_TRUE(true) << "StatusMsg::attrib( Elementlist ) where ElementList is empty - exception expected";
+		}
+	}
+
+	{
+		try
+		{
+			StatusMsg msg;
+
+			RefreshMsg attrib;
+
+			msg.attrib(attrib);
+
+			EXPECT_TRUE(true) << "StatusMsg::attrib( RefreshMsg ) where RefreshMsg is empty - exception not expected";
+		}
+		catch (const OmmException&)
+		{
+			EXPECT_FALSE(true) << "StatusMsg::attrib( RefreshMsg ) where RefreshMsg is empty - exception not expected";
+		}
+	}
+
+	{
+		try
+		{
+			StatusMsg msg;
+
+			ElementList load;
+
+			msg.payload(load);
+
+			EXPECT_FALSE(true) << "StatusMsg::payload( Elementlist ) where ElementList is empty - exception expected";
+		}
+		catch (const OmmException&)
+		{
+			EXPECT_TRUE(true) << "StatusMsg::payload( Elementlist ) where ElementList is empty - exception expected";
+		}
+	}
+
+	{
+		try
+		{
+			StatusMsg msg;
+
+			RefreshMsg load;
+
+			msg.payload(load);
+
+			EXPECT_TRUE(true) << "StatusMsg::payload( RefreshMsg ) where RefreshMsg is empty - exception not expected";
+		}
+		catch (const OmmException&)
+		{
+			EXPECT_FALSE(true) << "StatusMsg::payload( RefreshMsg ) where RefreshMsg is empty - exception not expected";
+		}
+	}
+
 }
 
 TEST(StatusMsgTests, testStatusMsgEditClone)
@@ -1233,9 +1088,10 @@ TEST(StatusMsgTests, testStatusMsgEditClone)
 		msgKey.filter = 8;
 		rsslMsgKeyApplyHasFilter(&msgKey);
 
+		std::array<char, 1000> rsslBufData;
 		RsslBuffer rsslBuf;
-		rsslBuf.length = 1000;
-		rsslBuf.data = (char*)malloc(sizeof(char) * 1000);
+		rsslBuf.length = (UInt32)rsslBufData.size();
+		rsslBuf.data = (char*)rsslBufData.data();
 
 		EmaString inText;
 		encodeFieldList(rsslBuf, inText);
@@ -1250,15 +1106,11 @@ TEST(StatusMsgTests, testStatusMsgEditClone)
 		status.msgBase.encDataBody = rsslBuf;
 		status.msgBase.containerType = RSSL_DT_FIELD_LIST;
 
-		RsslState rsslState;
-
-		rsslState.code = RSSL_SC_INVALID_ARGUMENT;
-		rsslState.dataState = RSSL_DATA_NO_CHANGE;
-		rsslState.streamState = RSSL_STREAM_CLOSED_RECOVER;
-
-		RsslBuffer statusText;
-		statusText.data = const_cast<char*>("Status Text");
-		statusText.length = 11;
+		status.state.code = RSSL_SC_INVALID_ARGUMENT;
+		status.state.dataState = RSSL_DATA_NO_CHANGE;
+		status.state.streamState = RSSL_STREAM_CLOSED_RECOVER;
+		status.state.text.data = const_cast<char*>("Status Text");
+		status.state.text.length = 11;
 
 		RsslEncodeIterator encIter;
 
@@ -1268,15 +1120,16 @@ TEST(StatusMsgTests, testStatusMsgEditClone)
 		rsslSetEncodeIteratorRWFVersion(&encIter, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION);
 		int retval = 0;
 
+		std::array<char, 2048> msgBufData;
 		RsslBuffer msgBuf;
-		msgBuf.length = 2048;
-		msgBuf.data = (char*)malloc(sizeof(char) * 2048);
+		msgBuf.length = (UInt32)msgBufData.size();
+		msgBuf.data = (char*)msgBufData.data();
 
 		/* set the buffer on an RsslEncodeIterator */
 		if ((retval = rsslSetEncodeIteratorBuffer(&encIter, &msgBuf)) < RSSL_RET_SUCCESS)
 		{
 			//rsslReleaseBuffer(msgBuf, &error);
-			EXPECT_FALSE(true) << "rsslSetEncodeIteratorBuffer() failed with return code: " << retval << endl;
+			EXPECT_FALSE(true) << "rsslSetEncodeIteratorBuffer() failed with return code: " << retval << std::endl;
 		}
 
 		retval = rsslEncodeMsg(&encIter, (RsslMsg*)&status);
@@ -1286,20 +1139,20 @@ TEST(StatusMsgTests, testStatusMsgEditClone)
 
 		rsslClearDecodeIterator(&decodeIter);
 
-		// Set the RWF version to decode with this iterator 
+		// Set the RWF version to decode with this iterator
 		rsslSetDecodeIteratorRWFVersion(&decodeIter, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION);
 
 		// Associates the RsslDecodeIterator with the RsslBuffer from which to decode.
 		if ((retval = rsslSetDecodeIteratorBuffer(&decodeIter, &msgBuf)) != RSSL_RET_SUCCESS)
 		{
-			EXPECT_FALSE(true) << "rsslSetDecodeIteratorBuffer() failed with return code: " << retval << endl;
+			EXPECT_FALSE(true) << "rsslSetDecodeIteratorBuffer() failed with return code: " << retval << std::endl;
 		}
 
 		// decode contents into the RsslMsg structure
 		retval = rsslDecodeMsg(&decodeIter, (RsslMsg*)&statusDecode);
 		if (retval != RSSL_RET_SUCCESS)
 		{
-			EXPECT_FALSE(true) << "rsslDecodeMsg() failed with return code: " << retval << endl;
+			EXPECT_FALSE(true) << "rsslDecodeMsg() failed with return code: " << retval << std::endl;
 		}
 
 		StatusMsg respMsg;
@@ -1323,13 +1176,6 @@ TEST(StatusMsgTests, testStatusMsgEditClone)
 		EXPECT_FALSE(cloneStatusMsg.getStreamId() == respMsg.getStreamId()) << "Compare streamId";
 		EXPECT_STRNE(respMsg.toString(), cloneStatusMsg.toString()) << "Check not equal toString()";
 		EXPECT_TRUE(true) << "StatusMsg Edit Clone Success";
-
-		rsslBuf.length = 0;
-		free(rsslBuf.data);
-
-		msgBuf.length = 0;
-		free(msgBuf.data);
-
 	}
 	catch (const OmmException&)
 	{
@@ -1346,7 +1192,7 @@ TEST(StatusMsgTests, testStatusMsgCloneMsgKeyPermissionData)
 	RsslDataDictionary dictionary;
 
 	char groupId[] = "3";
-	const RsslUInt32 groupIdLen = sizeof(groupId) / sizeof(char);
+	const RsslUInt32 groupIdLen = (UInt32)(sizeof(groupId) / sizeof(char));
 
 	char permissionData[] = "permission access to important data";
 	const RsslUInt32 permissionDataLen = sizeof(permissionData) / sizeof(char);
@@ -1554,4 +1400,209 @@ TEST(StatusMsgTests, testStatusMsgCloneMsgKeyPermissionData)
 	}
 
 	rsslDeleteDataDictionary(&dictionary);
+}
+
+// holds the memory (buffers, dictionary, etc.) needed to encode and decode a message
+// releases all resources upon destruction
+struct StatusMsg_forClone
+{
+	RsslStatusMsg status{};
+	RsslMsg statusDecode{};
+
+	RsslBuffer msgBuf;
+	std::array<char, 2048> msgBufData;
+	std::array<char, 1000> rsslBufData;
+	EmaString toString{};
+
+	// load dictionary for decoding of the field list
+	RsslDataDictionary dictionary{};
+
+	StatusMsg_forClone() {
+		EXPECT_TRUE(loadDictionaryFromFile(&dictionary)) << "Failed to load dictionary";
+		msgBuf.length = (UInt32)msgBufData.size();
+		msgBuf.data = (char*)msgBufData.data();
+	}
+
+	~StatusMsg_forClone() {
+		rsslDeleteDataDictionary(&dictionary);
+	}
+
+	void encode_forClone(StatusMsg& respMsg)
+	{
+		rsslClearStatusMsg(&status);
+
+		RsslMsgKey msgKey;
+
+		rsslClearMsgKey(&msgKey);
+
+		RsslBuffer nameBuffer;
+		nameBuffer.data = const_cast<char*>("TRI.N");
+		nameBuffer.length = 5;
+
+		msgKey.name = nameBuffer;
+		rsslMsgKeyApplyHasName(&msgKey);
+
+		msgKey.nameType = 1;
+		rsslMsgKeyApplyHasNameType(&msgKey);
+
+		msgKey.serviceId = 2;
+		rsslMsgKeyApplyHasServiceId(&msgKey);
+
+		msgKey.identifier = 4;
+		rsslMsgKeyApplyHasIdentifier(&msgKey);
+
+		msgKey.filter = 8;
+		rsslMsgKeyApplyHasFilter(&msgKey);
+
+		RsslBuffer rsslBuf;
+		rsslBuf.length = (UInt32)rsslBufData.size();
+		rsslBuf.data = (char*)rsslBufData.data();
+
+		EmaString inText;
+		encodeFieldList(rsslBuf, inText);
+
+		msgKey.attribContainerType = RSSL_DT_FIELD_LIST;
+		msgKey.encAttrib = rsslBuf;
+		rsslMsgKeyApplyHasAttrib(&msgKey);
+
+		status.msgBase.msgKey = msgKey;
+		rsslStatusMsgApplyHasMsgKey(&status);
+
+		status.msgBase.encDataBody = rsslBuf;
+		status.msgBase.containerType = RSSL_DT_FIELD_LIST;
+
+		status.state.code = RSSL_SC_INVALID_ARGUMENT;
+		status.state.dataState = RSSL_DATA_NO_CHANGE;
+		status.state.streamState = RSSL_STREAM_CLOSED_RECOVER;
+		status.state.text.data = const_cast<char*>("Status Text");
+		status.state.text.length = 11;
+
+		RsslEncodeIterator encIter;
+
+		rsslClearEncodeIterator(&encIter);
+
+		/* set version information of the connection on the encode iterator so proper versioning can be performed */
+		rsslSetEncodeIteratorRWFVersion(&encIter, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION);
+		int retval = 0;
+
+		/* set the buffer on an RsslEncodeIterator */
+		if ((retval = rsslSetEncodeIteratorBuffer(&encIter, &msgBuf)) < RSSL_RET_SUCCESS)
+		{
+			//rsslReleaseBuffer(msgBuf, &error);
+			EXPECT_FALSE(true) << "rsslSetEncodeIteratorBuffer() failed with return code: " << retval << std::endl;
+		}
+
+		retval = rsslEncodeMsg(&encIter, (RsslMsg*)&status);
+
+		RsslDecodeIterator decodeIter;
+
+		rsslClearDecodeIterator(&decodeIter);
+
+		// Set the RWF version to decode with this iterator
+		rsslSetDecodeIteratorRWFVersion(&decodeIter, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION);
+
+		// Associates the RsslDecodeIterator with the RsslBuffer from which to decode.
+		if ((retval = rsslSetDecodeIteratorBuffer(&decodeIter, &msgBuf)) != RSSL_RET_SUCCESS)
+		{
+			EXPECT_FALSE(true) << "rsslSetDecodeIteratorBuffer() failed with return code: " << retval << std::endl;
+		}
+
+		// decode contents into the RsslMsg structure
+		retval = rsslDecodeMsg(&decodeIter, (RsslMsg*)&statusDecode);
+		if (retval != RSSL_RET_SUCCESS)
+		{
+			EXPECT_FALSE(true) << "rsslDecodeMsg() failed with return code: " << retval << std::endl;
+		}
+
+		StaticDecoder::setRsslData(&respMsg, (RsslMsg*)&statusDecode, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary);
+
+		toString = respMsg.toString();
+	}
+
+	bool check_afterClone(const StatusMsg& msg)
+	{
+		EXPECT_EQ(msg.getDomainType(), 0) << "Compare domainType";
+		EXPECT_EQ(msg.getStreamId(), 0) << "Compare streamId";
+		EXPECT_TRUE(msg.hasMsgKey()) << "Compare hasMsgKey";
+		EXPECT_STREQ(msg.toString(), toString) << "Check equal toString()";
+
+		return true;
+	}
+
+	StatusMsg generateMessage() {
+		StatusMsg msg;
+		encode_forClone(msg);
+		return msg;
+	}
+};
+
+TEST(StatusMsgTests, testStatusMsgClone_CopyConstruct)
+{
+	StatusMsg_forClone encoder;
+
+	const StatusMsg respMsg = encoder.generateMessage();
+
+	// Clone message
+	StatusMsg cloneStatusMsg(respMsg);
+
+	EXPECT_TRUE(encoder.check_afterClone(cloneStatusMsg)) << "StatusMsg Clone Success";
+}
+
+TEST(StatusMsgTests, testStatusMsgClone_CopyAssign)
+{
+	StatusMsg_forClone encoder;
+	const StatusMsg respMsg = encoder.generateMessage();
+
+	StatusMsg cloneStatusMsg;
+
+	// Clone message via copy assignment
+	cloneStatusMsg = respMsg;
+
+	EXPECT_TRUE(encoder.check_afterClone(cloneStatusMsg)) << "StatusMsg Clone Success";
+}
+
+TEST(StatusMsgTests, testStatusMsgClone_CopyAssignReserved)
+{
+	StatusMsg_forClone encoder;
+	const StatusMsg _tmp = encoder.generateMessage();
+
+	for (const UInt32 reservation : { 0, 1, 3, 15, 1024 })
+	{
+		StatusMsg srcMsg;
+
+		// use the RsslMsg because its buffers point outside of the encMsgBuffer
+		StaticDecoder::setRsslData(&srcMsg, (RsslMsg*)&encoder.status, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &encoder.dictionary);
+
+		StatusMsg cloneStatusMsg{reservation};
+
+		// Clone message via copy assignment
+		cloneStatusMsg = srcMsg;
+
+		EXPECT_TRUE(encoder.check_afterClone(cloneStatusMsg)) << "StatusMsg Clone Success";
+	}
+}
+
+TEST(StatusMsgTests, testStatusMsgClone_MoveConstruct)
+{
+	StatusMsg_forClone encoder;
+	StatusMsg msg = encoder.generateMessage();
+
+	// Steal message via move construct
+	StatusMsg cloneStatusMsg{ std::move(msg) };
+
+	EXPECT_TRUE(encoder.check_afterClone(cloneStatusMsg)) << "StatusMsg Clone Success";
+}
+
+
+TEST(StatusMsgTests, testStatusMsgClone_MoveAssign)
+{
+	StatusMsg_forClone encoder;
+	StatusMsg respMsg = encoder.generateMessage();
+
+	StatusMsg cloneStatusMsg;
+
+	// Steal message via move assign
+	cloneStatusMsg = std::move(respMsg);
+
+	EXPECT_TRUE(encoder.check_afterClone(cloneStatusMsg)) << "StatusMsg Clone Success";
 }

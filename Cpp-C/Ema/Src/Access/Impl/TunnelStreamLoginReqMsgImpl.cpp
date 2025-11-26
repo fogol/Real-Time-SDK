@@ -7,7 +7,7 @@
  */
 
 #include "TunnelStreamLoginReqMsgImpl.h"
-#include "ReqMsgEncoder.h"
+#include "ReqMsgImpl.h"
 #include "StaticDecoder.h"
 #include "ExceptionTranslator.h"
 #include "OmmInvalidUsageException.h"
@@ -107,7 +107,7 @@ TunnelStreamLoginReqMsgImpl& TunnelStreamLoginReqMsgImpl::setLoginReqMsg( const 
 		return *this;
 	}
 
-	RsslMsg* pRsslMsg = (RsslMsg*)static_cast<const ReqMsgEncoder&>( loginReqMsg.getEncoder() ).getRsslRequestMsg();
+	RsslMsg* pRsslMsg = MsgImpl::getImpl( loginReqMsg )->getRsslMsg();
 
 	while ( ( retCode = rsslEncodeMsg( &eIter, pRsslMsg ) ) == RSSL_RET_BUFFER_TOO_SMALL )
 	{

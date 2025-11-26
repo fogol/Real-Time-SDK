@@ -2,15 +2,18 @@
  *|            This source code is provided under the Apache 2.0 license
  *|  and is provided AS IS with no warranty or guarantee of fit for purpose.
  *|                See the project's LICENSE.md for details.
- *|           Copyright (C) 2015,2019-2020,2024 LSEG. All rights reserved.
+ *|           Copyright (C) 2025 LSEG. All rights reserved.
  *|-----------------------------------------------------------------------------
  */
 
 #ifndef __refinitiv_ema_access_MsgDecoder_h
 #define __refinitiv_ema_access_MsgDecoder_h
 
+#include "rtr/rsslMsg.h"
+
 #include "Decoder.h"
-#include "NoDataImpl.h"
+#include "StaticDecoder.h"
+#include "Utilities.h"
 
 namespace refinitiv {
 
@@ -18,94 +21,153 @@ namespace ema {
 
 namespace access {
 
-class Msg;
+class MsgImpl;
 
-class MsgDecoder : public Decoder
+/// Decodes provided message buffer or configuring the associated Ema message with the
+/// provided RsslMsg
+template<class MsgImplT>
+class MsgDecoder final : public Decoder
 {
 public :
 
-	const Data& getAttribData() const;
+	MsgDecoder(MsgImplT* pMsgImpl);
 
-	const Data& getPayloadData() const;
+	virtual ~MsgDecoder() { };
 
-	virtual bool hasMsgKey() const = 0;
+	const RsslBuffer& getRsslBuffer() const final;
 
-	virtual bool hasName() const = 0;
+	/// Initialize associated _pMsgImpl with the provided rsslMsg
+	bool setRsslData(UInt8 majVer, UInt8 minVer, RsslMsg* rsslMsg, const RsslDataDictionary* rsslDictionary) final;
 
-	virtual bool hasNameType() const = 0;
+	/// Decode provided message buffer rsslBuffer into associated _pMsgImpl
+	bool setRsslData(UInt8 majVer, UInt8 minVer, RsslBuffer* rsslBuffer, const RsslDataDictionary* rsslDictionary, void*) final;
 
-	virtual bool hasServiceId() const = 0;
+	bool setRsslData(RsslDecodeIterator*, RsslBuffer*) final
+	{
+		_errorCode = OmmError::UnknownErrorEnum;
+		return false;
+	}
 
-	virtual bool hasId() const = 0;
+	OmmError::ErrorCode getErrorCode() const final
+	{
+		return _errorCode;
+	};
 
-	virtual bool hasFilter() const = 0;
+private :
 
-	virtual bool hasAttrib() const = 0;
+	MsgImplT* _pMsgImpl;
 
-	virtual bool hasPayload() const = 0;
-
-	virtual bool hasExtendedHeader() const = 0;
-
-	virtual Int32 getStreamId() const = 0;
-
-	virtual UInt16 getDomainType() const = 0;
-
-	virtual const EmaString& getName() const = 0;
-
-	virtual UInt8 getNameType() const = 0;
-
-	virtual UInt32 getServiceId() const = 0;
-
-	virtual Int32 getId() const = 0;
-
-	virtual UInt32 getFilter() const = 0;
-
-	virtual const EmaBuffer& getExtendedHeader() const = 0;
-
-	void setAtExit();
-
-	const RsslDataDictionary* getRsslDictionary();
-
-	UInt8 getMajorVersion();
-
-	UInt8 getMinorVersion();
-
-	RsslBuffer& getCopiedBuffer();
-
-	void cloneBufferToMsg(Msg* sourceMsg, const char* functionName);
-
-	void deallocateCopiedBuffer();
-
-protected :
-
-	MsgDecoder();
-
-	virtual ~MsgDecoder();
-
-	void cloneMsgKey(const Msg& other, RsslMsgKey* destMsgKey);
-
-	const RsslDataDictionary*		_pRsslDictionary;
-
-	UInt8							_rsslMajVer;
-
-	UInt8							_rsslMinVer;
-
-	NoDataImpl						_attrib;
-
-	NoDataImpl						_payload;
-
-	RsslBuffer						_copiedBuffer;
-
-	RsslMsg							_rsslMsg;
-
-	RsslMsg*						_pRsslMsg;
-
-	EmaBuffer						_nameData;
-
-	EmaBuffer						_copiedBufferData;
-
-	EmaBuffer						_encAttribData;
+	OmmError::ErrorCode _errorCode;
 };
+
+template<class MsgImplT>
+MsgDecoder<MsgImplT>::MsgDecoder(MsgImplT* pMsgImpl) :
+  Decoder(),
+  _pMsgImpl(pMsgImpl),
+  _errorCode( OmmError::NoErrorEnum )
+{
+};
+
+template<class MsgImplT>
+const RsslBuffer& MsgDecoder<MsgImplT>::getRsslBuffer() const
+{
+	// return getEncodedBuffer();
+	return _pMsgImpl->_pRsslMsg->msgBase.encMsgBuffer;
+};
+
+template<class MsgImplT>
+bool MsgDecoder<MsgImplT>::setRsslData(UInt8 majVer, UInt8 minVer, RsslMsg* rsslMsg, const RsslDataDictionary* rsslDictionary)
+{
+	EMA_ASSERT(MsgImplT::RSSL_MSG_CLASS == rsslMsg->msgBase.msgClass, "RsslMsg msgClass must match that of the EMA Message");
+
+	_pMsgImpl->_pRsslMsg = rsslMsg;
+	_pMsgImpl->_pRsslDictionary = rsslDictionary;
+
+	_pMsgImpl->_rsslMajVer = majVer;
+	_pMsgImpl->_rsslMinVer = minVer;
+
+	_pMsgImpl->_serviceNameSet = false;
+	_pMsgImpl->_serviceListNameSet = false;
+
+	// clear flags for cached OmmQos and OmmState "views"
+	_pMsgImpl->resetRsslInt();
+
+	StaticDecoder::setRsslData( &_pMsgImpl->_attrib, &_pMsgImpl->_pRsslMsg->msgBase.msgKey.encAttrib,
+								_pMsgImpl->template hasAttrib<const MsgImplT>()
+								? rsslMsg->msgBase.msgKey.attribContainerType
+								: RSSL_DT_NO_DATA,
+								majVer, minVer, rsslDictionary );
+
+	StaticDecoder::setRsslData( &_pMsgImpl->_payload, &_pMsgImpl->_pRsslMsg->msgBase.encDataBody,
+								rsslMsg->msgBase.containerType,
+								majVer, minVer, rsslDictionary );
+
+	_errorCode = OmmError::NoErrorEnum;
+
+	return true;
+};
+
+template<class MsgImplT>
+bool MsgDecoder<MsgImplT>::setRsslData(UInt8 majVer, UInt8 minVer, RsslBuffer* rsslBuffer, const RsslDataDictionary* rsslDictionary, void*)
+{
+
+	_pMsgImpl->_pRsslMsg = &_pMsgImpl->_rsslMsg;
+	_pMsgImpl->_pRsslDictionary = rsslDictionary;
+
+	_pMsgImpl->_rsslMajVer = majVer;
+	_pMsgImpl->_rsslMinVer = minVer;
+
+	_pMsgImpl->_serviceNameSet = false;
+	_pMsgImpl->_serviceListNameSet = false;
+
+	// clear flags for cached OmmQos and OmmState "views"
+	_pMsgImpl->resetRsslInt();
+
+	RsslDecodeIterator decodeIter;
+	rsslClearDecodeIterator(&decodeIter);
+
+	RsslRet retCode = rsslSetDecodeIteratorBuffer(&decodeIter, rsslBuffer);
+	if (RSSL_RET_SUCCESS != retCode)
+	{
+		_errorCode = OmmError::IteratorSetFailureEnum;
+		return false;
+	}
+
+	retCode = rsslSetDecodeIteratorRWFVersion(&decodeIter, _pMsgImpl->_rsslMajVer, _pMsgImpl->_rsslMinVer);
+	if (RSSL_RET_SUCCESS != retCode)
+	{
+		_errorCode = OmmError::IteratorSetFailureEnum;
+		return false;
+	}
+
+	retCode = rsslDecodeMsg(&decodeIter, _pMsgImpl->_pRsslMsg);
+
+	switch (retCode)
+	{
+	case RSSL_RET_SUCCESS:
+		_errorCode = OmmError::NoErrorEnum;
+
+		StaticDecoder::setRsslData( &_pMsgImpl->_attrib, &_pMsgImpl->_pRsslMsg->msgBase.msgKey.encAttrib,
+									_pMsgImpl->template hasAttrib<const MsgImplT>() ? _pMsgImpl->_pRsslMsg->msgBase.msgKey.attribContainerType : RSSL_DT_NO_DATA,
+									majVer, minVer, _pMsgImpl->_pRsslDictionary );
+
+		StaticDecoder::setRsslData( &_pMsgImpl->_payload, &_pMsgImpl->_pRsslMsg->msgBase.encDataBody,
+									_pMsgImpl->_pRsslMsg->msgBase.containerType,
+									majVer, minVer, _pMsgImpl->_pRsslDictionary );
+
+		return true;
+	case RSSL_RET_ITERATOR_OVERRUN:
+		_errorCode = OmmError::IteratorOverrunEnum;
+		return false;
+	case RSSL_RET_INCOMPLETE_DATA:
+		_errorCode = OmmError::IncompleteDataEnum;
+		return false;
+	default:
+		_errorCode = OmmError::UnknownErrorEnum;
+		return false;
+	}
+};
+
 
 }
 

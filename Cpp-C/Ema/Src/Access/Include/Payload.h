@@ -81,6 +81,7 @@ namespace ema {
 
 namespace access {
 
+class MsgImpl;
 class ReqMsg;
 class RefreshMsg;
 class UpdateMsg;
@@ -99,8 +100,6 @@ class OmmXml;
 class OmmJson;
 class OmmAnsiPage;
 class OmmError;
-
-class MsgDecoder;
 
 class EMA_ACCESS_API Payload
 {
@@ -239,8 +238,9 @@ public :
 private :
 
 	friend class Msg;
+	friend class MsgImpl;
 
-	const Data*		_pPayload;
+	const MsgImpl*		_pMsgImpl;
 
 	Payload();
 	Payload( const Payload& );

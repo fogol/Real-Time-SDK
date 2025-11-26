@@ -2,7 +2,7 @@
  *|            This source code is provided under the Apache 2.0 license
  *|  and is provided AS IS with no warranty or guarantee of fit for purpose.
  *|                See the project's LICENSE.md for details.
- *|           Copyright (C) 2016-2022,2024-2025 LSEG. All rights reserved.
+ *|           Copyright (C) 2016-2025 LSEG. All rights reserved.
  *|-----------------------------------------------------------------------------
  */
 
@@ -11,11 +11,10 @@
 #include "OmmNiProviderConfigImpl.h"
 #include "ExceptionTranslator.h"
 #include "LoginCallbackClient.h"
-#include "RefreshMsgEncoder.h"
-#include "ReqMsgEncoder.h"
-#include "UpdateMsgEncoder.h"
-#include "StatusMsgEncoder.h"
-#include "GenericMsgEncoder.h"
+#include "RefreshMsgImpl.h"
+#include "ReqMsgImpl.h"
+#include "UpdateMsgImpl.h"
+#include "GenericMsgImpl.h"
 #include "Utilities.h"
 #include "EmaRdm.h"
 #include "OmmQosDecoder.h"
@@ -24,6 +23,7 @@
 #include "ChannelInfoImpl.h"
 #include "OmmInvalidUsageException.h"
 #include "PackedMsgImpl.h"
+#include "StatusMsgImpl.h"
 
 #include <limits.h>
 
@@ -821,7 +821,7 @@ UInt64 OmmNiProviderImpl::registerClient( const ReqMsg& reqMsg, OmmProviderClien
 {
 	_userLock.lock();
 
-	const ReqMsgEncoder& reqMsgEncoder = static_cast<const ReqMsgEncoder&>(reqMsg.getEncoder());
+	const ReqMsgImpl& reqMsgEncoder = *MsgImpl::getImpl(reqMsg);
 
 	if ( reqMsgEncoder.getRsslRequestMsg()->msgBase.domainType != ema::rdm::MMT_LOGIN && 
 		reqMsgEncoder.getRsslRequestMsg()->msgBase.domainType != ema::rdm::MMT_DICTIONARY )
@@ -885,7 +885,7 @@ void OmmNiProviderImpl::reissue(const ReqMsg& reqMsg, UInt64 handle)
 {
 	_userLock.lock();
 
-	const ReqMsgEncoder& reqMsgEncoder = static_cast<const ReqMsgEncoder&>(reqMsg.getEncoder());
+	const ReqMsgImpl& reqMsgEncoder = *MsgImpl::getImpl(reqMsg);
 
 	if ( reqMsgEncoder.isDomainTypeSet() && ( reqMsgEncoder.getRsslRequestMsg()->msgBase.domainType != ema::rdm::MMT_LOGIN &&
 		reqMsgEncoder.getRsslRequestMsg()->msgBase.domainType != ema::rdm::MMT_DICTIONARY ) )
@@ -947,7 +947,7 @@ void OmmNiProviderImpl::submit( const RefreshMsg& msg, UInt64 handle )
 {
 	RsslReactorSubmitMsgOptions submitMsgOpts;
 	rsslClearReactorSubmitMsgOptions( &submitMsgOpts );
-	submitMsgOpts.pRsslMsg = ( RsslMsg* )static_cast<const RefreshMsgEncoder&>( msg.getEncoder() ).getRsslRefreshMsg();
+	submitMsgOpts.pRsslMsg = MsgImpl::getImpl(msg)->getRsslMsg();
 
 	bool bHandleAdded = false;
 
@@ -1060,7 +1060,7 @@ void OmmNiProviderImpl::submit( const RefreshMsg& msg, UInt64 handle )
 			getOmmLoggerClient().log( _activeConfig.instanceName, OmmLoggerClient::VerboseEnum, temp );
 		}
 
-		const RefreshMsgEncoder& enc = static_cast<const RefreshMsgEncoder&>( msg.getEncoder() );
+		const RefreshMsgImpl& enc = *MsgImpl::getImpl( msg );
 
 		if ( pStreamInfoPtr )
 		{
@@ -1208,7 +1208,7 @@ void OmmNiProviderImpl::submit( const UpdateMsg& msg, UInt64 handle )
 {
 	RsslReactorSubmitMsgOptions submitMsgOpts;
 	rsslClearReactorSubmitMsgOptions( &submitMsgOpts );
-	submitMsgOpts.pRsslMsg = ( RsslMsg* )static_cast<const UpdateMsgEncoder&>( msg.getEncoder() ).getRsslUpdateMsg();
+	submitMsgOpts.pRsslMsg = MsgImpl::getImpl(msg)->getRsslMsg();
 
 	bool bHandleAdded = false;
 
@@ -1337,7 +1337,7 @@ void OmmNiProviderImpl::submit( const UpdateMsg& msg, UInt64 handle )
 			getOmmLoggerClient().log( _activeConfig.instanceName, OmmLoggerClient::VerboseEnum, temp );
 		}
 
-		const UpdateMsgEncoder& enc = static_cast<const UpdateMsgEncoder&>( msg.getEncoder() );
+		const UpdateMsgImpl& enc = *MsgImpl::getImpl(msg);
 
 		if ( pStreamInfoPtr )
 		{
@@ -1470,7 +1470,9 @@ void OmmNiProviderImpl::submit( const StatusMsg& msg, UInt64 handle )
 {
 	RsslReactorSubmitMsgOptions submitMsgOpts;
 	rsslClearReactorSubmitMsgOptions( &submitMsgOpts );
-	submitMsgOpts.pRsslMsg = ( RsslMsg* )static_cast<const StatusMsgEncoder&>( msg.getEncoder() ).getRsslStatusMsg();
+
+	const StatusMsgImpl* pStatusImpl = MsgImpl::getImpl(msg);
+	submitMsgOpts.pRsslMsg = const_cast<RsslMsg*>(pStatusImpl->getRsslMsg());
 
 	bool bHandleAdded = false;
 
@@ -1576,8 +1578,6 @@ void OmmNiProviderImpl::submit( const StatusMsg& msg, UInt64 handle )
 			getOmmLoggerClient().log( _activeConfig.instanceName, OmmLoggerClient::VerboseEnum, temp );
 		}
 
-		const StatusMsgEncoder& enc = static_cast<const StatusMsgEncoder&>( msg.getEncoder() );
-
 		if ( pStreamInfoPtr )
 		{
 			submitMsgOpts.pRsslMsg->msgBase.streamId = ( *pStreamInfoPtr )->_streamId;
@@ -1595,9 +1595,9 @@ void OmmNiProviderImpl::submit( const StatusMsg& msg, UInt64 handle )
 			handleIhe( handle, temp );
 			return;
 		}
-		else if ( enc.hasServiceName() )
+		else if ( pStatusImpl->hasServiceName() )
 		{
-			const EmaString& serviceName = enc.getServiceName();
+			const EmaString& serviceName = pStatusImpl->getServiceName();
 			RsslUInt64* pServiceId = _ommNiProviderDirectoryStore.getServiceIdByName(&serviceName);
 			if ( !pServiceId )
 			{
@@ -1637,7 +1637,7 @@ void OmmNiProviderImpl::submit( const StatusMsg& msg, UInt64 handle )
 				return;
 			}
 		}
-		else if ( enc.hasServiceId() )
+		else if ( pStatusImpl->hasServiceId() )
 		{
 			EmaStringPtr* pServiceNamePtr = _ommNiProviderDirectoryStore.getServiceNameById(submitMsgOpts.pRsslMsg->msgBase.msgKey.serviceId);
 
@@ -1722,7 +1722,7 @@ void OmmNiProviderImpl::submit( const GenericMsg& msg, UInt64 handle )
 {
 	RsslReactorSubmitMsgOptions submitMsgOpts;
 	rsslClearReactorSubmitMsgOptions( &submitMsgOpts );
-	submitMsgOpts.pRsslMsg = ( RsslMsg* )static_cast<const GenericMsgEncoder&>( msg.getEncoder() ).getRsslGenericMsg();
+	submitMsgOpts.pRsslMsg = MsgImpl::getImpl( msg )->getRsslMsg();
 
 	_userLock.lock();
 

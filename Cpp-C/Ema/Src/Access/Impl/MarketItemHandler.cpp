@@ -178,7 +178,7 @@ RsslReactorCallbackRet MarketItemHandler::itemCallback(RsslReactor* pReactor, Rs
 					pReactorChannel->minorVersion,
 					rsslDataDictionary);
 
-				ommServerBaseImpl->_reqMsg.getDecoder().setServiceName((*serviceNamePtr)->c_str(), (*serviceNamePtr)->length());
+				MsgImpl::getImpl(ommServerBaseImpl->_reqMsg)->setServiceNameInt(**serviceNamePtr);
 
 				OmmIProviderDirectoryStore& ommIProviderDirectoryStore = static_cast<OmmIProviderDirectoryStore&>(ommServerBaseImpl->getDirectoryServiceStore());
 
@@ -464,7 +464,7 @@ RsslReactorCallbackRet MarketItemHandler::itemCallback(RsslReactor* pReactor, Rs
 					rsslDataDictionary);
 				
 				if ((pRsslMsg->msgBase.msgKey.flags & RSSL_MKF_HAS_SERVICE_ID) && serviceNamePtr) 
-					ommServerBaseImpl->_postMsg.getDecoder().setServiceName((*serviceNamePtr)->c_str(), (*serviceNamePtr)->length());
+					MsgImpl::getImpl(ommServerBaseImpl->_postMsg)->setServiceNameInt(**serviceNamePtr);
 
 				ommServerBaseImpl->ommProviderEvent._clientHandle = clientSession->getClientHandle();
 				ommServerBaseImpl->ommProviderEvent._closure = ommServerBaseImpl->_pClosure;
@@ -583,7 +583,7 @@ void MarketItemHandler::notifyOnClose(RsslMsg* pRsslMsg, ItemInfo* itemInfo)
 
 		if (serviceNamePtr)
 		{
-			_pOmmServerBaseImpl->_reqMsg.getDecoder().setServiceName((*serviceNamePtr)->c_str(), (*serviceNamePtr)->length());
+			MsgImpl::getImpl(_pOmmServerBaseImpl->_reqMsg)->setServiceNameInt(**serviceNamePtr);
 		}
 	}
 	else

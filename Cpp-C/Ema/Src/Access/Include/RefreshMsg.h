@@ -22,7 +22,7 @@
 
 	\code
 
-	class AppClient ; public OmmConsumerClient
+	class AppClient : public OmmConsumerClient
 	{
 		...
 
@@ -76,6 +76,8 @@ namespace ema {
 
 namespace access {
 
+class RefreshMsgImpl;
+
 class EMA_ACCESS_API RefreshMsg : public Msg
 {
 public :
@@ -86,11 +88,21 @@ public :
 	 */
 	RefreshMsg();
 
+	/** Constructs RefreshMsg and reserves specified amount of memory for storing its data.
+		@param[in] size reserved memory buffer size
+	*/
+	explicit RefreshMsg(UInt32 size);
+
 	/** Copy constructor.
 		\remark this is used to copy and process RefreshMsg outside of EMA's callback methods.
 		\remark this method does not support passing in just encoded RefreshMsg in the application space.
 	*/
 	RefreshMsg( const RefreshMsg& other );
+
+	/** Move constructor.
+		\remark Created instance acquires all resources from the passed in message.
+	 */
+	RefreshMsg( RefreshMsg&& ) noexcept;
 	//@}
 
 	///@name Constructor
@@ -244,6 +256,19 @@ public :
 
 	///@name Operations
 	//@{
+
+	/** Performs deep copy of the operand into the current message.
+		\remark this is used to copy and process messages outside of EMA's callback methods.
+		@return reference to this object
+	 */
+	RefreshMsg& operator=( const RefreshMsg& );
+
+	/** Moves resources from the operand into the current message.
+		\remark Operand is left in "empty" state.
+		@return reference to this object
+	 */
+	RefreshMsg& operator=( RefreshMsg&& ) noexcept;
+
 	/** Clears the RefreshMsg.
 		\remark Invoking clear() method clears all the values and resets all the defaults
 		@return reference to this object
@@ -402,16 +427,16 @@ public :
 
 private :
 
-	friend class ItemCallbackClient;
-	friend class DictionaryCallbackClient;
+	friend class MsgImpl;
 
 	const EmaString& toString( UInt64 ) const;
 
 	Decoder& getDecoder();
 
-	RefreshMsg& operator=( const RefreshMsg& );
-
 	mutable EmaString		_toString;
+
+	RefreshMsgImpl* impl();
+	const RefreshMsgImpl* impl() const;
 };
 
 }

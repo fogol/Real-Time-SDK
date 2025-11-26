@@ -2,7 +2,7 @@
  *|            This source code is provided under the Apache 2.0 license
  *|  and is provided AS IS with no warranty or guarantee of fit for purpose.
  *|                See the project's LICENSE.md for details.
- *|           Copyright (C) 2015-2022,2024-2025 LSEG. All rights reserved.
+ *|           Copyright (C) 2015-2025 LSEG. All rights reserved.
  *|-----------------------------------------------------------------------------
  */
 
@@ -11,9 +11,9 @@
 #include "OmmBaseImpl.h"
 #include "StaticDecoder.h"
 #include "OmmState.h"
-#include "ReqMsgEncoder.h"
-#include "GenericMsgEncoder.h"
-#include "PostMsgEncoder.h"
+#include "ReqMsgImpl.h"
+#include "GenericMsgImpl.h"
+#include "PostMsgImpl.h"
 #include "Utilities.h"
 #include "OmmInvalidUsageException.h"
 #include "ConsumerRoutingSession.h"
@@ -631,7 +631,10 @@ void LoginCallbackClient::initialize()
 
 RsslRDMLoginRequest* LoginCallbackClient::getLoginRequest()
 {
-	return _loginInfo.pLoginRequestMsg->get();
+	if (_loginInfo.pLoginRequestMsg == nullptr)
+		return nullptr;
+	else
+		return _loginInfo.pLoginRequestMsg->get();
 }
 
 RsslRDMLoginRefresh* LoginCallbackClient::getLoginRefresh()
@@ -1375,11 +1378,11 @@ RsslReactorCallbackRet LoginCallbackClient::processAckMsg( RsslMsg* pRsslMsg, Rs
 			if (pDirectoryPtr != NULL)
 			{
 				Directory* pDirectory = *pDirectoryPtr;
-				_ackMsg.getDecoder().setServiceName(pDirectory->getName().c_str(), pDirectory->getName().length());
+				MsgImpl::getImpl(_ackMsg)->setServiceNameInt(pDirectory->getName());
 
 				if (pDirectory->hasGeneratedServiceId())
 				{
-					_ackMsg.getDecoder().setServiceId((UInt16)pDirectory->getGeneratedServiceId());
+					MsgImpl::getImpl(_ackMsg)->setServiceId((UInt16)pDirectory->getGeneratedServiceId());
 				}
 			}
 		}
@@ -1388,7 +1391,7 @@ RsslReactorCallbackRet LoginCallbackClient::processAckMsg( RsslMsg* pRsslMsg, Rs
 			const Directory* pDirectory = _ommBaseImpl.getDirectoryCallbackClient().getDirectory(pRsslMsg->msgBase.msgKey.serviceId);
 			if (pDirectory)
 			{
-				_ackMsg.getDecoder().setServiceName(pDirectory->getName().c_str(), pDirectory->getName().length());
+				MsgImpl::getImpl(_ackMsg)->setServiceNameInt(pDirectory->getName());
 			}
 		}
 	}
@@ -1813,7 +1816,7 @@ bool LoginItem::modify( const ReqMsg& reqMsg )
 
 	rsslSetDecodeIteratorRWFVersion(&dIter, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION);
 
-	if (rsslDecodeRDMLoginMsg(&dIter, (RsslMsg*)(static_cast<const ReqMsgEncoder&>(reqMsg.getEncoder())).getRsslRequestMsg(), (RsslRDMLoginMsg*)&tempRequest, &tmpBuf, &errorInfo) != RSSL_RET_SUCCESS)
+	if (rsslDecodeRDMLoginMsg(&dIter, MsgImpl::getImpl(reqMsg)->getRsslMsg(), (RsslRDMLoginMsg*)&tempRequest, &tmpBuf, &errorInfo) != RSSL_RET_SUCCESS)
 	{
 		EmaString temp("Internal error: rsslDecodeRDMLoginMsg failed.");
 		temp.append(CR)
@@ -1832,7 +1835,7 @@ bool LoginItem::modify( const ReqMsg& reqMsg )
 	{
 		rsslSetDecodeIteratorRWFVersion(&dIter, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION);
 
-		if (rsslDecodeRDMLoginMsg(&dIter, (RsslMsg*)(static_cast<const ReqMsgEncoder&>(reqMsg.getEncoder())).getRsslRequestMsg(), (RsslRDMLoginMsg*)&tempRequest, &tmpBuf, &errorInfo) != RSSL_RET_SUCCESS)
+		if (rsslDecodeRDMLoginMsg(&dIter, MsgImpl::getImpl(reqMsg)->getRsslMsg(), (RsslRDMLoginMsg*)&tempRequest, &tmpBuf, &errorInfo) != RSSL_RET_SUCCESS)
 		{
 			EmaString temp("Internal error: rsslDecodeRDMLoginMsg failed.");
 			temp.append(CR).append("Error Location ").append(errorInfo.errorLocation).append(CR)
@@ -1908,7 +1911,7 @@ bool LoginItem::modify( const ReqMsg& reqMsg )
 
 bool LoginItem::submit( const PostMsg& postMsg )
 {
-	const PostMsgEncoder& postMsgEncoder = static_cast<const PostMsgEncoder&>( postMsg.getEncoder() );
+	const PostMsgImpl& postMsgEncoder = *MsgImpl::getImpl(postMsg);
 
 	RsslPostMsg* pRsslPostMsg = postMsgEncoder.getRsslPostMsg();
 
@@ -2035,12 +2038,12 @@ bool LoginItem::submit( const PostMsg& postMsg )
 
 	}
 
-	return submit( static_cast<const PostMsgEncoder&>( postMsg.getEncoder() ).getRsslPostMsg(), NULL, _ommBaseImpl.getRsslReactorChannel());
+	return submit( MsgImpl::getImpl(postMsg)->getRsslPostMsg(), NULL, _ommBaseImpl.getRsslReactorChannel());
 }
 
 bool LoginItem::submit( const GenericMsg& genMsg )
 {
-	const GenericMsgEncoder& genericMsgEncoder = static_cast<const GenericMsgEncoder&>(genMsg.getEncoder());
+	const GenericMsgImpl& genericMsgEncoder = *MsgImpl::getImpl(genMsg);
 
 	// For request routing, fan this out to all the connected providers.  These currently should not be seent by EMA, as the Reactor will handle sending RTT responses automatically.
 	if (_ommBaseImpl.getConsumerRoutingSession() != NULL)
@@ -2061,7 +2064,7 @@ bool LoginItem::submit( const GenericMsg& genMsg )
 				{
 					if (!pRoutingServicePtr)
 					{
-						return submit(static_cast<const GenericMsgEncoder&>(genMsg.getEncoder()).getRsslGenericMsg(), routingChannel->pReactorChannel);
+						return submit(MsgImpl::getImpl(genMsg)->getRsslGenericMsg(), routingChannel->pReactorChannel);
 					}
 
 					ConsumerRoutingService* pRoutingService = *pRoutingServicePtr;
@@ -2073,22 +2076,22 @@ bool LoginItem::submit( const GenericMsg& genMsg )
 
 						if (pDirectoryPtr == NULL)
 						{
-							return submit(static_cast<const GenericMsgEncoder&>(genMsg.getEncoder()).getRsslGenericMsg(), routingChannel->pReactorChannel);
+							return submit(MsgImpl::getImpl(genMsg)->getRsslGenericMsg(), routingChannel->pReactorChannel);
 						}
 
 						Directory* pDirectory = *pDirectoryPtr;
 
 						genericMsgEncoder.getRsslGenericMsg()->msgBase.msgKey.serviceId = (RsslUInt16)pDirectory->getService()->serviceId;
 
-						return submit(static_cast<const GenericMsgEncoder&>(genMsg.getEncoder()).getRsslGenericMsg(), routingChannel->pReactorChannel);
+						return submit(MsgImpl::getImpl(genMsg)->getRsslGenericMsg(), routingChannel->pReactorChannel);
 					}
 					else
 					{
-						return submit(static_cast<const GenericMsgEncoder&>(genMsg.getEncoder()).getRsslGenericMsg(), routingChannel->pReactorChannel);
+						return submit(MsgImpl::getImpl(genMsg)->getRsslGenericMsg(), routingChannel->pReactorChannel);
 					}
 				}
 				else
-					return submit(static_cast<const GenericMsgEncoder&>(genMsg.getEncoder()).getRsslGenericMsg(), routingChannel->pReactorChannel);
+					return submit(MsgImpl::getImpl(genMsg)->getRsslGenericMsg(), routingChannel->pReactorChannel);
 
 			}
 }
@@ -2097,7 +2100,7 @@ bool LoginItem::submit( const GenericMsg& genMsg )
 	}
 	else
 	{
-		return submit(static_cast<const GenericMsgEncoder&>(genMsg.getEncoder()).getRsslGenericMsg(), _ommBaseImpl.getRsslReactorChannel());
+		return submit(MsgImpl::getImpl(genMsg)->getRsslGenericMsg(), _ommBaseImpl.getRsslReactorChannel());
 	}
 }
 
@@ -2400,7 +2403,7 @@ bool NiProviderLoginItem::modify( const ReqMsg& reqMsg )
 	/* Decode the msg to the temp RDMLoginRequest*/
 	rsslSetDecodeIteratorRWFVersion(&dIter, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION);
 
-	if (rsslDecodeRDMLoginMsg(&dIter, (RsslMsg*)(static_cast<const ReqMsgEncoder&>(reqMsg.getEncoder())).getRsslRequestMsg(), (RsslRDMLoginMsg*)&tempRequest, &tmpBuf, &errorInfo) != RSSL_RET_SUCCESS)
+	if (rsslDecodeRDMLoginMsg(&dIter, MsgImpl::getImpl(reqMsg)->getRsslMsg(), (RsslRDMLoginMsg*)&tempRequest, &tmpBuf, &errorInfo) != RSSL_RET_SUCCESS)
 	{
 		EmaString temp("Internal error: rsslDecodeRDMLoginMsg failed.");
 		temp.append(CR)
@@ -2425,7 +2428,7 @@ bool NiProviderLoginItem::submit( const PostMsg& )
 
 bool NiProviderLoginItem::submit( const GenericMsg& genMsg )
 {
-	return submit( static_cast<const GenericMsgEncoder&>( genMsg.getEncoder() ).getRsslGenericMsg() );
+	return submit( MsgImpl::getImpl(genMsg)->getRsslGenericMsg() );
 }
 
 bool NiProviderLoginItem::submit(RsslRDMLoginRequest* pRsslRequestMsg )

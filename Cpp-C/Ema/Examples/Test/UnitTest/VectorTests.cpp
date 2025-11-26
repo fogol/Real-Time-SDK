@@ -2,7 +2,7 @@
  *|            This source code is provided under the Apache 2.0 license
  *|  and is provided AS IS with no warranty or guarantee of fit for purpose.
  *|                See the project's LICENSE.md for details.
- *|           Copyright (C) 2018-2020,2023-2024 LSEG. All rights reserved.
+ *|           Copyright (C) 2018-2025 LSEG. All rights reserved.
  *|-----------------------------------------------------------------------------
  */
 
@@ -15,19 +15,16 @@ using namespace std;
 
 TEST(VectorTests, testVectorContainsFieldListsDecodeAll)
 {
-
 	// load dictionary for decoding of the field list
-	RsslDataDictionary dictionary;
+	DictionaryPtr dictionary = makeDictionaryFromFile();
 
-	ASSERT_TRUE(loadDictionaryFromFile( &dictionary )) << "Failed to load dictionary";
+	ASSERT_TRUE((bool) dictionary ) << "Failed to load dictionary";
 
 	try
 	{
 		// encoding order:  SummaryData(with FieldList), Delete, FieldList-Set, FieldList-Set, FieldList-Update
 
-		RsslBuffer vectorBuffer;
-		vectorBuffer.length = 4096;
-		vectorBuffer.data = ( char* )malloc( sizeof( char ) * 4096 );
+		EsslBuffer<4096> vectorBuffer;
 
 		RsslVector rsslVector = RSSL_INIT_VECTOR;
 		RsslEncodeIterator vectorEncodeIter;
@@ -35,16 +32,14 @@ TEST(VectorTests, testVectorContainsFieldListsDecodeAll)
 		rsslClearVector( &rsslVector );
 		rsslClearEncodeIterator( &vectorEncodeIter );
 		rsslSetEncodeIteratorRWFVersion( &vectorEncodeIter, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION );
-		rsslSetEncodeIteratorBuffer( &vectorEncodeIter, &vectorBuffer );
+		rsslSetEncodeIteratorBuffer( &vectorEncodeIter, vectorBuffer );
 		rsslVector.flags = RSSL_VTF_HAS_SUMMARY_DATA | RSSL_VTF_HAS_TOTAL_COUNT_HINT;
 
 		rsslVector.containerType = RSSL_DT_FIELD_LIST;
 		rsslVector.totalCountHint = 5;
 
 		// allocate buffer for the field list for SummaryData
-		RsslBuffer rsslBuf;
-		rsslBuf.length = 1000;
-		rsslBuf.data = ( char* )malloc( sizeof( char ) * 1000 );
+		EsslBuffer<1000> rsslBuf;
 
 		RsslEncodeFieldListAll( rsslBuf );
 		rsslVector.encSummaryData = rsslBuf;
@@ -61,10 +56,9 @@ TEST(VectorTests, testVectorContainsFieldListsDecodeAll)
 		//second entry  //Set FieldList
 		rsslClearVectorEntry( &vectorEntry );
 		// allocate buffer for the field list for VectorEntries
-		RsslBuffer rsslBuf1;
-		rsslBuf1.length = 1000;
-		rsslBuf1.data = ( char* )malloc( sizeof( char ) * 1000 );
+		EsslBuffer<1000> rsslBuf1;
 		RsslEncodeFieldListAll( rsslBuf1 );
+
 		vectorEntry.flags = RSSL_VTEF_NONE;
 		vectorEntry.action = RSSL_VTEA_SET_ENTRY;
 		vectorEntry.encData = rsslBuf1;
@@ -84,13 +78,13 @@ TEST(VectorTests, testVectorContainsFieldListsDecodeAll)
 		vectorEntry.encData = rsslBuf1;
 		rsslEncodeVectorEntry( &vectorEncodeIter, &vectorEntry );
 
-		vectorBuffer.length = rsslGetEncodedBufferLength( &vectorEncodeIter );
+		vectorBuffer->length = rsslGetEncodedBufferLength( &vectorEncodeIter );
 		rsslEncodeVectorComplete( &vectorEncodeIter, RSSL_TRUE );
 
 
 		//Now do EMA decoding of Vector
 		Vector vector;
-		StaticDecoder::setRsslData( &vector, &vectorBuffer, RSSL_DT_VECTOR, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary );
+		StaticDecoder::setRsslData( &vector, vectorBuffer, RSSL_DT_VECTOR, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, dictionary.get() );
 
 		EXPECT_TRUE( vector.hasTotalCountHint() ) << "Vector contains FieldList - hasTotalCountHint()" ;
 		EXPECT_EQ( vector.getTotalCountHint(), 5 ) << "Vector contains FieldList - getTotalCountHint()" ;
@@ -158,30 +152,21 @@ TEST(VectorTests, testVectorContainsFieldListsDecodeAll)
 
 		EXPECT_FALSE( vector.forth() ) << "Vector contains FieldList - final vector forth()" ;
 
-		free( rsslBuf.data );
-		free( vectorBuffer.data );
-
 		EXPECT_TRUE( true ) << "Vector contains FieldList - exception not expected" ;
-
 	}
 	catch ( const OmmException& )
 	{
 		EXPECT_FALSE( true ) << "Vector contains FieldList - exception not expectedd" ;
 	}
-
-	rsslDeleteDataDictionary( &dictionary );
 }
 
 TEST(VectorTests, testVectorContainsElementListsDecodeAll)
 {
-
 	try
 	{
 		// encoding order:  SummaryData(with ElementList), Delete, ElementList-Set, ElementList-Set, ElementList-Update
 
-		RsslBuffer vectorBuffer;
-		vectorBuffer.length = 4096;
-		vectorBuffer.data = ( char* )malloc( sizeof( char ) * 4096 );
+		EsslBuffer<4096> vectorBuffer;
 
 		RsslVector rsslVector = RSSL_INIT_VECTOR;
 		RsslEncodeIterator vectorEncodeIter;
@@ -189,16 +174,14 @@ TEST(VectorTests, testVectorContainsElementListsDecodeAll)
 		rsslClearVector( &rsslVector );
 		rsslClearEncodeIterator( &vectorEncodeIter );
 		rsslSetEncodeIteratorRWFVersion( &vectorEncodeIter, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION );
-		rsslSetEncodeIteratorBuffer( &vectorEncodeIter, &vectorBuffer );
+		rsslSetEncodeIteratorBuffer( &vectorEncodeIter, vectorBuffer );
 		rsslVector.flags = RSSL_VTF_HAS_SUMMARY_DATA | RSSL_VTF_HAS_TOTAL_COUNT_HINT;
 
 		rsslVector.containerType = RSSL_DT_ELEMENT_LIST;
 		rsslVector.totalCountHint = 5;
 
 		// allocate buffer for the element list for SummaryData
-		RsslBuffer rsslBuf;
-		rsslBuf.length = 1000;
-		rsslBuf.data = ( char* )malloc( sizeof( char ) * 1000 );
+		EsslBuffer<1000> rsslBuf;
 
 		RsslEncodeElementListAll( rsslBuf );
 		rsslVector.encSummaryData = rsslBuf;
@@ -215,9 +198,8 @@ TEST(VectorTests, testVectorContainsElementListsDecodeAll)
 		//second entry  //Set ElementList
 		rsslClearVectorEntry( &vectorEntry );
 		// allocate buffer for the element list for VectorEntries
-		RsslBuffer rsslBuf1;
-		rsslBuf1.length = 1000;
-		rsslBuf1.data = ( char* )malloc( sizeof( char ) * 1000 );
+		EsslBuffer<1000> rsslBuf1;
+
 		RsslEncodeElementListAll( rsslBuf1 );
 		vectorEntry.flags = RSSL_VTEF_NONE;
 		vectorEntry.action = RSSL_VTEA_SET_ENTRY;
@@ -238,13 +220,13 @@ TEST(VectorTests, testVectorContainsElementListsDecodeAll)
 		vectorEntry.encData = rsslBuf1;
 		rsslEncodeVectorEntry( &vectorEncodeIter, &vectorEntry );
 
-		vectorBuffer.length = rsslGetEncodedBufferLength( &vectorEncodeIter );
+		vectorBuffer->length = rsslGetEncodedBufferLength( &vectorEncodeIter );
 		rsslEncodeVectorComplete( &vectorEncodeIter, RSSL_TRUE );
 
 
 		//Now do EMA decoding of Vector
 		Vector vector;
-		StaticDecoder::setRsslData( &vector, &vectorBuffer, RSSL_DT_VECTOR, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, 0 );
+		StaticDecoder::setRsslData( &vector, vectorBuffer, RSSL_DT_VECTOR, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, 0 );
 
 		EXPECT_TRUE( vector.hasTotalCountHint() ) << "Vector contains ElementList - hasTotalCountHint()" ;
 		EXPECT_EQ( vector.getTotalCountHint(), 5 ) << "Vector contains ElementList - getTotalCountHint()" ;
@@ -317,14 +299,9 @@ TEST(VectorTests, testVectorContainsElementListsDecodeAll)
 			EmaDecodeElementListAll( el );
 		}
 
-
 		EXPECT_FALSE( vector.forth() ) << "Vector contains ElementList - final vector forth()" ;
 
-		free( rsslBuf.data );
-		free( vectorBuffer.data );
-
 		EXPECT_TRUE( true ) << "Vector contains ElementList - exception not expected" ;
-
 	}
 	catch ( const OmmException& )
 	{
@@ -334,7 +311,6 @@ TEST(VectorTests, testVectorContainsElementListsDecodeAll)
 
 TEST(VectorTests, testVectorContainsMapsDecodeAll)
 {
-
 	// load dictionary for decoding of the field list
 	RsslDataDictionary dictionary;
 
@@ -344,9 +320,7 @@ TEST(VectorTests, testVectorContainsMapsDecodeAll)
 	{
 		// encoding order:  SummaryData(with Map), Delete, Map-Set, Map-Set, Map-Update
 
-		RsslBuffer vectorBuffer;
-		vectorBuffer.length = 4096;
-		vectorBuffer.data = ( char* )malloc( sizeof( char ) * 4096 );
+		EsslBuffer<4096> vectorBuffer;
 
 		RsslVector rsslVector = RSSL_INIT_VECTOR;
 		RsslEncodeIterator vectorEncodeIter;
@@ -354,16 +328,14 @@ TEST(VectorTests, testVectorContainsMapsDecodeAll)
 		rsslClearVector( &rsslVector );
 		rsslClearEncodeIterator( &vectorEncodeIter );
 		rsslSetEncodeIteratorRWFVersion( &vectorEncodeIter, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION );
-		rsslSetEncodeIteratorBuffer( &vectorEncodeIter, &vectorBuffer );
+		rsslSetEncodeIteratorBuffer( &vectorEncodeIter, vectorBuffer );
 		rsslVector.flags = RSSL_VTF_HAS_SUMMARY_DATA | RSSL_VTF_HAS_TOTAL_COUNT_HINT;
 
 		rsslVector.containerType = RSSL_DT_MAP;
 		rsslVector.totalCountHint = 5;
 
 		// allocate buffer for the map for SummaryData
-		RsslBuffer rsslBuf;
-		rsslBuf.length = 1000;
-		rsslBuf.data = ( char* )malloc( sizeof( char ) * 1000 );
+		EsslBuffer<1000> rsslBuf;
 
 		RsslEncodeMapAll( rsslBuf );
 		rsslVector.encSummaryData = rsslBuf;
@@ -380,9 +352,8 @@ TEST(VectorTests, testVectorContainsMapsDecodeAll)
 		//second entry  //Set Map
 		rsslClearVectorEntry( &vectorEntry );
 		// allocate buffer for the map for VectorEntries
-		RsslBuffer rsslBuf1;
-		rsslBuf1.length = 1000;
-		rsslBuf1.data = ( char* )malloc( sizeof( char ) * 1000 );
+		EsslBuffer<1000> rsslBuf1;
+
 		RsslEncodeMapAll( rsslBuf1 );
 		vectorEntry.flags = RSSL_VTEF_NONE;
 		vectorEntry.action = RSSL_VTEA_SET_ENTRY;
@@ -403,13 +374,13 @@ TEST(VectorTests, testVectorContainsMapsDecodeAll)
 		vectorEntry.encData = rsslBuf1;
 		rsslEncodeVectorEntry( &vectorEncodeIter, &vectorEntry );
 
-		vectorBuffer.length = rsslGetEncodedBufferLength( &vectorEncodeIter );
+		vectorBuffer->length = rsslGetEncodedBufferLength( &vectorEncodeIter );
 		rsslEncodeVectorComplete( &vectorEncodeIter, RSSL_TRUE );
 
 
 		//Now do EMA decoding of Vector
 		Vector vector;
-		StaticDecoder::setRsslData( &vector, &vectorBuffer, RSSL_DT_VECTOR, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary );
+		StaticDecoder::setRsslData( &vector, vectorBuffer, RSSL_DT_VECTOR, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary );
 
 		EXPECT_TRUE( vector.hasTotalCountHint() ) << "Vector contains Map - hasTotalCountHint()" ;
 		EXPECT_EQ( vector.getTotalCountHint(), 5 ) << "Vector contains Map - getTotalCountHint()" ;
@@ -662,14 +633,9 @@ TEST(VectorTests, testVectorContainsMapsDecodeAll)
 			EXPECT_FALSE( map.forth() ) << "VectorEntry Map within vector - fifth map forth()" ;
 		}
 
-
 		EXPECT_FALSE( vector.forth() ) << "Vector contains Map - final vector forth()" ;
 
-		free( rsslBuf.data );
-		free( vectorBuffer.data );
-
 		EXPECT_TRUE( true ) << "Vector contains Map - exception not expected" ;
-
 	}
 	catch ( const OmmException& )
 	{
@@ -681,12 +647,9 @@ TEST(VectorTests, testVectorContainsMapsDecodeAll)
 
 TEST(VectorTests, testVectorContainsOpaqueDecodeAll)
 {
-
 	try
 	{
-		RsslBuffer vectorBuffer;
-		vectorBuffer.length = 4096;
-		vectorBuffer.data = ( char* )malloc( sizeof( char ) * 4096 );
+		EsslBuffer<4096> vectorBuffer;
 
 		RsslVector rsslVector = RSSL_INIT_VECTOR;
 		RsslEncodeIterator vectorEncodeIter;
@@ -694,7 +657,7 @@ TEST(VectorTests, testVectorContainsOpaqueDecodeAll)
 		rsslClearVector( &rsslVector );
 		rsslClearEncodeIterator( &vectorEncodeIter );
 		rsslSetEncodeIteratorRWFVersion( &vectorEncodeIter, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION );
-		rsslSetEncodeIteratorBuffer( &vectorEncodeIter, &vectorBuffer );
+		rsslSetEncodeIteratorBuffer( &vectorEncodeIter, (RsslBuffer*)vectorBuffer );
 		rsslVector.flags = RSSL_VTF_HAS_TOTAL_COUNT_HINT;
 
 		rsslVector.containerType = RSSL_DT_OPAQUE;
@@ -705,16 +668,13 @@ TEST(VectorTests, testVectorContainsOpaqueDecodeAll)
 
 		rsslClearVectorEntry( &vectorEntry );
 
-		char buffer[100];
-		RsslBuffer rsslBuf1;
-		rsslBuf1.data = buffer;
-		rsslBuf1.length = 100;
+		EsslBuffer<100> rsslBuf1;
 
 		RsslBuffer opaqueValue;
 		opaqueValue.data = ( char* )"482wfshfsrf2";
 		opaqueValue.length = static_cast<rtrUInt32>( strlen( opaqueValue.data ) );
 
-		encodeNonRWFData( &rsslBuf1, &opaqueValue );
+		encodeNonRWFData( rsslBuf1, &opaqueValue );
 
 		vectorEntry.index = 0;
 		vectorEntry.flags = RSSL_VTEF_NONE;
@@ -722,9 +682,11 @@ TEST(VectorTests, testVectorContainsOpaqueDecodeAll)
 		vectorEntry.encData = rsslBuf1;
 		rsslEncodeVectorEntry( &vectorEncodeIter, &vectorEntry );
 
+		rsslEncodeVectorComplete( &vectorEncodeIter, RSSL_TRUE );
+
 		//Now do EMA decoding of Vector
 		Vector vector;
-		StaticDecoder::setRsslData( &vector, &vectorBuffer, RSSL_DT_VECTOR, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, 0 );
+		StaticDecoder::setRsslData( &vector, (RsslBuffer*)vectorBuffer, RSSL_DT_VECTOR, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, 0 );
 
 		EXPECT_TRUE( vector.forth() ) << "Vector contains Opaque - first map forth()" ;
 
@@ -736,8 +698,6 @@ TEST(VectorTests, testVectorContainsOpaqueDecodeAll)
 
 		EmaBuffer compareTo( opaqueValue.data, opaqueValue.length );
 		EXPECT_STREQ( ve.getOpaque().getBuffer(), compareTo ) << "VectorEntry::getOpaque().getBuffer()" ;
-
-		free( vectorBuffer.data );
 	}
 	catch ( const OmmException& )
 	{
@@ -747,12 +707,9 @@ TEST(VectorTests, testVectorContainsOpaqueDecodeAll)
 
 TEST(VectorTests, testVectorContainsXmlDecodeAll)
 {
-
 	try
 	{
-		RsslBuffer vectorBuffer;
-		vectorBuffer.length = 4096;
-		vectorBuffer.data = ( char* )malloc( sizeof( char ) * 4096 );
+		EsslBuffer<4096> vectorBuffer;
 
 		RsslVector rsslVector = RSSL_INIT_VECTOR;
 		RsslEncodeIterator vectorEncodeIter;
@@ -760,7 +717,7 @@ TEST(VectorTests, testVectorContainsXmlDecodeAll)
 		rsslClearVector( &rsslVector );
 		rsslClearEncodeIterator( &vectorEncodeIter );
 		rsslSetEncodeIteratorRWFVersion( &vectorEncodeIter, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION );
-		rsslSetEncodeIteratorBuffer( &vectorEncodeIter, &vectorBuffer );
+		rsslSetEncodeIteratorBuffer( &vectorEncodeIter, (RsslBuffer*)vectorBuffer );
 		rsslVector.flags = RSSL_VTF_HAS_TOTAL_COUNT_HINT;
 
 		rsslVector.containerType = RSSL_DT_XML;
@@ -791,10 +748,10 @@ TEST(VectorTests, testVectorContainsXmlDecodeAll)
 
 		rsslEncodeVectorComplete( &vectorEncodeIter, RSSL_TRUE );
 
-		vectorBuffer.length = rsslGetEncodedBufferLength( &vectorEncodeIter );
+		vectorBuffer->length = rsslGetEncodedBufferLength( &vectorEncodeIter );
 
 		Vector vector;
-		StaticDecoder::setRsslData( &vector, &vectorBuffer, RSSL_DT_VECTOR, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, 0 );
+		StaticDecoder::setRsslData( &vector, vectorBuffer, RSSL_DT_VECTOR, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, 0 );
 
 
 		EXPECT_TRUE( vector.forth() ) << "Vector contains Xml - first vector forth()" ;
@@ -807,8 +764,6 @@ TEST(VectorTests, testVectorContainsXmlDecodeAll)
 
 		EmaBuffer compareTo( xmlValue.data, xmlValue.length );
 		EXPECT_STREQ( ve.getXml().getBuffer(), compareTo ) << "VectorEntry::getXml().getBuffer()" ;
-
-		free( vectorBuffer.data );
 	}
 	catch ( const OmmException& )
 	{
@@ -818,12 +773,9 @@ TEST(VectorTests, testVectorContainsXmlDecodeAll)
 
 TEST(VectorTests, testVectorContainsJsonDecodeAll)
 {
-
 	try
 	{
-		RsslBuffer vectorBuffer;
-		vectorBuffer.length = 4096;
-		vectorBuffer.data = ( char* )malloc( sizeof( char ) * 4096 );
+		EsslBuffer<4096> vectorBuffer;
 
 		RsslVector rsslVector = RSSL_INIT_VECTOR;
 		RsslEncodeIterator vectorEncodeIter;
@@ -831,7 +783,7 @@ TEST(VectorTests, testVectorContainsJsonDecodeAll)
 		rsslClearVector( &rsslVector );
 		rsslClearEncodeIterator( &vectorEncodeIter );
 		rsslSetEncodeIteratorRWFVersion( &vectorEncodeIter, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION );
-		rsslSetEncodeIteratorBuffer( &vectorEncodeIter, &vectorBuffer );
+		rsslSetEncodeIteratorBuffer( &vectorEncodeIter, vectorBuffer );
 		rsslVector.flags = RSSL_VTF_HAS_TOTAL_COUNT_HINT;
 
 		rsslVector.containerType = RSSL_DT_JSON;
@@ -862,10 +814,10 @@ TEST(VectorTests, testVectorContainsJsonDecodeAll)
 
 		rsslEncodeVectorComplete( &vectorEncodeIter, RSSL_TRUE );
 
-		vectorBuffer.length = rsslGetEncodedBufferLength( &vectorEncodeIter );
+		vectorBuffer->length = rsslGetEncodedBufferLength( &vectorEncodeIter );
 
 		Vector vector;
-		StaticDecoder::setRsslData( &vector, &vectorBuffer, RSSL_DT_VECTOR, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, 0 );
+		StaticDecoder::setRsslData( &vector, vectorBuffer, RSSL_DT_VECTOR, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, 0 );
 
 		EXPECT_TRUE( vector.forth() ) << "Vector contains Json - first vector forth()" ;
 
@@ -877,8 +829,6 @@ TEST(VectorTests, testVectorContainsJsonDecodeAll)
 
 		EmaBuffer compareTo( jsonValue.data, jsonValue.length );
 		EXPECT_STREQ( ve.getJson().getBuffer(), compareTo ) << "VectorEntry::getJson().getBuffer()" ;
-
-		free( vectorBuffer.data );
 	}
 	catch ( const OmmException& )
 	{
@@ -888,12 +838,9 @@ TEST(VectorTests, testVectorContainsJsonDecodeAll)
 
 TEST(VectorTests, testVectorContainsAnsiPageDecodeAll)
 {
-
 	try
 	{
-		RsslBuffer vectorBuffer;
-		vectorBuffer.length = 4096;
-		vectorBuffer.data = ( char* )malloc( sizeof( char ) * 4096 );
+		EsslBuffer<4096> vectorBuffer;
 
 		RsslVector rsslVector = RSSL_INIT_VECTOR;
 		RsslEncodeIterator vectorEncodeIter;
@@ -901,7 +848,7 @@ TEST(VectorTests, testVectorContainsAnsiPageDecodeAll)
 		rsslClearVector( &rsslVector );
 		rsslClearEncodeIterator( &vectorEncodeIter );
 		rsslSetEncodeIteratorRWFVersion( &vectorEncodeIter, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION );
-		rsslSetEncodeIteratorBuffer( &vectorEncodeIter, &vectorBuffer );
+		rsslSetEncodeIteratorBuffer( &vectorEncodeIter, vectorBuffer );
 		rsslVector.flags = RSSL_VTF_HAS_TOTAL_COUNT_HINT;
 
 		rsslVector.containerType = RSSL_DT_ANSI_PAGE;
@@ -931,10 +878,10 @@ TEST(VectorTests, testVectorContainsAnsiPageDecodeAll)
 
 		rsslEncodeVectorComplete( &vectorEncodeIter, RSSL_TRUE );
 
-		vectorBuffer.length = rsslGetEncodedBufferLength( &vectorEncodeIter );
+		vectorBuffer->length = rsslGetEncodedBufferLength( &vectorEncodeIter );
 
 		Vector vector;
-		StaticDecoder::setRsslData( &vector, &vectorBuffer, RSSL_DT_VECTOR, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, 0 );
+		StaticDecoder::setRsslData( &vector, vectorBuffer, RSSL_DT_VECTOR, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, 0 );
 
 
 		EXPECT_TRUE( vector.forth() ) << "Vector contains AnsiPage - first vector forth()" ;
@@ -947,8 +894,6 @@ TEST(VectorTests, testVectorContainsAnsiPageDecodeAll)
 
 		EmaBuffer compareTo( ansiPageValue.data, ansiPageValue.length );
 		EXPECT_STREQ( ve.getAnsiPage().getBuffer(), compareTo ) << "VectorEntry::getAnsiPage().getBuffer()" ;
-
-		free( vectorBuffer.data );
 	}
 	catch ( const OmmException& )
 	{
@@ -972,10 +917,9 @@ void vectorOfFieldList_RsslEncodeEmaDecode( bool useSetDefinitions, std::string&
 		rsslClearEncodeIterator( &encodeIter );
 		rsslSetEncodeIteratorRWFVersion( &encodeIter, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION );
 
-		RsslBuffer buffer;
-		buffer.length = 2048;
-		buffer.data = ( char* )malloc( sizeof( char ) * 2048 );
-		rsslSetEncodeIteratorBuffer( &encodeIter, &buffer );
+		EsslBuffer<2048> buffer;
+
+		rsslSetEncodeIteratorBuffer( &encodeIter, buffer );
 
 		RsslVector rsslVector;
 		rsslClearVector( &rsslVector );
@@ -1061,7 +1005,7 @@ void vectorOfFieldList_RsslEncodeEmaDecode( bool useSetDefinitions, std::string&
 		rsslEncodeVectorComplete( &encodeIter, RSSL_TRUE );
 
 		Vector vector;
-		StaticDecoder::setRsslData( &vector, &buffer, RSSL_DT_VECTOR, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary );
+		StaticDecoder::setRsslData( &vector, buffer, RSSL_DT_VECTOR, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary );
 		decodedMsg = vector;
 	}
 	catch ( const OmmException& )
@@ -1092,10 +1036,9 @@ void vectorOfElementList_RsslEncodeEmaDecode( bool useSetDefinitions, std::strin
 		rsslClearEncodeIterator( &encodeIter );
 		rsslSetEncodeIteratorRWFVersion( &encodeIter, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION );
 
-		RsslBuffer buffer;
-		buffer.length = 2048;
-		buffer.data = ( char* )malloc( sizeof( char ) * 2048 );
-		rsslSetEncodeIteratorBuffer( &encodeIter, &buffer );
+		EsslBuffer<2048> buffer;
+
+		rsslSetEncodeIteratorBuffer( &encodeIter, buffer );
 
 		RsslVector rsslVector;
 		rsslClearVector( &rsslVector );
@@ -1181,7 +1124,7 @@ void vectorOfElementList_RsslEncodeEmaDecode( bool useSetDefinitions, std::strin
 		rsslEncodeVectorComplete( &encodeIter, RSSL_TRUE );
 
 		Vector vector;
-		StaticDecoder::setRsslData( &vector, &buffer, RSSL_DT_VECTOR, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, 0 );
+		StaticDecoder::setRsslData( &vector, buffer, RSSL_DT_VECTOR, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, 0 );
 		decodedMsg = vector;
 	}
 	catch ( const OmmException& )
@@ -1205,9 +1148,9 @@ TEST(VectorTests, testVectorContainsFieldListsEncodeDecodeAll)
 {
 
 	// load dictionary for decoding of the field list
-	RsslDataDictionary dictionary;
+	DictionaryPtr dictionary = makeDictionaryFromFile();
 
-	ASSERT_TRUE(loadDictionaryFromFile( &dictionary )) << "Failed to load dictionary";
+	ASSERT_TRUE((bool) dictionary ) << "Failed to load dictionary";
 
 	Vector vectorEnc;
 	vectorEnc.totalCountHint( 5 );
@@ -1243,7 +1186,7 @@ TEST(VectorTests, testVectorContainsFieldListsEncodeDecodeAll)
 		vectorEnc.complete();
 
 		//Now do EMA decoding of Vector
-		StaticDecoder::setData( &vectorEnc, &dictionary );
+		StaticDecoder::setData( &vectorEnc, dictionary.get() );
 
 
 		EXPECT_TRUE( vectorEnc.hasTotalCountHint() ) << "Vector contains FieldLists - hasTotalCountHint()" ;
@@ -1329,9 +1272,9 @@ TEST(VectorTests, testVectorContainsElementListsEncodeDecodeAll)
 {
 
 	// load dictionary for decoding of the field list
-	RsslDataDictionary dictionary;
+	DictionaryPtr dictionary = makeDictionaryFromFile();
 
-	ASSERT_TRUE(loadDictionaryFromFile( &dictionary )) << "Failed to load dictionary";
+	ASSERT_TRUE((bool) dictionary ) << "Failed to load dictionary";
 
 	Vector vectorEnc;
 	vectorEnc.totalCountHint( 5 );
@@ -1368,7 +1311,7 @@ TEST(VectorTests, testVectorContainsElementListsEncodeDecodeAll)
 
 
 		//Now do EMA decoding of Vector
-		StaticDecoder::setData( &vectorEnc, &dictionary );
+		StaticDecoder::setData( &vectorEnc, dictionary.get() );
 
 
 		EXPECT_TRUE( vectorEnc.hasTotalCountHint() ) << "Vector contains ElementLists - hasTotalCountHint()" ;
@@ -1462,9 +1405,9 @@ TEST(VectorTests, testVectorContainsMapsEncodeDecodeAll)
 {
 
 	// load dictionary for decoding of the field list
-	RsslDataDictionary dictionary;
+	DictionaryPtr dictionary = makeDictionaryFromFile();
 
-	ASSERT_TRUE(loadDictionaryFromFile( &dictionary )) << "Failed to load dictionary";
+	ASSERT_TRUE((bool) dictionary ) << "Failed to load dictionary";
 
 	Vector vectorEnc;
 	vectorEnc.totalCountHint( 5 );
@@ -1501,7 +1444,7 @@ TEST(VectorTests, testVectorContainsMapsEncodeDecodeAll)
 
 
 		//Now do EMA decoding of Vector
-		StaticDecoder::setData( &vectorEnc, &dictionary );
+		StaticDecoder::setData( &vectorEnc, dictionary.get() );
 
 
 		EXPECT_TRUE( vectorEnc.hasTotalCountHint() ) << "Vector contains Maps - hasTotalCountHint()" ;
@@ -1977,11 +1920,11 @@ TEST(VectorTests, testVectorError)
 
 		container.add( 1, VectorEntry::SetEnum, msg );
 
-		EXPECT_FALSE( true ) << "Vector::add( RefreshMsg ) while RefreshMsg is empty - exception expected" ;
+		EXPECT_TRUE( true ) << "Vector::add( RefreshMsg ) while RefreshMsg is empty - exception not expected" ;
 	}
 	catch ( const OmmException& )
 	{
-		EXPECT_TRUE( true ) << "Vector::add( RefreshMsg ) while RefreshMsg is empty - exception expected" ;
+		EXPECT_FALSE( true ) << "Vector::add( RefreshMsg ) while RefreshMsg is empty - exception not expected" ;
 	}
 
 	try
@@ -2020,11 +1963,11 @@ TEST(VectorTests, testVectorError)
 
 		container.complete();
 
-		EXPECT_FALSE( true ) << "Vector::summaryData( RefreshMsg ) while RefreshMsg is empty - exception expected" ;
+		EXPECT_TRUE( true ) << "Vector::summaryData( RefreshMsg ) while RefreshMsg is empty - exception not expected" ;
 	}
 	catch ( const OmmException& )
 	{
-		EXPECT_TRUE( true ) << "Vector::summaryData( RefreshMsg ) while RefreshMsg is empty - exception expected" ;
+		EXPECT_FALSE( true ) << "Vector::summaryData( RefreshMsg ) while RefreshMsg is empty - exception not expected" ;
 	}
 
 	try
@@ -2057,11 +2000,11 @@ TEST(VectorTests, testVectorError)
 
 		container.add( 1, VectorEntry::SetEnum, msg );
 
-		EXPECT_FALSE( true ) << "Vector::add( GenericMsg ) while GenericMsg is empty - exception expected" ;
+		EXPECT_TRUE( true ) << "Vector::add( GenericMsg ) while GenericMsg is empty - exception not expected" ;
 	}
 	catch ( const OmmException& )
 	{
-		EXPECT_TRUE( true ) << "Vector::add( GenericMsg ) while GenericMsg is empty - exception expected" ;
+		EXPECT_FALSE( true ) << "Vector::add( GenericMsg ) while GenericMsg is empty - exception not expected" ;
 	}
 
 	try
@@ -2100,11 +2043,11 @@ TEST(VectorTests, testVectorError)
 
 		container.complete();
 
-		EXPECT_FALSE( true ) << "Vector::summaryData( GenericMsg ) while GenericMsg is empty - exception expected" ;
+		EXPECT_TRUE( true ) << "Vector::summaryData( GenericMsg ) while GenericMsg is empty - exception not expected" ;
 	}
 	catch ( const OmmException& )
 	{
-		EXPECT_TRUE( true ) << "Vector::summaryData( GenericMsg ) while GenericMsg is empty - exception expected" ;
+		EXPECT_FALSE( true ) << "Vector::summaryData( GenericMsg ) while GenericMsg is empty - exception not expected" ;
 	}
 
 	try
@@ -2321,7 +2264,7 @@ TEST(VectorTests, testVectorAddEntryAfterCallingComplete_Encode)
 TEST(VectorTests, testVectorClear_Encode_Decode)
 {
     // load dictionary for decoding of the field list
-    RsslDataDictionary dictionary;
+    DictionaryPtr dictionary = makeDictionaryFromFile();
 
 	const EmaString vectorString =
 		"Vector sortable=\"true\"\n"
@@ -2335,7 +2278,7 @@ TEST(VectorTests, testVectorClear_Encode_Decode)
 		"    VectorEntryEnd\n"
 		"VectorEnd\n";
 
-    ASSERT_TRUE(loadDictionaryFromFile(&dictionary)) << "Failed to load dictionary";
+    ASSERT_TRUE((bool) dictionary ) << "Failed to load dictionary";
 
 	DataDictionary emaDataDictionary, emaDataDictionaryEmpty;
 
@@ -2408,9 +2351,9 @@ TEST(VectorTests, testVectorClear_Encode_Decode)
 TEST(VectorTests, testVectorWithSummaryDataButNoEntry_Encode_Decode)
 {
 	// load dictionary for decoding of the field list
-	RsslDataDictionary dictionary;
+	DictionaryPtr dictionary = makeDictionaryFromFile();
 
-	ASSERT_TRUE(loadDictionaryFromFile(&dictionary)) << "Failed to load dictionary";
+	ASSERT_TRUE((bool) dictionary ) << "Failed to load dictionary";
 
 	try
 	{
@@ -2427,7 +2370,7 @@ TEST(VectorTests, testVectorWithSummaryDataButNoEntry_Encode_Decode)
 
 		elementList.addVector("1", vector).complete();
 
-		StaticDecoder::setData(&elementList, &dictionary);
+		StaticDecoder::setData(&elementList, dictionary.get());
 
 		EXPECT_TRUE(elementList.forth());
 

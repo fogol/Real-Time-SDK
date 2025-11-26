@@ -2,7 +2,7 @@
  *|            This source code is provided under the Apache 2.0 license
  *|  and is provided AS IS with no warranty or guarantee of fit for purpose.
  *|                See the project's LICENSE.md for details.
- *|           Copyright (C) 2018-2020,2023-2024 LSEG. All rights reserved.
+ *|           Copyright (C) 2018-2025 LSEG. All rights reserved.
  *|-----------------------------------------------------------------------------
  */
 
@@ -24,9 +24,7 @@ TEST(SeriesTests, testSeriesContainsFieldListsDecodeAll)
 	{
 		// encoding order:  SummaryData(with FieldList), Empty, FieldList, FieldList, FieldList
 
-		RsslBuffer seriesBuffer;
-		seriesBuffer.length = 4096;
-		seriesBuffer.data = ( char* )malloc( sizeof( char ) * 4096 );
+		EsslBuffer<4096> seriesBuffer;
 
 		RsslSeries rsslSeries;
 		RsslEncodeIterator seriesEncodeIter;
@@ -34,16 +32,14 @@ TEST(SeriesTests, testSeriesContainsFieldListsDecodeAll)
 		rsslClearSeries( &rsslSeries );
 		rsslClearEncodeIterator( &seriesEncodeIter );
 		rsslSetEncodeIteratorRWFVersion( &seriesEncodeIter, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION );
-		rsslSetEncodeIteratorBuffer( &seriesEncodeIter, &seriesBuffer );
+		rsslSetEncodeIteratorBuffer( &seriesEncodeIter, seriesBuffer );
 		rsslSeries.flags = RSSL_SRF_HAS_SUMMARY_DATA | RSSL_SRF_HAS_TOTAL_COUNT_HINT;
 
 		rsslSeries.containerType = RSSL_DT_FIELD_LIST;
 		rsslSeries.totalCountHint = 5;
 
 		// allocate buffer for the field list for SummaryData
-		RsslBuffer rsslBuf;
-		rsslBuf.length = 1000;
-		rsslBuf.data = ( char* )malloc( sizeof( char ) * 1000 );
+		EsslBuffer<1000> rsslBuf;
 
 		RsslEncodeFieldListAll( rsslBuf );
 		rsslSeries.encSummaryData = rsslBuf;
@@ -54,18 +50,16 @@ TEST(SeriesTests, testSeriesContainsFieldListsDecodeAll)
 		//first entry  //FieldList
 		rsslClearSeriesEntry( &seriesEntry );
 		// allocate buffer for the field list for SeriesEntries
-		RsslBuffer rsslBuf1;
-		rsslBuf1.length = 1000;
-		rsslBuf1.data = ( char* )malloc( sizeof( char ) * 1000 );
+		EsslBuffer<1000> rsslBuf1;
+
 		RsslEncodeFieldListAll( rsslBuf1 );
 		seriesEntry.encData = rsslBuf1;
 		rsslEncodeSeriesEntry( &seriesEncodeIter, &seriesEntry );
 
 		//second entry  //FieldList
 		rsslClearSeriesEntry( &seriesEntry );
-		RsslBuffer rsslBuf2;
-		rsslBuf2.length = 1000;
-		rsslBuf2.data = ( char* )malloc( sizeof( char ) * 1000 );
+		EsslBuffer<1000> rsslBuf2;
+
 		RsslEncodeFieldListAll( rsslBuf2 );
 		seriesEntry.encData = rsslBuf2;
 		rsslEncodeSeriesEntry( &seriesEncodeIter, &seriesEntry );
@@ -75,13 +69,13 @@ TEST(SeriesTests, testSeriesContainsFieldListsDecodeAll)
 		seriesEntry.encData = rsslBuf1;
 		rsslEncodeSeriesEntry( &seriesEncodeIter, &seriesEntry );
 
-		seriesBuffer.length = rsslGetEncodedBufferLength( &seriesEncodeIter );
+		seriesBuffer->length = rsslGetEncodedBufferLength( &seriesEncodeIter );
 		rsslEncodeSeriesComplete( &seriesEncodeIter, RSSL_TRUE );
 
 
 		//Now do EMA decoding of Series
 		Series series;
-		StaticDecoder::setRsslData( &series, &seriesBuffer, RSSL_DT_SERIES, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary );
+		StaticDecoder::setRsslData( &series, seriesBuffer, RSSL_DT_SERIES, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary );
 
 		EXPECT_TRUE( series.hasTotalCountHint() ) << "Series contains FieldList - hasTotalCountHint()" ;
 		EXPECT_EQ( series.getTotalCountHint(), 5 ) << "Series contains FieldList - getTotalCountHint()" ;
@@ -166,9 +160,6 @@ TEST(SeriesTests, testSeriesContainsFieldListsDecodeAll)
 
 		EXPECT_FALSE( series.forth() ) << "Series contains FieldList - final series forth()" ;
 
-		free( rsslBuf.data );
-		free( seriesBuffer.data );
-
 		EXPECT_TRUE( true ) << "Series contains FieldList - exception not expected" ;
 
 	}
@@ -192,9 +183,7 @@ TEST(SeriesTests, testSeriesContainsElementListsDecodeAll)
 	{
 		// encoding order:  SummaryData(with ElementList), Empty, ElementList, ElementList, ElementList
 
-		RsslBuffer seriesBuffer;
-		seriesBuffer.length = 4096;
-		seriesBuffer.data = ( char* )malloc( sizeof( char ) * 4096 );
+		EsslBuffer<4096> seriesBuffer;
 
 		RsslSeries rsslSeries = RSSL_INIT_SERIES;
 		RsslEncodeIterator seriesEncodeIter;
@@ -202,16 +191,14 @@ TEST(SeriesTests, testSeriesContainsElementListsDecodeAll)
 		rsslClearSeries( &rsslSeries );
 		rsslClearEncodeIterator( &seriesEncodeIter );
 		rsslSetEncodeIteratorRWFVersion( &seriesEncodeIter, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION );
-		rsslSetEncodeIteratorBuffer( &seriesEncodeIter, &seriesBuffer );
+		rsslSetEncodeIteratorBuffer( &seriesEncodeIter, seriesBuffer );
 		rsslSeries.flags = RSSL_SRF_HAS_SUMMARY_DATA | RSSL_SRF_HAS_TOTAL_COUNT_HINT;
 
 		rsslSeries.containerType = RSSL_DT_ELEMENT_LIST;
 		rsslSeries.totalCountHint = 5;
 
 		// allocate buffer for the element list for SummaryData
-		RsslBuffer rsslBuf;
-		rsslBuf.length = 1000;
-		rsslBuf.data = ( char* )malloc( sizeof( char ) * 1000 );
+		EsslBuffer<1000> rsslBuf;
 
 		RsslEncodeElementListAll( rsslBuf );
 		rsslSeries.encSummaryData = rsslBuf;
@@ -222,18 +209,16 @@ TEST(SeriesTests, testSeriesContainsElementListsDecodeAll)
 		//first entry  //ElementList
 		rsslClearSeriesEntry( &seriesEntry );
 		// allocate buffer for the element list for SeriesEntries
-		RsslBuffer rsslBuf1;
-		rsslBuf1.length = 1000;
-		rsslBuf1.data = ( char* )malloc( sizeof( char ) * 1000 );
+		EsslBuffer<1000> rsslBuf1;
+
 		RsslEncodeElementListAll( rsslBuf1 );
 		seriesEntry.encData = rsslBuf1;
 		rsslEncodeSeriesEntry( &seriesEncodeIter, &seriesEntry );
 
 		//second entry  //ElementList
 		rsslClearSeriesEntry( &seriesEntry );
-		RsslBuffer rsslBuf2;
-		rsslBuf2.length = 1000;
-		rsslBuf2.data = ( char* )malloc( sizeof( char ) * 1000 );
+		EsslBuffer<1000> rsslBuf2;
+
 		RsslEncodeElementListAll( rsslBuf2 );
 		seriesEntry.encData = rsslBuf2;
 		rsslEncodeSeriesEntry( &seriesEncodeIter, &seriesEntry );
@@ -243,13 +228,13 @@ TEST(SeriesTests, testSeriesContainsElementListsDecodeAll)
 		seriesEntry.encData = rsslBuf1;
 		rsslEncodeSeriesEntry( &seriesEncodeIter, &seriesEntry );
 
-		seriesBuffer.length = rsslGetEncodedBufferLength( &seriesEncodeIter );
+		seriesBuffer->length = rsslGetEncodedBufferLength( &seriesEncodeIter );
 		rsslEncodeSeriesComplete( &seriesEncodeIter, RSSL_TRUE );
 
 
 		//Now do EMA decoding of Series
 		Series series;
-		StaticDecoder::setRsslData( &series, &seriesBuffer, RSSL_DT_SERIES, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary );
+		StaticDecoder::setRsslData( &series, seriesBuffer, RSSL_DT_SERIES, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary );
 
 		EXPECT_TRUE( series.hasTotalCountHint() ) << "Series contains ElementList - hasTotalCountHint()" ;
 		EXPECT_EQ( series.getTotalCountHint(), 5 ) << "Series contains ElementList - getTotalCountHint()" ;
@@ -313,11 +298,7 @@ TEST(SeriesTests, testSeriesContainsElementListsDecodeAll)
 			EmaDecodeElementListAll( el );
 		}
 
-
 		EXPECT_FALSE( series.forth() ) << "Series contains ElementList - final series forth()" ;
-
-		free( rsslBuf.data );
-		free( seriesBuffer.data );
 
 		EXPECT_TRUE( true ) << "Series contains ElementList - exception not expected" ;
 
@@ -342,9 +323,7 @@ TEST(SeriesTests, testSeriesContainsMapsDecodeAll)
 	{
 		// encoding order:  SummaryData(with Map), Empty, Map, Map, Map
 
-		RsslBuffer seriesBuffer;
-		seriesBuffer.length = 4096;
-		seriesBuffer.data = ( char* )malloc( sizeof( char ) * 4096 );
+		EsslBuffer<4096> seriesBuffer;
 
 		RsslSeries rsslSeries = RSSL_INIT_SERIES;
 		RsslEncodeIterator seriesEncodeIter;
@@ -352,16 +331,14 @@ TEST(SeriesTests, testSeriesContainsMapsDecodeAll)
 		rsslClearSeries( &rsslSeries );
 		rsslClearEncodeIterator( &seriesEncodeIter );
 		rsslSetEncodeIteratorRWFVersion( &seriesEncodeIter, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION );
-		rsslSetEncodeIteratorBuffer( &seriesEncodeIter, &seriesBuffer );
+		rsslSetEncodeIteratorBuffer( &seriesEncodeIter, seriesBuffer );
 		rsslSeries.flags = RSSL_SRF_HAS_SUMMARY_DATA | RSSL_SRF_HAS_TOTAL_COUNT_HINT;
 
 		rsslSeries.containerType = RSSL_DT_MAP;
 		rsslSeries.totalCountHint = 5;
 
 		// allocate buffer for the map for SummaryData
-		RsslBuffer rsslBuf;
-		rsslBuf.length = 1000;
-		rsslBuf.data = ( char* )malloc( sizeof( char ) * 1000 );
+		EsslBuffer<1000> rsslBuf;
 
 		RsslEncodeMapAll( rsslBuf );
 		rsslSeries.encSummaryData = rsslBuf;
@@ -376,18 +353,16 @@ TEST(SeriesTests, testSeriesContainsMapsDecodeAll)
 		//second entry  //Map
 		rsslClearSeriesEntry( &seriesEntry );
 		// allocate buffer for the element list for SeriesEntries
-		RsslBuffer rsslBuf1;
-		rsslBuf1.length = 1000;
-		rsslBuf1.data = ( char* )malloc( sizeof( char ) * 1000 );
+		EsslBuffer<1000> rsslBuf1;
+
 		RsslEncodeMapAll( rsslBuf1 );
 		seriesEntry.encData = rsslBuf1;
 		rsslEncodeSeriesEntry( &seriesEncodeIter, &seriesEntry );
 
 		//third entry  //Map
 		rsslClearSeriesEntry( &seriesEntry );
-		RsslBuffer rsslBuf2;
-		rsslBuf2.length = 1000;
-		rsslBuf2.data = ( char* )malloc( sizeof( char ) * 1000 );
+		EsslBuffer<1000> rsslBuf2;
+
 		RsslEncodeMapAll( rsslBuf2 );
 		seriesEntry.encData = rsslBuf2;
 		rsslEncodeSeriesEntry( &seriesEncodeIter, &seriesEntry );
@@ -397,13 +372,13 @@ TEST(SeriesTests, testSeriesContainsMapsDecodeAll)
 		seriesEntry.encData = rsslBuf1;
 		rsslEncodeSeriesEntry( &seriesEncodeIter, &seriesEntry );
 
-		seriesBuffer.length = rsslGetEncodedBufferLength( &seriesEncodeIter );
+		seriesBuffer->length = rsslGetEncodedBufferLength( &seriesEncodeIter );
 		rsslEncodeSeriesComplete( &seriesEncodeIter, RSSL_TRUE );
 
 
 		//Now do EMA decoding of Series
 		Series series;
-		StaticDecoder::setRsslData( &series, &seriesBuffer, RSSL_DT_SERIES, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary );
+		StaticDecoder::setRsslData( &series, seriesBuffer, RSSL_DT_SERIES, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary );
 
 		EXPECT_TRUE( series.hasTotalCountHint() ) << "Series contains Map - hasTotalCountHint()" ;
 		EXPECT_EQ( series.getTotalCountHint(), 5 ) << "Series contains Map - getTotalCountHint()" ;
@@ -660,11 +635,7 @@ TEST(SeriesTests, testSeriesContainsMapsDecodeAll)
 			EXPECT_FALSE( map.forth() ) << "SeriesEntry Map within series - fifth map forth()" ;
 		}
 
-
 		EXPECT_FALSE( series.forth() ) << "Series contains Map - final series forth()" ;
-
-		free( rsslBuf.data );
-		free( seriesBuffer.data );
 
 		EXPECT_TRUE( true ) << "Series contains Map - exception not expected" ;
 
@@ -684,10 +655,7 @@ TEST(SeriesTests, testSeriesContainsOpaqueDecodeAll)
 
 	try
 	{
-
-		RsslBuffer seriesBuffer;
-		seriesBuffer.length = 4096;
-		seriesBuffer.data = ( char* )malloc( sizeof( char ) * 4096 );
+		EsslBuffer<4096> seriesBuffer;
 
 		RsslSeries rsslSeries = RSSL_INIT_SERIES;
 		RsslEncodeIterator seriesEncodeIter;
@@ -695,13 +663,14 @@ TEST(SeriesTests, testSeriesContainsOpaqueDecodeAll)
 		rsslClearSeries( &rsslSeries );
 		rsslClearEncodeIterator( &seriesEncodeIter );
 		rsslSetEncodeIteratorRWFVersion( &seriesEncodeIter, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION );
-		rsslSetEncodeIteratorBuffer( &seriesEncodeIter, &seriesBuffer );
+		rsslSetEncodeIteratorBuffer( &seriesEncodeIter, seriesBuffer );
 		rsslSeries.flags = RSSL_SRF_HAS_TOTAL_COUNT_HINT;
 
 		rsslSeries.containerType = RSSL_DT_OPAQUE;
 		rsslSeries.totalCountHint = 1;
 
 		RsslRet ret = rsslEncodeSeriesInit( &seriesEncodeIter, &rsslSeries, 0, 0 );
+		EXPECT_EQ(ret, RSSL_RET_SUCCESS);
 		RsslSeriesEntry seriesEntry;
 
 		rsslClearSeriesEntry( &seriesEntry );
@@ -723,10 +692,10 @@ TEST(SeriesTests, testSeriesContainsOpaqueDecodeAll)
 
 		ret = rsslEncodeSeriesComplete( &seriesEncodeIter, RSSL_TRUE );
 
-		seriesBuffer.length = rsslGetEncodedBufferLength( &seriesEncodeIter );
+		seriesBuffer->length = rsslGetEncodedBufferLength( &seriesEncodeIter );
 
 		Series series;
-		StaticDecoder::setRsslData( &series, &seriesBuffer, RSSL_DT_SERIES, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary );
+		StaticDecoder::setRsslData( &series, seriesBuffer, RSSL_DT_SERIES, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary );
 
 		EXPECT_TRUE( series.forth() ) << "Series contains Opaque - first forth()" ;
 
@@ -749,9 +718,7 @@ TEST(SeriesTests, testSeriesContainsXmlDecodeAll)
 
 	try
 	{
-		RsslBuffer seriesBuffer;
-		seriesBuffer.length = 4096;
-		seriesBuffer.data = ( char* )malloc( sizeof( char ) * 4096 );
+		EsslBuffer<4096> seriesBuffer;
 
 		RsslSeries rsslSeries = RSSL_INIT_SERIES;
 		RsslEncodeIterator seriesEncodeIter;
@@ -759,13 +726,15 @@ TEST(SeriesTests, testSeriesContainsXmlDecodeAll)
 		rsslClearSeries( &rsslSeries );
 		rsslClearEncodeIterator( &seriesEncodeIter );
 		rsslSetEncodeIteratorRWFVersion( &seriesEncodeIter, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION );
-		rsslSetEncodeIteratorBuffer( &seriesEncodeIter, &seriesBuffer );
+		rsslSetEncodeIteratorBuffer( &seriesEncodeIter, seriesBuffer );
 		rsslSeries.flags = RSSL_SRF_HAS_TOTAL_COUNT_HINT;
 
 		rsslSeries.containerType = RSSL_DT_XML;
 		rsslSeries.totalCountHint = 1;
 
 		RsslRet ret = rsslEncodeSeriesInit( &seriesEncodeIter, &rsslSeries, 0, 0 );
+		EXPECT_EQ(ret, RSSL_RET_SUCCESS);
+
 		RsslSeriesEntry seriesEntry;
 
 		rsslClearSeriesEntry( &seriesEntry );
@@ -787,10 +756,10 @@ TEST(SeriesTests, testSeriesContainsXmlDecodeAll)
 
 		ret = rsslEncodeSeriesComplete( &seriesEncodeIter, RSSL_TRUE );
 
-		seriesBuffer.length = rsslGetEncodedBufferLength( &seriesEncodeIter );
+		seriesBuffer->length = rsslGetEncodedBufferLength( &seriesEncodeIter );
 
 		Series series;
-		StaticDecoder::setRsslData( &series, &seriesBuffer, RSSL_DT_SERIES, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary );
+		StaticDecoder::setRsslData( &series, seriesBuffer, RSSL_DT_SERIES, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary );
 
 		EXPECT_TRUE( series.forth() ) << "Series contains Xml - first forth()" ;
 
@@ -814,9 +783,7 @@ TEST(SeriesTests, testSeriesContainsJsonDecodeAll)
 
 	try
 	{
-		RsslBuffer seriesBuffer;
-		seriesBuffer.length = 4096;
-		seriesBuffer.data = ( char* )malloc( sizeof( char ) * 4096 );
+		EsslBuffer<4096> seriesBuffer;
 
 		RsslSeries rsslSeries = RSSL_INIT_SERIES;
 		RsslEncodeIterator seriesEncodeIter;
@@ -824,13 +791,15 @@ TEST(SeriesTests, testSeriesContainsJsonDecodeAll)
 		rsslClearSeries( &rsslSeries );
 		rsslClearEncodeIterator( &seriesEncodeIter );
 		rsslSetEncodeIteratorRWFVersion( &seriesEncodeIter, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION );
-		rsslSetEncodeIteratorBuffer( &seriesEncodeIter, &seriesBuffer );
+		rsslSetEncodeIteratorBuffer( &seriesEncodeIter, seriesBuffer );
 		rsslSeries.flags = RSSL_SRF_HAS_TOTAL_COUNT_HINT;
 
 		rsslSeries.containerType = RSSL_DT_JSON;
 		rsslSeries.totalCountHint = 1;
 
 		RsslRet ret = rsslEncodeSeriesInit( &seriesEncodeIter, &rsslSeries, 0, 0 );
+		EXPECT_EQ(ret, RSSL_RET_SUCCESS);
+
 		RsslSeriesEntry seriesEntry;
 
 		rsslClearSeriesEntry( &seriesEntry );
@@ -852,10 +821,10 @@ TEST(SeriesTests, testSeriesContainsJsonDecodeAll)
 
 		ret = rsslEncodeSeriesComplete( &seriesEncodeIter, RSSL_TRUE );
 
-		seriesBuffer.length = rsslGetEncodedBufferLength( &seriesEncodeIter );
+		seriesBuffer->length = rsslGetEncodedBufferLength( &seriesEncodeIter );
 
 		Series series;
-		StaticDecoder::setRsslData( &series, &seriesBuffer, RSSL_DT_SERIES, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary );
+		StaticDecoder::setRsslData( &series, seriesBuffer, RSSL_DT_SERIES, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary );
 
 		EXPECT_TRUE( series.forth() ) << "Series contains Json - first forth()" ;
 
@@ -879,10 +848,7 @@ TEST(SeriesTests, testSeriesContainsAnsiPageDecodeAll)
 
 	try
 	{
-
-		RsslBuffer seriesBuffer;
-		seriesBuffer.length = 4096;
-		seriesBuffer.data = ( char* )malloc( sizeof( char ) * 4096 );
+		EsslBuffer<4096> seriesBuffer;
 
 		RsslSeries rsslSeries = RSSL_INIT_SERIES;
 		RsslEncodeIterator seriesEncodeIter;
@@ -890,7 +856,7 @@ TEST(SeriesTests, testSeriesContainsAnsiPageDecodeAll)
 		rsslClearSeries( &rsslSeries );
 		rsslClearEncodeIterator( &seriesEncodeIter );
 		rsslSetEncodeIteratorRWFVersion( &seriesEncodeIter, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION );
-		rsslSetEncodeIteratorBuffer( &seriesEncodeIter, &seriesBuffer );
+		rsslSetEncodeIteratorBuffer( &seriesEncodeIter, seriesBuffer );
 		rsslSeries.flags = RSSL_SRF_HAS_TOTAL_COUNT_HINT;
 
 		rsslSeries.containerType = RSSL_DT_ANSI_PAGE;
@@ -899,6 +865,8 @@ TEST(SeriesTests, testSeriesContainsAnsiPageDecodeAll)
 		// allocate buffer for the map for SummaryData
 
 		RsslRet ret = rsslEncodeSeriesInit( &seriesEncodeIter, &rsslSeries, 0, 0 );
+		EXPECT_EQ(ret, RSSL_RET_SUCCESS);
+
 		RsslSeriesEntry seriesEntry;
 
 		//first entry  //Empty Map
@@ -921,10 +889,10 @@ TEST(SeriesTests, testSeriesContainsAnsiPageDecodeAll)
 
 		ret = rsslEncodeSeriesComplete( &seriesEncodeIter, RSSL_TRUE );
 
-		seriesBuffer.length = rsslGetEncodedBufferLength( &seriesEncodeIter );
+		seriesBuffer->length = rsslGetEncodedBufferLength( &seriesEncodeIter );
 
 		Series series;
-		StaticDecoder::setRsslData( &series, &seriesBuffer, RSSL_DT_SERIES, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary );
+		StaticDecoder::setRsslData( &series, seriesBuffer, RSSL_DT_SERIES, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary );
 
 		EXPECT_TRUE( series.forth() ) << "Series contains AnsiPage - first forth()" ;
 
@@ -952,10 +920,9 @@ void seriesOfFieldList_RsslEncodeEmaDecode( bool useSetDefinitions, std::string&
 		rsslClearEncodeIterator( &encodeIter );
 		rsslSetEncodeIteratorRWFVersion( &encodeIter, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION );
 
-		RsslBuffer buffer;
-		buffer.length = 2048;
-		buffer.data = ( char* )malloc( sizeof( char ) * 2048 );
-		rsslSetEncodeIteratorBuffer( &encodeIter, &buffer );
+		EsslBuffer<2048> buffer;
+
+		rsslSetEncodeIteratorBuffer( &encodeIter, buffer );
 
 		RsslSeries rsslSeries;
 		rsslClearSeries( &rsslSeries );
@@ -1038,7 +1005,7 @@ void seriesOfFieldList_RsslEncodeEmaDecode( bool useSetDefinitions, std::string&
 		rsslEncodeSeriesComplete( &encodeIter, RSSL_TRUE );
 
 		Series series;
-		StaticDecoder::setRsslData( &series, &buffer, RSSL_DT_SERIES, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary );
+		StaticDecoder::setRsslData( &series, buffer, RSSL_DT_SERIES, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary );
 		decodedMsg = series;
 	}
 	catch ( const OmmException& )
@@ -1073,10 +1040,9 @@ void seriesOfElementList_RsslEncodeEmaDecode( bool useSetDefinitions, std::strin
 		rsslClearEncodeIterator( &encodeIter );
 		rsslSetEncodeIteratorRWFVersion( &encodeIter, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION );
 
-		RsslBuffer buffer;
-		buffer.length = 2048;
-		buffer.data = ( char* )malloc( sizeof( char ) * 2048 );
-		rsslSetEncodeIteratorBuffer( &encodeIter, &buffer );
+		EsslBuffer<2048> buffer;
+
+		rsslSetEncodeIteratorBuffer( &encodeIter, buffer );
 
 		RsslSeries rsslSeries;
 		rsslClearSeries( &rsslSeries );
@@ -1159,7 +1125,7 @@ void seriesOfElementList_RsslEncodeEmaDecode( bool useSetDefinitions, std::strin
 		rsslEncodeSeriesComplete( &encodeIter, RSSL_TRUE );
 
 		Series series;
-		StaticDecoder::setRsslData( &series, &buffer, RSSL_DT_SERIES, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary );
+		StaticDecoder::setRsslData( &series, buffer, RSSL_DT_SERIES, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary );
 		decodedMsg = series;
 	}
 	catch ( const OmmException& )
@@ -1416,6 +1382,8 @@ TEST(SeriesTests, testSeriesContainsFieldListsEncodeDecodeAll)
 	{
 		EXPECT_FALSE( true ) << "Series contains FieldList - exception not expectedd" ;
 	}
+
+	rsslDeleteDataDictionary( &dictionary );
 }
 
 TEST(SeriesTests, testSeriesContainsElementListsEncodeDecodeAll)
@@ -1531,6 +1499,8 @@ TEST(SeriesTests, testSeriesContainsElementListsEncodeDecodeAll)
 	{
 		EXPECT_FALSE( true ) << "Series contains ElementList - exception not expectedd" ;
 	}
+
+	rsslDeleteDataDictionary( &dictionary );
 }
 
 TEST(SeriesTests, testSeriesContainsMapsEncodeDecodeAll)
@@ -1727,6 +1697,8 @@ TEST(SeriesTests, testSeriesContainsMapsEncodeDecodeAll)
 	{
 		EXPECT_FALSE( true ) << "Series contains Map - exception not expectedd" ;
 	}
+
+	rsslDeleteDataDictionary( &dictionary );
 }
 
 
@@ -1779,6 +1751,8 @@ TEST(SeriesTests, testSeriesPrePostBindElementList)
 	{
 		EXPECT_FALSE( true ) << "Pre/Post-bound ElementLists are equal - exception not expected" ;
 	}
+
+	rsslDeleteDataDictionary( &dictionary );
 }
 
 TEST(SeriesTests, testSeriesPrePostBindFieldList)
@@ -1819,6 +1793,8 @@ TEST(SeriesTests, testSeriesPrePostBindFieldList)
 	{
 		EXPECT_FALSE( true ) << "Pre/Post-bound FieldLists are equal - exception not expected" ;
 	}
+
+	rsslDeleteDataDictionary( &dictionary );
 }
 
 TEST(SeriesTests, testSeriesError)
@@ -1982,11 +1958,11 @@ TEST(SeriesTests, testSeriesError)
 
 		container.add( msg );
 
-		EXPECT_FALSE( true ) << "Series::add( RefreshMsg ) while RefreshMsg is empty - exception expected" ;
+		EXPECT_TRUE( true ) << "Series::add( RefreshMsg ) while RefreshMsg is empty - exception not expected" ;
 	}
 	catch ( const OmmException& )
 	{
-		EXPECT_TRUE( true ) << "Series::add( RefreshMsg ) while RefreshMsg is empty - exception expected" ;
+		EXPECT_FALSE( true ) << "Series::add( RefreshMsg ) while RefreshMsg is empty - exception not expected" ;
 	}
 
 	try
@@ -2025,11 +2001,11 @@ TEST(SeriesTests, testSeriesError)
 
 		container.complete();
 
-		EXPECT_FALSE( true ) << "Series::summaryData( RefreshMsg ) while RefreshMsg is empty - exception expected" ;
+		EXPECT_TRUE( true ) << "Series::summaryData( RefreshMsg ) while RefreshMsg is empty - exception not expected" ;
 	}
 	catch ( const OmmException& )
 	{
-		EXPECT_TRUE( true ) << "Series::summaryData( RefreshMsg ) while RefreshMsg is empty - exception expected" ;
+		EXPECT_FALSE( true ) << "Series::summaryData( RefreshMsg ) while RefreshMsg is empty - exception not expected" ;
 	}
 
 	try
@@ -2062,11 +2038,11 @@ TEST(SeriesTests, testSeriesError)
 
 		container.add( msg );
 
-		EXPECT_FALSE( true ) << "Series::add( GenericMsg ) while GenericMsg is empty - exception expected" ;
+		EXPECT_TRUE( true ) << "Series::add( GenericMsg ) while GenericMsg is empty - exception not expected" ;
 	}
 	catch ( const OmmException& )
 	{
-		EXPECT_TRUE( true ) << "Series::add( GenericMsg ) while GenericMsg is empty - exception expected" ;
+		EXPECT_FALSE( true ) << "Series::add( GenericMsg ) while GenericMsg is empty - exception not expected" ;
 	}
 
 	try
@@ -2105,11 +2081,11 @@ TEST(SeriesTests, testSeriesError)
 
 		container.complete();
 
-		EXPECT_FALSE( true ) << "Series::summaryData( GenericMsg ) while GenericMsg is empty - exception expected" ;
+		EXPECT_TRUE( true ) << "Series::summaryData( GenericMsg ) while GenericMsg is empty - exception not expected" ;
 	}
 	catch ( const OmmException& )
 	{
-		EXPECT_TRUE( true ) << "Series::summaryData( GenericMsg ) while GenericMsg is empty - exception expected" ;
+		EXPECT_FALSE( true ) << "Series::summaryData( GenericMsg ) while GenericMsg is empty - exception not expected" ;
 	}
 
 	try
@@ -2326,6 +2302,8 @@ TEST(SeriesTests, testSeriesWithSummaryDataButNoEntry_Encode_Decode)
 		EXPECT_TRUE(false) << "Fails to encode summary data but no entry - exception not expected with text : " << exp.getText().c_str();
 		return;
 	}
+
+	rsslDeleteDataDictionary( &dictionary );
 }
 
 TEST(SeriesTests, testSeriesAddNotCompletedContainer)

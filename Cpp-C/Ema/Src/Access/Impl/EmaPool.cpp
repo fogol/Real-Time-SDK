@@ -2,7 +2,7 @@
  *|            This source code is provided under the Apache 2.0 license
  *|  and is provided AS IS with no warranty or guarantee of fit for purpose.
  *|                See the project's LICENSE.md for details.
- *|           Copyright (C) 2015,2019-2020,2022,2024 LSEG. All rights reserved.
+ *|           Copyright (C) 2015-2025 LSEG. All rights reserved.
  *|-----------------------------------------------------------------------------
  */
 
@@ -30,26 +30,26 @@ GlobalPool::~GlobalPool()
 	{
 		needToClear = false;
 
-		if ( _refreshMsgDecoderPool.count() )
-			_refreshMsgDecoderPool.clear(), needToClear = true;
+		if ( _refreshMsgImplPool.count() )
+			_refreshMsgImplPool.clear(), needToClear = true;
 
-		if ( _statusMsgDecoderPool.count() )
-			_statusMsgDecoderPool.clear(), needToClear = true;
+		if ( _statusMsgImplPool.count() )
+			_statusMsgImplPool.clear(), needToClear = true;
 
-		if ( _updateMsgDecoderPool.count() )
-			_updateMsgDecoderPool.clear(), needToClear = true;
+		if ( _updateMsgImplPool.count() )
+			_updateMsgImplPool.clear(), needToClear = true;
 
-		if ( _reqMsgDecoderPool.count() )
-			_reqMsgDecoderPool.clear(), needToClear = true;
+		if ( _reqMsgImplPool.count() )
+			_reqMsgImplPool.clear(), needToClear = true;
 
-		if ( _postMsgDecoderPool.count() )
-			_postMsgDecoderPool.clear(), needToClear = true;
+		if ( _postMsgImplPool.count() )
+			_postMsgImplPool.clear(), needToClear = true;
 
-		if ( _genericMsgDecoderPool.count() )
-			_genericMsgDecoderPool.clear(), needToClear = true;
+		if ( _genericMsgImplPool.count() )
+			_genericMsgImplPool.clear(), needToClear = true;
 
-		if ( _ackMsgDecoderPool.count() )
-			_ackMsgDecoderPool.clear(), needToClear = true;
+		if ( _ackMsgImplPool.count() )
+			_ackMsgImplPool.clear(), needToClear = true;
 
 		if ( _seriesDecoderPool.count() )
 			_seriesDecoderPool.clear(), needToClear = true;
@@ -71,27 +71,6 @@ GlobalPool::~GlobalPool()
 
 		if ( _arrayDecoderPool.count() )
 			_arrayDecoderPool.clear(), needToClear = true;
-
-		if ( _refreshMsgEncoderPool.count() )
-			_refreshMsgEncoderPool.clear(), needToClear = true;
-
-		if ( _statusMsgEncoderPool.count() )
-			_statusMsgEncoderPool.clear(), needToClear = true;
-
-		if ( _updateMsgEncoderPool.count() )
-			_updateMsgEncoderPool.clear(), needToClear = true;
-
-		if ( _reqMsgEncoderPool.count() )
-			_reqMsgEncoderPool.clear(), needToClear = true;
-
-		if ( _postMsgEncoderPool.count() )
-			_postMsgEncoderPool.clear(), needToClear = true;
-
-		if ( _genericMsgEncoderPool.count() )
-			_genericMsgEncoderPool.clear(), needToClear = true;
-
-		if ( _ackMsgEncoderPool.count() )
-			_ackMsgEncoderPool.clear(), needToClear = true;
 
 		if ( _fieldListEncoderPool.count() )
 			_fieldListEncoderPool.clear(), needToClear = true;

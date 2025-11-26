@@ -2,7 +2,7 @@
  *|            This source code is provided under the Apache 2.0 license
  *|  and is provided AS IS with no warranty or guarantee of fit for purpose.
  *|                See the project's LICENSE.md for details.
- *|           Copyright (C) 2015,2017,2019-2020,2024 LSEG. All rights reserved.
+ *|           Copyright (C) 2015,2017,2019-2020,2024-2025 LSEG. All rights reserved.
  *|-----------------------------------------------------------------------------
  */
 
@@ -19,7 +19,7 @@
 
 	\code
 
-	class AppClient ; public OmmConsumerClient
+	class AppClient : public OmmConsumerClient
 	{
 		...
 
@@ -77,6 +77,8 @@ namespace ema {
 
 namespace access {
 
+class StatusMsgImpl;
+
 class EMA_ACCESS_API StatusMsg : public Msg
 {
 public :
@@ -87,11 +89,22 @@ public :
 	*/
 	StatusMsg();
 
+	/** Constructs StatusMsg and reserves specified amount of memory for storing its data.
+		@param[in] size reserved memory buffer size
+	*/
+	explicit StatusMsg(UInt32 size);
+
 	/** Copy constructor.
 		\remark this is used to copy and process StatusMsg outside of EMA's callback methods.
 		\remark this method does not support passing in just encoded StatusMsg in the application space.
 	*/
 	StatusMsg( const StatusMsg& other );
+
+	/** Move constructor.
+		\remark Created instance acquires all resources from the passed in message.
+	 */
+	StatusMsg( StatusMsg&& other ) noexcept;
+
 	//@}
 
 	///@name Constructor
@@ -207,6 +220,19 @@ public :
 
 	///@name Operations
 	//@{
+
+	/** Performs deep copy of the operand into the current message.
+		\remark this is used to copy and process messages outside of EMA's callback methods.
+		@return reference to this object
+	 */
+	StatusMsg& operator=( const StatusMsg& );
+
+	/** Moves resources from the operand into the current message.
+		\remark Operand is left in "empty" state.
+		@return reference to this object
+	 */
+	StatusMsg& operator=( StatusMsg&& ) noexcept;
+
 	/** Clears the StatusMsg.
 		\remark Invoking clear() method clears all the values and resets all the defaults
 		@return reference to this object
@@ -328,16 +354,16 @@ public :
 
 private :
 
-	friend class ItemCallbackClient;
-	friend class DictionaryCallbackClient;
+	friend class MsgImpl;
 
-	const EmaString& toString( UInt64 ) const;
+	const EmaString& toString( UInt64 ) const; // override;
 
-	Decoder& getDecoder();
+	Decoder& getDecoder(); // override;
 
-	StatusMsg& operator=( const StatusMsg& );
+	mutable EmaString				_toString;
 
-	mutable EmaString		_toString;
+	StatusMsgImpl* impl();
+	const StatusMsgImpl* impl() const;
 };
 
 }

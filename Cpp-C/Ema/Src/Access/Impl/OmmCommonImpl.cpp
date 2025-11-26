@@ -17,7 +17,7 @@ int OmmCommonImpl::addFd( int fd, short events )
 	{
 		_eventFdsCapacity *= 2;
 		pollfd* tmp( new pollfd[ _eventFdsCapacity ] );
-		for ( int i = 0; i < _eventFdsCount; ++i )
+		for ( nfds_t i = 0; i < _eventFdsCount; ++i )
 			tmp[ i ] = _eventFds[ i ];
 		delete [] _eventFds;
 		_eventFds = tmp;
@@ -31,7 +31,7 @@ void OmmCommonImpl::removeFd( int fd )
 {
   _pipeReadEventFdsIdx = -1;
 
-  int i;
+  nfds_t i;
   for (i = 0; i < _eventFdsCount; ++i)
 	if (_eventFds[i].fd == fd)
 	  break;

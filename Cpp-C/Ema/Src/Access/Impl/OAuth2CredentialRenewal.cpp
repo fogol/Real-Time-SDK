@@ -210,7 +210,7 @@ const EmaString& OAuth2CredentialRenewal::getTokenScope()
 
 @return takeExclusiveSignOnControl value
 */
-const bool OAuth2CredentialRenewal::getTakeExclusiveSignOnControl()
+bool OAuth2CredentialRenewal::getTakeExclusiveSignOnControl()
 {
 	return _takeExclusiveSignOnControl;
 }

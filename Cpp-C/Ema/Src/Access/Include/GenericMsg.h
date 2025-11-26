@@ -32,7 +32,7 @@
 		if ( genMsg.hasName() )
 			cout << genMsg.getName() << "\n";
 
-		switch ( gemMsg.getPayload().getDataTyoe() )
+		switch ( gemMsg.getPayload().getDataType() )
 		{
 			case DataType::FieldListEnum :
 				decode( genMsg.getPayload().getFieldList() );
@@ -84,6 +84,8 @@ namespace ema {
 
 namespace access {
 
+class GenericMsgImpl;
+
 class EMA_ACCESS_API GenericMsg : public Msg
 {
 public :
@@ -94,11 +96,21 @@ public :
 	*/
 	GenericMsg();
 
+	/** Constructs AckMsg and reserves specified amount of memory for storing its data.
+		@param[in] size reserved memory buffer size
+	*/
+	explicit GenericMsg(UInt32 size);
+
 	/** Copy constructor.
 		\remark this is used to copy and process GenericMsg outside of EMA's callback methods.
 		\remark this method does not support passing in just encoded GenericMsg in the application space.
 	*/
 	GenericMsg( const GenericMsg& other );
+
+	/** Move constructor.
+		\remark Created instance acquires all resources from the passed in message.
+	 */
+	GenericMsg( GenericMsg&& ) noexcept;
 	//@}
 
 	///@name Destructor
@@ -192,6 +204,19 @@ public :
 
 	///@name Operations
 	//@{
+
+	/** Performs deep copy of the operand into the current message.
+		\remark this is used to copy and process messages outside of EMA's callback methods.
+		@return reference to this object
+	 */
+	GenericMsg& operator=( const GenericMsg& );
+
+	/** Moves resources from the operand into the current message.
+		\remark Operand is left in "empty" state.
+		@return reference to this object
+	 */
+	GenericMsg& operator=( GenericMsg&& ) noexcept;
+
 	/** Clears the GenericMsg.
 		\remark Invoking clear() method clears all the values and resets all the defaults
 		@return reference to this object
@@ -299,15 +324,16 @@ public :
 
 private :
 
-	friend class ItemCallbackClient;
+	friend class MsgImpl;
 
 	const EmaString& toString( UInt64 indent ) const;
 
 	Decoder& getDecoder();
 
-	GenericMsg& operator=( const GenericMsg& );
-
 	mutable EmaString		_toString;
+
+	GenericMsgImpl* impl();
+	const GenericMsgImpl* impl() const;
 };
 
 }

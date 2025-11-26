@@ -60,12 +60,10 @@ TEST(ElementListTests, testElementListDecodeAll)
 		rsslClearElementList( &rsslEL );
 		rsslClearEncodeIterator( &iter );
 
-		RsslBuffer rsslBuf;
-		rsslBuf.length = 1000;
-		rsslBuf.data = ( char* )malloc( sizeof( char ) * 1000 );
+		EsslBuffer<1000> rsslBuf;
 
 		rsslSetEncodeIteratorRWFVersion( &iter, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION );
-		rsslSetEncodeIteratorBuffer( &iter, &rsslBuf );
+		rsslSetEncodeIteratorBuffer( &iter, rsslBuf );
 		rsslEL.flags = RSSL_ELF_HAS_STANDARD_DATA | RSSL_ELF_HAS_ELEMENT_LIST_INFO;
 		rsslEL.elementListNum = 5;
 
@@ -312,7 +310,7 @@ TEST(ElementListTests, testElementListDecodeAll)
 
 		//Now do EMA decoding of ElementList
 		ElementList el;
-		StaticDecoder::setRsslData( &el, &rsslBuf, RSSL_DT_ELEMENT_LIST, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, 0 );
+		StaticDecoder::setRsslData( &el, rsslBuf, RSSL_DT_ELEMENT_LIST, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, 0 );
 
 		EXPECT_TRUE( el.hasInfo() ) << "ElementList with all data types - hasInfo()" ;
 		EXPECT_EQ( el.getInfoElementListNum(), 5 ) << "ElementList with all data types- getInfoElementListNum()" ;
@@ -545,8 +543,6 @@ TEST(ElementListTests, testElementListDecodeAll)
 		}
 
 		EXPECT_TRUE( true ) << "ElementList with all data types - exception not expected" ;
-
-		free( rsslBuf.data );
 	}
 	catch ( const OmmException& )
 	{
@@ -558,9 +554,9 @@ TEST(ElementListTests, testElementListDecodeAll)
 TEST(ElementListTests, testElementListContainsFieldListDecodeAll)
 {
 
-	RsslDataDictionary dictionary;
+	DictionaryPtr dictionary = makeDictionaryFromFile();
 
-	ASSERT_TRUE(loadDictionaryFromFile( &dictionary )) << "Failed to load dictionary";
+	ASSERT_TRUE((bool)dictionary) << "Failed to load dictionary";
 
 	try
 	{
@@ -677,7 +673,7 @@ TEST(ElementListTests, testElementListContainsFieldListDecodeAll)
 
 		//Now do EMA decoding of ElementList
 		ElementList el;
-		StaticDecoder::setRsslData( &el, &rsslBuf, RSSL_DT_ELEMENT_LIST, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary );
+		StaticDecoder::setRsslData( &el, &rsslBuf, RSSL_DT_ELEMENT_LIST, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, dictionary.get() );
 
 		EXPECT_TRUE( el.hasInfo() ) << "ElementList with primitives and FieldList - hasInfo()" ;
 		EXPECT_EQ( el.getInfoElementListNum(), 5 ) << "ElementList with primitives and FieldList- getInfoElementListNum()" ;
@@ -1092,9 +1088,9 @@ TEST(ElementListTests, testElementListContainsElementListDecodeAll)
 TEST(ElementListTests, testElementListContainsMapDecodeAll)
 {
 
-	RsslDataDictionary dictionary;
+	DictionaryPtr dictionary = makeDictionaryFromFile();
 
-	ASSERT_TRUE(loadDictionaryFromFile( &dictionary )) << "Failed to load dictionary";
+	ASSERT_TRUE( (bool)dictionary ) << "Failed to load dictionary";
 
 	try
 	{
@@ -1187,9 +1183,9 @@ TEST(ElementListTests, testElementListContainsMapDecodeAll)
 		nestedMap.containerType = RSSL_DT_FIELD_LIST;
 		nestedMap.keyPrimitiveType = RSSL_DT_BUFFER;
 		nestedMap.keyFieldId = 3426;
-		RsslBuffer rsslBuf1;
-		rsslBuf1.length = 1000;
-		rsslBuf1.data = ( char* )malloc( sizeof( char ) * 1000 );
+
+		EsslBuffer<1000> rsslBuf1;
+
 		rsslEncodeMapInit( &iter, &nestedMap, 0, 0 );
 		RsslMapEntry mapEntry;
 		rsslClearMapEntry( &mapEntry );
@@ -1234,7 +1230,7 @@ TEST(ElementListTests, testElementListContainsMapDecodeAll)
 
 		//Now do EMA decoding of ElementList
 		ElementList el;
-		StaticDecoder::setRsslData( &el, &rsslBuf, RSSL_DT_ELEMENT_LIST, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary );
+		StaticDecoder::setRsslData( &el, &rsslBuf, RSSL_DT_ELEMENT_LIST, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, dictionary.get() );
 
 		EXPECT_TRUE( el.hasInfo() ) << "ElementList with primitives and Map - hasInfo()" ;
 		EXPECT_EQ( el.getInfoElementListNum(), 5 ) << "ElementList with primitives and Map- getInfoElementListNum()" ;
@@ -2213,9 +2209,9 @@ TEST(ElementListTests, testElementListEncodeDecodeAll)
 TEST(ElementListTests, testElementListContainsFieldListEncodeDecodeAll)
 {
 
-	RsslDataDictionary dictionary;
+	DictionaryPtr dictionary = makeDictionaryFromFile();
 
-	ASSERT_TRUE(loadDictionaryFromFile( &dictionary )) << "Failed to load dictionary";
+	ASSERT_TRUE((bool) dictionary ) << "Failed to load dictionary";
 
 	ElementList elEnc;
 	elEnc.info( 5 );
@@ -2256,7 +2252,7 @@ TEST(ElementListTests, testElementListContainsFieldListEncodeDecodeAll)
 
 
 		//Now do EMA decoding of ElementList
-		StaticDecoder::setData( &elEnc, &dictionary );
+		StaticDecoder::setData( &elEnc, dictionary.get() );
 
 
 		EXPECT_TRUE( elEnc.hasInfo() ) << "ElementList with primitives and FieldList - hasInfo()" ;
@@ -2404,8 +2400,6 @@ TEST(ElementListTests, testElementListContainsFieldListEncodeDecodeAll)
 	{
 		EXPECT_FALSE( true ) << "ElementList contains FieldList - exception not expected" ;
 	}
-
-	rsslDeleteDataDictionary( &dictionary );
 }
 
 TEST(ElementListTests, testElementListContainsElementListEncodeDecodeAll)
@@ -2613,7 +2607,7 @@ TEST(ElementListTests, testElementListContainsElementListEncodeDecodeAll)
 TEST(ElementListTests, testElementListContainsMapEncodeDecodeAll)
 {
 
-	RsslDataDictionary dictionary;
+	DictionaryPtr dictionary = makeDictionaryFromFile();
 
 	const EmaString elementListString =
 		"ElementList ElementListNum=\"5\"\n"
@@ -2702,7 +2696,7 @@ TEST(ElementListTests, testElementListContainsMapEncodeDecodeAll)
 		"    ElementEntry name=\"Element - Qos\" dataType=\"Qos\" value=\"RealTime/TickByTick\"\n"
 		"ElementListEnd\n";
 
-	ASSERT_TRUE(loadDictionaryFromFile( &dictionary )) << "Failed to load dictionary";
+	ASSERT_TRUE((bool) dictionary ) << "Failed to load dictionary";
 
 	DataDictionary emaDataDictionary, emaDataDictionaryEmpty;
 
@@ -2779,7 +2773,7 @@ TEST(ElementListTests, testElementListContainsMapEncodeDecodeAll)
 		EXPECT_EQ( emptyEl.toString( emaDataDictionary ), "ElementList\nElementListEnd\n" ) << "ElementList.toString() == ElementList\nElementListEnd\n";
 
 		//Now do EMA decoding of ElementList
-		StaticDecoder::setData( &elEnc, &dictionary );
+		StaticDecoder::setData( &elEnc, dictionary.get() );
 		EXPECT_EQ( elEnc.toString(), elementListString ) << "ElementList.toString() == elementListString";
 
 
@@ -2958,8 +2952,6 @@ TEST(ElementListTests, testElementListContainsMapEncodeDecodeAll)
 	{
 		EXPECT_FALSE( true ) << "ElementList with primitives and ElementList - exception not expected" ;
 	}
-
-	rsslDeleteDataDictionary( &dictionary );
 }
 
 TEST(ElementListTests, testElementListPrePostBindElementList)
@@ -3003,9 +2995,9 @@ TEST(ElementListTests, testElementListPrePostBindFieldList)
 {
 
 	// load dictionary for decoding of the field list
-	RsslDataDictionary dictionary;
+	DictionaryPtr dictionary = makeDictionaryFromFile();
 
-	ASSERT_TRUE(loadDictionaryFromFile( &dictionary )) << "Failed to load dictionary";
+	ASSERT_TRUE((bool) dictionary ) << "Failed to load dictionary";
 
 	try
 	{
@@ -3017,7 +3009,7 @@ TEST(ElementListTests, testElementListPrePostBindFieldList)
 			elementList1.addFieldList( EmaString( "FieldList Payload" ), fieldList );
 			EmaEncodeFieldListAll( fieldList );
 			elementList1.complete();
-			StaticDecoder::setData( &elementList1, &dictionary );
+			StaticDecoder::setData( &elementList1, dictionary.get() );
 		}
 
 		// Encode FieldList via postbind
@@ -3027,7 +3019,7 @@ TEST(ElementListTests, testElementListPrePostBindFieldList)
 			EmaEncodeFieldListAll( fieldList );
 			elementList2.addFieldList( EmaString( "FieldList Payload" ), fieldList );
 			elementList2.complete();
-			StaticDecoder::setData( &elementList2, &dictionary );
+			StaticDecoder::setData( &elementList2, dictionary.get() );
 		}
 
 		EXPECT_STREQ( elementList1.toString(), elementList2.toString() ) << "Pre/Post-bound FieldLists are equal - exception not expected";
@@ -3037,8 +3029,6 @@ TEST(ElementListTests, testElementListPrePostBindFieldList)
 	{
 		EXPECT_FALSE( true ) << "Pre/Post-bound FieldLists are equal - exception not expected" ;
 	}
-
-	rsslDeleteDataDictionary( &dictionary );
 }
 
 TEST(ElementListTests, testElementListHybrid)
@@ -3054,12 +3044,10 @@ TEST(ElementListTests, testElementListHybrid)
 		rsslClearElementList( &rsslEL );
 		rsslClearEncodeIterator( &iter );
 
-		RsslBuffer rsslBuf;
-		rsslBuf.length = 1000;
-		rsslBuf.data = ( char* )malloc( sizeof( char ) * 1000 );
+		EsslBuffer<1000> rsslBuf;
 
 		rsslSetEncodeIteratorRWFVersion( &iter, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION );
-		rsslSetEncodeIteratorBuffer( &iter, &rsslBuf );
+		rsslSetEncodeIteratorBuffer( &iter, rsslBuf );
 		rsslEL.flags = RSSL_ELF_HAS_STANDARD_DATA | RSSL_ELF_HAS_ELEMENT_LIST_INFO;
 		rsslEL.elementListNum = 5;
 
@@ -3131,7 +3119,7 @@ TEST(ElementListTests, testElementListHybrid)
 
 		// Convert RsslElementList into EMA's ElementList
 		ElementList decodedElementList, encodedElementList;
-		StaticDecoder::setRsslData( &decodedElementList, &rsslBuf, RSSL_DT_ELEMENT_LIST, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, 0 );
+		StaticDecoder::setRsslData( &decodedElementList, rsslBuf, RSSL_DT_ELEMENT_LIST, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, 0 );
 
 		// encode Series with the above EMA's ElementList
 		Series series;
@@ -3365,12 +3353,12 @@ TEST(ElementListTests, testElementListError)
 
 			el.complete();
 
-			EXPECT_FALSE( true ) << "ElementList::addRefreshMsg() while message is empty - exception expected" ;
+			EXPECT_TRUE( true ) << "ElementList::addRefreshMsg() while message is empty - exception not expected" ;
 
 		}
 		catch ( const OmmException& )
 		{
-			EXPECT_TRUE( true ) << "ElementList::addRefreshMsg() while message is empty - exception expected" ;
+			EXPECT_FALSE( true ) << "ElementList::addRefreshMsg() while message is empty - exception not expected" ;
 		}
 	}
 
@@ -3420,12 +3408,12 @@ TEST(ElementListTests, testElementListError)
 
 			el.complete();
 
-			EXPECT_FALSE( true ) << "ElementList::addRefreshMsg() while message is populated then cleared - exception expected" ;
+			EXPECT_TRUE( true ) << "ElementList::addRefreshMsg() while message is populated then cleared - exception not expected" ;
 
 		}
 		catch ( const OmmException& )
 		{
-			EXPECT_TRUE( true ) << "ElementList::addRefreshMsg() while message is populated then cleared - exception expected" ;
+			EXPECT_FALSE( true ) << "ElementList::addRefreshMsg() while message is populated then cleared - exception not expected" ;
 		}
 	}
 
@@ -3440,12 +3428,12 @@ TEST(ElementListTests, testElementListError)
 
 			el.complete();
 
-			EXPECT_FALSE( true ) << "ElementList::addGenericMsg() while message is empty - exception expected" ;
+			EXPECT_TRUE( true ) << "ElementList::addGenericMsg() while message is empty - exception not expected" ;
 
 		}
 		catch ( const OmmException& )
 		{
-			EXPECT_TRUE( true ) << "ElementList::addGenericMsg() while message is empty - exception expected" ;
+			EXPECT_FALSE( true ) << "ElementList::addGenericMsg() while message is empty - exception not expected" ;
 		}
 	}
 
@@ -3495,12 +3483,12 @@ TEST(ElementListTests, testElementListError)
 
 			el.complete();
 
-			EXPECT_FALSE( true ) << "ElementList::addGenericMsg() while message is populated then cleared - exception expected" ;
+			EXPECT_TRUE( true ) << "ElementList::addGenericMsg() while message is populated then cleared - exception not expected" ;
 
 		}
 		catch ( const OmmException& )
 		{
-			EXPECT_TRUE( true ) << "ElementList::addGenericMsg() while message is populated then cleared - exception expected" ;
+			EXPECT_FALSE( true ) << "ElementList::addGenericMsg() while message is populated then cleared - exception not expected" ;
 		}
 	}
 
@@ -3601,9 +3589,9 @@ TEST(ElementListTests, testElementListClear_Encode_Decode)
 	try
 	{
 		// load dictionary for decoding of the field list
-		RsslDataDictionary dictionary;
+		DictionaryPtr dictionary = makeDictionaryFromFile();
 
-		ASSERT_TRUE(loadDictionaryFromFile(&dictionary)) << "Failed to load dictionary";
+		ASSERT_TRUE((bool) dictionary ) << "Failed to load dictionary";
 
 		FieldList fieldList;
 		fieldList.addUInt(1, 3056).complete();
@@ -3616,7 +3604,7 @@ TEST(ElementListTests, testElementListClear_Encode_Decode)
 			.add("3")
 			.complete();
 
-		StaticDecoder::setData(&elementList, &dictionary);
+		StaticDecoder::setData(&elementList, dictionary.get() );
 
 		EXPECT_TRUE(elementList.hasInfo()) << "Check has info attribute";
 		EXPECT_TRUE(elementList.getInfoElementListNum() == 6) << "Check the info value attribute";

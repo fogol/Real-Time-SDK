@@ -200,8 +200,8 @@ private :
 
 	friend class Decoder;
 	friend class StaticDecoder;
-	friend class RefreshMsgDecoder;
-	friend class StatusMsgDecoder;
+	friend class RefreshMsgImpl;
+	friend class StatusMsgImpl;
 	friend class refinitiv::ema::domain::login::LoginStatusImpl;
 	friend class refinitiv::ema::domain::login::LoginRefreshImpl;
 	friend class refinitiv::ema::domain::login::LoginReqImpl;

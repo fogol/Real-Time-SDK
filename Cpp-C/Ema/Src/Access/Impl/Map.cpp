@@ -2,7 +2,7 @@
  *|            This source code is provided under the Apache 2.0 license
  *|  and is provided AS IS with no warranty or guarantee of fit for purpose.
  *|                See the project's LICENSE.md for details.
- *|           Copyright (C) 2015-2016,2018-2020,2022-2024 LSEG. All rights reserved.
+ *|           Copyright (C) 2015-2016,2018-2020,2022-2025 LSEG. All rights reserved.
  *|-----------------------------------------------------------------------------
  */
 
@@ -82,7 +82,7 @@ const EmaString& Map::toString( const refinitiv::ema::rdm::DataDictionary& dicti
 
 	if (_pEncoder->isComplete())
 	{
-		RsslBuffer& rsslBuffer = _pEncoder->getRsslBuffer();
+		RsslBuffer& rsslBuffer = _pEncoder->getEncodedBuffer();
 
 		StaticDecoder::setRsslData(&map, &rsslBuffer, RSSL_DT_MAP, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, dictionary._pImpl->rsslDataDictionary());
 		_toString.clear().append(map.toString());

@@ -1333,7 +1333,7 @@ void OmmBaseImpl::readConfig(EmaConfigImpl* pConfigImpl)
 				if (pConfigImpl->getUserSpecifiedObjectName().length() > 0)
 					chanConfigByFuncCall |= TUNNELING_OBJNAME_CONFIG_BY_FUNCTION_CALL;
 
-					ppc->retrieveChannelConfig(channelName.trimWhitespace(), _activeConfig, chanConfigByFuncCall, fileChannelConfig, NULL);
+				ppc->retrieveChannelConfig(channelName.trimWhitespace(), _activeConfig, chanConfigByFuncCall, fileChannelConfig, NULL);
 				if ( !( ActiveConfig::findChannelConfig( _activeConfig.configChannelSet, channelName.trimWhitespace(), posInProgCfg ) ) )
 					_activeConfig.configChannelSet.push_back( fileChannelConfig );
 				else
@@ -3646,7 +3646,7 @@ Int64 OmmBaseImpl::rsslReactorDispatchLoop( Int64 timeOut, UInt32 count, bool& b
 		if ( selectRetCode > 0 )
 		{
 			if ( _pipeReadEventFdsIdx == -1 )
-				for ( int i = 0; i < _eventFdsCount; ++i )
+				for ( nfds_t i = 0; i < _eventFdsCount; ++i )
 					if ( _eventFds[i].fd == _pipe.readFD() )
 					{
 						_pipeReadEventFdsIdx = i;

@@ -2,7 +2,7 @@
  *|            This source code is provided under the Apache 2.0 license
  *|  and is provided AS IS with no warranty or guarantee of fit for purpose.
  *|                See the project's LICENSE.md for details.
- *|           Copyright (C) 2015-2017,2019-2020,2022-2024 LSEG. All rights reserved.
+ *|           Copyright (C) 2015-2017,2019-2020,2022-2025 LSEG. All rights reserved.
  *|-----------------------------------------------------------------------------
  */
 
@@ -100,7 +100,7 @@ void Encoder::clear()
 		_pEncodeIter->clear();
 }
 
-RsslBuffer& Encoder::getRsslBuffer() const
+RsslBuffer& Encoder::getEncodedBuffer() const
 {
 	return _pEncodeIter->_rsslEncBuffer1.data ? _pEncodeIter->_rsslEncBuffer1 : _pEncodeIter->_rsslEncBuffer2;
 }
@@ -125,7 +125,7 @@ bool Encoder::hasEncIterator() const
 	return _pEncodeIter != 0 ? true : false;
 }
 
-UInt8 Encoder::convertDataType( DataType::DataTypeEnum dType ) const
+UInt8 Encoder::convertDataType( DataType::DataTypeEnum dType )
 {
 	switch ( dType )
 	{

@@ -172,8 +172,8 @@ private :
 
 template< class T >
 EmaVector< T >::EmaVector(UInt32 capacity) :
-	_size( 0 ),
 	_capacity( capacity ),
+	_size( 0 ),
 	_list( 0 )
 {
 	if ( !_capacity ) return;
@@ -330,8 +330,8 @@ void EmaVector< T >::insert_sorted(const T& entry, int compare(T&, T&))
 	{
 		UInt32 oldIter = 0;
 		UInt32 newIter = 0;
-		UInt32 i = 0;
 		bool found = false;
+
 		if (_capacity == 0)
 		{
 			_capacity = 5;

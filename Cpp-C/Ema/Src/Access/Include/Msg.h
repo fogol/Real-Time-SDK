@@ -39,8 +39,7 @@ namespace ema {
 
 namespace access {
 
-class MsgDecoder;
-class MsgEncoder;
+class MsgImpl;
 
 class EMA_ACCESS_API Msg : public ComplexType
 {
@@ -151,39 +150,16 @@ public :
 
 protected :
 
-	friend class OmmConsumerConfigImpl;
-	friend class OmmNiProviderConfigImpl;
-	friend class EmaConfigImpl;
-	friend class EmaConfigServerImpl;
-	friend class OmmNiProviderImpl;
-	friend class OmmIProviderImpl;
-	friend class ItemCallbackClient;
-	friend class DirectoryItem;
-	friend class LoginItem;
-	friend class NiProviderLoginItem;
-	friend class SingleItem;
-	friend class NiProviderSingleItem;
-	friend class IProviderSingleItem;
-	friend class DictionaryItem;
-	friend class NiProviderDictionaryItem;
-	friend class IProviderDictionaryItem;
-	friend class ProviderItem;
-	friend class TunnelItem;
-	friend class TunnelStreamLoginReqMsgImpl;
-	friend class SubItem;
-	friend class MsgDecoder;
-	friend class PackedMsgImpl;
-	friend class ConsumerRoutingSession;
+	friend class MsgImpl;
 
 	Msg();
 
-	const Encoder& getEncoder() const;
-	bool hasEncoder() const;
-	void setDecoder( MsgDecoder* );
-	bool hasDecoder() const;
+	const Encoder& getEncoder() const final;
+	bool hasEncoder() const override;
+	void setImpl( MsgImpl* );
+	bool hasDecoder() const override;
 
-	mutable MsgDecoder*	_pDecoder;
-	mutable MsgEncoder*	_pEncoder;
+	mutable MsgImpl*	_pImpl;
 
 	Attrib			_attrib;
 	Payload			_payload;

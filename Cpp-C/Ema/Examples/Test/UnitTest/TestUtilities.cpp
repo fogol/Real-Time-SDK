@@ -422,6 +422,9 @@ void RsslEncodeMapAll( RsslBuffer& mapBuffer )
 
 	mapBuffer.length = rsslGetEncodedBufferLength( &mapEncodeIter );
 	rsslEncodeMapComplete( &mapEncodeIter, RSSL_TRUE );
+
+	free( rsslBuf.data );
+	free( rsslBuf1.data );
 }
 
 //corresponding decoding is in TestUtilities::EmaDecodeFieldListAll(FieldList& fl)
@@ -1017,18 +1020,24 @@ void encodeFieldList( RsslBuffer& rsslBuf, EmaString& inText )
 
 void encodeNonRWFData( RsslBuffer* destRsslBuffer, RsslBuffer* srcRsslBuffer )
 {
+	RsslRet ret;
+
 	RsslEncodeIterator iter;
 	rsslClearEncodeIterator( &iter );
 
-	rsslSetEncodeIteratorRWFVersion( &iter, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION );
-	rsslSetEncodeIteratorBuffer( &iter, destRsslBuffer );
+	ret = rsslSetEncodeIteratorRWFVersion( &iter, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION );
+	EXPECT_EQ(RSSL_RET_SUCCESS, ret);
+	ret = rsslSetEncodeIteratorBuffer( &iter, destRsslBuffer );
+	EXPECT_EQ(RSSL_RET_SUCCESS, ret);
 
-	rsslEncodeNonRWFDataTypeInit( &iter, destRsslBuffer );
+	ret = rsslEncodeNonRWFDataTypeInit( &iter, destRsslBuffer );
+	EXPECT_EQ(RSSL_RET_SUCCESS, ret);
 
 	memcpy( destRsslBuffer->data , srcRsslBuffer->data, srcRsslBuffer->length );
 	destRsslBuffer->length = srcRsslBuffer->length;
 
-	rsslEncodeNonRWFDataTypeComplete( &iter, destRsslBuffer, RSSL_TRUE );
+	ret = rsslEncodeNonRWFDataTypeComplete( &iter, destRsslBuffer, RSSL_TRUE );
+	EXPECT_EQ(RSSL_RET_SUCCESS, ret);
 }
 
 void perfDecode( const ElementList& el )
@@ -1520,3 +1529,21 @@ TEST(Compilation, OmmProviderErrorClientTest)
 {
 	testClientCompilationPass<DerivedProviderErrorClient, OmmProviderErrorClient>();
 }
+
+DictionaryPtr makeDictionaryFromFile()
+{
+	RsslDataDictionary* pDictionary = new RsslDataDictionary();
+	if (loadDictionaryFromFile(pDictionary))
+		return DictionaryPtr{pDictionary, &DictionaryDeleter};
+	else
+		return DictionaryPtr{nullptr, &DictionaryDeleter};
+};
+
+void DictionaryDeleter(RsslDataDictionary* dictionary)
+{
+	if (dictionary != nullptr)
+	{
+		rsslDeleteDataDictionary(dictionary);
+		delete dictionary;
+	}
+};

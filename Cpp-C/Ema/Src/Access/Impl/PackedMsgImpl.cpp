@@ -224,17 +224,8 @@ void PackedMsgImpl::addMsg(const Msg& msg, UInt64 itemHandle)
 		RsslErrorInfo rsslErrorInfo;
 		RsslRet ret = RSSL_RET_FAILURE;
 		bool niProvHandleAdded = false;
-		RsslInt32 streamId;
+		RsslInt32 streamId = 0;
 		RsslMsg* rsslMsg = NULL;
-
-
-		if (!msg._pEncoder)
-		{
-			reactorReleaseBuffer();
-
-			EmaString temp("Incoming message to pack was null.");
-			throwIueException(temp, OmmInvalidUsageException::InvalidOperationEnum);
-		}
 
 		if (_ommIProviderImpl)
 		{
@@ -248,19 +239,19 @@ void PackedMsgImpl::addMsg(const Msg& msg, UInt64 itemHandle)
 				throwIueException(temp, OmmInvalidUsageException::InvalidOperationEnum);
 			}
 
-			rsslMsg = msg._pEncoder->getRsslMsg();
+			rsslMsg = MsgImpl::getImpl(msg)->getRsslMsg();
 
 			rsslMsg->msgBase.streamId = itemInfo->getStreamId();
 
-			if (msg._pEncoder->hasServiceId())
+			if (MsgImpl::getImpl(msg)->hasServiceId())
 			{
-				if (!_ommIProviderImpl->getDirectoryServiceStore().getServiceNameById(msg._pEncoder->getRsslMsg()->msgBase.msgKey.serviceId))
+				if (!_ommIProviderImpl->getDirectoryServiceStore().getServiceNameById(MsgImpl::getImpl(msg)->getServiceId()))
 				{
 					EmaString temp(0, 512);
 					temp.append("Attempt to add ");
 					temp.append(rsslMsgClassToString(rsslMsg->msgBase.msgClass));
 					temp.append(" with service id of ");
-					temp.append(msg._pEncoder->getRsslMsg()->msgBase.msgKey.serviceId);
+					temp.append(MsgImpl::getImpl(msg)->getServiceId());
 					temp.append(" that was not included in the SourceDirectory. Dropping this ");
 					temp.append("\"");
 					temp.append(rsslMsgClassToString(rsslMsg->msgBase.msgClass));
@@ -269,9 +260,9 @@ void PackedMsgImpl::addMsg(const Msg& msg, UInt64 itemHandle)
 					throwIueException(temp, OmmInvalidUsageException::InvalidArgumentEnum);
 				}
 			}
-			else if (msg._pEncoder->hasServiceName())
+			else if (MsgImpl::getImpl(msg)->hasServiceName())
 			{
-				RsslUInt64* serviceId = _ommIProviderImpl->getDirectoryServiceStore().getServiceIdByName(&msg._pEncoder->getServiceName());
+				RsslUInt64* serviceId = _ommIProviderImpl->getDirectoryServiceStore().getServiceIdByName(&MsgImpl::getImpl(msg)->getServiceName());
 
 				if (serviceId)
 				{
@@ -284,7 +275,7 @@ void PackedMsgImpl::addMsg(const Msg& msg, UInt64 itemHandle)
 					temp.append("Attempt to add ");
 					temp.append(rsslMsgClassToString(rsslMsg->msgBase.msgClass));
 					temp.append(" with service name of ");
-					temp.append(msg._pEncoder->getServiceName());
+					temp.append(MsgImpl::getImpl(msg)->getServiceName());
 					temp.append(" that was not included in the SourceDirectory. Dropping this ");
 					temp.append("\"");
 					temp.append(rsslMsgClassToString(rsslMsg->msgBase.msgClass));
@@ -297,7 +288,7 @@ void PackedMsgImpl::addMsg(const Msg& msg, UInt64 itemHandle)
 		else
 		{
 			OmmNiProviderImpl::StreamInfoPtr* streamInfo = _ommNiProviderImpl->getStreamInfo(_itemHandle);
-			rsslMsg = msg._pEncoder->getRsslMsg();
+			rsslMsg = MsgImpl::getImpl(msg)->getRsslMsg();
 
 			if (streamInfo)
 			{	
@@ -324,15 +315,15 @@ void PackedMsgImpl::addMsg(const Msg& msg, UInt64 itemHandle)
 				}
 			}
 
-			if (msg._pEncoder->hasServiceId())
+			if (MsgImpl::getImpl(msg)->hasServiceId())
 			{
-				if (!_ommNiProviderImpl->getDirectoryServiceStore().getServiceNameById(msg._pEncoder->getRsslMsg()->msgBase.msgKey.serviceId))
+				if (!_ommNiProviderImpl->getDirectoryServiceStore().getServiceNameById(MsgImpl::getImpl(msg)->getServiceId()))
 				{
 					EmaString temp(0, 512);
 					temp.append("Attempt to add ");
 					temp.append(rsslMsgClassToString(rsslMsg->msgBase.msgClass));
 					temp.append(" with service id of ");
-					temp.append(msg._pEncoder->getRsslMsg()->msgBase.msgKey.serviceId);
+					temp.append(MsgImpl::getImpl(msg)->getServiceId());
 					temp.append(" that was not included in the SourceDirectory. Dropping this ");
 					temp.append("\"");
 					temp.append(rsslMsgClassToString(rsslMsg->msgBase.msgClass));
@@ -341,9 +332,9 @@ void PackedMsgImpl::addMsg(const Msg& msg, UInt64 itemHandle)
 					throwIueException(temp, OmmInvalidUsageException::InvalidArgumentEnum);
 				}
 			}
-			else if (msg._pEncoder->hasServiceName())
+			else if (MsgImpl::getImpl(msg)->hasServiceName())
 			{
-				RsslUInt64* serviceId = _ommNiProviderImpl->getDirectoryServiceStore().getServiceIdByName(&msg._pEncoder->getServiceName());
+				RsslUInt64* serviceId = _ommNiProviderImpl->getDirectoryServiceStore().getServiceIdByName(&MsgImpl::getImpl(msg)->getServiceName());
 
 				if (serviceId)
 				{
@@ -356,7 +347,7 @@ void PackedMsgImpl::addMsg(const Msg& msg, UInt64 itemHandle)
 					temp.append("Attempt to add ");
 					temp.append(rsslMsgClassToString(rsslMsg->msgBase.msgClass));
 					temp.append(" with service name of ");
-					temp.append(msg._pEncoder->getServiceName());
+					temp.append(MsgImpl::getImpl(msg)->getServiceName());
 					temp.append(" that was not included in the SourceDirectory. Dropping this ");
 					temp.append("\"");
 					temp.append(rsslMsgClassToString(rsslMsg->msgBase.msgClass));
@@ -369,7 +360,7 @@ void PackedMsgImpl::addMsg(const Msg& msg, UInt64 itemHandle)
 
 		rsslClearEncodeIterator(&_eIter);
 		
-		if ((ret = rsslSetEncodeIteratorRWFVersion(&_eIter, msg._pEncoder->getMajVer(), msg._pEncoder->getMinVer())) < RSSL_RET_SUCCESS)
+		if ((ret = rsslSetEncodeIteratorRWFVersion(&_eIter, MsgImpl::getImpl(msg)->getMajorVersion(), MsgImpl::getImpl(msg)->getMinorVersion())) < RSSL_RET_SUCCESS)
 		{
 			reactorReleaseBuffer();
 

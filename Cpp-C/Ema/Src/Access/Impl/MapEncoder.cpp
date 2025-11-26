@@ -2,7 +2,7 @@
  *|            This source code is provided under the Apache 2.0 license
  *|  and is provided AS IS with no warranty or guarantee of fit for purpose.
  *|                See the project's LICENSE.md for details.
- *|           Copyright (C) 2015-2016,2018-2020,2023-2024 LSEG. All rights reserved.
+ *|           Copyright (C) 2015-2016,2018-2020,2023-2025 LSEG. All rights reserved.
  *|-----------------------------------------------------------------------------
  */
 
@@ -155,7 +155,7 @@ void MapEncoder::addEncodedEntry( void* keyValue, MapEntry::MapAction action,
 
 	rsslClearMapEntry(&_rsslMapEntry);
 
-	_rsslMapEntry.encData = value.getEncoder().getRsslBuffer();
+	_rsslMapEntry.encData = value.getEncoder().getEncodedBuffer();
 
 	_rsslMapEntry.action = action;
 
@@ -349,7 +349,7 @@ void MapEncoder::summaryData( const ComplexType& data )
 			if ( enc.isComplete() )
 			{
 				rsslMapApplyHasSummaryData( &_rsslMap );
-				_rsslMap.encSummaryData = enc.getRsslBuffer();
+				_rsslMap.encSummaryData = enc.getEncodedBuffer();
 			}
 			else
 			{

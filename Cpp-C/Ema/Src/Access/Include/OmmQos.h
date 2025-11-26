@@ -31,6 +31,8 @@ namespace ema {
 namespace access {
 
 class OmmQosDecoder;
+class ReqMsgImpl;
+class RefreshMsgImpl;
 
 class EMA_ACCESS_API OmmQos : public Data
 {
@@ -103,9 +105,9 @@ private :
 
 	friend class Decoder;
 	friend class StaticDecoder;
-	friend class RefreshMsgDecoder;
-	friend class ReqMsgDecoder;
-
+	friend class ReqMsgImpl;
+	friend class RefreshMsgImpl;
+	
 	Decoder& getDecoder();
 	bool hasDecoder() const;
 

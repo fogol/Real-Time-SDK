@@ -29,9 +29,9 @@ TEST(FieldListTests, testInvalidDate)
 TEST(FieldListTests, testFieldListDecodeAll)
 {
 
-	RsslDataDictionary dictionary;
+	DictionaryPtr dictionary = makeDictionaryFromFile();
 
-	ASSERT_TRUE(loadDictionaryFromFile( &dictionary )) << "Failed to load dictionary";
+	ASSERT_TRUE((bool) dictionary ) << "Failed to load dictionary";
 
 	try
 	{
@@ -45,14 +45,12 @@ TEST(FieldListTests, testFieldListDecodeAll)
 		rsslClearFieldList( &rsslFL );
 		rsslClearEncodeIterator( &iter );
 
-		RsslBuffer rsslBuf;
-		rsslBuf.length = 1000;
-		rsslBuf.data = ( char* )malloc( sizeof( char ) * 1000 );
+		EsslBuffer<1000> rsslBuf;
 
 		rsslSetEncodeIteratorRWFVersion( &iter, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION );
-		rsslSetEncodeIteratorBuffer( &iter, &rsslBuf );
+		rsslSetEncodeIteratorBuffer( &iter, rsslBuf );
 		rsslFL.flags = RSSL_FLF_HAS_STANDARD_DATA | RSSL_FLF_HAS_FIELD_LIST_INFO;
-		rsslFL.dictionaryId = dictionary.info_DictionaryId;
+		rsslFL.dictionaryId = dictionary->info_DictionaryId;
 		rsslFL.fieldListNum = 65;
 
 		rsslEncodeFieldListInit( &iter, &rsslFL, 0, 0 );
@@ -315,10 +313,10 @@ TEST(FieldListTests, testFieldListDecodeAll)
 
 		//Now do EMA decoding of FieldList
 		FieldList fl;
-		StaticDecoder::setRsslData( &fl, &rsslBuf, RSSL_DT_FIELD_LIST, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary );
+		StaticDecoder::setRsslData( &fl, rsslBuf, RSSL_DT_FIELD_LIST, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, dictionary.get() );
 
 		EXPECT_TRUE( fl.hasInfo() ) << "FieldList with all data types - hasInfo()" ;
-		EXPECT_EQ( fl.getInfoDictionaryId(), dictionary.info_DictionaryId ) << "FieldList with all data types- getInfoDictionaryId()";
+		EXPECT_EQ( fl.getInfoDictionaryId(), dictionary->info_DictionaryId ) << "FieldList with all data types- getInfoDictionaryId()";
 		EXPECT_EQ( fl.getInfoFieldListNum(), 65 ) << "FieldList with all data types- getInfoFieldListNum()" ;
 
 		try
@@ -376,7 +374,7 @@ TEST(FieldListTests, testFieldListDecodeAll)
 
 		{
 			EXPECT_TRUE( fl.hasInfo() ) << "FieldList with all data types - hasInfo()" ;
-			EXPECT_EQ( fl.getInfoDictionaryId(), dictionary.info_DictionaryId ) << "FieldList with all data types- getInfoDictionaryId()";
+			EXPECT_EQ( fl.getInfoDictionaryId(), dictionary->info_DictionaryId ) << "FieldList with all data types- getInfoDictionaryId()";
 			EXPECT_EQ( fl.getInfoFieldListNum(), 65 ) << "FieldList with all data types- getInfoFieldListNum()" ;
 
 			try
@@ -726,24 +724,20 @@ TEST(FieldListTests, testFieldListDecodeAll)
 		EXPECT_FALSE( fl.forth() ) << "FieldList with all data types - twenty eighth forth()";
 
 		EXPECT_TRUE( true ) << "FieldList with all data types - exception not expected" ;
-
-		free( rsslBuf.data );
 	}
 	catch ( const OmmException& excp )
 	{
 		EXPECT_FALSE( true ) << "FieldList with all data types - exception not expected" ;
 		cout << excp << endl;
 	}
-
-	rsslDeleteDataDictionary( &dictionary );
 }
 
 TEST(FieldListTests, testFieldListContainsFieldListDecodeAll)
 {
 
-	RsslDataDictionary dictionary;
+	DictionaryPtr dictionary = makeDictionaryFromFile();
 
-	ASSERT_TRUE(loadDictionaryFromFile( &dictionary )) << "Failed to load dictionary";
+	ASSERT_TRUE((bool) dictionary ) << "Failed to load dictionary";
 
 	try
 	{
@@ -755,14 +749,12 @@ TEST(FieldListTests, testFieldListContainsFieldListDecodeAll)
 		rsslClearFieldList( &rsslFL );
 		rsslClearEncodeIterator( &iter );
 
-		RsslBuffer rsslBuf;
-		rsslBuf.length = 1000;
-		rsslBuf.data = ( char* )malloc( sizeof( char ) * 1000 );
+		EsslBuffer<1000> rsslBuf;
 
 		rsslSetEncodeIteratorRWFVersion( &iter, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION );
-		rsslSetEncodeIteratorBuffer( &iter, &rsslBuf );
+		rsslSetEncodeIteratorBuffer( &iter, rsslBuf );
 		rsslFL.flags = RSSL_FLF_HAS_STANDARD_DATA | RSSL_FLF_HAS_FIELD_LIST_INFO;
-		rsslFL.dictionaryId = dictionary.info_DictionaryId;
+		rsslFL.dictionaryId = dictionary->info_DictionaryId;
 		rsslFL.fieldListNum = 65;
 
 		rsslEncodeFieldListInit( &iter, &rsslFL, 0, 0 );
@@ -857,10 +849,10 @@ TEST(FieldListTests, testFieldListContainsFieldListDecodeAll)
 
 		//Now do EMA decoding of FieldList
 		FieldList fl;
-		StaticDecoder::setRsslData( &fl, &rsslBuf, RSSL_DT_FIELD_LIST, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary );
+		StaticDecoder::setRsslData( &fl, rsslBuf, RSSL_DT_FIELD_LIST, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, dictionary.get() );
 
 		EXPECT_TRUE( fl.hasInfo() ) << "FieldList with primitives and FieldList - hasInfo()" ;
-		EXPECT_EQ( fl.getInfoDictionaryId(), dictionary.info_DictionaryId) << "FieldList with primitives and FieldList - getInfoDictionaryId()";
+		EXPECT_EQ( fl.getInfoDictionaryId(), dictionary->info_DictionaryId) << "FieldList with primitives and FieldList - getInfoDictionaryId()";
 		EXPECT_EQ( fl.getInfoFieldListNum(), 65 ) << "FieldList with primitives and FieldList - getInfoFieldListNum()" ;
 
 		EXPECT_TRUE( fl.forth() ) << "FieldList with primitives and FieldList - first forth()" ;
@@ -960,24 +952,20 @@ TEST(FieldListTests, testFieldListContainsFieldListDecodeAll)
 		EXPECT_FALSE( fl.forth() ) << "FieldList with primitives and FieldList - tenth forth()" ;
 
 		EXPECT_TRUE( true ) << "FieldList with primitives and FieldList - exception not expected" ;
-
-		free( rsslBuf.data );
 	}
 	catch ( const OmmException& excp )
 	{
 		EXPECT_FALSE( true ) << "FieldList with primitives and FieldList - exception not expected" ;
 		cout << excp << endl;
 	}
-
-	rsslDeleteDataDictionary( &dictionary );
 }
 
 TEST(FieldListTests, testFieldListContainsElementListDecodeAll)
 {
 
-	RsslDataDictionary dictionary;
+	DictionaryPtr dictionary = makeDictionaryFromFile();
 
-	ASSERT_TRUE(loadDictionaryFromFile( &dictionary )) << "Failed to load dictionary";
+	ASSERT_TRUE((bool) dictionary ) << "Failed to load dictionary";
 
 	try
 	{
@@ -989,14 +977,12 @@ TEST(FieldListTests, testFieldListContainsElementListDecodeAll)
 		rsslClearFieldList( &rsslFL );
 		rsslClearEncodeIterator( &iter );
 
-		RsslBuffer rsslBuf;
-		rsslBuf.length = 1000;
-		rsslBuf.data = ( char* )malloc( sizeof( char ) * 1000 );
+		EsslBuffer<1000> rsslBuf;
 
 		rsslSetEncodeIteratorRWFVersion( &iter, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION );
-		rsslSetEncodeIteratorBuffer( &iter, &rsslBuf );
+		rsslSetEncodeIteratorBuffer( &iter, rsslBuf );
 		rsslFL.flags = RSSL_FLF_HAS_STANDARD_DATA | RSSL_FLF_HAS_FIELD_LIST_INFO;
-		rsslFL.dictionaryId = dictionary.info_DictionaryId;
+		rsslFL.dictionaryId = dictionary->info_DictionaryId;
 		rsslFL.fieldListNum = 65;
 
 		rsslEncodeFieldListInit( &iter, &rsslFL, 0, 0 );
@@ -1096,10 +1082,10 @@ TEST(FieldListTests, testFieldListContainsElementListDecodeAll)
 
 		//Now do EMA decoding of FieldList
 		FieldList fl;
-		StaticDecoder::setRsslData( &fl, &rsslBuf, RSSL_DT_FIELD_LIST, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary );
+		StaticDecoder::setRsslData( &fl, rsslBuf, RSSL_DT_FIELD_LIST, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, dictionary.get() );
 
 		EXPECT_TRUE( fl.hasInfo() ) << "FieldList with primitives and FieldList - hasInfo()" ;
-		EXPECT_EQ( fl.getInfoDictionaryId(), dictionary.info_DictionaryId) << "FieldList with primitives and FieldList - getInfoDictionaryId()";
+		EXPECT_EQ( fl.getInfoDictionaryId(), dictionary->info_DictionaryId) << "FieldList with primitives and FieldList - getInfoDictionaryId()";
 		EXPECT_EQ( fl.getInfoFieldListNum(), 65 ) << "FieldList with primitives and FieldList - getInfoFieldListNum()" ;
 
 		EXPECT_TRUE( fl.forth() ) << "FieldList with primitives and ElementList - first forth()" ;
@@ -1200,24 +1186,20 @@ TEST(FieldListTests, testFieldListContainsElementListDecodeAll)
 		EXPECT_FALSE( fl.forth() ) << "FieldList with primitives and ElementList - tenth forth()" ;
 
 		EXPECT_TRUE( true ) << "FieldList with primitives and ElementList - exception not expected" ;
-
-		free( rsslBuf.data );
 	}
 	catch ( const OmmException& excp )
 	{
 		EXPECT_FALSE( true ) << "FieldList with primitives and ElementList - exception not expected" ;
 		cout << excp << endl;
 	}
-
-	rsslDeleteDataDictionary( &dictionary );
 }
 
 TEST(FieldListTests, testFieldListContainsMapDecodeAll)
 {
 
-	RsslDataDictionary dictionary;
+	DictionaryPtr dictionary = makeDictionaryFromFile();
 
-	ASSERT_TRUE(loadDictionaryFromFile( &dictionary )) << "Failed to load dictionary";
+	ASSERT_TRUE((bool) dictionary ) << "Failed to load dictionary";
 
 	try
 	{
@@ -1229,14 +1211,13 @@ TEST(FieldListTests, testFieldListContainsMapDecodeAll)
 		rsslClearFieldList( &rsslFL );
 		rsslClearEncodeIterator( &iter );
 
-		RsslBuffer rsslBuf;
-		rsslBuf.length = 1000;
-		rsslBuf.data = ( char* )malloc( sizeof( char ) * 4096 );
+		EsslBuffer<4096> rsslBuf;
+		rsslBuf->length = 1000;
 
 		rsslSetEncodeIteratorRWFVersion( &iter, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION );
-		rsslSetEncodeIteratorBuffer( &iter, &rsslBuf );
+		rsslSetEncodeIteratorBuffer( &iter, rsslBuf );
 		rsslFL.flags = RSSL_FLF_HAS_STANDARD_DATA | RSSL_FLF_HAS_FIELD_LIST_INFO;
-		rsslFL.dictionaryId = dictionary.info_DictionaryId;
+		rsslFL.dictionaryId = dictionary->info_DictionaryId;
 		rsslFL.fieldListNum = 65;
 
 		rsslEncodeFieldListInit( &iter, &rsslFL, 0, 0 );
@@ -1319,9 +1300,9 @@ TEST(FieldListTests, testFieldListContainsMapDecodeAll)
 		nestedMap.containerType = RSSL_DT_FIELD_LIST;
 		nestedMap.keyPrimitiveType = RSSL_DT_BUFFER;
 		nestedMap.keyFieldId = 3426;
-		RsslBuffer rsslBuf1;
-		rsslBuf1.length = 1000;
-		rsslBuf1.data = ( char* )malloc( sizeof( char ) * 1000 );
+
+		EsslBuffer<1000> rsslBuf1;
+
 		rsslEncodeMapInit( &iter, &nestedMap, 0, 0 );
 		RsslMapEntry mapEntry;
 		rsslClearMapEntry( &mapEntry );
@@ -1362,10 +1343,10 @@ TEST(FieldListTests, testFieldListContainsMapDecodeAll)
 
 		//Now do EMA decoding of FieldList
 		FieldList fl;
-		StaticDecoder::setRsslData( &fl, &rsslBuf, RSSL_DT_FIELD_LIST, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary );
+		StaticDecoder::setRsslData( &fl, rsslBuf, RSSL_DT_FIELD_LIST, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, dictionary.get() );
 
 		EXPECT_TRUE( fl.hasInfo() ) << "FieldList with primitives and Map - hasInfo()" ;
-		EXPECT_EQ( fl.getInfoDictionaryId(), dictionary.info_DictionaryId) << "FieldList with primitives and Map - getInfoDictionaryId()";
+		EXPECT_EQ( fl.getInfoDictionaryId(), dictionary->info_DictionaryId) << "FieldList with primitives and Map - getInfoDictionaryId()";
 		EXPECT_EQ( fl.getInfoFieldListNum(), 65 ) << "FieldList with primitives and Map - getInfoFieldListNum()" ;
 
 		EXPECT_TRUE( fl.forth() ) << "FieldList with primitives and Map - first forth()" ;
@@ -1488,11 +1469,6 @@ TEST(FieldListTests, testFieldListContainsMapDecodeAll)
 		EXPECT_FALSE( fl.forth() ) << "FieldList with primitives and Map - tenth forth()" ;
 
 		EXPECT_TRUE( true ) << "FieldList with primitives and Map - exception not expected" ;
-
-
-		free( rsslBuf.data );
-		free( rsslBuf1.data );
-
 	}
 	catch ( const OmmException& excp )
 	{
@@ -1503,9 +1479,9 @@ TEST(FieldListTests, testFieldListContainsMapDecodeAll)
 
 TEST(FieldListTests, testFieldListEncodeDecodeAll)
 {
-	RsslDataDictionary dictionary;
+	DictionaryPtr dictionary = makeDictionaryFromFile();
 
-	ASSERT_TRUE(loadDictionaryFromFile( &dictionary )) << "Failed to load dictionary";
+	ASSERT_TRUE((bool) dictionary ) << "Failed to load dictionary";
 
 	DataDictionary emaDataDictionary, emaDataDictionaryEmpty;
 
@@ -1561,7 +1537,7 @@ TEST(FieldListTests, testFieldListEncodeDecodeAll)
 	FieldList flEnc, flEmpty;
 	EXPECT_EQ( flEnc.toString(), "\ntoString() method could not be used for just encoded object. Use toString(dictionary) for just encoded object.\n" ) << "FieldList.toString() == toString() method could not be used for just encoded object. Use toString(dictionary) for just encoded object.";
 
-	flEnc.info( dictionary.info_DictionaryId, 65 );
+	flEnc.info( dictionary->info_DictionaryId, 65 );
 	EXPECT_EQ( flEnc.toString(), "\ntoString() method could not be used for just encoded object. Use toString(dictionary) for just encoded object.\n" ) << "FieldList.toString() == toString() method could not be used for just encoded object. Use toString(dictionary) for just encoded object.";
 
 	try
@@ -1675,11 +1651,11 @@ TEST(FieldListTests, testFieldListEncodeDecodeAll)
 		EXPECT_EQ( flEmpty.toString( emaDataDictionary ), "FieldList\nFieldListEnd\n" ) << "FieldList.toString() == FieldList\nFieldListEnd\n";
 
 		//Decoding
-		StaticDecoder::setData( &flEnc, &dictionary );
+		StaticDecoder::setData( &flEnc, dictionary.get() );
 		EXPECT_EQ( flEnc.toString(), fieldListString ) << "FieldList.toString() == fieldListString";
 
 		EXPECT_TRUE( flEnc.hasInfo() ) << "FieldList with all data types - hasInfo()" ;
-		EXPECT_EQ( flEnc.getInfoDictionaryId(), dictionary.info_DictionaryId) << "FieldList with all data types - getInfoDictionaryId()";
+		EXPECT_EQ( flEnc.getInfoDictionaryId(), dictionary->info_DictionaryId) << "FieldList with all data types - getInfoDictionaryId()";
 		EXPECT_EQ( flEnc.getInfoFieldListNum(), 65 ) << "FieldList with all data types - getInfoFieldListNum()" ;
 
 		try
@@ -1726,7 +1702,7 @@ TEST(FieldListTests, testFieldListEncodeDecodeAll)
 		flEnc.reset();
 		{
 			EXPECT_TRUE( flEnc.hasInfo() ) << "FieldList with all data types - hasInfo()" ;
-			EXPECT_EQ( flEnc.getInfoDictionaryId(), dictionary.info_DictionaryId) << "FieldList with all data types- getInfoDictionaryId()";
+			EXPECT_EQ( flEnc.getInfoDictionaryId(), dictionary->info_DictionaryId) << "FieldList with all data types- getInfoDictionaryId()";
 			EXPECT_EQ( flEnc.getInfoFieldListNum(), 65 ) << "FieldList with all data types- getInfoFieldListNum()" ;
 			try
 			{
@@ -1975,7 +1951,7 @@ TEST(FieldListTests, testFieldListEncodeDecodeAll)
 
 
 	flEnc.clear();
-	flEnc.info( dictionary.info_DictionaryId + 1, 66 );
+	flEnc.info( dictionary->info_DictionaryId + 1, 66 );
 
 	try
 	{
@@ -2081,10 +2057,10 @@ TEST(FieldListTests, testFieldListEncodeDecodeAll)
 
 
 		//Decoding
-		StaticDecoder::setData( &flEnc, &dictionary );
+		StaticDecoder::setData( &flEnc, dictionary.get() );
 
 		EXPECT_TRUE( flEnc.hasInfo() ) << "FieldList with all data types - hasInfo()" ;
-		EXPECT_EQ( flEnc.getInfoDictionaryId(), dictionary.info_DictionaryId + 1) << "FieldList with all data types - getInfoDictionaryId()";
+		EXPECT_EQ( flEnc.getInfoDictionaryId(), dictionary->info_DictionaryId + 1) << "FieldList with all data types - getInfoDictionaryId()";
 		EXPECT_EQ( flEnc.getInfoFieldListNum(), 66 ) << "FieldList with all data types - getInfoFieldListNum()" ;
 
 		EXPECT_TRUE( flEnc.forth() ) << "FieldList with all data types- first forth()" ;
@@ -2404,12 +2380,12 @@ TEST(FieldListTests, testFieldListEncodeDecodeAll)
 TEST(FieldListTests, testFieldListContainsFieldListEncodeDecodeAll)
 {
 
-	RsslDataDictionary dictionary;
+	DictionaryPtr dictionary = makeDictionaryFromFile();
 
-	ASSERT_TRUE(loadDictionaryFromFile( &dictionary )) << "Failed to load dictionary";
+	ASSERT_TRUE((bool) dictionary ) << "Failed to load dictionary";
 
 	FieldList flEnc;
-	flEnc.info( dictionary.info_DictionaryId, 65 );
+	flEnc.info( dictionary->info_DictionaryId, 65 );
 
 	try
 	{
@@ -2450,10 +2426,10 @@ TEST(FieldListTests, testFieldListContainsFieldListEncodeDecodeAll)
 
 
 		//Now do EMA decoding of FieldList
-		StaticDecoder::setData( &flEnc, &dictionary );
+		StaticDecoder::setData( &flEnc, dictionary.get() );
 
 		EXPECT_TRUE( flEnc.hasInfo() ) << "FieldList with primitives and FieldList - hasInfo()" ;
-		EXPECT_EQ( flEnc.getInfoDictionaryId(), dictionary.info_DictionaryId) << "FieldList with primitives and FieldList - getInfoDictionaryId()";
+		EXPECT_EQ( flEnc.getInfoDictionaryId(), dictionary->info_DictionaryId) << "FieldList with primitives and FieldList - getInfoDictionaryId()";
 		EXPECT_EQ( flEnc.getInfoFieldListNum(), 65 ) << "FieldList with primitives and FieldList - getInfoFieldListNum()" ;
 
 		EXPECT_TRUE( flEnc.forth() ) << "FieldList with primitives and FieldList - first forth()" ;
@@ -2570,19 +2546,16 @@ TEST(FieldListTests, testFieldListContainsFieldListEncodeDecodeAll)
 		EXPECT_FALSE( true ) << "FieldList with primitives and FieldList - exception not expected" ;
 		cout << excp << endl;
 	}
-
-	rsslDeleteDataDictionary( &dictionary );
 }
 
 TEST(FieldListTests, testFieldListContainsElementListEncodeDecodeAll)
 {
+	DictionaryPtr dictionary = makeDictionaryFromFile();
 
-	RsslDataDictionary dictionary;
-
-	ASSERT_TRUE(loadDictionaryFromFile( &dictionary )) << "Failed to load dictionary";
+	ASSERT_TRUE((bool) dictionary ) << "Failed to load dictionary";
 
 	FieldList flEnc;
-	flEnc.info( dictionary.info_DictionaryId, 65 );
+	flEnc.info( dictionary->info_DictionaryId, 65 );
 
 	try
 	{
@@ -2624,10 +2597,10 @@ TEST(FieldListTests, testFieldListContainsElementListEncodeDecodeAll)
 
 
 		//Now do EMA decoding of FieldList
-		StaticDecoder::setData( &flEnc, &dictionary );
+		StaticDecoder::setData( &flEnc, dictionary.get() );
 
 		EXPECT_TRUE( flEnc.hasInfo() ) << "FieldList with primitives and FieldList - hasInfo()" ;
-		EXPECT_EQ( flEnc.getInfoDictionaryId(), dictionary.info_DictionaryId) << "FieldList with primitives and FieldList - getInfoDictionaryId()";
+		EXPECT_EQ( flEnc.getInfoDictionaryId(), dictionary->info_DictionaryId) << "FieldList with primitives and FieldList - getInfoDictionaryId()";
 		EXPECT_EQ( flEnc.getInfoFieldListNum(), 65 ) << "FieldList with primitives and FieldList - getInfoFieldListNum()" ;
 
 		EXPECT_TRUE( flEnc.forth() ) << "FieldList with primitives and ElementList - first forth()" ;
@@ -2743,19 +2716,17 @@ TEST(FieldListTests, testFieldListContainsElementListEncodeDecodeAll)
 		EXPECT_FALSE( true ) << "FieldList with primitives and ElementList - exception not expected" ;
 		cout << excp << endl;
 	}
-
-	rsslDeleteDataDictionary( &dictionary );
 }
 
 TEST(FieldListTests, testFieldListContainsMapEncodeDecodeAll)
 {
 
-	RsslDataDictionary dictionary;
+	DictionaryPtr dictionary = makeDictionaryFromFile();
 
-	ASSERT_TRUE(loadDictionaryFromFile( &dictionary )) << "Failed to load dictionary";
+	ASSERT_TRUE((bool) dictionary ) << "Failed to load dictionary";
 
 	FieldList flEnc;
-	flEnc.info( dictionary.info_DictionaryId, 65 );
+	flEnc.info( dictionary->info_DictionaryId, 65 );
 
 	try
 	{
@@ -2795,10 +2766,10 @@ TEST(FieldListTests, testFieldListContainsMapEncodeDecodeAll)
 
 
 		//Now do EMA decoding of FieldList
-		StaticDecoder::setData( &flEnc, &dictionary );
+		StaticDecoder::setData( &flEnc, dictionary.get() );
 
 		EXPECT_TRUE( flEnc.hasInfo() ) << "FieldList with primitives and Map - hasInfo()" ;
-		EXPECT_EQ( flEnc.getInfoDictionaryId(), dictionary.info_DictionaryId) << "FieldList with primitives and Map - getInfoDictionaryId()";
+		EXPECT_EQ( flEnc.getInfoDictionaryId(), dictionary->info_DictionaryId) << "FieldList with primitives and Map - getInfoDictionaryId()";
 		EXPECT_EQ( flEnc.getInfoFieldListNum(), 65 ) << "FieldList with primitives and Map - getInfoFieldListNum()" ;
 
 		EXPECT_TRUE( flEnc.forth() ) << "FieldList with primitives and Map - first forth()" ;
@@ -2946,8 +2917,6 @@ TEST(FieldListTests, testFieldListContainsMapEncodeDecodeAll)
 		EXPECT_FALSE( true ) << "FieldList with primitives and Map - exception not expected" ;
 		cout << excp << endl;
 	}
-
-	rsslDeleteDataDictionary( &dictionary );
 }
 
 
@@ -3039,22 +3008,20 @@ void encodeErrorFieldList( RsslBuffer& rsslBuf )
 TEST(FieldListTests, testErrorFieldListDecode)
 {
 
-	RsslDataDictionary dictionary;
+	DictionaryPtr dictionary = makeDictionaryFromFile();
 
-	ASSERT_TRUE(loadDictionaryFromFile( &dictionary )) << "Failed to load dictionary";
+	ASSERT_TRUE((bool) dictionary ) << "Failed to load dictionary";
 
 	try
 	{
 
-		RsslBuffer rsslBuf;
-		rsslBuf.length = 1000;
-		rsslBuf.data = ( char* )malloc( sizeof( char ) * 1000 );
+		EsslBuffer<1000> rsslBuf;
 
 		encodeErrorFieldList( rsslBuf );
 
 		FieldList fl;
 
-		StaticDecoder::setRsslData( &fl, &rsslBuf, RSSL_DT_FIELD_LIST, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary );
+		StaticDecoder::setRsslData( &fl, rsslBuf, RSSL_DT_FIELD_LIST, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, dictionary.get() );
 
 		// first entry "fid not found"
 		{
@@ -3232,26 +3199,21 @@ TEST(FieldListTests, testErrorFieldListDecode)
 
 		EXPECT_FALSE( fl.forth() ) << "FieldList::forth() ninth";
 
-		free( rsslBuf.data );
-
 		EXPECT_TRUE( true ) << "Error FieldList decoding - exception not expected" ;
-
 	}
 	catch ( const OmmException& excp )
 	{
 		EXPECT_FALSE( true ) << "Error FieldList decoding - exception not expected" ;
 		cout << excp << endl;
 	}
-
-	rsslDeleteDataDictionary( &dictionary );
 }
 
 TEST(FieldListTests, testFieldListDecodetoString)
 {
 
-	RsslDataDictionary dictionary;
+	DictionaryPtr dictionary = makeDictionaryFromFile();
 
-	ASSERT_TRUE(loadDictionaryFromFile( &dictionary )) << "Failed to load dictionary";
+	ASSERT_TRUE((bool) dictionary ) << "Failed to load dictionary";
 
 	try
 	{
@@ -3263,14 +3225,12 @@ TEST(FieldListTests, testFieldListDecodetoString)
 		rsslClearFieldList( &rsslFL );
 		rsslClearEncodeIterator( &iter );
 
-		RsslBuffer rsslBuf;
-		rsslBuf.length = 1000;
-		rsslBuf.data = ( char* )malloc( sizeof( char ) * 1000 );
+		EsslBuffer<1000> rsslBuf;
 
 		rsslSetEncodeIteratorRWFVersion( &iter, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION );
-		rsslSetEncodeIteratorBuffer( &iter, &rsslBuf );
+		rsslSetEncodeIteratorBuffer( &iter, rsslBuf );
 		rsslFL.flags = RSSL_FLF_HAS_STANDARD_DATA | RSSL_FLF_HAS_STANDARD_DATA | RSSL_FLF_HAS_FIELD_LIST_INFO;
-		rsslFL.dictionaryId = dictionary.info_DictionaryId;
+		rsslFL.dictionaryId = dictionary->info_DictionaryId;
 		rsslFL.fieldListNum = 65;
 		rsslEncodeFieldListInit( &iter, &rsslFL, 0, 0 );
 
@@ -3369,35 +3329,29 @@ TEST(FieldListTests, testFieldListDecodetoString)
 		news.length = 6;
 		rsslEncodeFieldEntry( &iter, &rsslFEntry, ( void* )&news );
 
-		rsslBuf.length = rsslGetEncodedBufferLength( &iter );
+		rsslBuf->length = rsslGetEncodedBufferLength( &iter );
 
 		rsslEncodeFieldListComplete( &iter, RSSL_TRUE );
 
 		FieldList fl;
 
-		StaticDecoder::setRsslData( &fl, &rsslBuf, RSSL_DT_FIELD_LIST, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary );
-
-		free( rsslBuf.data );
+		StaticDecoder::setRsslData( &fl, rsslBuf, RSSL_DT_FIELD_LIST, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, dictionary.get() );
 
 		EXPECT_TRUE( true ) << "Fieldlist toString Decode - exception not expected" ;
-
 	}
 	catch ( const OmmException& excp )
 	{
 		EXPECT_FALSE( true ) << "Fieldlist toString Decode - exception not expected" ;
 		cout << excp << endl;
 	}
-
-	rsslDeleteDataDictionary( &dictionary );
 }
 
 TEST(FieldListTests, testFieldListPrePostBindElementList)
 {
-
 	// load dictionary for decoding of the field list
-	RsslDataDictionary dictionary;
+	DictionaryPtr dictionary = makeDictionaryFromFile();
 
-	ASSERT_TRUE(loadDictionaryFromFile( &dictionary )) << "Failed to load dictionary";
+	ASSERT_TRUE((bool) dictionary ) << "Failed to load dictionary";
 
 	try
 	{
@@ -3409,7 +3363,7 @@ TEST(FieldListTests, testFieldListPrePostBindElementList)
 			fieldList1.addElementList( -15, elementList );
 			EmaEncodeElementListAll( elementList );
 			fieldList1.complete();
-			StaticDecoder::setData( &fieldList1, &dictionary );
+			StaticDecoder::setData( &fieldList1, dictionary.get() );
 		}
 
 		// Encode ElementList via postbind
@@ -3419,7 +3373,7 @@ TEST(FieldListTests, testFieldListPrePostBindElementList)
 			EmaEncodeElementListAll( elementList );
 			fieldList2.addElementList( -15, elementList );
 			fieldList2.complete();
-			StaticDecoder::setData( &fieldList2, &dictionary );
+			StaticDecoder::setData( &fieldList2, dictionary.get() );
 		}
 
 		EXPECT_STREQ( fieldList1.toString(), fieldList2.toString() ) << "Pre/Post-bound ElementLists are equal - exception not expected";
@@ -3436,9 +3390,9 @@ TEST(FieldListTests, testFieldListPrePostBindFieldList)
 {
 
 	// load dictionary for decoding of the field list
-	RsslDataDictionary dictionary;
+	DictionaryPtr dictionary = makeDictionaryFromFile();
 
-	ASSERT_TRUE(loadDictionaryFromFile( &dictionary )) << "Failed to load dictionary";
+	ASSERT_TRUE((bool) dictionary ) << "Failed to load dictionary";
 
 	try
 	{
@@ -3450,7 +3404,7 @@ TEST(FieldListTests, testFieldListPrePostBindFieldList)
 			fieldList1.addFieldList( -13, fieldList );
 			EmaEncodeFieldListAll( fieldList );
 			fieldList1.complete();
-			StaticDecoder::setData( &fieldList1, &dictionary );
+			StaticDecoder::setData( &fieldList1, dictionary.get() );
 		}
 
 		// Encode FieldList via postbind
@@ -3460,7 +3414,7 @@ TEST(FieldListTests, testFieldListPrePostBindFieldList)
 			EmaEncodeFieldListAll( fieldList );
 			fieldList2.addFieldList( -13, fieldList );
 			fieldList2.complete();
-			StaticDecoder::setData( &fieldList2, &dictionary );
+			StaticDecoder::setData( &fieldList2, dictionary.get() );
 		}
 
 		EXPECT_STREQ( fieldList1.toString(), fieldList2.toString() ) << "Pre/Post-bound FieldLists are equal - exception not expected";
@@ -3477,9 +3431,9 @@ TEST(FieldListTests, testFieldListHybrid)
 {
 
 	// load dictionary for decoding of the field list
-	RsslDataDictionary dictionary;
+	DictionaryPtr dictionary = makeDictionaryFromFile();
 
-	ASSERT_TRUE(loadDictionaryFromFile( &dictionary )) << "Failed to load dictionary";
+	ASSERT_TRUE((bool) dictionary ) << "Failed to load dictionary";
 
 	try
 	{
@@ -3491,14 +3445,12 @@ TEST(FieldListTests, testFieldListHybrid)
 		rsslClearFieldList( &rsslFL );
 		rsslClearEncodeIterator( &iter );
 
-		RsslBuffer rsslBuf;
-		rsslBuf.length = 1000;
-		rsslBuf.data = ( char* )malloc( sizeof( char ) * 1000 );
+		EsslBuffer<1000> rsslBuf;
 
 		rsslSetEncodeIteratorRWFVersion( &iter, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION );
-		rsslSetEncodeIteratorBuffer( &iter, &rsslBuf );
+		rsslSetEncodeIteratorBuffer( &iter, rsslBuf );
 		rsslFL.flags = RSSL_FLF_HAS_STANDARD_DATA | RSSL_FLF_HAS_FIELD_LIST_INFO;
-		rsslFL.dictionaryId = dictionary.info_DictionaryId;
+		rsslFL.dictionaryId = dictionary->info_DictionaryId;
 		rsslFL.fieldListNum = 65;
 
 		rsslEncodeFieldListInit( &iter, &rsslFL, 0, 0 );
@@ -3584,7 +3536,7 @@ TEST(FieldListTests, testFieldListHybrid)
 
 		// Convert RsslFieldList into EMA's FieldList
 		FieldList decodedFieldList, encodedFieldList;
-		StaticDecoder::setRsslData( &decodedFieldList, &rsslBuf, RSSL_DT_FIELD_LIST, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary );
+		StaticDecoder::setRsslData( &decodedFieldList, rsslBuf, RSSL_DT_FIELD_LIST, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, dictionary.get() );
 
 		// encode Map with the above EMA's FieldList
 		Map map;
@@ -3596,7 +3548,7 @@ TEST(FieldListTests, testFieldListHybrid)
 
 		map.complete();
 
-		StaticDecoder::setData( &map, &dictionary );
+		StaticDecoder::setData( &map, dictionary.get() );
 
 		EXPECT_EQ( map.getSummaryData().getDataType(), DataType::FieldListEnum ) << "Map::getSummaryData().getDataType()" ;
 
@@ -3623,11 +3575,10 @@ TEST(FieldListTests, testFieldListHybrid)
 
 TEST(FieldListTests, testFieldListError)
 {
-
 	// load dictionary for decoding of the field list
-	RsslDataDictionary dictionary;
+	DictionaryPtr dictionary = makeDictionaryFromFile();
 
-	ASSERT_TRUE(loadDictionaryFromFile( &dictionary )) << "Failed to load dictionary";
+	ASSERT_TRUE((bool) dictionary ) << "Failed to load dictionary";
 
 	{
 		try
@@ -3636,7 +3587,7 @@ TEST(FieldListTests, testFieldListError)
 			fl.complete();
 			EXPECT_TRUE( true ) << "FieldList::complete() on empty field list - exception not expected" ;
 
-			StaticDecoder::setData( &fl, &dictionary );
+			StaticDecoder::setData( &fl, dictionary.get() );
 
 			EXPECT_FALSE( fl.forth() ) << "FieldList::forth()" ;
 
@@ -3656,7 +3607,7 @@ TEST(FieldListTests, testFieldListError)
 			fl.complete();
 			EXPECT_TRUE( true ) << "FieldList::complete() on empty field list with info - exception not expected" ;
 
-			StaticDecoder::setData( &fl, &dictionary );
+			StaticDecoder::setData( &fl, dictionary.get() );
 
 			EXPECT_TRUE( fl.hasInfo() ) << "FieldList::hasInfo()" ;
 
@@ -3706,7 +3657,7 @@ TEST(FieldListTests, testFieldListError)
 
 			EXPECT_TRUE( true ) << "FieldList::addDouble() after complete() & clear() - exception not expected" ;
 
-			StaticDecoder::setData( &fl, &dictionary );
+			StaticDecoder::setData( &fl, dictionary.get() );
 
 			EXPECT_TRUE( fl.forth() ) << "FieldList::forth()" ;
 			EXPECT_FALSE( fl.forth() ) << "FieldList::forth()" ;
@@ -3778,7 +3729,7 @@ TEST(FieldListTests, testFieldListError)
 
 			EXPECT_TRUE( true ) << "FieldList::addElementList() after complete() & clear() - exception not expected" ;
 
-			StaticDecoder::setData( &fl, &dictionary );
+			StaticDecoder::setData( &fl, dictionary.get() );
 
 			EXPECT_TRUE( fl.forth() ) << "FieldList::forth()" ;
 			EXPECT_FALSE( fl.forth() ) << "FieldList::forth()" ;
@@ -3820,12 +3771,12 @@ TEST(FieldListTests, testFieldListError)
 
 			fl.complete();
 
-			EXPECT_FALSE( true ) << "FieldList::addRefreshMsg() while message is empty - exception expected" ;
+			EXPECT_TRUE( true ) << "FieldList::addRefreshMsg() while message is empty - exception not expected" ;
 
 		}
 		catch ( const OmmException& )
 		{
-			EXPECT_TRUE( true ) << "FieldList::addRefreshMsg() while message is empty - exception expected" ;
+			EXPECT_FALSE( true ) << "FieldList::addRefreshMsg() while message is empty - exception not expected" ;
 		}
 	}
 
@@ -3842,7 +3793,7 @@ TEST(FieldListTests, testFieldListError)
 
 			fl.complete();
 
-			StaticDecoder::setData( &fl, &dictionary );
+			StaticDecoder::setData( &fl, dictionary.get() );
 
 			EXPECT_TRUE( fl.forth() ) << "FieldList::forth()" ;
 
@@ -3874,12 +3825,12 @@ TEST(FieldListTests, testFieldListError)
 
 			fl.complete();
 
-			EXPECT_FALSE( true ) << "FieldList::addRefreshMsg() while message is populated then cleared - exception expected" ;
+			EXPECT_TRUE( true ) << "FieldList::addRefreshMsg() while message is populated then cleared - exception not expected" ;
 
 		}
 		catch ( const OmmException& )
 		{
-			EXPECT_TRUE( true ) << "FieldList::addRefreshMsg() while message is populated then cleared - exception expected" ;
+			EXPECT_FALSE( true ) << "FieldList::addRefreshMsg() while message is populated then cleared - exception not expected" ;
 		}
 	}
 
@@ -3894,12 +3845,12 @@ TEST(FieldListTests, testFieldListError)
 
 			fl.complete();
 
-			EXPECT_FALSE( true ) << "FieldList::addGenericMsg() while message is empty - exception expected" ;
+			EXPECT_TRUE( true ) << "FieldList::addGenericMsg() while message is empty - exception not expected" ;
 
 		}
 		catch ( const OmmException& )
 		{
-			EXPECT_TRUE( true ) << "FieldList::addGenericMsg() while message is empty - exception expected" ;
+			EXPECT_FALSE( true ) << "FieldList::addGenericMsg() while message is empty - exception not expected" ;
 		}
 	}
 
@@ -3916,7 +3867,7 @@ TEST(FieldListTests, testFieldListError)
 
 			fl.complete();
 
-			StaticDecoder::setData( &fl, &dictionary );
+			StaticDecoder::setData( &fl, dictionary.get() );
 
 			EXPECT_TRUE( fl.forth() ) << "FieldList::forth()" ;
 
@@ -3948,25 +3899,23 @@ TEST(FieldListTests, testFieldListError)
 
 			fl.complete();
 
-			EXPECT_FALSE( true ) << "FieldList::addGenericMsg() while message is populated then cleared - exception expected" ;
+			EXPECT_TRUE( true ) << "FieldList::addGenericMsg() while message is populated then cleared - exception not expected" ;
 
 		}
 		catch ( const OmmException& )
 		{
-			EXPECT_TRUE( true ) << "FieldList::addGenericMsg() while message is populated then cleared - exception expected" ;
+			EXPECT_TRUE( false ) << "FieldList::addGenericMsg() while message is populated then cleared - exception not expected" ;
 		}
 	}
-
-	rsslDeleteDataDictionary( &dictionary );
 }
 
 TEST(FieldListTests, testFieldListPrimitiveDecodingError)
 {
 
 	// load dictionary for decoding of the field list
-	RsslDataDictionary dictionary;
+	DictionaryPtr dictionary = makeDictionaryFromFile();
 
-	ASSERT_TRUE(loadDictionaryFromFile( &dictionary )) << "Failed to load dictionary";
+	ASSERT_TRUE((bool) dictionary ) << "Failed to load dictionary";
 
 	{
 		try
@@ -3980,14 +3929,12 @@ TEST(FieldListTests, testFieldListPrimitiveDecodingError)
 			rsslClearFieldList( &rsslFL );
 			rsslClearEncodeIterator( &iter );
 
-			RsslBuffer rsslBuf;
-			rsslBuf.length = 1000;
-			rsslBuf.data = ( char* )malloc( sizeof( char ) * 1000 );
+			EsslBuffer<1000> rsslBuf;
 
 			rsslSetEncodeIteratorRWFVersion( &iter, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION );
-			rsslSetEncodeIteratorBuffer( &iter, &rsslBuf );
+			rsslSetEncodeIteratorBuffer( &iter, rsslBuf );
 			rsslFL.flags = RSSL_FLF_HAS_STANDARD_DATA | RSSL_FLF_HAS_FIELD_LIST_INFO;
-			rsslFL.dictionaryId = dictionary.info_DictionaryId;
+			rsslFL.dictionaryId = dictionary->info_DictionaryId;
 			rsslFL.fieldListNum = 65;
 
 			rsslEncodeFieldListInit( &iter, &rsslFL, 0, 0 );
@@ -4224,7 +4171,7 @@ TEST(FieldListTests, testFieldListPrimitiveDecodingError)
 			{
 				Data* pData = new FieldList();
 
-				StaticDecoder::setRsslData( pData, &rsslBuf, RSSL_DT_FIELD_LIST, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, 0 );
+				StaticDecoder::setRsslData( pData, rsslBuf, RSSL_DT_FIELD_LIST, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, 0 );
 
 				EXPECT_EQ( pData->getDataType(), DataType::ErrorEnum) << "Decoding FieldList without dictionary";
 				EXPECT_EQ( reinterpret_cast<const OmmError*>( pData )->getErrorCode(), OmmError::NoDictionaryEnum) << "OmmError::NoDictionary";
@@ -4235,7 +4182,7 @@ TEST(FieldListTests, testFieldListPrimitiveDecodingError)
 			{
 				Data* pData = new FieldList();
 
-				StaticDecoder::setRsslData( pData, &rsslBuf, RSSL_DT_FIELD_LIST, 20, RSSL_RWF_MINOR_VERSION, &dictionary );
+				StaticDecoder::setRsslData( pData, rsslBuf, RSSL_DT_FIELD_LIST, 20, RSSL_RWF_MINOR_VERSION, dictionary.get() );
 
 				EXPECT_EQ( pData->getDataType(), DataType::ErrorEnum) << "Decoding FieldList wrong major version";
 				EXPECT_EQ( reinterpret_cast<const OmmError*>( pData )->getErrorCode(), OmmError::IteratorSetFailureEnum) << "OmmError::NoDictionary";
@@ -4268,14 +4215,12 @@ TEST(FieldListTests, testFieldListPrimitiveDecodingError)
 			rsslClearFieldList( &rsslFL );
 			rsslClearEncodeIterator( &iter );
 
-			RsslBuffer rsslBuf;
-			rsslBuf.length = 1000;
-			rsslBuf.data = ( char* )malloc( sizeof( char ) * 1000 );
+			EsslBuffer<1000> rsslBuf;
 
 			rsslSetEncodeIteratorRWFVersion( &iter, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION );
-			rsslSetEncodeIteratorBuffer( &iter, &rsslBuf );
+			rsslSetEncodeIteratorBuffer( &iter, rsslBuf );
 			rsslFL.flags = RSSL_FLF_HAS_STANDARD_DATA | RSSL_FLF_HAS_FIELD_LIST_INFO;
-			rsslFL.dictionaryId = dictionary.info_DictionaryId;
+			rsslFL.dictionaryId = dictionary->info_DictionaryId;
 			rsslFL.fieldListNum = 65;
 
 			rsslEncodeFieldListInit( &iter, &rsslFL, 0, 0 );
@@ -4300,7 +4245,7 @@ TEST(FieldListTests, testFieldListPrimitiveDecodingError)
 			{
 				FieldList fl;
 
-				StaticDecoder::setRsslData( &fl, &rsslBuf, RSSL_DT_FIELD_LIST, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary );
+				StaticDecoder::setRsslData( &fl, rsslBuf, RSSL_DT_FIELD_LIST, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, dictionary.get() );
 
 				EXPECT_TRUE( fl.forth() ) << "FieldList::forth()" ;
 
@@ -4328,19 +4273,17 @@ TEST(FieldListTests, testFieldListPrimitiveDecodingError)
 			EXPECT_FALSE( true ) << "FieldList primitive decoding error + unknown exception - exception not expected" ;
 		}
 	}
-
-	rsslDeleteDataDictionary( &dictionary );
 }
 
 TEST(FieldListTests, testFieldListEncodeEMADecodeEMARippleToRippleToName)
 {
     // load dictionary for decoding of the field list
-    RsslDataDictionary dictionary;
+    DictionaryPtr dictionary = makeDictionaryFromFile();
 
-    ASSERT_TRUE(loadDictionaryFromFile( &dictionary )) << "Failed to load dictionary";
+    ASSERT_TRUE((bool) dictionary ) << "Failed to load dictionary";
 
     FieldList flEnc;
-    flEnc.info(dictionary.info_DictionaryId, 65);
+    flEnc.info(dictionary->info_DictionaryId, 65);
 
     try
     {
@@ -4361,10 +4304,10 @@ TEST(FieldListTests, testFieldListEncodeEMADecodeEMARippleToRippleToName)
         flEnc.complete();
 
         //Now do EMA decoding of FieldList
-        StaticDecoder::setData(&flEnc, &dictionary);
+        StaticDecoder::setData(&flEnc, dictionary.get());
 
         EXPECT_TRUE( flEnc.hasInfo() ) << "FieldList with primitives - hasInfo()";
-		EXPECT_EQ(flEnc.getInfoDictionaryId(), dictionary.info_DictionaryId) << "FieldList with primitives - getInfoDictionaryId()";
+		EXPECT_EQ(flEnc.getInfoDictionaryId(), dictionary->info_DictionaryId) << "FieldList with primitives - getInfoDictionaryId()";
         EXPECT_EQ( flEnc.getInfoFieldListNum(), 65 ) << "FieldList with primitives - getInfoFieldListNum()";
 
         EXPECT_TRUE( flEnc.forth() ) << "FieldList with primitives and Map - first forth()";
@@ -4424,8 +4367,6 @@ TEST(FieldListTests, testFieldListEncodeEMADecodeEMARippleToRippleToName)
     {
                     EXPECT_FALSE( true ) << "FieldList with primitives and Map - exception not expected" << excp << endl;
     }
-
-    rsslDeleteDataDictionary(&dictionary);
 }
 
 TEST(FieldListTests, testFieldListAddInfoAfterInitialized)
@@ -4450,16 +4391,16 @@ TEST(FieldListTests, testFieldListClear_Encode_Decode)
 	try
 	{
 		// load dictionary for decoding of the field list
-		RsslDataDictionary dictionary;
+		DictionaryPtr dictionary = makeDictionaryFromFile();
 
-		ASSERT_TRUE(loadDictionaryFromFile(&dictionary)) << "Failed to load dictionary";
+		ASSERT_TRUE((bool) dictionary) << "Failed to load dictionary";
 
 		FieldList fieldList;
 		fieldList.info(1, 2).addUInt(1, 555)
 			.clear()
 			.info(3, 4).addUInt(1, 666).complete();
 
-		StaticDecoder::setData(&fieldList, &dictionary);
+		StaticDecoder::setData(&fieldList, dictionary.get());
 
 		EXPECT_TRUE(fieldList.hasInfo()) << "Check has info attribute";
 		EXPECT_TRUE(fieldList.getInfoDictionaryId() == 3) << "Check the info dictionary ID attribute";

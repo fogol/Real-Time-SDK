@@ -1234,7 +1234,7 @@ TEST(DataUnitTest, testPerfElementList)
 				dateTime.time.minute = 02;
 				dateTime.time.second = 03;
 				dateTime.time.millisecond = 000;
-				rsslEncodeElementEntry( &iter, &rsslEEntry, ( void* )&rsslTime );
+				rsslEncodeElementEntry( &iter, &rsslEEntry, ( void* )&dateTime );
 
 				rsslEEntry.name.data = ( char* )"Element - RsslState";
 				rsslEEntry.name.length = 19;

@@ -2,7 +2,7 @@
  *|            This source code is provided under the Apache 2.0 license
  *|  and is provided AS IS with no warranty or guarantee of fit for purpose.
  *|                See the project's LICENSE.md for details.
- *|           Copyright (C) 2015-2016,2019-2020,2024 LSEG. All rights reserved.
+ *|           Copyright (C) 2015-2025 LSEG. All rights reserved.
  *|-----------------------------------------------------------------------------
  */
 
@@ -10,16 +10,14 @@
 #include "OmmBuffer.h"
 #include "EmaString.h"
 #include "ExceptionTranslator.h"
-#include "MsgDecoder.h"
-#include "MsgEncoder.h"
+#include "MsgImpl.h"
 
 #include "Utilities.h"
 
 using namespace refinitiv::ema::access;
 
 Msg::Msg() :
- _pDecoder( nullptr ),
- _pEncoder( nullptr ),
+ _pImpl( nullptr ),
  _attrib(),
  _payload()
 {
@@ -31,82 +29,83 @@ Msg::~Msg()
 
 bool Msg::hasMsgKey() const
 {
-	return _pDecoder->hasMsgKey();
+	return _pImpl->hasMsgKey();
 }
 
 bool Msg::hasName() const
 {
-	return _pDecoder->hasName();
+	return _pImpl->hasName();
 }
 
 bool Msg::hasNameType() const
 {
-	return _pDecoder->hasNameType();
+	return _pImpl->hasNameType();
 }
 
 bool Msg::hasServiceId() const
 {
-	return _pDecoder->hasServiceId();
+	return _pImpl->hasServiceId();
 }
 
 bool Msg::hasId() const
 {
-	return _pDecoder->hasId();
+	return _pImpl->hasId();
 }
 
 bool Msg::hasFilter() const
 {
-	return _pDecoder->hasFilter();
+	return _pImpl->hasFilter();
 }
 
 bool Msg::hasExtendedHeader() const
 {
-	return _pDecoder->hasExtendedHeader();
+	return _pImpl->hasExtendedHeader();
 }
 
 Int32 Msg::getStreamId() const
 {
-	return _pDecoder->getStreamId();
+	return _pImpl->getStreamId();
 }
 
 UInt16 Msg::getDomainType() const
 {
-	return _pDecoder->getDomainType();
+	return _pImpl->getDomainType();
 }
 
 const EmaString& Msg::getName() const
 {
-	return _pDecoder->getName();
+	return _pImpl->getName();
 }
 
 UInt8 Msg::getNameType() const
 {
-	return _pDecoder->getNameType();
+	return _pImpl->getNameType();
 }
 
 UInt32 Msg::getServiceId() const
 {
-	return _pDecoder->getServiceId();
+	return _pImpl->getServiceId();
 }
 
 Int32 Msg::getId() const
 {
-	return _pDecoder->getId();
+	return _pImpl->getId();
 }
 
 UInt32 Msg::getFilter() const
 {
-	return _pDecoder->getFilter();
+	return _pImpl->getFilter();
 }
 
 const EmaBuffer& Msg::getExtendedHeader() const
 {
-	return _pDecoder->getExtendedHeader();
+	return _pImpl->getExtendedHeader();
 }
 
 const Encoder& Msg::getEncoder() const
 {
-	return *_pEncoder;
+	_pImpl->_encoder.init();
+	return _pImpl->_encoder;
 }
 
 const Attrib& Msg::getAttrib() const
@@ -119,19 +118,19 @@ const Payload& Msg::getPayload() const
 	return _payload;
 }
 
-void Msg::setDecoder( MsgDecoder* pDecoder )
+void Msg::setImpl( MsgImpl* pImpl )
 {
-	_pDecoder = pDecoder;
-	_payload._pPayload = &pDecoder->getPayloadData();
-	_attrib._pAttrib = &pDecoder->getAttribData();
+	_pImpl = pImpl;
+	_payload._pMsgImpl = pImpl;
+	_attrib._pMsgImpl = pImpl;
 }
 
 bool Msg::hasDecoder() const
 {
-	return _pDecoder ? true : false;
+	return _pImpl ? true : false;
 }
 
 bool Msg::hasEncoder() const
 {
-	return _pEncoder ? true : false;
+	return _pImpl ? true : false;
 }

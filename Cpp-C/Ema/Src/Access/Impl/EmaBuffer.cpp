@@ -402,8 +402,11 @@ EmaBuffer& EmaBuffer::append( const EmaBuffer & other )
 				return *this;
 			}
 
-			memcpy( newBuffer, _pBuffer, _length );
-			free( _pBuffer );
+			if ( _pBuffer )
+			{
+				memcpy( newBuffer, _pBuffer, _length );
+				free( _pBuffer );
+			}
 			_pBuffer = newBuffer;
 		}
 
@@ -429,8 +432,11 @@ EmaBuffer& EmaBuffer::append( char c )
 			return *this;
 		}
 
-		memcpy( newBuffer, _pBuffer, _length );
-		free( _pBuffer );
+		if ( _pBuffer )
+		{
+			memcpy( newBuffer, _pBuffer, _length );
+			free( _pBuffer );
+		}
 		_pBuffer = newBuffer;
 	}
 
@@ -454,8 +460,12 @@ EmaBuffer& EmaBuffer::append( const char * str, UInt32 length )
 				throwMeeException( "Failed to allocate memory in EmaBuffer::append( const char *, UInt32 )" );
 				return *this;
 			}
-			memcpy( newBuffer, _pBuffer, _length );
-			free( _pBuffer );
+
+			if ( _pBuffer )
+			{
+				memcpy( newBuffer, _pBuffer, _length );
+				free( _pBuffer );
+			}
 			_pBuffer = newBuffer;
 		}
 

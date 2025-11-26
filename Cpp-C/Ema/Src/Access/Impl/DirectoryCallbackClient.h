@@ -336,7 +336,7 @@ private :
 	const Channel*				_channel;
 	const Directory*			_pDirectory;
 
-	void scheduleItemClosedStatus(const ReqMsgEncoder&, const EmaString& );
+	void scheduleItemClosedStatus(const ReqMsgImpl&, const EmaString& );
 
 	bool submit( RsslRequestMsg* );
 	bool submit( RsslCloseMsg* );

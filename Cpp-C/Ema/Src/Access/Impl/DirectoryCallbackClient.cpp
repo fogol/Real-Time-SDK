@@ -16,8 +16,8 @@
 #include "OmmConsumerEvent.h"
 #include "OmmConsumerImpl.h"
 #include "ReqMsg.h"
-#include "ReqMsgEncoder.h"
-#include "GenericMsgEncoder.h"
+#include "ReqMsgImpl.h"
+#include "GenericMsgImpl.h"
 #include "StaticDecoder.h"
 #include "Utilities.h"
 #include "OmmInvalidUsageException.h"
@@ -2822,7 +2822,7 @@ const Directory* DirectoryItem::getDirectory()
 
 bool DirectoryItem::open( const ReqMsg& reqMsg )
 {
-	const ReqMsgEncoder& reqMsgEncoder = static_cast<const ReqMsgEncoder&>( reqMsg.getEncoder() );
+	const ReqMsgImpl& reqMsgEncoder = *MsgImpl::getImpl(reqMsg);
 
 	const Directory* pDirectory = 0;
 
@@ -2856,13 +2856,13 @@ bool DirectoryItem::open( const ReqMsg& reqMsg )
 	}
 	else
 	{
-		if ( reqMsgEncoder.getRsslRequestMsg()->msgBase.msgKey.flags & RSSL_MKF_HAS_SERVICE_ID )
+		if ( reqMsgEncoder.hasServiceId() )
 		{
 			if (_ommBaseImpl.getConsumerRoutingSession() == NULL)
-				pDirectory = _ommBaseImpl.getDirectoryCallbackClient().getDirectory( reqMsgEncoder.getRsslRequestMsg()->msgBase.msgKey.serviceId );
+				pDirectory = _ommBaseImpl.getDirectoryCallbackClient().getDirectory( reqMsgEncoder.getServiceId() );
 			else
 			{
-				ConsumerRoutingService** directoryPtr = _ommBaseImpl.getConsumerRoutingSession()->serviceById.find(reqMsgEncoder.getRsslRequestMsg()->msgBase.msgKey.serviceId);
+				ConsumerRoutingService** directoryPtr = _ommBaseImpl.getConsumerRoutingSession()->serviceById.find(reqMsgEncoder.getServiceId());
 				if (directoryPtr != NULL)
 				{
 					pDirectory = *directoryPtr;
@@ -2874,7 +2874,7 @@ bool DirectoryItem::open( const ReqMsg& reqMsg )
 				(_ommBaseImpl.getConsumerRoutingSession() == NULL && !_ommBaseImpl.getLoginCallbackClient().getLoginRefresh()->singleOpen)))
 			{
 				EmaString temp( "Service id of '" );
-				temp.append( reqMsgEncoder.getRsslRequestMsg()->msgBase.msgKey.serviceId ).
+				temp.append( reqMsgEncoder.getServiceId() ).
 				append( "' is not found." );
 
 				scheduleItemClosedStatus(reqMsgEncoder, temp);
@@ -2884,7 +2884,7 @@ bool DirectoryItem::open( const ReqMsg& reqMsg )
 			if (pDirectory != NULL)
 				serviceName = pDirectory->getName();
 
-			serviceId = reqMsgEncoder.getRsslRequestMsg()->msgBase.msgKey.serviceId;
+			serviceId = reqMsgEncoder.getServiceId();
 		}
 	}
 
@@ -2896,10 +2896,10 @@ bool DirectoryItem::open( const ReqMsg& reqMsg )
 	// Set the stream ID here.
 	if (!_streamId)
 	{
-		if (!reqMsgEncoder.getRsslRequestMsg()->msgBase.streamId)
+		if (!reqMsgEncoder.getStreamId())
 			_streamId = _ommBaseImpl.getItemCallbackClient().getNextStreamId();
 		else
-			_streamId = reqMsgEncoder.getRsslRequestMsg()->msgBase.streamId;
+			_streamId = reqMsgEncoder.getStreamId();
 	}
 
 	if (_ommBaseImpl.getConsumerRoutingSession() == NULL)
@@ -2913,11 +2913,11 @@ bool DirectoryItem::open( const ReqMsg& reqMsg )
 bool DirectoryItem::modify( const ReqMsg& reqMsg )
 {
 	// The only thing that can realistically change here is the filter, so apply the new one to the current item.
-	if (static_cast<const ReqMsgEncoder&>(reqMsg.getEncoder()).getRsslRequestMsg()->msgBase.msgKey.filter != 0)
-		filter = static_cast<const ReqMsgEncoder&>(reqMsg.getEncoder()).getRsslRequestMsg()->msgBase.msgKey.filter;
+	if (MsgImpl::getImpl(reqMsg)->getRsslRequestMsg()->msgBase.msgKey.filter != 0)
+		filter = MsgImpl::getImpl(reqMsg)->getRsslRequestMsg()->msgBase.msgKey.filter;
 
 	if (_ommBaseImpl.getConsumerRoutingSession() == NULL)
-		return submit( static_cast<const ReqMsgEncoder&>( reqMsg.getEncoder() ).getRsslRequestMsg() );
+		return submit( MsgImpl::getImpl(reqMsg)->getRsslRequestMsg() );
 	else
 		new TimeOut(_ommBaseImpl, 1000, DirectoryCallbackClient::fanoutSingleDirectoryRequest, (void*)this, true);
 
@@ -2937,7 +2937,7 @@ bool DirectoryItem::submit( const PostMsg& )
 bool DirectoryItem::submit( const GenericMsg& genMsg )
 {
 	if (_ommBaseImpl.getConsumerRoutingSession() == NULL)
-		return submit( static_cast<const GenericMsgEncoder&>( genMsg.getEncoder() ).getRsslGenericMsg() );
+		return submit( MsgImpl::getImpl(genMsg)->getRsslGenericMsg() );
 	else
 	{
 		EmaString temp("Invalid attempt to submit GenericMsg on directory stream for Request Routing. ");
@@ -3152,7 +3152,7 @@ bool DirectoryItem::submit( RsslCloseMsg* pRsslCloseMsg )
 	return true;
 }
 
-void DirectoryItem::scheduleItemClosedStatus(const ReqMsgEncoder& reqMsgEncoder, const EmaString& text)
+void DirectoryItem::scheduleItemClosedStatus(const ReqMsgImpl& reqMsgEncoder, const EmaString& text)
 {
 	if (_closedInfo) return;
 

@@ -22,7 +22,7 @@
 using namespace refinitiv::ema::access;
 
 EmaString::EmaString() :
-    _pString ( 0 ),
+    _pString ( nullptr ),
     _resizeCounter( 0 ),
     _length ( 0 ),
     _capacity ( 0 )
@@ -42,7 +42,7 @@ EmaString::EmaString() :
 //											copy content			copy content
 //
 EmaString::EmaString ( const char* str, UInt32 length ) :
-    _pString ( 0 ),
+    _pString ( nullptr ),
     _resizeCounter(0),
     _length ( str ? length : 0 ),
     _capacity ( 0 )
@@ -81,13 +81,16 @@ EmaString::EmaString ( const char* str, UInt32 length ) :
             return;
         }
 
-        memcpy( _pString, str, _length );
+		if ( str )
+		{
+			memcpy( _pString, str, _length );
+		}
         *( _pString + _length ) = 0x00;
     }
 }
 
 EmaString::EmaString ( const EmaString& other ) :
-    _pString ( 0 ),
+    _pString ( nullptr ),
     _resizeCounter(0),
     _length ( other._length ),
     _capacity ( other._length + 1 )
@@ -110,6 +113,18 @@ EmaString::EmaString ( const EmaString& other ) :
     {
         _capacity = 0;
     }
+}
+
+EmaString::EmaString ( EmaString&& other ) noexcept :
+ _pString ( other._pString ),
+ _resizeCounter( other._resizeCounter ),
+ _length ( other._length ),
+ _capacity ( other._capacity )
+{
+	other._pString = nullptr;
+	other._resizeCounter = 0;
+	other._length = 0;
+	other._capacity = 0;
 }
 
 EmaString::~EmaString()
@@ -203,6 +218,25 @@ EmaString& EmaString::operator= ( const EmaString& other )
     }
 
     return *this;
+}
+
+EmaString& EmaString::operator= ( EmaString&& other ) noexcept
+{
+    if ( this == &other ) return *this;
+
+	free( _pString );
+
+    _pString = other._pString;
+    _resizeCounter = other._resizeCounter;
+    _length = other._length;
+    _capacity = other._capacity;
+
+	other._pString = nullptr;
+	other._resizeCounter = 0;
+	other._length = 0;
+	other._capacity = 0;
+
+	return *this;
 }
 
 //		length		0						0 < x < npos						npos

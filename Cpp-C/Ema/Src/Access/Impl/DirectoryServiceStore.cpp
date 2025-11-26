@@ -1290,7 +1290,7 @@ void DirectoryServiceStore::loadConfigDirectory(DirectoryCache* pDirectoryCache,
 						else
 						{
 							bool found = false;
-							for (int i = 0; i < sizeof msgTypeConverter / sizeof msgTypeConverter[0]; ++i)
+							for (size_t i = 0; i < sizeof msgTypeConverter / sizeof msgTypeConverter[0]; ++i)
 							{
 								if (!strcmp(msgTypeConverter[i].configInput, valueList[idx]))
 								{
@@ -1393,7 +1393,7 @@ void DirectoryServiceStore::loadConfigDirectory(DirectoryCache* pDirectoryCache,
 							else
 							{
 								bool found = false;
-								for (int i = 0; i < sizeof qosRateConverter / sizeof qosRateConverter[0]; ++i)
+								for (size_t i = 0; i < sizeof qosRateConverter / sizeof qosRateConverter[0]; ++i)
 								{
 									if (!strcmp(qosRateConverter[i].configInput, rateString))
 									{
@@ -1455,7 +1455,7 @@ void DirectoryServiceStore::loadConfigDirectory(DirectoryCache* pDirectoryCache,
 							else
 							{
 								bool found = false;
-								for (int i = 0; i < sizeof qosTimelinessConverter / sizeof qosTimelinessConverter[0]; ++i)
+								for (size_t i = 0; i < sizeof qosTimelinessConverter / sizeof qosTimelinessConverter[0]; ++i)
 								{
 									if (!strcmp(qosTimelinessConverter[i].configInput, timelinessString))
 									{

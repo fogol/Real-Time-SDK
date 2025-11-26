@@ -2,7 +2,7 @@
  *|            This source code is provided under the Apache 2.0 license
  *|  and is provided AS IS with no warranty or guarantee of fit for purpose.
  *|                See the project's LICENSE.md for details.
- *|           Copyright (C) 2015-2016,2018-2020,2023-2024 LSEG. All rights reserved.
+ *|           Copyright (C) 2015-2016,2018-2020,2023-2025 LSEG. All rights reserved.
  *|-----------------------------------------------------------------------------
  */
 
@@ -228,7 +228,7 @@ void FilterListEncoder::add( UInt8 filterId, FilterEntry::FilterAction action, c
 	else if ( complexType.hasEncoder() && enc.ownsIterator() )
 	{
 		if ( enc.isComplete() )
-			addEncodedEntry(filterId, action, rsslLoadType, permission, "add()", enc.getRsslBuffer());
+			addEncodedEntry(filterId, action, rsslLoadType, permission, "add()", enc.getEncodedBuffer());
 		else
 		{
 			EmaString temp( "Attempt to add() a ComplexType while complete() was not called on this ComplexType." );

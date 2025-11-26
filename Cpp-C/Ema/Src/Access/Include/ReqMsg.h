@@ -56,6 +56,8 @@ namespace ema {
 
 namespace access {
 
+class ReqMsgImpl;
+
 class EMA_ACCESS_API ReqMsg : public Msg
 {
 public :
@@ -95,11 +97,21 @@ public :
 	 */
 	ReqMsg();
 
+	/** Constructs ReqMsg and reserves specified amount of memory for storing its data.
+		@param[in] size reserved memory buffer size
+	*/
+	explicit ReqMsg(UInt32 size);
+
 	/** Copy constructor.
 		\remark this is used to copy and process ReqMsg outside of EMA's callback methods.
 		\remark this method does not support passing in just encoded ReqMsg in the application space.
 	*/
 	ReqMsg( const ReqMsg& other );
+
+	/** Move constructor.
+		\remark Created instance acquires all resources from the passed in message.
+	 */
+	ReqMsg( ReqMsg&& ) noexcept;
 	//@}
 
 	///@name Destructor
@@ -235,6 +247,19 @@ public :
 
 	///@name Operations
 	//@{
+
+	/** Performs deep copy of the operand into the current message.
+		\remark this is used to copy and process messages outside of EMA's callback methods.
+		@return reference to this object
+	 */
+	ReqMsg& operator=( const ReqMsg& );
+
+	/** Moves resources from the operand into the current message.
+		\remark Operand is left in "empty" state.
+		@return reference to this object
+	 */
+	ReqMsg& operator=( ReqMsg&& ) noexcept;
+
 	/** Clears the ReqMsg.
 		\remark Invoking clear() method clears all the values and resets all the defaults
 		@return reference to this object
@@ -368,17 +393,16 @@ public :
 
 private :
 
-	friend class MarketItemHandler;
-	friend class DirectoryHandler;
-	friend class DictionaryHandler;
+	friend class MsgImpl;
 
 	const EmaString& toString( UInt64 ) const;
 
 	Decoder& getDecoder();
 
-	ReqMsg& operator=( const ReqMsg& );
-
 	mutable EmaString		_toString;
+
+	ReqMsgImpl* impl();
+	const ReqMsgImpl* impl() const;
 };
 
 }

@@ -187,7 +187,6 @@ HashTable<KeyType, ValueType, Hasher, Equal_To>::operator[]( const KeyType& key 
 {
 	size_t slot = hashFn( key ) % tableSize;
 	Node* bucket = *( theTable + slot );
-	UInt32 bucketSize( 0 );
 
 	if ( bucket )
 	{

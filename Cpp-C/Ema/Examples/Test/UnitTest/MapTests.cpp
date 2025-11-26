@@ -2,7 +2,7 @@
  *|            This source code is provided under the Apache 2.0 license
  *|  and is provided AS IS with no warranty or guarantee of fit for purpose.
  *|                See the project's LICENSE.md for details.
- *|           Copyright (C) 2018-2020,2023-2024 LSEG. All rights reserved.
+ *|           Copyright (C) 2018-2025 LSEG. All rights reserved.
  *|-----------------------------------------------------------------------------
  */
 
@@ -24,9 +24,7 @@ TEST(MapTests, testMapContainsFieldListsDecodeAll)
 	{
 		// encoding order:  SummaryData(with FieldList), Delete, FieldList-Add, FieldList-Add, FieldList-Update
 
-		RsslBuffer mapBuffer;
-		mapBuffer.length = 2048;
-		mapBuffer.data = ( char* )malloc( sizeof( char ) * 2048 );
+		EsslBuffer<2048> mapBuffer;
 
 		RsslMap rsslMap;
 		RsslEncodeIterator mapEncodeIter;
@@ -34,7 +32,7 @@ TEST(MapTests, testMapContainsFieldListsDecodeAll)
 		rsslClearMap( &rsslMap );
 		rsslClearEncodeIterator( &mapEncodeIter );
 		rsslSetEncodeIteratorRWFVersion( &mapEncodeIter, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION );
-		rsslSetEncodeIteratorBuffer( &mapEncodeIter, &mapBuffer );
+		rsslSetEncodeIteratorBuffer( &mapEncodeIter, mapBuffer );
 		rsslMap.flags = RSSL_MPF_HAS_SUMMARY_DATA | RSSL_MPF_HAS_KEY_FIELD_ID | RSSL_MPF_HAS_TOTAL_COUNT_HINT;
 
 		rsslMap.containerType = RSSL_DT_FIELD_LIST;
@@ -44,9 +42,7 @@ TEST(MapTests, testMapContainsFieldListsDecodeAll)
 		rsslMap.keyFieldId = 3426;
 
 		// allocate buffer for the field list for SummaryData
-		RsslBuffer rsslBuf;
-		rsslBuf.length = 1000;
-		rsslBuf.data = ( char* )malloc( sizeof( char ) * 1000 );
+		EsslBuffer<1000> rsslBuf;
 
 		RsslEncodeFieldListAll( rsslBuf );
 		rsslMap.encSummaryData = rsslBuf;
@@ -66,10 +62,9 @@ TEST(MapTests, testMapContainsFieldListsDecodeAll)
 		//second entry  //Add FieldList
 		rsslClearMapEntry( &mapEntry );
 		// allocate buffer for the field list for MapEntries
-		RsslBuffer rsslBuf1;
-		rsslBuf1.length = 1000;
-		rsslBuf1.data = ( char* )malloc( sizeof( char ) * 1000 );
+		EsslBuffer<1000> rsslBuf1;
 		RsslEncodeFieldListAll( rsslBuf1 );
+
 		mapEntry.flags = RSSL_MPEF_NONE;
 		mapEntry.action = RSSL_MPEA_ADD_ENTRY;
 		mapEntry.encData = rsslBuf1;
@@ -93,13 +88,13 @@ TEST(MapTests, testMapContainsFieldListsDecodeAll)
 		orderBuf.length = 7;
 		rsslEncodeMapEntry( &mapEncodeIter, &mapEntry, &orderBuf );
 
-		mapBuffer.length = rsslGetEncodedBufferLength( &mapEncodeIter );
+		mapBuffer->length = rsslGetEncodedBufferLength( &mapEncodeIter );
 		rsslEncodeMapComplete( &mapEncodeIter, RSSL_TRUE );
 
 
 		//Now do EMA decoding of Map
 		Map map;
-		StaticDecoder::setRsslData( &map, &mapBuffer, RSSL_DT_MAP, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary );
+		StaticDecoder::setRsslData( &map, mapBuffer, RSSL_DT_MAP, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary );
 
 		EXPECT_TRUE( map.hasKeyFieldId() ) << "Map contains FieldList - hasKeyFieldId()" ;
 		EXPECT_EQ( map.getKeyFieldId(), 3426 ) << "Map contains FieldList - getKeyFieldId()" ;
@@ -178,9 +173,6 @@ TEST(MapTests, testMapContainsFieldListsDecodeAll)
 
 		EXPECT_FALSE( map.forth() ) << "Map contains FieldList - final map forth()" ;
 
-		free( rsslBuf.data );
-		free( mapBuffer.data );
-
 		EXPECT_TRUE( true ) << "Map contains FieldList - exception not expected" ;
 
 	}
@@ -204,9 +196,7 @@ TEST(MapTests, testMapContainsElementListsDecodeAll)
 	{
 		// encoding order:  SummaryData(with ElementList), Delete, ElementList-Add, ElementList-Add, ElementList-Update
 
-		RsslBuffer mapBuffer;
-		mapBuffer.length = 4096;
-		mapBuffer.data = ( char* )malloc( sizeof( char ) * 4096 );
+		EsslBuffer<4096> mapBuffer;
 
 		RsslMap rsslMap;
 		RsslEncodeIterator mapEncodeIter;
@@ -214,7 +204,7 @@ TEST(MapTests, testMapContainsElementListsDecodeAll)
 		rsslClearMap( &rsslMap );
 		rsslClearEncodeIterator( &mapEncodeIter );
 		rsslSetEncodeIteratorRWFVersion( &mapEncodeIter, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION );
-		rsslSetEncodeIteratorBuffer( &mapEncodeIter, &mapBuffer );
+		rsslSetEncodeIteratorBuffer( &mapEncodeIter, mapBuffer );
 		rsslMap.flags = RSSL_MPF_HAS_SUMMARY_DATA | RSSL_MPF_HAS_KEY_FIELD_ID | RSSL_MPF_HAS_TOTAL_COUNT_HINT;
 
 		rsslMap.containerType = RSSL_DT_ELEMENT_LIST;
@@ -224,9 +214,7 @@ TEST(MapTests, testMapContainsElementListsDecodeAll)
 		rsslMap.keyFieldId = 3426;
 
 		// allocate buffer for the element list for SummaryData
-		RsslBuffer rsslBuf;
-		rsslBuf.length = 1000;
-		rsslBuf.data = ( char* )malloc( sizeof( char ) * 1000 );
+		EsslBuffer<1000> rsslBuf;
 
 		RsslEncodeElementListAll( rsslBuf );
 		rsslMap.encSummaryData = rsslBuf;
@@ -245,10 +233,9 @@ TEST(MapTests, testMapContainsElementListsDecodeAll)
 
 		//second entry  //Add ElementList
 		rsslClearMapEntry( &mapEntry );
-		RsslBuffer rsslBuf1;
-		rsslBuf1.length = 1000;
-		rsslBuf1.data = ( char* )malloc( sizeof( char ) * 1000 );
+		EsslBuffer<1000> rsslBuf1;
 		RsslEncodeElementListAll( rsslBuf1 );
+
 		mapEntry.flags = RSSL_MPEF_NONE;
 		mapEntry.action = RSSL_MPEA_ADD_ENTRY;
 		mapEntry.encData = rsslBuf1;
@@ -272,13 +259,13 @@ TEST(MapTests, testMapContainsElementListsDecodeAll)
 		orderBuf.length = 7;
 		rsslEncodeMapEntry( &mapEncodeIter, &mapEntry, &orderBuf );
 
-		mapBuffer.length = rsslGetEncodedBufferLength( &mapEncodeIter );
+		mapBuffer->length = rsslGetEncodedBufferLength( &mapEncodeIter );
 		rsslEncodeMapComplete( &mapEncodeIter, RSSL_TRUE );
 
 
 		//Now do EMA decoding of Map
 		Map map;
-		StaticDecoder::setRsslData( &map, &mapBuffer, RSSL_DT_MAP, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary );
+		StaticDecoder::setRsslData( &map, mapBuffer, RSSL_DT_MAP, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary );
 
 		EXPECT_TRUE( map.hasKeyFieldId() ) << "Map contains ElementList - hasKeyFieldId()" ;
 		EXPECT_EQ( map.getKeyFieldId(), 3426 ) << "Map contains ElementList - getKeyFieldId()" ;
@@ -366,10 +353,6 @@ TEST(MapTests, testMapContainsElementListsDecodeAll)
 
 		EXPECT_FALSE( map.forth() ) << "Map contains ElementList - final map forth()" ;
 
-		free( rsslBuf.data );
-
-		free( mapBuffer.data );
-
 		EXPECT_TRUE( true ) << "Map contains ElementList - exception not expected" ;
 
 	}
@@ -393,9 +376,7 @@ TEST(MapTests, testMapContainsMapsDecodeAll)
 	{
 		// encoding order:  SummaryData(with Map), Delete, Map-Add, Map-Add, Map-Update
 
-		RsslBuffer mapBuffer;
-		mapBuffer.length = 4096;
-		mapBuffer.data = ( char* )malloc( sizeof( char ) * 4096 );
+		EsslBuffer<4096> mapBuffer;
 
 		RsslMap rsslMap;
 		RsslEncodeIterator mapEncodeIter;
@@ -403,7 +384,7 @@ TEST(MapTests, testMapContainsMapsDecodeAll)
 		rsslClearMap( &rsslMap );
 		rsslClearEncodeIterator( &mapEncodeIter );
 		rsslSetEncodeIteratorRWFVersion( &mapEncodeIter, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION );
-		rsslSetEncodeIteratorBuffer( &mapEncodeIter, &mapBuffer );
+		rsslSetEncodeIteratorBuffer( &mapEncodeIter, mapBuffer );
 		rsslMap.flags = RSSL_MPF_HAS_SUMMARY_DATA | RSSL_MPF_HAS_KEY_FIELD_ID | RSSL_MPF_HAS_TOTAL_COUNT_HINT;
 
 		rsslMap.containerType = RSSL_DT_MAP;
@@ -413,9 +394,7 @@ TEST(MapTests, testMapContainsMapsDecodeAll)
 		rsslMap.keyFieldId = 3426;
 
 		// allocate buffer for the map for SummaryData
-		RsslBuffer rsslBuf;
-		rsslBuf.length = 2048;
-		rsslBuf.data = ( char* )malloc( sizeof( char ) * 2048 );
+		EsslBuffer<2048> rsslBuf;
 
 		RsslEncodeMapAll( rsslBuf );
 		rsslMap.encSummaryData = rsslBuf;
@@ -436,10 +415,9 @@ TEST(MapTests, testMapContainsMapsDecodeAll)
 		//second entry  //Add Map
 		rsslClearMapEntry( &mapEntry );
 		// allocate buffer for the map for MapEntries
-		RsslBuffer rsslBuf1;
-		rsslBuf1.length = 2048;
-		rsslBuf1.data = ( char* )malloc( sizeof( char ) * 2048 );
+		EsslBuffer<2048> rsslBuf1;
 		RsslEncodeMapAll( rsslBuf1 );
+
 		mapEntry.flags = RSSL_MPEF_NONE;
 		mapEntry.action = RSSL_MPEA_ADD_ENTRY;
 		mapEntry.encData = rsslBuf1;
@@ -463,13 +441,13 @@ TEST(MapTests, testMapContainsMapsDecodeAll)
 		orderBuf.length = 7;
 		rsslEncodeMapEntry( &mapEncodeIter, &mapEntry, &orderBuf );
 
-		mapBuffer.length = rsslGetEncodedBufferLength( &mapEncodeIter );
+		mapBuffer->length = rsslGetEncodedBufferLength( &mapEncodeIter );
 		rsslEncodeMapComplete( &mapEncodeIter, RSSL_TRUE );
 
 
 		//Now do EMA decoding of Map
 		Map map;
-		StaticDecoder::setRsslData( &map, &mapBuffer, RSSL_DT_MAP, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary );
+		StaticDecoder::setRsslData( &map, mapBuffer, RSSL_DT_MAP, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary );
 
 		EXPECT_TRUE( map.hasKeyFieldId() ) << "Map contains Map - hasKeyFieldId()" ;
 		EXPECT_EQ( map.getKeyFieldId(), 3426 ) << "Map contains Map - getKeyFieldId()" ;
@@ -732,9 +710,6 @@ TEST(MapTests, testMapContainsMapsDecodeAll)
 
 		EXPECT_FALSE( map.forth() ) << "Map contains Map - fifth map forth()" ;
 
-		free( rsslBuf.data );
-		free( mapBuffer.data );
-
 		EXPECT_TRUE( true ) << "Map contains Map - exception not expected" ;
 
 	}
@@ -753,9 +728,7 @@ TEST(MapTests, testMapContainsOpaqueDecodeAll)
 
 	try
 	{
-		RsslBuffer mapBuffer;
-		mapBuffer.length = 4096;
-		mapBuffer.data = ( char* )malloc( sizeof( char ) * 4096 );
+		EsslBuffer<4096> mapBuffer;
 
 		RsslMap rsslMap;
 		RsslEncodeIterator mapEncodeIter;
@@ -763,7 +736,7 @@ TEST(MapTests, testMapContainsOpaqueDecodeAll)
 		rsslClearMap( &rsslMap );
 		rsslClearEncodeIterator( &mapEncodeIter );
 		rsslSetEncodeIteratorRWFVersion( &mapEncodeIter, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION );
-		rsslSetEncodeIteratorBuffer( &mapEncodeIter, &mapBuffer );
+		rsslSetEncodeIteratorBuffer( &mapEncodeIter, mapBuffer );
 		rsslMap.flags = RSSL_MPF_HAS_KEY_FIELD_ID | RSSL_MPF_HAS_TOTAL_COUNT_HINT;
 
 		rsslMap.containerType = RSSL_DT_OPAQUE;
@@ -773,20 +746,18 @@ TEST(MapTests, testMapContainsOpaqueDecodeAll)
 		rsslMap.keyFieldId = 235;
 
 		RsslRet ret = rsslEncodeMapInit( &mapEncodeIter, &rsslMap, 0, 0 );
+		ASSERT_EQ(RSSL_RET_SUCCESS, ret);
 		RsslMapEntry mapEntry;
 
 		rsslClearMapEntry( &mapEntry );
 
-		char buffer[100];
-		RsslBuffer rsslBuf1;
-		rsslBuf1.length = 100;
-		rsslBuf1.data = buffer;
+		EsslBuffer<100> rsslBuf1;
 
 		RsslBuffer opaqueValue;
 		opaqueValue.data = ( char* )"482wfshfsrf2";
 		opaqueValue.length = static_cast<rtrUInt32>( strlen( opaqueValue.data ) );
 
-		encodeNonRWFData( &rsslBuf1, &opaqueValue );
+		encodeNonRWFData( rsslBuf1, &opaqueValue );
 
 		mapEntry.flags = RSSL_MPEF_NONE;
 		mapEntry.action = RSSL_MPEA_ADD_ENTRY;
@@ -823,10 +794,10 @@ TEST(MapTests, testMapContainsOpaqueDecodeAll)
 
 		ret = rsslEncodeMapComplete( &mapEncodeIter, RSSL_TRUE );
 
-		mapBuffer.length = rsslGetEncodedBufferLength( &mapEncodeIter );
+		mapBuffer->length = rsslGetEncodedBufferLength( &mapEncodeIter );
 
 		Map map;
-		StaticDecoder::setRsslData( &map, &mapBuffer, RSSL_DT_MAP, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary );
+		StaticDecoder::setRsslData( &map, mapBuffer, RSSL_DT_MAP, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary );
 
 		EXPECT_TRUE( map.forth() ) << "Map contains Opaque - first map forth()" ;
 
@@ -865,9 +836,7 @@ TEST(MapTests, testMapContainsXmlDecodeAll)
 
 	try
 	{
-		RsslBuffer mapBuffer;
-		mapBuffer.length = 4096;
-		mapBuffer.data = ( char* )malloc( sizeof( char ) * 4096 );
+		EsslBuffer<4096> mapBuffer;
 
 		RsslMap rsslMap;
 		RsslEncodeIterator mapEncodeIter;
@@ -875,7 +844,7 @@ TEST(MapTests, testMapContainsXmlDecodeAll)
 		rsslClearMap( &rsslMap );
 		rsslClearEncodeIterator( &mapEncodeIter );
 		rsslSetEncodeIteratorRWFVersion( &mapEncodeIter, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION );
-		rsslSetEncodeIteratorBuffer( &mapEncodeIter, &mapBuffer );
+		rsslSetEncodeIteratorBuffer( &mapEncodeIter, mapBuffer );
 		rsslMap.flags = RSSL_MPF_HAS_KEY_FIELD_ID | RSSL_MPF_HAS_TOTAL_COUNT_HINT;
 
 		rsslMap.containerType = RSSL_DT_XML;
@@ -885,20 +854,18 @@ TEST(MapTests, testMapContainsXmlDecodeAll)
 		rsslMap.keyFieldId = 235;
 
 		RsslRet ret = rsslEncodeMapInit( &mapEncodeIter, &rsslMap, 0, 0 );
+		ASSERT_EQ(RSSL_RET_SUCCESS, ret);
 		RsslMapEntry mapEntry;
 
 		rsslClearMapEntry( &mapEntry );
 
-		char buffer[200];
-		RsslBuffer rsslBuf1;
-		rsslBuf1.length = 200;
-		rsslBuf1.data = buffer;
+		EsslBuffer<200> rsslBuf1;
 
 		RsslBuffer xmlValue;
 		xmlValue.data = ( char* )"<consumerList><consumer><name dataType=\"Ascii\" value=\"Consumer_1\"/></consumer></consumerList>";
 		xmlValue.length = static_cast<rtrUInt32>( strlen( xmlValue.data ) );
 
-		encodeNonRWFData( &rsslBuf1, &xmlValue );
+		encodeNonRWFData( rsslBuf1, &xmlValue );
 
 		mapEntry.flags = RSSL_MPEF_NONE;
 		mapEntry.action = RSSL_MPEA_ADD_ENTRY;
@@ -935,10 +902,10 @@ TEST(MapTests, testMapContainsXmlDecodeAll)
 
 		ret = rsslEncodeMapComplete( &mapEncodeIter, RSSL_TRUE );
 
-		mapBuffer.length = rsslGetEncodedBufferLength( &mapEncodeIter );
+		mapBuffer->length = rsslGetEncodedBufferLength( &mapEncodeIter );
 
 		Map map;
-		StaticDecoder::setRsslData( &map, &mapBuffer, RSSL_DT_MAP, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary );
+		StaticDecoder::setRsslData( &map, mapBuffer, RSSL_DT_MAP, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary );
 
 		EXPECT_TRUE( map.forth() ) << "Map contains Xml - first map forth()" ;
 
@@ -977,9 +944,7 @@ TEST(MapTests, testMapContainsJsonDecodeAll)
 
 	try
 	{
-		RsslBuffer mapBuffer;
-		mapBuffer.length = 4096;
-		mapBuffer.data = ( char* )malloc( sizeof( char ) * 4096 );
+		EsslBuffer<4096> mapBuffer;
 
 		RsslMap rsslMap;
 		RsslEncodeIterator mapEncodeIter;
@@ -987,7 +952,7 @@ TEST(MapTests, testMapContainsJsonDecodeAll)
 		rsslClearMap( &rsslMap );
 		rsslClearEncodeIterator( &mapEncodeIter );
 		rsslSetEncodeIteratorRWFVersion( &mapEncodeIter, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION );
-		rsslSetEncodeIteratorBuffer( &mapEncodeIter, &mapBuffer );
+		rsslSetEncodeIteratorBuffer( &mapEncodeIter, mapBuffer );
 		rsslMap.flags = RSSL_MPF_HAS_KEY_FIELD_ID | RSSL_MPF_HAS_TOTAL_COUNT_HINT;
 
 		rsslMap.containerType = RSSL_DT_JSON;
@@ -997,20 +962,18 @@ TEST(MapTests, testMapContainsJsonDecodeAll)
 		rsslMap.keyFieldId = 235;
 
 		RsslRet ret = rsslEncodeMapInit( &mapEncodeIter, &rsslMap, 0, 0 );
+		ASSERT_EQ(RSSL_RET_SUCCESS, ret);
 		RsslMapEntry mapEntry;
 
 		rsslClearMapEntry( &mapEntry );
 
-		char buffer[200];
-		RsslBuffer rsslBuf1;
-		rsslBuf1.length = 200;
-		rsslBuf1.data = buffer;
+		EsslBuffer<200> rsslBuf1;
 
 		RsslBuffer jsonValue;
 		jsonValue.data = ( char* )"{\"consumerList\":{\"consumer\":{\"name\":\"\",\"dataType\":\"Ascii\",\"value\":\"Consumer_1\"}}}";
 		jsonValue.length = static_cast<rtrUInt32>( strlen( jsonValue.data ) );
 
-		encodeNonRWFData( &rsslBuf1, &jsonValue );
+		encodeNonRWFData( rsslBuf1, &jsonValue );
 
 		mapEntry.flags = RSSL_MPEF_NONE;
 		mapEntry.action = RSSL_MPEA_ADD_ENTRY;
@@ -1047,10 +1010,10 @@ TEST(MapTests, testMapContainsJsonDecodeAll)
 
 		ret = rsslEncodeMapComplete( &mapEncodeIter, RSSL_TRUE );
 
-		mapBuffer.length = rsslGetEncodedBufferLength( &mapEncodeIter );
+		mapBuffer->length = rsslGetEncodedBufferLength( &mapEncodeIter );
 
 		Map map;
-		StaticDecoder::setRsslData( &map, &mapBuffer, RSSL_DT_MAP, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary );
+		StaticDecoder::setRsslData( &map, mapBuffer, RSSL_DT_MAP, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary );
 
 		EXPECT_TRUE( map.forth() ) << "Map contains Json - first map forth()" ;
 
@@ -1089,9 +1052,7 @@ TEST(MapTests, testMapContainsAnsiPageDecodeAll)
 
 	try
 	{
-		RsslBuffer mapBuffer;
-		mapBuffer.length = 4096;
-		mapBuffer.data = ( char* )malloc( sizeof( char ) * 4096 );
+		EsslBuffer<4096> mapBuffer;
 
 		RsslMap rsslMap;
 		RsslEncodeIterator mapEncodeIter;
@@ -1099,7 +1060,7 @@ TEST(MapTests, testMapContainsAnsiPageDecodeAll)
 		rsslClearMap( &rsslMap );
 		rsslClearEncodeIterator( &mapEncodeIter );
 		rsslSetEncodeIteratorRWFVersion( &mapEncodeIter, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION );
-		rsslSetEncodeIteratorBuffer( &mapEncodeIter, &mapBuffer );
+		rsslSetEncodeIteratorBuffer( &mapEncodeIter, mapBuffer );
 		rsslMap.flags = RSSL_MPF_HAS_KEY_FIELD_ID | RSSL_MPF_HAS_TOTAL_COUNT_HINT;
 
 		rsslMap.containerType = RSSL_DT_ANSI_PAGE;
@@ -1109,20 +1070,18 @@ TEST(MapTests, testMapContainsAnsiPageDecodeAll)
 		rsslMap.keyFieldId = 235;
 
 		RsslRet ret = rsslEncodeMapInit( &mapEncodeIter, &rsslMap, 0, 0 );
+		ASSERT_EQ(RSSL_RET_SUCCESS, ret);
 		RsslMapEntry mapEntry;
 
 		rsslClearMapEntry( &mapEntry );
 
-		char buffer[100];
-		RsslBuffer rsslBuf1;
-		rsslBuf1.length = 100;
-		rsslBuf1.data = buffer;
+		EsslBuffer<100> rsslBuf1;
 
 		RsslBuffer ansiPageValue;
 		ansiPageValue.data = ( char* )"ur20#-43w5wjfa924irsjf%#&#@jrw398";
 		ansiPageValue.length = static_cast<rtrUInt32>( strlen( ansiPageValue.data ) );
 
-		encodeNonRWFData( &rsslBuf1, &ansiPageValue );
+		encodeNonRWFData( rsslBuf1, &ansiPageValue );
 
 		mapEntry.flags = RSSL_MPEF_NONE;
 		mapEntry.action = RSSL_MPEA_ADD_ENTRY;
@@ -1159,10 +1118,10 @@ TEST(MapTests, testMapContainsAnsiPageDecodeAll)
 
 		ret = rsslEncodeMapComplete( &mapEncodeIter, RSSL_TRUE );
 
-		mapBuffer.length = rsslGetEncodedBufferLength( &mapEncodeIter );
+		mapBuffer->length = rsslGetEncodedBufferLength( &mapEncodeIter );
 
 		Map map;
-		StaticDecoder::setRsslData( &map, &mapBuffer, RSSL_DT_MAP, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary );
+		StaticDecoder::setRsslData( &map, mapBuffer, RSSL_DT_MAP, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary );
 
 		EXPECT_TRUE( map.forth() ) << "Map contains AnsiPage - first map forth()" ;
 
@@ -1206,9 +1165,7 @@ TEST(MapTests, testMapKeyBufferDecodeAll)
 	{
 		// encoding order:  SummaryData(with FieldList), Delete, Add, Update
 
-		RsslBuffer mapBuffer;
-		mapBuffer.length = 2048;
-		mapBuffer.data = ( char* )malloc( sizeof( char ) * 2048 );
+		EsslBuffer<2048> mapBuffer;
 
 		RsslMap rsslMap;
 		RsslEncodeIterator mapEncodeIter;
@@ -1216,7 +1173,7 @@ TEST(MapTests, testMapKeyBufferDecodeAll)
 		rsslClearMap( &rsslMap );
 		rsslClearEncodeIterator( &mapEncodeIter );
 		rsslSetEncodeIteratorRWFVersion( &mapEncodeIter, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION );
-		rsslSetEncodeIteratorBuffer( &mapEncodeIter, &mapBuffer );
+		rsslSetEncodeIteratorBuffer( &mapEncodeIter, mapBuffer );
 		rsslMap.flags = RSSL_MPF_HAS_SUMMARY_DATA | RSSL_MPF_HAS_KEY_FIELD_ID;
 		rsslMap.containerType = RSSL_DT_FIELD_LIST;
 
@@ -1224,9 +1181,7 @@ TEST(MapTests, testMapKeyBufferDecodeAll)
 		rsslMap.keyFieldId = 3426;
 
 		// allocate buffer for the field list for SummaryData
-		RsslBuffer rsslBuf;
-		rsslBuf.length = 1000;
-		rsslBuf.data = ( char* )malloc( sizeof( char ) * 1000 );
+		EsslBuffer<1000> rsslBuf;
 
 		RsslEncodeFieldListAll( rsslBuf );
 		rsslMap.encSummaryData = rsslBuf;
@@ -1246,10 +1201,9 @@ TEST(MapTests, testMapKeyBufferDecodeAll)
 		//second entry  //Add FieldList
 		rsslClearMapEntry( &mapEntry );
 		// allocate buffer for the field list for MapEntries
-		RsslBuffer rsslBuf1;
-		rsslBuf1.length = 1000;
-		rsslBuf1.data = ( char* )malloc( sizeof( char ) * 1000 );
+		EsslBuffer<1000> rsslBuf1;
 		RsslEncodeFieldListAll( rsslBuf1 );
+
 		mapEntry.flags = RSSL_MPEF_NONE;
 		mapEntry.action = RSSL_MPEA_ADD_ENTRY;
 		mapEntry.encData = rsslBuf1;
@@ -1266,13 +1220,13 @@ TEST(MapTests, testMapKeyBufferDecodeAll)
 		orderBuf.length = 7;
 		rsslEncodeMapEntry( &mapEncodeIter, &mapEntry, &orderBuf );
 
-		mapBuffer.length = rsslGetEncodedBufferLength( &mapEncodeIter );
+		mapBuffer->length = rsslGetEncodedBufferLength( &mapEncodeIter );
 		rsslEncodeMapComplete( &mapEncodeIter, RSSL_TRUE );
 
 
 		//Now do EMA decoding of Map
 		Map map;
-		StaticDecoder::setRsslData( &map, &mapBuffer, RSSL_DT_MAP, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary );
+		StaticDecoder::setRsslData( &map, mapBuffer, RSSL_DT_MAP, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary );
 
 		EXPECT_TRUE( map.hasKeyFieldId() ) << "Map key Buffer - hasKeyFieldId()" ;
 		EXPECT_EQ( map.getKeyFieldId(), 3426 ) << "Map key Buffer - getKeyFieldId()" ;
@@ -1304,9 +1258,6 @@ TEST(MapTests, testMapKeyBufferDecodeAll)
 
 		EXPECT_FALSE( map.forth() ) << "Map key Buffer - fourth map forth()" ;
 
-		free( rsslBuf.data );
-		free( mapBuffer.data );
-
 		EXPECT_TRUE( true ) << "Map key Buffer - exception not expected" ;
 
 	}
@@ -1330,9 +1281,7 @@ TEST(MapTests, testMapKeyIntDecodeAll)
 	{
 		// encoding order:  SummaryData(with FieldList), Delete, Add, Update
 
-		RsslBuffer mapBuffer;
-		mapBuffer.length = 2048;
-		mapBuffer.data = ( char* )malloc( sizeof( char ) * 2048 );
+		EsslBuffer<2048> mapBuffer;
 
 		RsslMap rsslMap;
 		RsslEncodeIterator mapEncodeIter;
@@ -1340,7 +1289,7 @@ TEST(MapTests, testMapKeyIntDecodeAll)
 		rsslClearMap( &rsslMap );
 		rsslClearEncodeIterator( &mapEncodeIter );
 		rsslSetEncodeIteratorRWFVersion( &mapEncodeIter, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION );
-		rsslSetEncodeIteratorBuffer( &mapEncodeIter, &mapBuffer );
+		rsslSetEncodeIteratorBuffer( &mapEncodeIter, mapBuffer );
 		rsslMap.flags = RSSL_MPF_HAS_SUMMARY_DATA | RSSL_MPF_HAS_KEY_FIELD_ID;
 		rsslMap.containerType = RSSL_DT_FIELD_LIST;
 
@@ -1348,9 +1297,7 @@ TEST(MapTests, testMapKeyIntDecodeAll)
 		rsslMap.keyFieldId = 3426;
 
 		// allocate buffer for the field list for SummaryData
-		RsslBuffer rsslBuf;
-		rsslBuf.length = 1000;
-		rsslBuf.data = ( char* )malloc( sizeof( char ) * 1000 );
+		EsslBuffer<1000> rsslBuf;
 
 		RsslEncodeFieldListAll( rsslBuf );
 		rsslMap.encSummaryData = rsslBuf;
@@ -1368,10 +1315,9 @@ TEST(MapTests, testMapKeyIntDecodeAll)
 		//second entry  //Add FieldList
 		rsslClearMapEntry( &mapEntry );
 		// allocate buffer for the field list for MapEntries
-		RsslBuffer rsslBuf1;
-		rsslBuf1.length = 1000;
-		rsslBuf1.data = ( char* )malloc( sizeof( char ) * 1000 );
+		EsslBuffer<1000> rsslBuf1;
 		RsslEncodeFieldListAll( rsslBuf1 );
+
 		mapEntry.flags = RSSL_MPEF_NONE;
 		mapEntry.action = RSSL_MPEA_ADD_ENTRY;
 		mapEntry.encData = rsslBuf1;
@@ -1386,13 +1332,13 @@ TEST(MapTests, testMapKeyIntDecodeAll)
 		orderInt = 3;
 		rsslEncodeMapEntry( &mapEncodeIter, &mapEntry, &orderInt );
 
-		mapBuffer.length = rsslGetEncodedBufferLength( &mapEncodeIter );
+		mapBuffer->length = rsslGetEncodedBufferLength( &mapEncodeIter );
 		rsslEncodeMapComplete( &mapEncodeIter, RSSL_TRUE );
 
 
 		//Now do EMA decoding of Map
 		Map map;
-		StaticDecoder::setRsslData( &map, &mapBuffer, RSSL_DT_MAP, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary );
+		StaticDecoder::setRsslData( &map, mapBuffer, RSSL_DT_MAP, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary );
 
 		EXPECT_TRUE( map.hasKeyFieldId() ) << "Map key Int - hasKeyFieldId()" ;
 		EXPECT_EQ( map.getKeyFieldId(), 3426 ) << "Map key Int - getKeyFieldId()" ;
@@ -1424,9 +1370,6 @@ TEST(MapTests, testMapKeyIntDecodeAll)
 
 		EXPECT_FALSE( map.forth() ) << "Map key Int - fourth map forth()" ;
 
-		free( rsslBuf.data );
-		free( mapBuffer.data );
-
 		EXPECT_TRUE( true ) << "Map key Int - exception not expected" ;
 
 	}
@@ -1450,9 +1393,7 @@ TEST(MapTests, testMapKeyUIntDecodeAll)
 	{
 		// encoding order:  SummaryData(with FieldList), Delete, Add, Update
 
-		RsslBuffer mapBuffer;
-		mapBuffer.length = 2048;
-		mapBuffer.data = ( char* )malloc( sizeof( char ) * 2048 );
+		EsslBuffer<2048> mapBuffer;
 
 		RsslMap rsslMap;
 		RsslEncodeIterator mapEncodeIter;
@@ -1460,7 +1401,7 @@ TEST(MapTests, testMapKeyUIntDecodeAll)
 		rsslClearMap( &rsslMap );
 		rsslClearEncodeIterator( &mapEncodeIter );
 		rsslSetEncodeIteratorRWFVersion( &mapEncodeIter, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION );
-		rsslSetEncodeIteratorBuffer( &mapEncodeIter, &mapBuffer );
+		rsslSetEncodeIteratorBuffer( &mapEncodeIter, mapBuffer );
 		rsslMap.flags = RSSL_MPF_HAS_SUMMARY_DATA | RSSL_MPF_HAS_KEY_FIELD_ID;
 		rsslMap.containerType = RSSL_DT_FIELD_LIST;
 
@@ -1468,9 +1409,7 @@ TEST(MapTests, testMapKeyUIntDecodeAll)
 		rsslMap.keyFieldId = 3426;
 
 		// allocate buffer for the field list for SummaryData
-		RsslBuffer rsslBuf;
-		rsslBuf.length = 1000;
-		rsslBuf.data = ( char* )malloc( sizeof( char ) * 1000 );
+		EsslBuffer<1000> rsslBuf;
 
 		RsslEncodeFieldListAll( rsslBuf );
 		rsslMap.encSummaryData = rsslBuf;
@@ -1488,10 +1427,9 @@ TEST(MapTests, testMapKeyUIntDecodeAll)
 		//second entry  //Add FieldList
 		rsslClearMapEntry( &mapEntry );
 		// allocate buffer for the field list for MapEntries
-		RsslBuffer rsslBuf1;
-		rsslBuf1.length = 1000;
-		rsslBuf1.data = ( char* )malloc( sizeof( char ) * 1000 );
+		EsslBuffer<1000> rsslBuf1;
 		RsslEncodeFieldListAll( rsslBuf1 );
+
 		mapEntry.flags = RSSL_MPEF_NONE;
 		mapEntry.action = RSSL_MPEA_ADD_ENTRY;
 		mapEntry.encData = rsslBuf1;
@@ -1506,13 +1444,13 @@ TEST(MapTests, testMapKeyUIntDecodeAll)
 		orderUInt = 3;
 		rsslEncodeMapEntry( &mapEncodeIter, &mapEntry, &orderUInt );
 
-		mapBuffer.length = rsslGetEncodedBufferLength( &mapEncodeIter );
+		mapBuffer->length = rsslGetEncodedBufferLength( &mapEncodeIter );
 		rsslEncodeMapComplete( &mapEncodeIter, RSSL_TRUE );
 
 
 		//Now do EMA decoding of Map
 		Map map;
-		StaticDecoder::setRsslData( &map, &mapBuffer, RSSL_DT_MAP, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary );
+		StaticDecoder::setRsslData( &map, mapBuffer, RSSL_DT_MAP, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary );
 
 		EXPECT_TRUE( map.hasKeyFieldId() ) << "Map key UInt - hasKeyFieldId()" ;
 		EXPECT_EQ( map.getKeyFieldId(), 3426 ) << "Map key UInt - getKeyFieldId()" ;
@@ -1544,9 +1482,6 @@ TEST(MapTests, testMapKeyUIntDecodeAll)
 
 		EXPECT_FALSE( map.forth() ) << "Map key UInt - fourth map forth()" ;
 
-		free( rsslBuf.data );
-		free( mapBuffer.data );
-
 		EXPECT_TRUE( true ) << "Map key UInt - exception not expected" ;
 
 	}
@@ -1570,9 +1505,7 @@ TEST(MapTests, testMapKeyRealDecodeAll)
 	{
 		// encoding order:  SummaryData(with FieldList), Delete, Add, Update
 
-		RsslBuffer mapBuffer;
-		mapBuffer.length = 2048;
-		mapBuffer.data = ( char* )malloc( sizeof( char ) * 2048 );
+		EsslBuffer<2048> mapBuffer;
 
 		RsslMap rsslMap;
 		RsslEncodeIterator mapEncodeIter;
@@ -1580,7 +1513,7 @@ TEST(MapTests, testMapKeyRealDecodeAll)
 		rsslClearMap( &rsslMap );
 		rsslClearEncodeIterator( &mapEncodeIter );
 		rsslSetEncodeIteratorRWFVersion( &mapEncodeIter, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION );
-		rsslSetEncodeIteratorBuffer( &mapEncodeIter, &mapBuffer );
+		rsslSetEncodeIteratorBuffer( &mapEncodeIter, mapBuffer );
 		rsslMap.flags = RSSL_MPF_HAS_SUMMARY_DATA | RSSL_MPF_HAS_KEY_FIELD_ID;
 		rsslMap.containerType = RSSL_DT_FIELD_LIST;
 
@@ -1588,9 +1521,7 @@ TEST(MapTests, testMapKeyRealDecodeAll)
 		rsslMap.keyFieldId = 3426;
 
 		// allocate buffer for the field list for SummaryData
-		RsslBuffer rsslBuf;
-		rsslBuf.length = 1000;
-		rsslBuf.data = ( char* )malloc( sizeof( char ) * 1000 );
+		EsslBuffer<1000> rsslBuf;
 
 		RsslEncodeFieldListAll( rsslBuf );
 		rsslMap.encSummaryData = rsslBuf;
@@ -1611,10 +1542,9 @@ TEST(MapTests, testMapKeyRealDecodeAll)
 		//second entry  //Add FieldList
 		rsslClearMapEntry( &mapEntry );
 		// allocate buffer for the field list for MapEntries
-		RsslBuffer rsslBuf1;
-		rsslBuf1.length = 1000;
-		rsslBuf1.data = ( char* )malloc( sizeof( char ) * 1000 );
+		EsslBuffer<1000> rsslBuf1;
 		RsslEncodeFieldListAll( rsslBuf1 );
+
 		mapEntry.flags = RSSL_MPEF_NONE;
 		mapEntry.action = RSSL_MPEA_ADD_ENTRY;
 		mapEntry.encData = rsslBuf1;
@@ -1633,13 +1563,13 @@ TEST(MapTests, testMapKeyRealDecodeAll)
 		orderReal.value = 33;
 		rsslEncodeMapEntry( &mapEncodeIter, &mapEntry, &orderReal );
 
-		mapBuffer.length = rsslGetEncodedBufferLength( &mapEncodeIter );
+		mapBuffer->length = rsslGetEncodedBufferLength( &mapEncodeIter );
 		rsslEncodeMapComplete( &mapEncodeIter, RSSL_TRUE );
 
 
 		//Now do EMA decoding of Map
 		Map map;
-		StaticDecoder::setRsslData( &map, &mapBuffer, RSSL_DT_MAP, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary );
+		StaticDecoder::setRsslData( &map, mapBuffer, RSSL_DT_MAP, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary );
 
 		EXPECT_TRUE( map.hasKeyFieldId() ) << "Map key Real - hasKeyFieldId()" ;
 		EXPECT_EQ( map.getKeyFieldId(), 3426 ) << "Map key Real - getKeyFieldId()" ;
@@ -1674,9 +1604,6 @@ TEST(MapTests, testMapKeyRealDecodeAll)
 
 		EXPECT_FALSE( map.forth() ) << "Map key Real - fourth map forth()" ;
 
-		free( rsslBuf.data );
-		free( mapBuffer.data );
-
 		EXPECT_TRUE( true ) << "Map key Real - exception not expected" ;
 
 	}
@@ -1698,13 +1625,9 @@ TEST(MapTests, testMapKeyFloatDecodeAll)
 
 	try
 	{
-
-
 		// encoding order:  SummaryData(with FieldList), Delete, Add, Update
 
-		RsslBuffer mapBuffer;
-		mapBuffer.length = 2048;
-		mapBuffer.data = ( char* )malloc( sizeof( char ) * 2048 );
+		EsslBuffer<2048> mapBuffer;
 
 		RsslMap rsslMap;
 		RsslEncodeIterator mapEncodeIter;
@@ -1712,7 +1635,7 @@ TEST(MapTests, testMapKeyFloatDecodeAll)
 		rsslClearMap( &rsslMap );
 		rsslClearEncodeIterator( &mapEncodeIter );
 		rsslSetEncodeIteratorRWFVersion( &mapEncodeIter, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION );
-		rsslSetEncodeIteratorBuffer( &mapEncodeIter, &mapBuffer );
+		rsslSetEncodeIteratorBuffer( &mapEncodeIter, mapBuffer );
 		rsslMap.flags = RSSL_MPF_HAS_SUMMARY_DATA | RSSL_MPF_HAS_KEY_FIELD_ID;
 		rsslMap.containerType = RSSL_DT_FIELD_LIST;
 
@@ -1720,9 +1643,7 @@ TEST(MapTests, testMapKeyFloatDecodeAll)
 		rsslMap.keyFieldId = 3426;
 
 		// allocate buffer for the field list for SummaryData
-		RsslBuffer rsslBuf;
-		rsslBuf.length = 1000;
-		rsslBuf.data = ( char* )malloc( sizeof( char ) * 1000 );
+		EsslBuffer<1000> rsslBuf;
 
 		RsslEncodeFieldListAll( rsslBuf );
 		rsslMap.encSummaryData = rsslBuf;
@@ -1740,10 +1661,9 @@ TEST(MapTests, testMapKeyFloatDecodeAll)
 		//second entry  //Add FieldList
 		rsslClearMapEntry( &mapEntry );
 		// allocate buffer for the field list for MapEntries
-		RsslBuffer rsslBuf1;
-		rsslBuf1.length = 1000;
-		rsslBuf1.data = ( char* )malloc( sizeof( char ) * 1000 );
+		EsslBuffer<1000> rsslBuf1;
 		RsslEncodeFieldListAll( rsslBuf1 );
+
 		mapEntry.flags = RSSL_MPEF_NONE;
 		mapEntry.action = RSSL_MPEA_ADD_ENTRY;
 		mapEntry.encData = rsslBuf1;
@@ -1758,13 +1678,13 @@ TEST(MapTests, testMapKeyFloatDecodeAll)
 		orderFloat = 33.33f;
 		rsslEncodeMapEntry( &mapEncodeIter, &mapEntry, &orderFloat );
 
-		mapBuffer.length = rsslGetEncodedBufferLength( &mapEncodeIter );
+		mapBuffer->length = rsslGetEncodedBufferLength( &mapEncodeIter );
 		rsslEncodeMapComplete( &mapEncodeIter, RSSL_TRUE );
 
 
 		//Now do EMA decoding of Map
 		Map map;
-		StaticDecoder::setRsslData( &map, &mapBuffer, RSSL_DT_MAP, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary );
+		StaticDecoder::setRsslData( &map, mapBuffer, RSSL_DT_MAP, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary );
 
 		EXPECT_TRUE( map.hasKeyFieldId() ) << "Map key Float - hasKeyFieldId()" ;
 		EXPECT_EQ( map.getKeyFieldId(), 3426 ) << "Map key Float - getKeyFieldId()" ;
@@ -1796,9 +1716,6 @@ TEST(MapTests, testMapKeyFloatDecodeAll)
 
 		EXPECT_FALSE( map.forth() ) << "Map key Float - fourth map forth()" ;
 
-		free( rsslBuf.data );
-		free( mapBuffer.data );
-
 		EXPECT_TRUE( true ) << "Map key Float - exception not expected" ;
 
 	}
@@ -1822,9 +1739,7 @@ TEST(MapTests, testMapKeyDoubleDecodeAll)
 	{
 		// encoding order:  SummaryData(with FieldList), Delete, Add, Update
 
-		RsslBuffer mapBuffer;
-		mapBuffer.length = 2048;
-		mapBuffer.data = ( char* )malloc( sizeof( char ) * 2048 );
+		EsslBuffer<2048> mapBuffer;
 
 		RsslMap rsslMap;
 		RsslEncodeIterator mapEncodeIter;
@@ -1832,7 +1747,7 @@ TEST(MapTests, testMapKeyDoubleDecodeAll)
 		rsslClearMap( &rsslMap );
 		rsslClearEncodeIterator( &mapEncodeIter );
 		rsslSetEncodeIteratorRWFVersion( &mapEncodeIter, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION );
-		rsslSetEncodeIteratorBuffer( &mapEncodeIter, &mapBuffer );
+		rsslSetEncodeIteratorBuffer( &mapEncodeIter, mapBuffer );
 		rsslMap.flags = RSSL_MPF_HAS_SUMMARY_DATA | RSSL_MPF_HAS_KEY_FIELD_ID;
 		rsslMap.containerType = RSSL_DT_FIELD_LIST;
 
@@ -1840,9 +1755,7 @@ TEST(MapTests, testMapKeyDoubleDecodeAll)
 		rsslMap.keyFieldId = 3426;
 
 		// allocate buffer for the field list for SummaryData
-		RsslBuffer rsslBuf;
-		rsslBuf.length = 1000;
-		rsslBuf.data = ( char* )malloc( sizeof( char ) * 1000 );
+		EsslBuffer<1000> rsslBuf;
 
 		RsslEncodeFieldListAll( rsslBuf );
 		rsslMap.encSummaryData = rsslBuf;
@@ -1860,10 +1773,9 @@ TEST(MapTests, testMapKeyDoubleDecodeAll)
 		//second entry  //Add FieldList
 		rsslClearMapEntry( &mapEntry );
 		// allocate buffer for the field list for MapEntries
-		RsslBuffer rsslBuf1;
-		rsslBuf1.length = 1000;
-		rsslBuf1.data = ( char* )malloc( sizeof( char ) * 1000 );
+		EsslBuffer<1000> rsslBuf1;
 		RsslEncodeFieldListAll( rsslBuf1 );
+
 		mapEntry.flags = RSSL_MPEF_NONE;
 		mapEntry.action = RSSL_MPEA_ADD_ENTRY;
 		mapEntry.encData = rsslBuf1;
@@ -1878,13 +1790,13 @@ TEST(MapTests, testMapKeyDoubleDecodeAll)
 		orderDouble = 33.33f;
 		rsslEncodeMapEntry( &mapEncodeIter, &mapEntry, &orderDouble );
 
-		mapBuffer.length = rsslGetEncodedBufferLength( &mapEncodeIter );
+		mapBuffer->length = rsslGetEncodedBufferLength( &mapEncodeIter );
 		rsslEncodeMapComplete( &mapEncodeIter, RSSL_TRUE );
 
 
 		//Now do EMA decoding of Map
 		Map map;
-		StaticDecoder::setRsslData( &map, &mapBuffer, RSSL_DT_MAP, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary );
+		StaticDecoder::setRsslData( &map, mapBuffer, RSSL_DT_MAP, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary );
 
 		EXPECT_TRUE( map.hasKeyFieldId() ) << "Map key Double - hasKeyFieldId()" ;
 		EXPECT_EQ( map.getKeyFieldId(), 3426 ) << "Map key Double - getKeyFieldId()" ;
@@ -1916,9 +1828,6 @@ TEST(MapTests, testMapKeyDoubleDecodeAll)
 
 		EXPECT_FALSE( map.forth() ) << "Map key Double - fourth map forth()" ;
 
-		free( rsslBuf.data );
-		free( mapBuffer.data );
-
 		EXPECT_TRUE( true ) << "Map key Double - exception not expected" ;
 
 	}
@@ -1942,9 +1851,7 @@ TEST(MapTests, testMapKeyDateDecodeAll)
 	{
 		// encoding order:  SummaryData(with FieldList), Delete, Add, Update
 
-		RsslBuffer mapBuffer;
-		mapBuffer.length = 2048;
-		mapBuffer.data = ( char* )malloc( sizeof( char ) * 2048 );
+		EsslBuffer<2048> mapBuffer;
 
 		RsslMap rsslMap;
 		RsslEncodeIterator mapEncodeIter;
@@ -1952,7 +1859,7 @@ TEST(MapTests, testMapKeyDateDecodeAll)
 		rsslClearMap( &rsslMap );
 		rsslClearEncodeIterator( &mapEncodeIter );
 		rsslSetEncodeIteratorRWFVersion( &mapEncodeIter, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION );
-		rsslSetEncodeIteratorBuffer( &mapEncodeIter, &mapBuffer );
+		rsslSetEncodeIteratorBuffer( &mapEncodeIter, mapBuffer );
 		rsslMap.flags = RSSL_MPF_HAS_SUMMARY_DATA | RSSL_MPF_HAS_KEY_FIELD_ID;
 		rsslMap.containerType = RSSL_DT_FIELD_LIST;
 
@@ -1960,9 +1867,7 @@ TEST(MapTests, testMapKeyDateDecodeAll)
 		rsslMap.keyFieldId = 3426;
 
 		// allocate buffer for the field list for SummaryData
-		RsslBuffer rsslBuf;
-		rsslBuf.length = 1000;
-		rsslBuf.data = ( char* )malloc( sizeof( char ) * 1000 );
+		EsslBuffer<1000> rsslBuf;
 
 		RsslEncodeFieldListAll( rsslBuf );
 		rsslMap.encSummaryData = rsslBuf;
@@ -1983,10 +1888,9 @@ TEST(MapTests, testMapKeyDateDecodeAll)
 		//second entry  //Add FieldList
 		rsslClearMapEntry( &mapEntry );
 		// allocate buffer for the field list for MapEntries
-		RsslBuffer rsslBuf1;
-		rsslBuf1.length = 1000;
-		rsslBuf1.data = ( char* )malloc( sizeof( char ) * 1000 );
+		EsslBuffer<1000> rsslBuf1;
 		RsslEncodeFieldListAll( rsslBuf1 );
+
 		mapEntry.flags = RSSL_MPEF_NONE;
 		mapEntry.action = RSSL_MPEA_ADD_ENTRY;
 		mapEntry.encData = rsslBuf1;
@@ -2005,13 +1909,13 @@ TEST(MapTests, testMapKeyDateDecodeAll)
 		orderDate.day = 3;
 		rsslEncodeMapEntry( &mapEncodeIter, &mapEntry, &orderDate );
 
-		mapBuffer.length = rsslGetEncodedBufferLength( &mapEncodeIter );
+		mapBuffer->length = rsslGetEncodedBufferLength( &mapEncodeIter );
 		rsslEncodeMapComplete( &mapEncodeIter, RSSL_TRUE );
 
 
 		//Now do EMA decoding of Map
 		Map map;
-		StaticDecoder::setRsslData( &map, &mapBuffer, RSSL_DT_MAP, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary );
+		StaticDecoder::setRsslData( &map, mapBuffer, RSSL_DT_MAP, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary );
 
 		EXPECT_TRUE( map.hasKeyFieldId() ) << "Map key Date - hasKeyFieldId()" ;
 		EXPECT_EQ( map.getKeyFieldId(), 3426 ) << "Map key Date - getKeyFieldId()" ;
@@ -2049,9 +1953,6 @@ TEST(MapTests, testMapKeyDateDecodeAll)
 
 		EXPECT_FALSE( map.forth() ) << "Map key Date - fourth map forth()" ;
 
-		free( rsslBuf.data );
-		free( mapBuffer.data );
-
 		EXPECT_TRUE( true ) << "Map key Date - exception not expected" ;
 
 	}
@@ -2075,9 +1976,7 @@ TEST(MapTests, testMapKeyTimeDecodeAll)
 	{
 		// encoding order:  SummaryData(with FieldList), Delete, Add, Update
 
-		RsslBuffer mapBuffer;
-		mapBuffer.length = 2048;
-		mapBuffer.data = ( char* )malloc( sizeof( char ) * 2048 );
+		EsslBuffer<2048> mapBuffer;
 
 		RsslMap rsslMap;
 		RsslEncodeIterator mapEncodeIter;
@@ -2085,7 +1984,7 @@ TEST(MapTests, testMapKeyTimeDecodeAll)
 		rsslClearMap( &rsslMap );
 		rsslClearEncodeIterator( &mapEncodeIter );
 		rsslSetEncodeIteratorRWFVersion( &mapEncodeIter, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION );
-		rsslSetEncodeIteratorBuffer( &mapEncodeIter, &mapBuffer );
+		rsslSetEncodeIteratorBuffer( &mapEncodeIter, mapBuffer );
 		rsslMap.flags = RSSL_MPF_HAS_SUMMARY_DATA | RSSL_MPF_HAS_KEY_FIELD_ID;
 		rsslMap.containerType = RSSL_DT_FIELD_LIST;
 
@@ -2093,9 +1992,7 @@ TEST(MapTests, testMapKeyTimeDecodeAll)
 		rsslMap.keyFieldId = 3426;
 
 		// allocate buffer for the field list for SummaryData
-		RsslBuffer rsslBuf;
-		rsslBuf.length = 1000;
-		rsslBuf.data = ( char* )malloc( sizeof( char ) * 1000 );
+		EsslBuffer<1000> rsslBuf;
 
 		RsslEncodeFieldListAll( rsslBuf );
 		rsslMap.encSummaryData = rsslBuf;
@@ -2117,10 +2014,9 @@ TEST(MapTests, testMapKeyTimeDecodeAll)
 		//second entry  //Add FieldList
 		rsslClearMapEntry( &mapEntry );
 		// allocate buffer for the field list for MapEntries
-		RsslBuffer rsslBuf1;
-		rsslBuf1.length = 1000;
-		rsslBuf1.data = ( char* )malloc( sizeof( char ) * 1000 );
+		EsslBuffer<1000> rsslBuf1;
 		RsslEncodeFieldListAll( rsslBuf1 );
+
 		mapEntry.flags = RSSL_MPEF_NONE;
 		mapEntry.action = RSSL_MPEA_ADD_ENTRY;
 		mapEntry.encData = rsslBuf1;
@@ -2141,13 +2037,13 @@ TEST(MapTests, testMapKeyTimeDecodeAll)
 		orderTime.millisecond = 17;
 		rsslEncodeMapEntry( &mapEncodeIter, &mapEntry, &orderTime );
 
-		mapBuffer.length = rsslGetEncodedBufferLength( &mapEncodeIter );
+		mapBuffer->length = rsslGetEncodedBufferLength( &mapEncodeIter );
 		rsslEncodeMapComplete( &mapEncodeIter, RSSL_TRUE );
 
 
 		//Now do EMA decoding of Map
 		Map map;
-		StaticDecoder::setRsslData( &map, &mapBuffer, RSSL_DT_MAP, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary );
+		StaticDecoder::setRsslData( &map, mapBuffer, RSSL_DT_MAP, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary );
 
 		EXPECT_TRUE( map.hasKeyFieldId() ) << "Map key Time - hasKeyFieldId()" ;
 		EXPECT_EQ( map.getKeyFieldId(), 3426 ) << "Map key Time - getKeyFieldId()" ;
@@ -2189,9 +2085,6 @@ TEST(MapTests, testMapKeyTimeDecodeAll)
 
 		EXPECT_FALSE( map.forth() ) << "Map key Time - fourth map forth()" ;
 
-		free( rsslBuf.data );
-		free( mapBuffer.data );
-
 		EXPECT_TRUE( true ) << "Map key Time - exception not expected" ;
 
 	}
@@ -2215,9 +2108,7 @@ TEST(MapTests, testMapKeyDateTimeDecodeAll)
 	{
 		// encoding order:  SummaryData(with FieldList), Delete, Add, Update
 
-		RsslBuffer mapBuffer;
-		mapBuffer.length = 2048;
-		mapBuffer.data = ( char* )malloc( sizeof( char ) * 2048 );
+		EsslBuffer<2048> mapBuffer;
 
 		RsslMap rsslMap;
 		RsslEncodeIterator mapEncodeIter;
@@ -2225,7 +2116,7 @@ TEST(MapTests, testMapKeyDateTimeDecodeAll)
 		rsslClearMap( &rsslMap );
 		rsslClearEncodeIterator( &mapEncodeIter );
 		rsslSetEncodeIteratorRWFVersion( &mapEncodeIter, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION );
-		rsslSetEncodeIteratorBuffer( &mapEncodeIter, &mapBuffer );
+		rsslSetEncodeIteratorBuffer( &mapEncodeIter, mapBuffer );
 		rsslMap.flags = RSSL_MPF_HAS_SUMMARY_DATA | RSSL_MPF_HAS_KEY_FIELD_ID;
 		rsslMap.containerType = RSSL_DT_FIELD_LIST;
 
@@ -2233,9 +2124,7 @@ TEST(MapTests, testMapKeyDateTimeDecodeAll)
 		rsslMap.keyFieldId = 3426;
 
 		// allocate buffer for the field list for SummaryData
-		RsslBuffer rsslBuf;
-		rsslBuf.length = 1000;
-		rsslBuf.data = ( char* )malloc( sizeof( char ) * 1000 );
+		EsslBuffer<1000> rsslBuf;
 
 		RsslEncodeFieldListAll( rsslBuf );
 		rsslMap.encSummaryData = rsslBuf;
@@ -2260,10 +2149,9 @@ TEST(MapTests, testMapKeyDateTimeDecodeAll)
 		//second entry  //Add FieldList
 		rsslClearMapEntry( &mapEntry );
 		// allocate buffer for the field list for MapEntries
-		RsslBuffer rsslBuf1;
-		rsslBuf1.length = 1000;
-		rsslBuf1.data = ( char* )malloc( sizeof( char ) * 1000 );
+		EsslBuffer<1000> rsslBuf1;
 		RsslEncodeFieldListAll( rsslBuf1 );
+
 		mapEntry.flags = RSSL_MPEF_NONE;
 		mapEntry.action = RSSL_MPEA_ADD_ENTRY;
 		mapEntry.encData = rsslBuf1;
@@ -2290,13 +2178,13 @@ TEST(MapTests, testMapKeyDateTimeDecodeAll)
 		orderDateTime.time.millisecond = 17;
 		rsslEncodeMapEntry( &mapEncodeIter, &mapEntry, &orderDateTime );
 
-		mapBuffer.length = rsslGetEncodedBufferLength( &mapEncodeIter );
+		mapBuffer->length = rsslGetEncodedBufferLength( &mapEncodeIter );
 		rsslEncodeMapComplete( &mapEncodeIter, RSSL_TRUE );
 
 
 		//Now do EMA decoding of Map
 		Map map;
-		StaticDecoder::setRsslData( &map, &mapBuffer, RSSL_DT_MAP, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary );
+		StaticDecoder::setRsslData( &map, mapBuffer, RSSL_DT_MAP, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary );
 
 		EXPECT_TRUE( map.hasKeyFieldId() ) << "Map key DateTime - hasKeyFieldId()" ;
 		EXPECT_EQ( map.getKeyFieldId(), 3426 ) << "Map key DateTime - getKeyFieldId()" ;
@@ -2347,9 +2235,6 @@ TEST(MapTests, testMapKeyDateTimeDecodeAll)
 
 		EXPECT_FALSE( map.forth() ) << "Map key DateTime - fourth map forth()" ;
 
-		free( rsslBuf.data );
-		free( mapBuffer.data );
-
 		EXPECT_TRUE( true ) << "Map key DateTime - exception not expected" ;
 
 	}
@@ -2373,9 +2258,7 @@ TEST(MapTests, testMapKeyQosDecodeAll)
 	{
 		// encoding order:  SummaryData(with FieldList), Delete, Add, Update
 
-		RsslBuffer mapBuffer;
-		mapBuffer.length = 2048;
-		mapBuffer.data = ( char* )malloc( sizeof( char ) * 2048 );
+		EsslBuffer<2048> mapBuffer;
 
 		RsslMap rsslMap;
 		RsslEncodeIterator mapEncodeIter;
@@ -2383,7 +2266,7 @@ TEST(MapTests, testMapKeyQosDecodeAll)
 		rsslClearMap( &rsslMap );
 		rsslClearEncodeIterator( &mapEncodeIter );
 		rsslSetEncodeIteratorRWFVersion( &mapEncodeIter, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION );
-		rsslSetEncodeIteratorBuffer( &mapEncodeIter, &mapBuffer );
+		rsslSetEncodeIteratorBuffer( &mapEncodeIter, mapBuffer );
 		rsslMap.flags = RSSL_MPF_HAS_SUMMARY_DATA | RSSL_MPF_HAS_KEY_FIELD_ID;
 		rsslMap.containerType = RSSL_DT_FIELD_LIST;
 
@@ -2391,9 +2274,7 @@ TEST(MapTests, testMapKeyQosDecodeAll)
 		rsslMap.keyFieldId = 3426;
 
 		// allocate buffer for the field list for SummaryData
-		RsslBuffer rsslBuf;
-		rsslBuf.length = 1000;
-		rsslBuf.data = ( char* )malloc( sizeof( char ) * 1000 );
+		EsslBuffer<1000> rsslBuf;
 
 		RsslEncodeFieldListAll( rsslBuf );
 		rsslMap.encSummaryData = rsslBuf;
@@ -2416,10 +2297,9 @@ TEST(MapTests, testMapKeyQosDecodeAll)
 		//second entry  //Add FieldList
 		rsslClearMapEntry( &mapEntry );
 		// allocate buffer for the field list for MapEntries
-		RsslBuffer rsslBuf1;
-		rsslBuf1.length = 1000;
-		rsslBuf1.data = ( char* )malloc( sizeof( char ) * 1000 );
+		EsslBuffer<1000> rsslBuf1;
 		RsslEncodeFieldListAll( rsslBuf1 );
+
 		mapEntry.flags = RSSL_MPEF_NONE;
 		mapEntry.action = RSSL_MPEA_ADD_ENTRY;
 		mapEntry.encData = rsslBuf1;
@@ -2442,13 +2322,13 @@ TEST(MapTests, testMapKeyQosDecodeAll)
 		orderQos.timeInfo = 5698;
 		rsslEncodeMapEntry( &mapEncodeIter, &mapEntry, &orderQos );
 
-		mapBuffer.length = rsslGetEncodedBufferLength( &mapEncodeIter );
+		mapBuffer->length = rsslGetEncodedBufferLength( &mapEncodeIter );
 		rsslEncodeMapComplete( &mapEncodeIter, RSSL_TRUE );
 
 
 		//Now do EMA decoding of Map
 		Map map;
-		StaticDecoder::setRsslData( &map, &mapBuffer, RSSL_DT_MAP, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary );
+		StaticDecoder::setRsslData( &map, mapBuffer, RSSL_DT_MAP, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary );
 
 		EXPECT_TRUE( map.hasKeyFieldId() ) << "Map key Qos - hasKeyFieldId()" ;
 		EXPECT_EQ( map.getKeyFieldId(), 3426 ) << "Map key Qos - getKeyFieldId()" ;
@@ -2493,9 +2373,6 @@ TEST(MapTests, testMapKeyQosDecodeAll)
 
 		EXPECT_FALSE( map.forth() ) << "Map key Qos - fourth map forth()" ;
 
-		free( rsslBuf.data );
-		free( mapBuffer.data );
-
 		EXPECT_TRUE( true ) << "Map key Qos - exception not expected" ;
 
 	}
@@ -2519,9 +2396,7 @@ TEST(MapTests, testMapKeyStateDecodeAll)
 	{
 		// encoding order:  SummaryData(with FieldList), Delete, Add, Update
 
-		RsslBuffer mapBuffer;
-		mapBuffer.length = 2048;
-		mapBuffer.data = ( char* )malloc( sizeof( char ) * 2048 );
+		EsslBuffer<2048> mapBuffer;
 
 		RsslMap rsslMap;
 		RsslEncodeIterator mapEncodeIter;
@@ -2529,7 +2404,7 @@ TEST(MapTests, testMapKeyStateDecodeAll)
 		rsslClearMap( &rsslMap );
 		rsslClearEncodeIterator( &mapEncodeIter );
 		rsslSetEncodeIteratorRWFVersion( &mapEncodeIter, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION );
-		rsslSetEncodeIteratorBuffer( &mapEncodeIter, &mapBuffer );
+		rsslSetEncodeIteratorBuffer( &mapEncodeIter, mapBuffer );
 		rsslMap.flags = RSSL_MPF_HAS_SUMMARY_DATA | RSSL_MPF_HAS_KEY_FIELD_ID;
 		rsslMap.containerType = RSSL_DT_FIELD_LIST;
 
@@ -2537,9 +2412,7 @@ TEST(MapTests, testMapKeyStateDecodeAll)
 		rsslMap.keyFieldId = 3426;
 
 		// allocate buffer for the field list for SummaryData
-		RsslBuffer rsslBuf;
-		rsslBuf.length = 1000;
-		rsslBuf.data = ( char* )malloc( sizeof( char ) * 1000 );
+		EsslBuffer<1000> rsslBuf;
 
 		RsslEncodeFieldListAll( rsslBuf );
 		rsslMap.encSummaryData = rsslBuf;
@@ -2562,10 +2435,9 @@ TEST(MapTests, testMapKeyStateDecodeAll)
 		//second entry  //Add FieldList
 		rsslClearMapEntry( &mapEntry );
 		// allocate buffer for the field list for MapEntries
-		RsslBuffer rsslBuf1;
-		rsslBuf1.length = 1000;
-		rsslBuf1.data = ( char* )malloc( sizeof( char ) * 1000 );
+		EsslBuffer<1000> rsslBuf1;
 		RsslEncodeFieldListAll( rsslBuf1 );
+
 		mapEntry.flags = RSSL_MPEF_NONE;
 		mapEntry.action = RSSL_MPEA_ADD_ENTRY;
 		mapEntry.encData = rsslBuf1;
@@ -2588,13 +2460,13 @@ TEST(MapTests, testMapKeyStateDecodeAll)
 		orderState.text.length = 11;
 		rsslEncodeMapEntry( &mapEncodeIter, &mapEntry, &orderState );
 
-		mapBuffer.length = rsslGetEncodedBufferLength( &mapEncodeIter );
+		mapBuffer->length = rsslGetEncodedBufferLength( &mapEncodeIter );
 		rsslEncodeMapComplete( &mapEncodeIter, RSSL_TRUE );
 
 
 		//Now do EMA decoding of Map
 		Map map;
-		StaticDecoder::setRsslData( &map, &mapBuffer, RSSL_DT_MAP, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary );
+		StaticDecoder::setRsslData( &map, mapBuffer, RSSL_DT_MAP, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary );
 
 		EXPECT_TRUE( map.hasKeyFieldId() ) << "Map key State - hasKeyFieldId()" ;
 		EXPECT_EQ( map.getKeyFieldId(), 3426 ) << "Map key State - getKeyFieldId()" ;
@@ -2639,9 +2511,6 @@ TEST(MapTests, testMapKeyStateDecodeAll)
 
 		EXPECT_FALSE( map.forth() ) << "Map key State - fourth map forth()" ;
 
-		free( rsslBuf.data );
-		free( mapBuffer.data );
-
 		EXPECT_TRUE( true ) << "Map key State - exception not expected" ;
 
 	}
@@ -2665,9 +2534,7 @@ TEST(MapTests, testMapKeyEnumDecodeAll)
 	{
 		// encoding order:  SummaryData(with FieldList), Delete, Add, Update
 
-		RsslBuffer mapBuffer;
-		mapBuffer.length = 2048;
-		mapBuffer.data = ( char* )malloc( sizeof( char ) * 2048 );
+		EsslBuffer<2048> mapBuffer;
 
 		RsslMap rsslMap;
 		RsslEncodeIterator mapEncodeIter;
@@ -2675,7 +2542,7 @@ TEST(MapTests, testMapKeyEnumDecodeAll)
 		rsslClearMap( &rsslMap );
 		rsslClearEncodeIterator( &mapEncodeIter );
 		rsslSetEncodeIteratorRWFVersion( &mapEncodeIter, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION );
-		rsslSetEncodeIteratorBuffer( &mapEncodeIter, &mapBuffer );
+		rsslSetEncodeIteratorBuffer( &mapEncodeIter, mapBuffer );
 		rsslMap.flags = RSSL_MPF_HAS_SUMMARY_DATA | RSSL_MPF_HAS_KEY_FIELD_ID;
 		rsslMap.containerType = RSSL_DT_FIELD_LIST;
 
@@ -2683,9 +2550,7 @@ TEST(MapTests, testMapKeyEnumDecodeAll)
 		rsslMap.keyFieldId = 3426;
 
 		// allocate buffer for the field list for SummaryData
-		RsslBuffer rsslBuf;
-		rsslBuf.length = 1000;
-		rsslBuf.data = ( char* )malloc( sizeof( char ) * 1000 );
+		EsslBuffer<1000> rsslBuf;
 
 		RsslEncodeFieldListAll( rsslBuf );
 		rsslMap.encSummaryData = rsslBuf;
@@ -2703,10 +2568,9 @@ TEST(MapTests, testMapKeyEnumDecodeAll)
 		//second entry  //Add FieldList
 		rsslClearMapEntry( &mapEntry );
 		// allocate buffer for the field list for MapEntries
-		RsslBuffer rsslBuf1;
-		rsslBuf1.length = 1000;
-		rsslBuf1.data = ( char* )malloc( sizeof( char ) * 1000 );
+		EsslBuffer<1000> rsslBuf1;
 		RsslEncodeFieldListAll( rsslBuf1 );
+
 		mapEntry.flags = RSSL_MPEF_NONE;
 		mapEntry.action = RSSL_MPEA_ADD_ENTRY;
 		mapEntry.encData = rsslBuf1;
@@ -2721,13 +2585,13 @@ TEST(MapTests, testMapKeyEnumDecodeAll)
 		orderEnum = 8100;
 		rsslEncodeMapEntry( &mapEncodeIter, &mapEntry, &orderEnum );
 
-		mapBuffer.length = rsslGetEncodedBufferLength( &mapEncodeIter );
+		mapBuffer->length = rsslGetEncodedBufferLength( &mapEncodeIter );
 		rsslEncodeMapComplete( &mapEncodeIter, RSSL_TRUE );
 
 
 		//Now do EMA decoding of Map
 		Map map;
-		StaticDecoder::setRsslData( &map, &mapBuffer, RSSL_DT_MAP, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary );
+		StaticDecoder::setRsslData( &map, mapBuffer, RSSL_DT_MAP, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary );
 
 		EXPECT_TRUE( map.hasKeyFieldId() ) << "Map key Enum - hasKeyFieldId()" ;
 		EXPECT_EQ( map.getKeyFieldId(), 3426 ) << "Map key Enum - getKeyFieldId()" ;
@@ -2760,9 +2624,6 @@ TEST(MapTests, testMapKeyEnumDecodeAll)
 
 		EXPECT_FALSE( map.forth() ) << "Map key Enum - fourth map forth()" ;
 
-		free( rsslBuf.data );
-		free( mapBuffer.data );
-
 		EXPECT_TRUE( true ) << "Map key Enum - exception not expected" ;
 
 	}
@@ -2786,9 +2647,7 @@ TEST(MapTests, testMapKeyAsciiStringDecodeAll)
 	{
 		// encoding order:  SummaryData(with FieldList), Delete, Add, Update
 
-		RsslBuffer mapBuffer;
-		mapBuffer.length = 2048;
-		mapBuffer.data = ( char* )malloc( sizeof( char ) * 2048 );
+		EsslBuffer<2048> mapBuffer;
 
 		RsslMap rsslMap;
 		RsslEncodeIterator mapEncodeIter;
@@ -2796,7 +2655,7 @@ TEST(MapTests, testMapKeyAsciiStringDecodeAll)
 		rsslClearMap( &rsslMap );
 		rsslClearEncodeIterator( &mapEncodeIter );
 		rsslSetEncodeIteratorRWFVersion( &mapEncodeIter, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION );
-		rsslSetEncodeIteratorBuffer( &mapEncodeIter, &mapBuffer );
+		rsslSetEncodeIteratorBuffer( &mapEncodeIter, mapBuffer );
 		rsslMap.flags = RSSL_MPF_HAS_SUMMARY_DATA | RSSL_MPF_HAS_KEY_FIELD_ID;
 		rsslMap.containerType = RSSL_DT_FIELD_LIST;
 
@@ -2804,9 +2663,7 @@ TEST(MapTests, testMapKeyAsciiStringDecodeAll)
 		rsslMap.keyFieldId = 3426;
 
 		// allocate buffer for the field list for SummaryData
-		RsslBuffer rsslBuf;
-		rsslBuf.length = 1000;
-		rsslBuf.data = ( char* )malloc( sizeof( char ) * 1000 );
+		EsslBuffer<1000> rsslBuf;
 
 		RsslEncodeFieldListAll( rsslBuf );
 		rsslMap.encSummaryData = rsslBuf;
@@ -2826,10 +2683,9 @@ TEST(MapTests, testMapKeyAsciiStringDecodeAll)
 		//second entry  //Add FieldList
 		rsslClearMapEntry( &mapEntry );
 		// allocate buffer for the field list for MapEntries
-		RsslBuffer rsslBuf1;
-		rsslBuf1.length = 1000;
-		rsslBuf1.data = ( char* )malloc( sizeof( char ) * 1000 );
+		EsslBuffer<1000> rsslBuf1;
 		RsslEncodeFieldListAll( rsslBuf1 );
+
 		mapEntry.flags = RSSL_MPEF_NONE;
 		mapEntry.action = RSSL_MPEA_ADD_ENTRY;
 		mapEntry.encData = rsslBuf1;
@@ -2846,13 +2702,13 @@ TEST(MapTests, testMapKeyAsciiStringDecodeAll)
 		orderBuf.length = 9;
 		rsslEncodeMapEntry( &mapEncodeIter, &mapEntry, &orderBuf );
 
-		mapBuffer.length = rsslGetEncodedBufferLength( &mapEncodeIter );
+		mapBuffer->length = rsslGetEncodedBufferLength( &mapEncodeIter );
 		rsslEncodeMapComplete( &mapEncodeIter, RSSL_TRUE );
 
 
 		//Now do EMA decoding of Map
 		Map map;
-		StaticDecoder::setRsslData( &map, &mapBuffer, RSSL_DT_MAP, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary );
+		StaticDecoder::setRsslData( &map, mapBuffer, RSSL_DT_MAP, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary );
 
 		EXPECT_TRUE( map.hasKeyFieldId() ) << "Map key AsciiString - hasKeyFieldId()" ;
 		EXPECT_EQ( map.getKeyFieldId(), 3426 ) << "Map key AsciiString - getKeyFieldId()" ;
@@ -2885,9 +2741,6 @@ TEST(MapTests, testMapKeyAsciiStringDecodeAll)
 
 		EXPECT_FALSE( map.forth() ) << "Map key AsciiString - fourth map forth()" ;
 
-		free( rsslBuf.data );
-		free( mapBuffer.data );
-
 		EXPECT_TRUE( true ) << "Map key AsciiString - exception not expected" ;
 
 	}
@@ -2911,9 +2764,7 @@ TEST(MapTests, testMapKeyUtf8StringDecodeAll)
 	{
 		// encoding order:  SummaryData(with FieldList), Delete, Add, Update
 
-		RsslBuffer mapBuffer;
-		mapBuffer.length = 2048;
-		mapBuffer.data = ( char* )malloc( sizeof( char ) * 2048 );
+		EsslBuffer<2048> mapBuffer;
 
 		RsslMap rsslMap;
 		RsslEncodeIterator mapEncodeIter;
@@ -2921,7 +2772,7 @@ TEST(MapTests, testMapKeyUtf8StringDecodeAll)
 		rsslClearMap( &rsslMap );
 		rsslClearEncodeIterator( &mapEncodeIter );
 		rsslSetEncodeIteratorRWFVersion( &mapEncodeIter, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION );
-		rsslSetEncodeIteratorBuffer( &mapEncodeIter, &mapBuffer );
+		rsslSetEncodeIteratorBuffer( &mapEncodeIter, mapBuffer );
 		rsslMap.flags = RSSL_MPF_HAS_SUMMARY_DATA | RSSL_MPF_HAS_KEY_FIELD_ID;
 		rsslMap.containerType = RSSL_DT_FIELD_LIST;
 
@@ -2929,9 +2780,7 @@ TEST(MapTests, testMapKeyUtf8StringDecodeAll)
 		rsslMap.keyFieldId = 3426;
 
 		// allocate buffer for the field list for SummaryData
-		RsslBuffer rsslBuf;
-		rsslBuf.length = 1000;
-		rsslBuf.data = ( char* )malloc( sizeof( char ) * 1000 );
+		EsslBuffer<1000> rsslBuf;
 
 		RsslEncodeFieldListAll( rsslBuf );
 		rsslMap.encSummaryData = rsslBuf;
@@ -2951,10 +2800,9 @@ TEST(MapTests, testMapKeyUtf8StringDecodeAll)
 		//second entry  //Add FieldList
 		rsslClearMapEntry( &mapEntry );
 		// allocate buffer for the field list for MapEntries
-		RsslBuffer rsslBuf1;
-		rsslBuf1.length = 1000;
-		rsslBuf1.data = ( char* )malloc( sizeof( char ) * 1000 );
+		EsslBuffer<1000> rsslBuf1;
 		RsslEncodeFieldListAll( rsslBuf1 );
+
 		mapEntry.flags = RSSL_MPEF_NONE;
 		mapEntry.action = RSSL_MPEA_ADD_ENTRY;
 		mapEntry.encData = rsslBuf1;
@@ -2971,13 +2819,13 @@ TEST(MapTests, testMapKeyUtf8StringDecodeAll)
 		orderBuf.length = 9;
 		rsslEncodeMapEntry( &mapEncodeIter, &mapEntry, &orderBuf );
 
-		mapBuffer.length = rsslGetEncodedBufferLength( &mapEncodeIter );
+		mapBuffer->length = rsslGetEncodedBufferLength( &mapEncodeIter );
 		rsslEncodeMapComplete( &mapEncodeIter, RSSL_TRUE );
 
 
 		//Now do EMA decoding of Map
 		Map map;
-		StaticDecoder::setRsslData( &map, &mapBuffer, RSSL_DT_MAP, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary );
+		StaticDecoder::setRsslData( &map, mapBuffer, RSSL_DT_MAP, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary );
 
 		EXPECT_TRUE( map.hasKeyFieldId() ) << "Map key Utf8String - hasKeyFieldId()" ;
 		EXPECT_EQ( map.getKeyFieldId(), 3426 ) << "Map key Utf8String - getKeyFieldId()" ;
@@ -3010,9 +2858,6 @@ TEST(MapTests, testMapKeyUtf8StringDecodeAll)
 
 		EXPECT_FALSE( map.forth() ) << "Map key Utf8String - fourth map forth()" ;
 
-		free( rsslBuf.data );
-		free( mapBuffer.data );
-
 		EXPECT_TRUE( true ) << "Map key Utf8String - exception not expected" ;
 
 	}
@@ -3036,9 +2881,7 @@ TEST(MapTests, testMapKeyRmtesStringDecodeAll)
 	{
 		// encoding order:  SummaryData(with FieldList), Delete, Add, Update
 
-		RsslBuffer mapBuffer;
-		mapBuffer.length = 2048;
-		mapBuffer.data = ( char* )malloc( sizeof( char ) * 2048 );
+		EsslBuffer<2048> mapBuffer;
 
 		RsslMap rsslMap;
 		RsslEncodeIterator mapEncodeIter;
@@ -3046,7 +2889,7 @@ TEST(MapTests, testMapKeyRmtesStringDecodeAll)
 		rsslClearMap( &rsslMap );
 		rsslClearEncodeIterator( &mapEncodeIter );
 		rsslSetEncodeIteratorRWFVersion( &mapEncodeIter, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION );
-		rsslSetEncodeIteratorBuffer( &mapEncodeIter, &mapBuffer );
+		rsslSetEncodeIteratorBuffer( &mapEncodeIter, mapBuffer );
 		rsslMap.flags = RSSL_MPF_HAS_SUMMARY_DATA | RSSL_MPF_HAS_KEY_FIELD_ID;
 		rsslMap.containerType = RSSL_DT_FIELD_LIST;
 
@@ -3054,9 +2897,7 @@ TEST(MapTests, testMapKeyRmtesStringDecodeAll)
 		rsslMap.keyFieldId = 3426;
 
 		// allocate buffer for the field list for SummaryData
-		RsslBuffer rsslBuf;
-		rsslBuf.length = 1000;
-		rsslBuf.data = ( char* )malloc( sizeof( char ) * 1000 );
+		EsslBuffer<1000> rsslBuf;
 
 		RsslEncodeFieldListAll( rsslBuf );
 		rsslMap.encSummaryData = rsslBuf;
@@ -3076,10 +2917,9 @@ TEST(MapTests, testMapKeyRmtesStringDecodeAll)
 		//second entry  //Add FieldList
 		rsslClearMapEntry( &mapEntry );
 		// allocate buffer for the field list for MapEntries
-		RsslBuffer rsslBuf1;
-		rsslBuf1.length = 1000;
-		rsslBuf1.data = ( char* )malloc( sizeof( char ) * 1000 );
+		EsslBuffer<1000> rsslBuf1;
 		RsslEncodeFieldListAll( rsslBuf1 );
+
 		mapEntry.flags = RSSL_MPEF_NONE;
 		mapEntry.action = RSSL_MPEA_ADD_ENTRY;
 		mapEntry.encData = rsslBuf1;
@@ -3096,13 +2936,13 @@ TEST(MapTests, testMapKeyRmtesStringDecodeAll)
 		orderBuf.length = 9;
 		rsslEncodeMapEntry( &mapEncodeIter, &mapEntry, &orderBuf );
 
-		mapBuffer.length = rsslGetEncodedBufferLength( &mapEncodeIter );
+		mapBuffer->length = rsslGetEncodedBufferLength( &mapEncodeIter );
 		rsslEncodeMapComplete( &mapEncodeIter, RSSL_TRUE );
 
 
 		//Now do EMA decoding of Map
 		Map map;
-		StaticDecoder::setRsslData( &map, &mapBuffer, RSSL_DT_MAP, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary );
+		StaticDecoder::setRsslData( &map, mapBuffer, RSSL_DT_MAP, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary );
 
 		EXPECT_TRUE( map.hasKeyFieldId() ) << "Map key RmtesString - hasKeyFieldId()" ;
 		EXPECT_EQ( map.getKeyFieldId(), 3426 ) << "Map key RmtesString - getKeyFieldId()" ;
@@ -3135,9 +2975,6 @@ TEST(MapTests, testMapKeyRmtesStringDecodeAll)
 		EXPECT_EQ( me3.getLoad().getDataType(), DataType::FieldListEnum ) << "MapEntry::getLoad().getDataType() == DataType::FieldListEnum" ;
 
 		EXPECT_FALSE( map.forth() ) << "Map key RmtesString - fourth map forth()" ;
-
-		free( rsslBuf.data );
-		free( mapBuffer.data );
 
 		EXPECT_TRUE( true ) << "Map key RmtesString - exception not expected" ;
 
@@ -3414,6 +3251,8 @@ TEST(MapTests, testMapContainsFieldListsEncodeDecodeAll)
 	{
 		EXPECT_FALSE( true ) << "Map contains FieldList - exception not expected" ;
 	}
+
+	rsslDeleteDataDictionary( &dictionary );
 }
 
 TEST(MapTests, testMapContainsElementListsEncodeDecodeAll)
@@ -3560,6 +3399,8 @@ TEST(MapTests, testMapContainsElementListsEncodeDecodeAll)
 	{
 		EXPECT_FALSE( true ) << "Map contains ElementList - exception not expected" ;
 	}
+
+	rsslDeleteDataDictionary( &dictionary );
 }
 
 TEST(MapTests, testMapContainsMapsEncodeDecodeAll)
@@ -3874,6 +3715,8 @@ TEST(MapTests, testMapContainsMapsEncodeDecodeAll)
 	{
 		EXPECT_FALSE( true ) << "Map contains Map - exception not expected" ;
 	}
+
+	rsslDeleteDataDictionary( &dictionary );
 }
 
 TEST(MapTests, testMapKeyBufferEncodeDecodeAll)
@@ -3977,6 +3820,8 @@ TEST(MapTests, testMapKeyBufferEncodeDecodeAll)
 	{
 		EXPECT_FALSE( true ) << "Map key Buffer - exception not expected" ;
 	}
+
+	rsslDeleteDataDictionary( &dictionary );
 }
 
 TEST(MapTests, testMapKeyIntEncodeDecodeAll)
@@ -4080,6 +3925,8 @@ TEST(MapTests, testMapKeyIntEncodeDecodeAll)
 	{
 		EXPECT_FALSE( true ) << "Map key Int - exception not expected" ;
 	}
+
+	rsslDeleteDataDictionary( &dictionary );
 }
 
 TEST(MapTests, testMapKeyUIntEncodeDecodeAll)
@@ -4183,6 +4030,8 @@ TEST(MapTests, testMapKeyUIntEncodeDecodeAll)
 	{
 		EXPECT_FALSE( true ) << "Map key UInt - exception not expected" ;
 	}
+
+	rsslDeleteDataDictionary( &dictionary );
 }
 
 TEST(MapTests, testMapKeyRealEncodeDecodeAll)
@@ -4292,6 +4141,8 @@ TEST(MapTests, testMapKeyRealEncodeDecodeAll)
 	{
 		EXPECT_FALSE( true ) << "Map key Real - exception not expected" ;
 	}
+
+	rsslDeleteDataDictionary( &dictionary );
 }
 
 TEST(MapTests, testMapKeyFloatEncodeDecodeAll)
@@ -4395,6 +4246,8 @@ TEST(MapTests, testMapKeyFloatEncodeDecodeAll)
 	{
 		EXPECT_FALSE( true ) << "Map key Float - exception not expected" ;
 	}
+
+	rsslDeleteDataDictionary( &dictionary );
 }
 
 TEST(MapTests, testMapKeyDoubleEncodeDecodeAll)
@@ -4498,6 +4351,8 @@ TEST(MapTests, testMapKeyDoubleEncodeDecodeAll)
 	{
 		EXPECT_FALSE( true ) << "Map key Double - exception not expected" ;
 	}
+
+	rsslDeleteDataDictionary( &dictionary );
 }
 
 TEST(MapTests, testMapKeyDateEncodeDecodeAll)
@@ -4616,6 +4471,7 @@ TEST(MapTests, testMapKeyDateEncodeDecodeAll)
 		EXPECT_FALSE( true ) << "Map key Date - exception not expected" ;
 	}
 
+	rsslDeleteDataDictionary( &dictionary );
 }
 
 TEST(MapTests, testMapKeyTimeEncodeDecodeAll)
@@ -4761,6 +4617,8 @@ TEST(MapTests, testMapKeyTimeEncodeDecodeAll)
 	{
 		EXPECT_FALSE( true ) << "Map key Time - exception not expected" ;
 	}
+
+	rsslDeleteDataDictionary( &dictionary );
 }
 
 TEST(MapTests, testMapKeyDateTimeEncodeDecodeAll)
@@ -4927,6 +4785,8 @@ TEST(MapTests, testMapKeyDateTimeEncodeDecodeAll)
 	{
 		EXPECT_FALSE( true ) << "Map key DateTime - exception not expected" ;
 	}
+
+	rsslDeleteDataDictionary( &dictionary );
 }
 
 TEST(MapTests, testMapKeyQosEncodeDecodeAll)
@@ -5110,6 +4970,8 @@ TEST(MapTests, testMapKeyQosEncodeDecodeAll)
 	{
 		EXPECT_FALSE( true ) << "Map key Qos - exception not expected" ;
 	}
+
+	rsslDeleteDataDictionary( &dictionary );
 }
 
 TEST(MapTests, testMapKeyStateEncodeDecodeAll)
@@ -5235,6 +5097,8 @@ TEST(MapTests, testMapKeyStateEncodeDecodeAll)
 	{
 		EXPECT_FALSE( true ) << "Map key State - exception not expected" ;
 	}
+
+	rsslDeleteDataDictionary( &dictionary );
 }
 
 TEST(MapTests, testMapKeyEnumEncodeDecodeAll)
@@ -5342,6 +5206,8 @@ TEST(MapTests, testMapKeyEnumEncodeDecodeAll)
 	{
 		EXPECT_FALSE( true ) << "Map key Enum - exception not expected" ;
 	}
+
+	rsslDeleteDataDictionary( &dictionary );
 }
 
 TEST(MapTests, testMapKeyAsciiStringEncodeDecodeAll)
@@ -5448,6 +5314,8 @@ TEST(MapTests, testMapKeyAsciiStringEncodeDecodeAll)
 	{
 		EXPECT_FALSE( true ) << "Map key AsciiString - exception not expected" ;
 	}
+
+	rsslDeleteDataDictionary( &dictionary );
 }
 
 TEST(MapTests, testMapKeyUtf8StringEncodeDecodeAll)
@@ -5557,6 +5425,8 @@ TEST(MapTests, testMapKeyUtf8StringEncodeDecodeAll)
 	{
 		EXPECT_FALSE( true ) << "Map key Utf8String - exception not expected" ;
 	}
+
+	rsslDeleteDataDictionary( &dictionary );
 }
 
 TEST(MapTests, testMapKeyRmtesStringEncodeDecodeAll)
@@ -5666,6 +5536,8 @@ TEST(MapTests, testMapKeyRmtesStringEncodeDecodeAll)
 	{
 		EXPECT_FALSE( true ) << "Map key RmtesString - exception not expected" ;
 	}
+
+	rsslDeleteDataDictionary( &dictionary );
 }
 
 TEST(MapTests, testMapDecodetoString)
@@ -5678,9 +5550,7 @@ TEST(MapTests, testMapDecodetoString)
 
 	try
 	{
-		RsslBuffer mapBuffer;
-		mapBuffer.length = 2048;
-		mapBuffer.data = ( char* )malloc( sizeof( char ) * 2048 );
+		EsslBuffer<2048> mapBuffer;
 
 		RsslMap rsslMap;
 		RsslEncodeIterator mapEncodeIter;
@@ -5691,7 +5561,7 @@ TEST(MapTests, testMapDecodetoString)
 
 		rsslSetEncodeIteratorRWFVersion( &mapEncodeIter, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION );
 
-		rsslSetEncodeIteratorBuffer( &mapEncodeIter, &mapBuffer );
+		rsslSetEncodeIteratorBuffer( &mapEncodeIter, mapBuffer );
 
 		rsslMap.flags = RSSL_MPF_HAS_SUMMARY_DATA | RSSL_MPF_HAS_KEY_FIELD_ID;
 
@@ -5701,9 +5571,7 @@ TEST(MapTests, testMapDecodetoString)
 		rsslMap.keyFieldId = 3426;
 
 		// allocate buffer for the field list
-		RsslBuffer rsslBuf;
-		rsslBuf.length = 1000;
-		rsslBuf.data = ( char* )malloc( sizeof( char ) * 1000 );
+		EsslBuffer<1000> rsslBuf;
 
 		EmaString inText;
 		encodeFieldList( rsslBuf, inText );
@@ -5752,18 +5620,13 @@ TEST(MapTests, testMapDecodetoString)
 
 		rsslEncodeMapEntry( &mapEncodeIter, &mapEntry, &orderBuf );
 
-		mapBuffer.length = rsslGetEncodedBufferLength( &mapEncodeIter );
+		mapBuffer->length = rsslGetEncodedBufferLength( &mapEncodeIter );
 
 		rsslEncodeMapComplete( &mapEncodeIter, RSSL_TRUE );
 
 		Map map;
 
-		StaticDecoder::setRsslData( &map, &mapBuffer, RSSL_DT_MAP, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary );
-
-
-		free( rsslBuf.data );
-
-		free( mapBuffer.data );
+		StaticDecoder::setRsslData( &map, mapBuffer, RSSL_DT_MAP, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary );
 
 		EXPECT_TRUE( true ) << "toString Decoding of Map of FieldList - exception not expected" ;
 
@@ -5777,7 +5640,6 @@ TEST(MapTests, testMapDecodetoString)
 }
 
 void mapOfFieldList_RsslEncodeEmaDecode( bool useSetDefinitions, std::string& decodedMsg )
-
 {
 	RsslDataDictionary dictionary;
 
@@ -5789,10 +5651,8 @@ void mapOfFieldList_RsslEncodeEmaDecode( bool useSetDefinitions, std::string& de
 		rsslClearEncodeIterator( &encodeIter );
 		rsslSetEncodeIteratorRWFVersion( &encodeIter, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION );
 
-		RsslBuffer mapBuffer;
-		mapBuffer.length = 2048;
-		mapBuffer.data = ( char* )malloc( sizeof( char ) * 2048 );
-		rsslSetEncodeIteratorBuffer( &encodeIter, &mapBuffer );
+		EsslBuffer<2048> mapBuffer;
+		rsslSetEncodeIteratorBuffer( &encodeIter, mapBuffer );
 
 		RsslMap rsslMap;
 		rsslClearMap( &rsslMap );
@@ -5879,7 +5739,7 @@ void mapOfFieldList_RsslEncodeEmaDecode( bool useSetDefinitions, std::string& de
 		rsslEncodeMapComplete( &encodeIter, RSSL_TRUE );
 
 		Map map;
-		StaticDecoder::setRsslData( &map, &mapBuffer, RSSL_DT_MAP, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary );
+		StaticDecoder::setRsslData( &map, mapBuffer, RSSL_DT_MAP, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary );
 		decodedMsg = map;
 	}
 	catch ( const OmmException& )
@@ -5914,10 +5774,8 @@ void mapOfElementList_RsslEncodeEmaDecode( bool useSetDefinitions, std::string& 
 		rsslClearEncodeIterator( &encodeIter );
 		rsslSetEncodeIteratorRWFVersion( &encodeIter, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION );
 
-		RsslBuffer mapBuffer;
-		mapBuffer.length = 2048;
-		mapBuffer.data = ( char* )malloc( sizeof( char ) * 2048 );
-		rsslSetEncodeIteratorBuffer( &encodeIter, &mapBuffer );
+		EsslBuffer<2048> mapBuffer;
+		rsslSetEncodeIteratorBuffer( &encodeIter, mapBuffer );
 
 		RsslMap rsslMap;
 		rsslClearMap( &rsslMap );
@@ -6004,7 +5862,7 @@ void mapOfElementList_RsslEncodeEmaDecode( bool useSetDefinitions, std::string& 
 		rsslEncodeMapComplete( &encodeIter, RSSL_TRUE );
 
 		Map map;
-		StaticDecoder::setRsslData( &map, &mapBuffer, RSSL_DT_MAP, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary );
+		StaticDecoder::setRsslData( &map, mapBuffer, RSSL_DT_MAP, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary );
 		decodedMsg = map;
 	}
 	catch ( const OmmException& )
@@ -6066,6 +5924,8 @@ TEST(MapTests, testMapPrePostBindElementList)
 	{
 		EXPECT_FALSE( true ) << "Pre/Post-bound ElementLists are equal - exception not expected" ;
 	}
+
+	rsslDeleteDataDictionary( &dictionary );
 }
 
 TEST(MapTests, testMapPrePostBindFieldList)
@@ -6108,11 +5968,12 @@ TEST(MapTests, testMapPrePostBindFieldList)
 	{
 		EXPECT_FALSE( true ) << "Pre/Post-bound FieldLists are equal - exception not expected" ;
 	}
+
+	rsslDeleteDataDictionary( &dictionary );
 }
 
 TEST(MapTests, testMapError)
 {
-
 	{
 		try
 		{
@@ -6274,11 +6135,11 @@ TEST(MapTests, testMapError)
 
 		container.complete();
 
-		EXPECT_FALSE( true ) << "Map::summaryData( RefreshMsg ) while RefreshMsg is empty - exception expected" ;
+		EXPECT_TRUE( true ) << "Map::summaryData( RefreshMsg ) while RefreshMsg is empty - exception not expected" ;
 	}
 	catch ( const OmmException& )
 	{
-		EXPECT_TRUE( true ) << "Map::summaryData( RefreshMsg ) while RefreshMsg is empty - exception expected" ;
+		EXPECT_FALSE( true ) << "Map::summaryData( RefreshMsg ) while RefreshMsg is empty - exception not expected" ;
 	}
 
 	try
@@ -6323,11 +6184,11 @@ TEST(MapTests, testMapError)
 
 		container.complete();
 
-		EXPECT_FALSE( true ) << "Map::summaryData( GenericMsg ) while GenericMsg is empty - exception expected" ;
+		EXPECT_TRUE( true ) << "Map::summaryData( GenericMsg ) while GenericMsg is empty - exception not expected" ;
 	}
 	catch ( const OmmException& )
 	{
-		EXPECT_TRUE( true ) << "Map::summaryData( GenericMsg ) while GenericMsg is empty - exception expected" ;
+		EXPECT_FALSE( true ) << "Map::summaryData( GenericMsg ) while GenericMsg is empty - exception not expected" ;
 	}
 
 	try
@@ -6370,11 +6231,11 @@ TEST(MapTests, testMapError)
 
 		container.complete();
 
-		EXPECT_FALSE( true ) << "Map::addKeyAscii( RefreshMsg ) while RefreshMsg is empty - exception expected" ;
+		EXPECT_TRUE( true ) << "Map::addKeyAscii( RefreshMsg ) while RefreshMsg is empty - exception not expected" ;
 	}
 	catch ( const OmmException& )
 	{
-		EXPECT_TRUE( true ) << "Map::addKeyAscii( RefreshMsg ) while RefreshMsg is empty - exception expected" ;
+		EXPECT_FALSE( true ) << "Map::addKeyAscii( RefreshMsg ) while RefreshMsg is empty - exception not expected" ;
 	}
 
 	try
@@ -6415,11 +6276,11 @@ TEST(MapTests, testMapError)
 
 		container.complete();
 
-		EXPECT_FALSE( true ) << "Map::addKeyAscii( GenericMsg ) while GenericMsg is empty - exception expected" ;
+		EXPECT_TRUE( true ) << "Map::addKeyAscii( GenericMsg ) while GenericMsg is empty - exception not expected" ;
 	}
 	catch ( const OmmException& )
 	{
-		EXPECT_TRUE( true ) << "Map::addKeyAscii( GenericMsg ) while GenericMsg is empty - exception expected" ;
+		EXPECT_FALSE( true ) << "Map::addKeyAscii( GenericMsg ) while GenericMsg is empty - exception not expected" ;
 	}
 
 	try
@@ -6698,6 +6559,8 @@ TEST(MapTests, testMapWithSummaryDataButNoEntry_Encode_Decode)
 		EXPECT_TRUE(false) << "Fails to encode no entry map - exception not expected with text : " << exp.getText().c_str();
 		return;
 	}
+
+	rsslDeleteDataDictionary( &dictionary );
 }
 
 TEST(MapTests, testMapSpecifyInvalidKeyType_Encode)
@@ -6807,6 +6670,8 @@ TEST(MapTests, testMapKeyTypeAndAddEntry_Encode_Decode)
 		EXPECT_TRUE(false) << "Fails to encode a map entry - exception expected with text : " << exp.getText().c_str();
 		return;
 	}
+
+	rsslDeleteDataDictionary( &dictionary );
 }
 
 TEST(MapTests, testMapClear_Encode_Decode)
@@ -6859,6 +6724,8 @@ TEST(MapTests, testMapClear_Encode_Decode)
 		EXPECT_FALSE(true) << "Fails to encode - exception not expected with text : " << exp.getText().c_str();
 		return;
 	}
+
+	rsslDeleteDataDictionary( &dictionary );
 }
 
 TEST(MapTests, testMapEntryKeyAsciiWithNoPayload_Encode_Decode)
@@ -6914,6 +6781,8 @@ TEST(MapTests, testMapEntryKeyAsciiWithNoPayload_Encode_Decode)
 		EXPECT_TRUE(false) << "Exception not expected with text : " << excp.getText();
 		return;
 	}
+
+	rsslDeleteDataDictionary( &dictionary );
 }
 
 TEST(MapTests, testMapEntryKeyBufferWithNoPayload_Encode_Decode)
@@ -6978,6 +6847,8 @@ TEST(MapTests, testMapEntryKeyBufferWithNoPayload_Encode_Decode)
 		EXPECT_TRUE(false) << "Exception not expected with text : " << excp.getText();
 		return;
 	}
+
+	rsslDeleteDataDictionary( &dictionary );
 }
 
 TEST(MapTests, testMapEntryKeyDateWithNoPayload_Encode_Decode)
@@ -7033,6 +6904,8 @@ TEST(MapTests, testMapEntryKeyDateWithNoPayload_Encode_Decode)
 		EXPECT_TRUE(false) << "Exception not expected with text : " << excp.getText();
 		return;
 	}
+
+	rsslDeleteDataDictionary( &dictionary );
 }
 
 TEST(MapTests, testMapEntryKeyDateTimeWithNoPayload_Encode_Decode)
@@ -7088,6 +6961,8 @@ TEST(MapTests, testMapEntryKeyDateTimeWithNoPayload_Encode_Decode)
 		EXPECT_TRUE(false) << "Exception not expected with text : " << excp.getText();
 		return;
 	}
+
+	rsslDeleteDataDictionary( &dictionary );
 }
 
 TEST(MapTests, testMapEntryKeyDoubleWithNoPayload_Encode_Decode)
@@ -7143,6 +7018,8 @@ TEST(MapTests, testMapEntryKeyDoubleWithNoPayload_Encode_Decode)
 		EXPECT_TRUE(false) << "Exception not expected with text : " << excp.getText();
 		return;
 	}
+
+	rsslDeleteDataDictionary( &dictionary );
 }
 
 TEST(MapTests, testMapEntryKeyEnumWithNoPayload_Encode_Decode)
@@ -7198,6 +7075,8 @@ TEST(MapTests, testMapEntryKeyEnumWithNoPayload_Encode_Decode)
 		EXPECT_TRUE(false) << "Exception not expected with text : " << excp.getText();
 		return;
 	}
+
+	rsslDeleteDataDictionary( &dictionary );
 }
 
 TEST(MapTests, testMapEntryKeyFloatWithNoPayload_Encode_Decode)
@@ -7253,6 +7132,8 @@ TEST(MapTests, testMapEntryKeyFloatWithNoPayload_Encode_Decode)
 		EXPECT_TRUE(false) << "Exception not expected with text : " << excp.getText();
 		return;
 	}
+
+	rsslDeleteDataDictionary( &dictionary );
 }
 
 TEST(MapTests, testMapEntryKeyQosWithNoPayload_Encode_Decode)
@@ -7308,6 +7189,8 @@ TEST(MapTests, testMapEntryKeyQosWithNoPayload_Encode_Decode)
 		EXPECT_TRUE(false) << "Exception not expected with text : " << excp.getText();
 		return;
 	}
+
+	rsslDeleteDataDictionary( &dictionary );
 }
 
 TEST(MapTests, testMapEntryKeyIntWithNoPayload_Encode_Decode)
@@ -7363,6 +7246,8 @@ TEST(MapTests, testMapEntryKeyIntWithNoPayload_Encode_Decode)
 		EXPECT_TRUE(false) << "Exception not expected with text : " << excp.getText();
 		return;
 	}
+
+	rsslDeleteDataDictionary( &dictionary );
 }
 
 TEST(MapTests, testMapEntryKeyRealFromDoubleWithNoPayload_Encode_Decode)
@@ -7418,6 +7303,8 @@ TEST(MapTests, testMapEntryKeyRealFromDoubleWithNoPayload_Encode_Decode)
 		EXPECT_TRUE(false) << "Exception not expected with text : " << excp.getText();
 		return;
 	}
+
+	rsslDeleteDataDictionary( &dictionary );
 }
 
 TEST(MapTests, testMapEntryKeyRealFromMantissaWithNoPayload_Encode_Decode)
@@ -7473,6 +7360,8 @@ TEST(MapTests, testMapEntryKeyRealFromMantissaWithNoPayload_Encode_Decode)
 		EXPECT_TRUE(false) << "Exception not expected with text : " << excp.getText();
 		return;
 	}
+
+	rsslDeleteDataDictionary( &dictionary );
 }
 
 TEST(MapTests, testMapEntryKeyRmtesWithNoPayload_Encode_Decode)
@@ -7537,6 +7426,8 @@ TEST(MapTests, testMapEntryKeyRmtesWithNoPayload_Encode_Decode)
 		EXPECT_TRUE(false) << "Exception not expected with text : " << excp.getText();
 		return;
 	}
+
+	rsslDeleteDataDictionary( &dictionary );
 }
 
 TEST(MapTests, testMapEntryKeyStateWithNoPayload_Encode_Decode)
@@ -7592,6 +7483,8 @@ TEST(MapTests, testMapEntryKeyStateWithNoPayload_Encode_Decode)
 		EXPECT_TRUE(false) << "Exception not expected with text : " << excp.getText();
 		return;
 	}
+
+	rsslDeleteDataDictionary( &dictionary );
 }
 
 TEST(MapTests, testMapEntryKeyTimeWithNoPayload_Encode_Decode)
@@ -7647,6 +7540,8 @@ TEST(MapTests, testMapEntryKeyTimeWithNoPayload_Encode_Decode)
 		EXPECT_TRUE(false) << "Exception not expected with text : " << excp.getText();
 		return;
 	}
+
+	rsslDeleteDataDictionary( &dictionary );
 }
 
 TEST(MapTests, testMapEntryKeyUIntWithNoPayload_Encode_Decode)
@@ -7702,6 +7597,8 @@ TEST(MapTests, testMapEntryKeyUIntWithNoPayload_Encode_Decode)
 		EXPECT_TRUE(false) << "Exception not expected with text : " << excp.getText();
 		return;
 	}
+
+	rsslDeleteDataDictionary( &dictionary );
 }
 
 TEST(MapTests, testMapEntryKeyUtf8WithNoPayload_Encode_Decode)
@@ -7766,6 +7663,8 @@ TEST(MapTests, testMapEntryKeyUtf8WithNoPayload_Encode_Decode)
 		EXPECT_TRUE(false) << "Exception not expected with text : " << excp.getText();
 		return;
 	}
+
+	rsslDeleteDataDictionary( &dictionary );
 }
 
 TEST(MapTests, testMapAddNotCompletedContainer)

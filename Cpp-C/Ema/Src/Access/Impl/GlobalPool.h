@@ -17,13 +17,13 @@
 #include "SeriesDecoder.h"
 #include "VectorDecoder.h"
 
-#include "AckMsgDecoder.h"
-#include "GenericMsgDecoder.h"
-#include "PostMsgDecoder.h"
-#include "ReqMsgDecoder.h"
-#include "RefreshMsgDecoder.h"
-#include "StatusMsgDecoder.h"
-#include "UpdateMsgDecoder.h"
+#include "AckMsgImpl.h"
+#include "GenericMsgImpl.h"
+#include "PostMsgImpl.h"
+#include "ReqMsgImpl.h"
+#include "RefreshMsgImpl.h"
+#include "StatusMsgImpl.h"
+#include "UpdateMsgImpl.h"
 
 #include "OmmArrayEncoder.h"
 #include "ElementListEncoder.h"
@@ -36,14 +36,6 @@
 #include "OmmOpaqueEncoder.h"
 #include "OmmXmlEncoder.h"
 #include "OmmJsonEncoder.h"
-
-#include "AckMsgEncoder.h"
-#include "GenericMsgEncoder.h"
-#include "PostMsgEncoder.h"
-#include "ReqMsgEncoder.h"
-#include "RefreshMsgEncoder.h"
-#include "StatusMsgEncoder.h"
-#include "UpdateMsgEncoder.h"
 
 #include "ElementListSetDef.h"
 #include "FieldListSetDef.h"
@@ -96,13 +88,13 @@ public :
 	DO_ITEM_FUNCS(OmmXmlEncoder, _ommXmlEncoderPool)
 	DO_ITEM_FUNCS(OmmJsonEncoder, _ommJsonEncoderPool)
 
-	DO_ITEM_FUNCS(AckMsgEncoder, _ackMsgEncoderPool)
-	DO_ITEM_FUNCS(GenericMsgEncoder, _genericMsgEncoderPool)
-	DO_ITEM_FUNCS(PostMsgEncoder, _postMsgEncoderPool)
-	DO_ITEM_FUNCS(ReqMsgEncoder, _reqMsgEncoderPool)
-	DO_ITEM_FUNCS(RefreshMsgEncoder, _refreshMsgEncoderPool)
-	DO_ITEM_FUNCS(StatusMsgEncoder, _statusMsgEncoderPool)
-	DO_ITEM_FUNCS(UpdateMsgEncoder, _updateMsgEncoderPool)
+	DO_ITEM_FUNCS(AckMsgImpl, _ackMsgImplPool)
+	DO_ITEM_FUNCS(GenericMsgImpl, _genericMsgImplPool)
+	DO_ITEM_FUNCS(PostMsgImpl, _postMsgImplPool)
+	DO_ITEM_FUNCS(ReqMsgImpl, _reqMsgImplPool)
+	DO_ITEM_FUNCS(RefreshMsgImpl, _refreshMsgImplPool)
+	DO_ITEM_FUNCS(StatusMsgImpl, _statusMsgImplPool)
+	DO_ITEM_FUNCS(UpdateMsgImpl, _updateMsgImplPool)
 
 	DO_ITEM_FUNCS(OmmArrayDecoder, _arrayDecoderPool)
 	DO_ITEM_FUNCS(ElementListDecoder, _elementListDecoderPool)
@@ -111,14 +103,6 @@ public :
 	DO_ITEM_FUNCS(MapDecoder, _mapDecoderPool)
 	DO_ITEM_FUNCS(VectorDecoder, _vectorDecoderPool)
 	DO_ITEM_FUNCS(SeriesDecoder, _seriesDecoderPool)
-
-	DO_ITEM_FUNCS(AckMsgDecoder, _ackMsgDecoderPool)
-	DO_ITEM_FUNCS(GenericMsgDecoder, _genericMsgDecoderPool)
-	DO_ITEM_FUNCS(PostMsgDecoder, _postMsgDecoderPool)
-	DO_ITEM_FUNCS(ReqMsgDecoder, _reqMsgDecoderPool)
-	DO_ITEM_FUNCS(RefreshMsgDecoder, _refreshMsgDecoderPool)
-	DO_ITEM_FUNCS(StatusMsgDecoder, _statusMsgDecoderPool)
-	DO_ITEM_FUNCS(UpdateMsgDecoder, _updateMsgDecoderPool)
 
 private:
 
@@ -140,13 +124,13 @@ private:
 	OmmXmlEncoderPool			_ommXmlEncoderPool;
 	OmmJsonEncoderPool			_ommJsonEncoderPool;
 
-	AckMsgEncoderPool			_ackMsgEncoderPool;
-	GenericMsgEncoderPool		_genericMsgEncoderPool;
-	PostMsgEncoderPool			_postMsgEncoderPool;
-	ReqMsgEncoderPool			_reqMsgEncoderPool;
-	RefreshMsgEncoderPool		_refreshMsgEncoderPool;
-	StatusMsgEncoderPool		_statusMsgEncoderPool;
-	UpdateMsgEncoderPool		_updateMsgEncoderPool;
+	AckMsgImplPool			_ackMsgImplPool;
+	GenericMsgImplPool		_genericMsgImplPool;
+	PostMsgImplPool			_postMsgImplPool;
+	ReqMsgImplPool			_reqMsgImplPool;
+	RefreshMsgImplPool		_refreshMsgImplPool;
+	StatusMsgImplPool			_statusMsgImplPool;
+	UpdateMsgImplPool		_updateMsgImplPool;
 
 	OmmArrayDecoderPool			_arrayDecoderPool;
 	ElementListDecoderPool		_elementListDecoderPool;
@@ -155,14 +139,6 @@ private:
 	MapDecoderPool				_mapDecoderPool;
 	VectorDecoderPool			_vectorDecoderPool;
 	SeriesDecoderPool			_seriesDecoderPool;
-
-	AckMsgDecoderPool			_ackMsgDecoderPool;
-	GenericMsgDecoderPool		_genericMsgDecoderPool;
-	PostMsgDecoderPool			_postMsgDecoderPool;
-	ReqMsgDecoderPool			_reqMsgDecoderPool;
-	RefreshMsgDecoderPool		_refreshMsgDecoderPool;
-	StatusMsgDecoderPool		_statusMsgDecoderPool;
-	UpdateMsgDecoderPool		_updateMsgDecoderPool;
 };
 
 #undef DO_ITEM_FUNCS

@@ -199,7 +199,7 @@ RsslReactorCallbackRet DirectoryHandler::directoryCallback(RsslReactor* pReactor
 
 							if (serviceNamePtr)
 							{
-								ommServerBaseImpl->_reqMsg.getDecoder().setServiceName((*serviceNamePtr)->c_str(), (*serviceNamePtr)->length());
+								MsgImpl::getImpl(ommServerBaseImpl->_reqMsg)->setServiceNameInt(**serviceNamePtr);
 							}
 						}
 
@@ -362,7 +362,7 @@ void DirectoryHandler::notifyOnClose(RsslMsg* pRsslMsg, ItemInfo* itemInfo)
 
 		if (serviceNamePtr)
 		{
-			_pOmmServerBaseImpl->_reqMsg.getDecoder().setServiceName((*serviceNamePtr)->c_str(), (*serviceNamePtr)->length());
+			MsgImpl::getImpl(_pOmmServerBaseImpl->_reqMsg)->setServiceNameInt(**serviceNamePtr);
 		}
 	}
 	else

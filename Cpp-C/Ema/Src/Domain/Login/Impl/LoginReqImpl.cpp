@@ -25,6 +25,7 @@ LoginReqImpl::LoginReqImpl() :
 	if (emaGetPosition(_defaultPosition) != 0)
 		_defaultPosition.set("localhost");
 	clear();
+	encode(_reqMsg);
 }
 
 LoginReqImpl::LoginReqImpl(const LoginReqImpl& other) :
@@ -420,8 +421,6 @@ bool LoginReqImpl::hasNegativeUpdateTypeFilter() const
 
 const ReqMsg& LoginReqImpl::getMessage()
 {
-	_reqMsg.clear();
-
 	_reqMsg.domainType(_domainType);
 	if (_nameTypeSet)
 	{

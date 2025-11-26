@@ -2,7 +2,7 @@
  *|            This source code is provided under the Apache 2.0 license
  *|  and is provided AS IS with no warranty or guarantee of fit for purpose.
  *|                See the project's LICENSE.md for details.
- *|           Copyright (C) 2015-2017,2019-2020,2022,2024 LSEG. All rights reserved.
+ *|           Copyright (C) 2015-2025 LSEG. All rights reserved.
  *|-----------------------------------------------------------------------------
  */
 
@@ -84,6 +84,11 @@ public :
 		@param[in] other copied in EmaString object
 	*/
 	EmaString( const EmaString& other );
+
+	/** Move constructor.
+		\remark Created instance acquires all resources from the passed in string.
+	 */
+	EmaString( EmaString&& ) noexcept;
 	//@}
 
 	///@name Destructor
@@ -129,6 +134,12 @@ public :
 		@return reference to this object
 	*/
 	EmaString& operator=( const char* other );
+
+	/** Moves resources from the operand into the current string.
+		\remark Operand is left in "empty" state.
+		@return reference to this string
+	 */
+	EmaString& operator=( EmaString&& ) noexcept;
 
 	/** Append method. Appends string representation of passed in Int64
 		@throw OmmMemoryExhaustionException if application runs out of memory

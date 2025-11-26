@@ -176,7 +176,7 @@ public :
 		
 		@return takeExclusiveSignOnControl value
 	*/
-	const bool getTakeExclusiveSignOnControl();
+	bool getTakeExclusiveSignOnControl();
 	
 	//@}
 

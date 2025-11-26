@@ -2,15 +2,17 @@
  *|            This source code is provided under the Apache 2.0 license
  *|  and is provided AS IS with no warranty or guarantee of fit for purpose.
  *|                See the project's LICENSE.md for details.
- *|           Copyright (C) 2018-2020,2024 LSEG. All rights reserved.
+ *|        Copyright (C) 2019-2025 LSEG. All rights reserved.
  *|-----------------------------------------------------------------------------
  */
+
+#include <array>
+#include <utility>
 
 #include "TestUtilities.h"
 
 using namespace refinitiv::ema::access;
 using namespace refinitiv::ema::rdm;
-using namespace std;
 
 TEST(AckMsgTests, testAckMsgwithElementList)
 {
@@ -65,21 +67,21 @@ TEST(AckMsgTests, testAckMsgwithElementList)
 		ackMsg.attrib( eList );
 		ackMsg.payload( eList );
 
-		EXPECT_EQ( ackMsg.toString(), "\ntoString() method could not be used for just encoded object. Use toString(dictionary) for just encoded object.\n" ) << "AckMsg.toString() == toString() method could not be used for just encoded object. Use toString(dictionary) for just encoded object.";
+		EXPECT_EQ( ackMsg.toString(), ackMsgString) << "AckMsg.toString() == toString() method can be used for just encoded object when the dictionary was previously loaded. Use toString(dictionary) for just encoded object.";
 
 		EXPECT_EQ( ackMsg.toString( emaDataDictionaryEmpty ), "\nDictionary is not loaded.\n" ) << "AckMsg.toString() == Dictionary is not loaded.";
 
-		EXPECT_EQ( ackMsgEmpty.toString(emaDataDictionary), ackMsgEmptyString ) << "AckMsg.toString() == ackMsgEmptyString";
+		EXPECT_STREQ( ackMsgEmpty.toString(emaDataDictionary), ackMsgEmptyString ) << "AckMsg.toString() == ackMsgEmptyString";
 
-		EXPECT_EQ( ackMsg.toString( emaDataDictionary ), ackMsgString ) << "AckMsg.toString() == AckMsgString";
+		EXPECT_STREQ( ackMsg.toString( emaDataDictionary ), ackMsgString ) << "AckMsg.toString() == AckMsgString";
 
 		StaticDecoder::setData(&ackMsg, &dictionary);
 
 		AckMsg ackClone( ackMsg );
 		ackClone.clear();
-		EXPECT_EQ( ackClone.toString( emaDataDictionary ), ackMsgEmptyString ) << "AckMsg.toString() == ackMsgEmptyString";
+		EXPECT_STREQ( ackClone.toString( emaDataDictionary ), ackMsgEmptyString ) << "AckMsg.toString() == ackMsgEmptyString";
 
-		EXPECT_EQ( ackMsg.toString(), ackMsgString ) << "AckMsg.toString() == AckMsgString";
+		EXPECT_STREQ( ackMsg.toString(), ackMsgString ) << "AckMsg.toString() == AckMsgString";
 	}
 	catch ( const OmmException& )
 	{
@@ -528,9 +530,10 @@ TEST(AckMsgTests, testAckMsgHybrid)
 		rsslClearFieldList( &rsslFL );
 		rsslClearEncodeIterator( &iter );
 
+		std::array<char, 1000> rsslBufData;
 		RsslBuffer rsslBuf;
-		rsslBuf.length = 1000;
-		rsslBuf.data = ( char* )malloc( sizeof( char ) * 1000 );
+		rsslBuf.length = (UInt32)rsslBufData.size();
+		rsslBuf.data = (char*)rsslBufData.data();
 
 		rsslSetEncodeIteratorRWFVersion( &iter, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION );
 		rsslSetEncodeIteratorBuffer( &iter, &rsslBuf );
@@ -637,9 +640,6 @@ TEST(AckMsgTests, testAckMsgHybrid)
 		EXPECT_EQ( ackMsg.getPayload().getDataType(), DataType::FieldListEnum ) << "AckMsg::getPayload()::getDataType()" ;
 
 		EXPECT_TRUE( true ) << "AckMsg Hybrid Usage - exception not expected" ;
-
-		rsslBuf.length = 0;
-		free(rsslBuf.data);
 	}
 	catch ( const OmmException& )
 	{
@@ -677,11 +677,11 @@ TEST(AckMsgTests, testAckMsgError)
 
 			msg.attrib( attrib );
 
-			EXPECT_FALSE( true ) << "AckMsg::attrib( RefreshMsg ) where RefreshMsg is empty - exception expected" ;
+			EXPECT_TRUE( true ) << "AckMsg::attrib( RefreshMsg ) where RefreshMsg is empty - exception not expected" ;
 		}
 		catch ( const OmmException& )
 		{
-			EXPECT_TRUE( true ) << "AckMsg::attrib( RefreshMsg ) where RefreshMsg is empty - exception expected" ;
+			EXPECT_TRUE( false ) << "AckMsg::attrib( RefreshMsg ) where RefreshMsg is empty - exception not expected" ;
 		}
 	}
 
@@ -711,11 +711,11 @@ TEST(AckMsgTests, testAckMsgError)
 
 			msg.payload( load );
 
-			EXPECT_FALSE( true ) << "AckMsg::payload( RefreshMsg ) where RefreshMsg is empty - exception expected" ;
+			EXPECT_TRUE( true ) << "AckMsg::payload( RefreshMsg ) where RefreshMsg is empty - exception not expected" ;
 		}
 		catch ( const OmmException& )
 		{
-			EXPECT_TRUE( true ) << "AckMsg::payload( RefreshMsg ) where RefreshMsg is empty - exception expected" ;
+			EXPECT_FALSE( true ) << "AckMsg::payload( RefreshMsg ) where RefreshMsg is empty - exception not expected" ;
 		}
 	}
 
@@ -770,121 +770,6 @@ TEST(AckMsgTests, testAckMsgtoString)
 	rsslDeleteDataDictionary(&dictionary);
 }
 
-TEST(AckMsgTests, testAckMsgClone)
-{
-	// load dictionary for decoding of the field list
-	RsslDataDictionary dictionary;
-
-	ASSERT_TRUE(loadDictionaryFromFile(&dictionary)) << "Failed to load dictionary";
-
-	try
-	{
-		RsslAckMsg rsslAckMsg;
-		rsslClearAckMsg(&rsslAckMsg);
-
-		RsslMsgKey msgKey;
-		rsslClearMsgKey(&msgKey);
-
-		RsslBuffer nameBuffer;
-		nameBuffer.data = const_cast<char*>("ABCDEF");
-		nameBuffer.length = 6;
-
-		msgKey.name = nameBuffer;
-		rsslMsgKeyApplyHasName(&msgKey);
-
-		rsslAckMsg.ackId = 1;
-
-		RsslBuffer rsslBuf;
-		rsslBuf.length = 1000;
-		rsslBuf.data = (char*)malloc(sizeof(char) * 1000);
-
-		EmaString inText;
-		encodeFieldList(rsslBuf, inText);
-
-		rsslAckMsg.msgBase.encDataBody = rsslBuf;
-		rsslAckMsg.msgBase.containerType = RSSL_DT_FIELD_LIST;
-
-		msgKey.attribContainerType = RSSL_DT_FIELD_LIST;
-		msgKey.encAttrib = rsslBuf;
-		rsslMsgKeyApplyHasAttrib(&msgKey);
-
-		rsslAckMsg.msgBase.msgKey = msgKey;
-		rsslAckMsgApplyHasMsgKey(&rsslAckMsg);
-
-		RsslEncodeIterator encIter;
-
-		rsslClearEncodeIterator(&encIter);
-
-		/* set version information of the connection on the encode iterator so proper versioning can be performed */
-		rsslSetEncodeIteratorRWFVersion(&encIter, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION);
-		int retval = 0;
-
-		RsslBuffer msgBuf;
-		msgBuf.length = 2048;
-		msgBuf.data = (char*)malloc(sizeof(char) * 2048);
-
-		/* set the buffer on an RsslEncodeIterator */
-		if ((retval = rsslSetEncodeIteratorBuffer(&encIter, &msgBuf)) < RSSL_RET_SUCCESS)
-		{
-			//rsslReleaseBuffer(msgBuf, &error);
-			EXPECT_FALSE(true) << "rsslSetEncodeIteratorBuffer() failed with return code: " << retval << endl;
-		}
-
-		retval = rsslEncodeMsg(&encIter, (RsslMsg*)&rsslAckMsg);
-
-		RsslMsg ackDecode;
-		RsslDecodeIterator decodeIter;
-
-		rsslClearDecodeIterator(&decodeIter);
-
-		// Set the RWF version to decode with this iterator 
-		rsslSetDecodeIteratorRWFVersion(&decodeIter, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION);
-
-		// Associates the RsslDecodeIterator with the RsslBuffer from which to decode.
-		if ((retval = rsslSetDecodeIteratorBuffer(&decodeIter, &msgBuf)) != RSSL_RET_SUCCESS)
-		{
-			EXPECT_FALSE(true) << "rsslSetDecodeIteratorBuffer() failed with return code: " << retval << endl;
-		}
-
-		// decode contents into the RsslMsg structure
-		retval = rsslDecodeMsg(&decodeIter, (RsslMsg*)&ackDecode);
-		if (retval != RSSL_RET_SUCCESS)
-		{
-			EXPECT_FALSE(true) << "rsslDecodeMsg() failed with return code: " << retval << endl;
-		}
-
-		AckMsg ackMsg;
-
-		StaticDecoder::setRsslData(&ackMsg, (RsslMsg*)&ackDecode, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary);
-
-		// Clone message
-
-		AckMsg cloneAckMsg(ackMsg);
-
-		EXPECT_TRUE(cloneAckMsg.getDomainType() == ackMsg.getDomainType()) << "Compare domainType";
-		EXPECT_TRUE(cloneAckMsg.getStreamId() == ackMsg.getStreamId()) << "Compare streamId";
-		EXPECT_TRUE(cloneAckMsg.hasMsgKey() == ackMsg.hasMsgKey()) << "Compare hasMsgKey";
-
-		EXPECT_STREQ(cloneAckMsg.toString(), ackMsg.toString()) << "Check equal toString()";
-
-		EXPECT_TRUE(true) << "AckMsg Clone Success";
-
-		rsslBuf.length = 0;
-		free(rsslBuf.data);
-
-		msgBuf.length = 0;
-		free(msgBuf.data);
-
-		
-	}
-	catch (const OmmException&)
-	{
-		EXPECT_FALSE(true) << "AckMsg Clone - exception not expected";
-	}
-
-	rsslDeleteDataDictionary(&dictionary);
-}
-
 TEST(AckMsgTests, testAckMsgEditClone)
 {
 	// load dictionary for decoding of the field list
@@ -909,9 +794,10 @@ TEST(AckMsgTests, testAckMsgEditClone)
 
 		rsslAckMsg.ackId = 1;
 
+		std::array<char, 1000> rsslBufData;
 		RsslBuffer rsslBuf;
-		rsslBuf.length = 1000;
-		rsslBuf.data = (char*)malloc(sizeof(char) * 1000);
+		rsslBuf.length = (UInt32)rsslBufData.size();
+		rsslBuf.data = (char*)rsslBufData.data();
 		EmaString inText;
 
 		encodeFieldList(rsslBuf, inText);
@@ -934,15 +820,16 @@ TEST(AckMsgTests, testAckMsgEditClone)
 		rsslSetEncodeIteratorRWFVersion(&encIter, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION);
 		int retval = 0;
 
+		std::array<char, 2048> msgBufData;
 		RsslBuffer msgBuf;
-		msgBuf.length = 2048;
-		msgBuf.data = (char*)malloc(sizeof(char) * 2048);
+		msgBuf.length = (UInt32)msgBufData.size();
+		msgBuf.data = (char*)msgBufData.data();
 
 		/* set the buffer on an RsslEncodeIterator */
 		if ((retval = rsslSetEncodeIteratorBuffer(&encIter, &msgBuf)) < RSSL_RET_SUCCESS)
 		{
 			//rsslReleaseBuffer(msgBuf, &error);
-			EXPECT_FALSE(true) << "rsslSetEncodeIteratorBuffer() failed with return code: " << retval << endl;
+			EXPECT_FALSE(true) << "rsslSetEncodeIteratorBuffer() failed with return code: " << retval << std::endl;
 		}
 
 		retval = rsslEncodeMsg(&encIter, (RsslMsg*)&rsslAckMsg);
@@ -952,20 +839,20 @@ TEST(AckMsgTests, testAckMsgEditClone)
 
 		rsslClearDecodeIterator(&decodeIter);
 
-		// Set the RWF version to decode with this iterator 
+		// Set the RWF version to decode with this iterator
 		rsslSetDecodeIteratorRWFVersion(&decodeIter, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION);
 
 		// Associates the RsslDecodeIterator with the RsslBuffer from which to decode.
 		if ((retval = rsslSetDecodeIteratorBuffer(&decodeIter, &msgBuf)) != RSSL_RET_SUCCESS)
 		{
-			EXPECT_FALSE(true) << "rsslSetDecodeIteratorBuffer() failed with return code: " << retval << endl;
+			EXPECT_FALSE(true) << "rsslSetDecodeIteratorBuffer() failed with return code: " << retval << std::endl;
 		}
 
 		// decode contents into the RsslMsg structure
 		retval = rsslDecodeMsg(&decodeIter, (RsslMsg*)&ackDecode);
 		if (retval != RSSL_RET_SUCCESS)
 		{
-			EXPECT_FALSE(true) << "rsslDecodeMsg() failed with return code: " << retval << endl;
+			EXPECT_FALSE(true) << "rsslDecodeMsg() failed with return code: " << retval << std::endl;
 		}
 
 		AckMsg ackMsg;
@@ -990,13 +877,6 @@ TEST(AckMsgTests, testAckMsgEditClone)
 		EXPECT_FALSE(cloneAckMsg.getStreamId() == ackMsg.getStreamId()) << "Compare streamId";
 		EXPECT_STRNE(ackMsg.toString(), cloneAckMsg.toString()) << "Check not equal toString()";
 		EXPECT_TRUE(true) << "AckMsg Edit Clone Success";
-
-		rsslBuf.length = 0;
-		free(rsslBuf.data);
-
-		msgBuf.length = 0;
-		free(msgBuf.data);
-
 	}
 	catch (const OmmException&)
 	{
@@ -1169,11 +1049,205 @@ TEST(AckMsgTests, testAckMsgCloneMsgKey)
 
 			EXPECT_TRUE(true) << "AckMsg Clone Success";
 		}
-		catch (const OmmException&)
+		catch (const OmmException& ex)
 		{
-			EXPECT_FALSE(true) << "AckMsg Clone - exception not expected";
+			EXPECT_FALSE(true) << "AckMsg Clone - exception not expected: " << ex.getText();
 		}
 	}
 
 	rsslDeleteDataDictionary(&dictionary);
+}
+
+// holds the memory (buffers, dictionary, etc.) needed to encode and decode a message
+// releases all resources upon destruction
+struct AckMsg_forClone
+{
+	AckMsg ackMsg{};
+	RsslAckMsg rsslAckMsg{};
+	RsslMsg ackDecode{};
+	RsslBuffer msgBuf;
+	std::array<char, 2048> msgBufData;
+	std::array<char, 1024> rsslBufData;
+	EmaString toString{};
+
+	// load dictionary for decoding of the field list
+	RsslDataDictionary dictionary{};
+
+	AckMsg_forClone() {
+		EXPECT_TRUE(loadDictionaryFromFile(&dictionary)) << "Failed to load dictionary";
+		msgBuf.length = (UInt32)msgBufData.size();
+		msgBuf.data = (char*)msgBufData.data();
+	}
+
+	~AckMsg_forClone() {
+		rsslDeleteDataDictionary(&dictionary);
+	}
+
+	void encode_forClone(AckMsg& ackMsg)
+	{
+		rsslClearAckMsg(&rsslAckMsg);
+
+		RsslMsgKey msgKey;
+		rsslClearMsgKey(&msgKey);
+
+		RsslBuffer nameBuffer;
+		nameBuffer.data = const_cast<char*>("ABCDEF");
+		nameBuffer.length = 6;
+
+		msgKey.name = nameBuffer;
+		rsslMsgKeyApplyHasName(&msgKey);
+
+		rsslAckMsg.ackId = 1;
+
+		RsslBuffer rsslBuf;
+		rsslBuf.length = (UInt32)rsslBufData.size();
+		rsslBuf.data = (char*)rsslBufData.data();
+
+		EmaString inText;
+		encodeFieldList(rsslBuf, inText);
+
+		rsslAckMsg.msgBase.encDataBody = rsslBuf;
+		rsslAckMsg.msgBase.containerType = RSSL_DT_FIELD_LIST;
+
+		msgKey.attribContainerType = RSSL_DT_FIELD_LIST;
+		msgKey.encAttrib = rsslBuf;
+		rsslMsgKeyApplyHasAttrib(&msgKey);
+
+		rsslAckMsg.msgBase.msgKey = msgKey;
+		rsslAckMsgApplyHasMsgKey(&rsslAckMsg);
+
+		RsslEncodeIterator encIter;
+
+		rsslClearEncodeIterator(&encIter);
+
+		/* set version information of the connection on the encode iterator so proper versioning can be performed */
+		rsslSetEncodeIteratorRWFVersion(&encIter, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION);
+		int retval = 0;
+
+		/* set the buffer on an RsslEncodeIterator */
+		if ((retval = rsslSetEncodeIteratorBuffer(&encIter, &msgBuf)) < RSSL_RET_SUCCESS)
+		{
+			//rsslReleaseBuffer(msgBuf, &error);
+			EXPECT_FALSE(true) << "rsslSetEncodeIteratorBuffer() failed with return code: " << retval << std::endl;
+		}
+
+		retval = rsslEncodeMsg(&encIter, (RsslMsg*)&rsslAckMsg);
+
+		RsslDecodeIterator decodeIter;
+
+		rsslClearDecodeIterator(&decodeIter);
+
+		// Set the RWF version to decode with this iterator
+		rsslSetDecodeIteratorRWFVersion(&decodeIter, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION);
+
+		// Associates the RsslDecodeIterator with the RsslBuffer from which to decode.
+		if ((retval = rsslSetDecodeIteratorBuffer(&decodeIter, &msgBuf)) != RSSL_RET_SUCCESS)
+		{
+			EXPECT_FALSE(true) << "rsslSetDecodeIteratorBuffer() failed with return code: " << retval << std::endl;
+		}
+
+		// decode contents into the RsslMsg structure
+		retval = rsslDecodeMsg(&decodeIter, (RsslMsg*)&ackDecode);
+		if (retval != RSSL_RET_SUCCESS)
+		{
+			EXPECT_FALSE(true) << "rsslDecodeMsg() failed with return code: " << retval << std::endl;
+		}
+
+		StaticDecoder::setRsslData(&ackMsg, (RsslMsg*)&ackDecode, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary);
+
+		toString = ackMsg.toString();
+	}
+
+	bool check_afterClone(const AckMsg& clone)
+	{
+		EXPECT_EQ(clone.getDomainType(), 0) << "Compare domainType";
+		EXPECT_EQ(clone.getStreamId(), 0) << "Compare streamId";
+		EXPECT_EQ(clone.hasMsgKey(), true) << "Compare hasMsgKey";
+		EXPECT_STREQ(clone.getName(), "ABCDEF") << "Compare names";
+		EXPECT_STREQ(clone.toString(), toString) << "Check equal toString()";
+		return true;
+	}
+};
+
+TEST(AckMsgTests, testAckMsgClone_CopyConstruct)
+{
+	AckMsg_forClone encoder;
+	const AckMsg ackMsg = [&encoder]() {
+		AckMsg msg;
+		encoder.encode_forClone(msg);
+		return msg;	}();
+
+	// Clone message via a Copy Constructor
+	AckMsg cloneAckMsg(ackMsg);
+
+	EXPECT_TRUE(encoder.check_afterClone(cloneAckMsg)) << "AckMsg Clone Success";
+}
+
+TEST(AckMsgTests, testAckMsgClone_CopyAssign)
+{
+	AckMsg_forClone encoder;
+	const AckMsg ackMsg = [&encoder]() {
+		AckMsg msg;
+		encoder.encode_forClone(msg);
+		return msg;	}();
+
+	// Clone message via a Copy Assignment operator
+	AckMsg cloneAckMsg;
+
+	cloneAckMsg = ackMsg;
+
+	EXPECT_TRUE(encoder.check_afterClone(cloneAckMsg)) << "AckMsg Clone Success";
+}
+
+TEST(AckMsgTests, testAckMsgClone_CopyAssignReserved)
+{
+	AckMsg_forClone encoder;
+
+	AckMsg _tmp;
+	encoder.encode_forClone(_tmp);
+
+	for (const UInt32 reservation : { 0, 1, 3, 15, 1024 })
+	{
+		AckMsg srcMsg;
+
+		// use the RsslMsg because its buffers point outside of the encMsgBuffer
+		StaticDecoder::setRsslData(&srcMsg, (RsslMsg*)&encoder.rsslAckMsg, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &encoder.dictionary);
+
+		AckMsg cloneAckMsg{reservation};
+
+		cloneAckMsg = srcMsg;
+
+		EXPECT_TRUE(encoder.check_afterClone(cloneAckMsg)) << "AckMsg Clone Success";
+	}
+}
+
+TEST(AckMsgTests, testAckMsgClone_MoveConstruct)
+{
+	AckMsg_forClone encoder;
+	const auto generateMessage = [&encoder]() {
+		AckMsg msg;
+		encoder.encode_forClone(msg);
+		return msg;	};
+
+	AckMsg msg = generateMessage();
+
+	// Steal message via a Move Constructor
+	AckMsg cloneAckMsg{ std::move(msg) };
+
+	EXPECT_TRUE(encoder.check_afterClone(cloneAckMsg)) << "AckMsg Clone Success";
+}
+
+TEST(AckMsgTests, testAckMsgClone_MoveAssign)
+{
+	AckMsg ackMsg;
+	AckMsg cloneAckMsg;
+
+	AckMsg_forClone encoder;
+
+	encoder.encode_forClone(ackMsg);
+
+	// Steal message via a Move Assignment operator
+	cloneAckMsg = std::move(ackMsg);
+
+	EXPECT_TRUE(encoder.check_afterClone(cloneAckMsg)) << "AckMsg Clone Success";
 }

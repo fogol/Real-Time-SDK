@@ -14,18 +14,15 @@ using namespace std;
 
 TEST(FilterListTests, testFilterListContainsFieldListsDecodeAll)
 {
+	DictionaryPtr dictionary = makeDictionaryFromFile();
 
-	RsslDataDictionary dictionary;
-
-	ASSERT_TRUE(loadDictionaryFromFile( &dictionary )) << "Failed to load dictionary";
+	ASSERT_TRUE((bool) dictionary ) << "Failed to load dictionary";
 
 	try
 	{
 		// encoding order:  Clear, FieldList-Set, FieldList-Set, FieldList-Update
 
-		RsslBuffer filterListBuffer;
-		filterListBuffer.length = 2048;
-		filterListBuffer.data = ( char* )malloc( sizeof( char ) * 2048 );
+		EsslBuffer<2048> filterListBuffer;
 
 		RsslFilterList rsslFL;
 		RsslEncodeIterator filterEncodeIter;
@@ -33,7 +30,7 @@ TEST(FilterListTests, testFilterListContainsFieldListsDecodeAll)
 		rsslClearFilterList( &rsslFL );
 		rsslClearEncodeIterator( &filterEncodeIter );
 		rsslSetEncodeIteratorRWFVersion( &filterEncodeIter, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION );
-		rsslSetEncodeIteratorBuffer( &filterEncodeIter, &filterListBuffer );
+		rsslSetEncodeIteratorBuffer( &filterEncodeIter, filterListBuffer );
 		rsslFL.flags = RSSL_FTF_HAS_TOTAL_COUNT_HINT ;
 
 		rsslFL.containerType = RSSL_DT_FIELD_LIST;
@@ -52,9 +49,8 @@ TEST(FilterListTests, testFilterListContainsFieldListsDecodeAll)
 		//second entry  //Add FieldList
 		rsslClearFilterEntry( &filterEntry );
 		// allocate buffer for the field list for FilterEntries
-		RsslBuffer rsslBuf1;
-		rsslBuf1.length = 1000;
-		rsslBuf1.data = ( char* )malloc( sizeof( char ) * 1000 );
+		EsslBuffer<1000> rsslBuf1;
+
 		RsslEncodeFieldListAll( rsslBuf1 );
 		filterEntry.flags = RSSL_FTEF_NONE;
 		filterEntry.action = RSSL_FTEA_SET_ENTRY;
@@ -82,7 +78,7 @@ TEST(FilterListTests, testFilterListContainsFieldListsDecodeAll)
 
 		//Now do EMA decoding of FilterList
 		FilterList fl;
-		StaticDecoder::setRsslData( &fl, &filterListBuffer, RSSL_DT_FILTER_LIST, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary );
+		StaticDecoder::setRsslData( &fl, filterListBuffer, RSSL_DT_FILTER_LIST, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, dictionary.get() );
 
 		EXPECT_TRUE( fl.hasTotalCountHint() ) << "FilterList contains FieldList - hasTotalCountHint()" ;
 		EXPECT_EQ( fl.getTotalCountHint(), 4 ) << "FilterList contains FieldList - getTotalCountHint()" ;
@@ -143,24 +139,18 @@ TEST(FilterListTests, testFilterListContainsFieldListsDecodeAll)
 			EmaDecodeFieldListAll( fl );
 		}
 
-
 		EXPECT_FALSE( fl.forth() ) << "FilterList contains FieldList - fifth forth()" ;
 
 		EXPECT_TRUE( true ) << "FilterList contains FieldList - exception not expected" ;
-
-		free( filterListBuffer.data );
 	}
 	catch ( const OmmException& )
 	{
 		EXPECT_FALSE( true ) << "FilterList contains FieldList - exception not expected" ;
 	}
-
-	rsslDeleteDataDictionary( &dictionary );
 }
 
 TEST(FilterListTests, testFilterListContainsElementListsDecodeAll)
 {
-
 	RsslDataDictionary dictionary;
 
 	ASSERT_TRUE(loadDictionaryFromFile( &dictionary )) << "Failed to load dictionary";
@@ -169,9 +159,7 @@ TEST(FilterListTests, testFilterListContainsElementListsDecodeAll)
 	{
 		// encoding order:  Clear, ElementList-Set, ElementList-Set, ElementList-Update
 
-		RsslBuffer filterListBuffer;
-		filterListBuffer.length = 2048;
-		filterListBuffer.data = ( char* )malloc( sizeof( char ) * 2048 );
+		EsslBuffer<2048> filterListBuffer;
 
 		RsslFilterList rsslFL;
 		RsslEncodeIterator filterEncodeIter;
@@ -179,7 +167,7 @@ TEST(FilterListTests, testFilterListContainsElementListsDecodeAll)
 		rsslClearFilterList( &rsslFL );
 		rsslClearEncodeIterator( &filterEncodeIter );
 		rsslSetEncodeIteratorRWFVersion( &filterEncodeIter, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION );
-		rsslSetEncodeIteratorBuffer( &filterEncodeIter, &filterListBuffer );
+		rsslSetEncodeIteratorBuffer( &filterEncodeIter, filterListBuffer );
 		rsslFL.flags = RSSL_FTF_HAS_TOTAL_COUNT_HINT ;
 
 		rsslFL.containerType = RSSL_DT_ELEMENT_LIST;
@@ -197,9 +185,8 @@ TEST(FilterListTests, testFilterListContainsElementListsDecodeAll)
 		//second entry  //Set ElementList
 		rsslClearFilterEntry( &filterEntry );
 		// allocate buffer for the element list for FilterEntries
-		RsslBuffer rsslBuf1;
-		rsslBuf1.length = 1000;
-		rsslBuf1.data = ( char* )malloc( sizeof( char ) * 1000 );
+		EsslBuffer<1000> rsslBuf1;
+
 		RsslEncodeElementListAll( rsslBuf1 );
 		filterEntry.flags = RSSL_FTEF_NONE;
 		filterEntry.action = RSSL_FTEA_SET_ENTRY;
@@ -225,7 +212,7 @@ TEST(FilterListTests, testFilterListContainsElementListsDecodeAll)
 
 		//Now do EMA decoding of FilterList
 		FilterList fl;
-		StaticDecoder::setRsslData( &fl, &filterListBuffer, RSSL_DT_FILTER_LIST, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary );
+		StaticDecoder::setRsslData( &fl, filterListBuffer, RSSL_DT_FILTER_LIST, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary );
 
 		EXPECT_TRUE( fl.hasTotalCountHint() ) << "FilterList contains ElementList - hasTotalCountHint()" ;
 		EXPECT_EQ( fl.getTotalCountHint(), 5 ) << "FilterList contains ElementList - getTotalCountHint()" ;
@@ -277,8 +264,6 @@ TEST(FilterListTests, testFilterListContainsElementListsDecodeAll)
 		EXPECT_FALSE( fl.forth() ) << "FilterList contains ElementList - fifth forth()" ;
 
 		EXPECT_TRUE( true ) << "FilterList contains ElementList - exception not expected" ;
-
-		free( filterListBuffer.data );
 	}
 	catch ( const OmmException& )
 	{
@@ -299,9 +284,7 @@ TEST(FilterListTests, testFilterListContainsMapsDecodeAll)
 	{
 		// encoding order:  Clear, Map-Set, Map-Set, Map-Update
 
-		RsslBuffer filterListBuffer;
-		filterListBuffer.length = 2048;
-		filterListBuffer.data = ( char* )malloc( sizeof( char ) * 2048 );
+		EsslBuffer<2048> filterListBuffer;
 
 		RsslFilterList rsslFL;
 		RsslEncodeIterator filterEncodeIter;
@@ -309,7 +292,7 @@ TEST(FilterListTests, testFilterListContainsMapsDecodeAll)
 		rsslClearFilterList( &rsslFL );
 		rsslClearEncodeIterator( &filterEncodeIter );
 		rsslSetEncodeIteratorRWFVersion( &filterEncodeIter, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION );
-		rsslSetEncodeIteratorBuffer( &filterEncodeIter, &filterListBuffer );
+		rsslSetEncodeIteratorBuffer( &filterEncodeIter, filterListBuffer );
 		rsslFL.flags = RSSL_FTF_HAS_TOTAL_COUNT_HINT ;
 
 		rsslFL.containerType = RSSL_DT_MAP;
@@ -321,9 +304,8 @@ TEST(FilterListTests, testFilterListContainsMapsDecodeAll)
 		//second entry  //Add Map
 		rsslClearFilterEntry( &filterEntry );
 		// allocate buffer for the field list for FilterEntries
-		RsslBuffer rsslBuf1;
-		rsslBuf1.length = 1000;
-		rsslBuf1.data = ( char* )malloc( sizeof( char ) * 1000 );
+		EsslBuffer<1000> rsslBuf1;
+
 		RsslEncodeMapAll( rsslBuf1 );
 		filterEntry.flags = RSSL_FTEF_NONE;
 		filterEntry.action = RSSL_FTEA_SET_ENTRY;
@@ -349,7 +331,7 @@ TEST(FilterListTests, testFilterListContainsMapsDecodeAll)
 
 		//Now do EMA decoding of FilterList
 		FilterList fl;
-		StaticDecoder::setRsslData( &fl, &filterListBuffer, RSSL_DT_FILTER_LIST, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary );
+		StaticDecoder::setRsslData( &fl, filterListBuffer, RSSL_DT_FILTER_LIST, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary );
 
 		EXPECT_TRUE( fl.hasTotalCountHint() ) << "FilterList contains Map - hasTotalCountHint()" ;
 		EXPECT_EQ( fl.getTotalCountHint(), 5 ) << "FilterList contains Map - getTotalCountHint()" ;
@@ -540,8 +522,6 @@ TEST(FilterListTests, testFilterListContainsMapsDecodeAll)
 		EXPECT_FALSE( fl.forth() ) << "FilterList contains Map - fifth forth()" ;
 
 		EXPECT_TRUE( true ) << "FilterList contains Map - exception not expected" ;
-
-		free( filterListBuffer.data );
 	}
 	catch ( const OmmException& )
 	{
@@ -553,12 +533,9 @@ TEST(FilterListTests, testFilterListContainsMapsDecodeAll)
 
 TEST(FilterListTests, testFilterListContainsOpaqueXmlAnsiPageDecodeAll)
 {
-
 	RsslDataDictionary dictionary;
 
-	RsslBuffer filterListBuffer;
-	filterListBuffer.length = 2048;
-	filterListBuffer.data = ( char* )malloc( sizeof( char ) * 2048 );
+	EsslBuffer<2048> filterListBuffer;
 
 	RsslFilterList rsslFL;
 	RsslEncodeIterator filterEncodeIter;
@@ -566,21 +543,20 @@ TEST(FilterListTests, testFilterListContainsOpaqueXmlAnsiPageDecodeAll)
 	rsslClearFilterList( &rsslFL );
 	rsslClearEncodeIterator( &filterEncodeIter );
 	rsslSetEncodeIteratorRWFVersion( &filterEncodeIter, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION );
-	rsslSetEncodeIteratorBuffer( &filterEncodeIter, &filterListBuffer );
+	rsslSetEncodeIteratorBuffer( &filterEncodeIter, filterListBuffer );
 	rsslFL.flags = RSSL_FTF_HAS_TOTAL_COUNT_HINT;
 	rsslFL.containerType = RSSL_DT_OPAQUE;
 
 	rsslFL.totalCountHint = 3;
 
 	RsslRet ret = rsslEncodeFilterListInit( &filterEncodeIter, &rsslFL );
+	ASSERT_EQ(RSSL_RET_SUCCESS, ret);
+
 	RsslFilterEntry filterEntry;
 
 	rsslClearFilterEntry( &filterEntry );
 
-	char buffer[200];
-	RsslBuffer rsslBuf;
-	rsslBuf.length = 200;
-	rsslBuf.data = ( char* )buffer;
+	EsslBuffer<200> rsslBuf;
 
 	filterEntry.flags = RSSL_FTEF_HAS_CONTAINER_TYPE;
 	filterEntry.action = RSSL_FTEA_SET_ENTRY;
@@ -591,10 +567,10 @@ TEST(FilterListTests, testFilterListContainsOpaqueXmlAnsiPageDecodeAll)
 	opaqueValue.data = ( char* )"482wfshfsrf2";
 	opaqueValue.length = static_cast<rtrUInt32>( strlen( opaqueValue.data ) );
 
-	encodeNonRWFData( &rsslBuf, &opaqueValue );
+	encodeNonRWFData( rsslBuf, &opaqueValue );
 
-	filterEntry.encData.data = rsslBuf.data;
-	filterEntry.encData.length = rsslBuf.length;
+	filterEntry.encData.data = rsslBuf->data;
+	filterEntry.encData.length = rsslBuf->length;
 
 	ret =  rsslEncodeFilterEntry( &filterEncodeIter, &filterEntry );
 
@@ -609,7 +585,9 @@ TEST(FilterListTests, testFilterListContainsOpaqueXmlAnsiPageDecodeAll)
 	xmlValue.data = ( char* )"<value> KLMNOPQR </value>";
 	xmlValue.length = static_cast<rtrUInt32>( strlen( xmlValue.data ) );
 
-	encodeNonRWFData( &rsslBuf, &xmlValue );
+	rsslBuf.reset();
+
+	encodeNonRWFData( rsslBuf, &xmlValue );
 
 	filterEntry.encData = rsslBuf;
 
@@ -626,7 +604,9 @@ TEST(FilterListTests, testFilterListContainsOpaqueXmlAnsiPageDecodeAll)
 	jsonValue.data = ( char* )"{\"value\":\"KLMNOPQR\"}";
 	jsonValue.length = static_cast<rtrUInt32>( strlen( jsonValue.data ) );
 
-	encodeNonRWFData( &rsslBuf, &jsonValue );
+	rsslBuf.reset();
+
+	encodeNonRWFData( rsslBuf, &jsonValue );
 
 	filterEntry.encData = rsslBuf;
 
@@ -644,7 +624,10 @@ TEST(FilterListTests, testFilterListContainsOpaqueXmlAnsiPageDecodeAll)
 	ansiPageValue.data = ( char* )"328-srfsjkj43rouw-01-20ru2l24903$%";
 	ansiPageValue.length = static_cast<rtrUInt32>( strlen( ansiPageValue.data ) );
 
-	encodeNonRWFData( &rsslBuf, &ansiPageValue );
+	// reset buffer
+	rsslBuf.reset();
+
+	encodeNonRWFData( rsslBuf, &ansiPageValue );
 
 	filterEntry.encData = rsslBuf;
 
@@ -653,7 +636,7 @@ TEST(FilterListTests, testFilterListContainsOpaqueXmlAnsiPageDecodeAll)
 	ret = rsslEncodeFilterListComplete( &filterEncodeIter, RSSL_TRUE );
 
 	FilterList fl;
-	StaticDecoder::setRsslData( &fl, &filterListBuffer, RSSL_DT_FILTER_LIST, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary );
+	StaticDecoder::setRsslData( &fl, filterListBuffer, RSSL_DT_FILTER_LIST, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary );
 
 	EXPECT_TRUE( fl.hasTotalCountHint() ) << "FilterList contains Opaque - hasTotalCountHint()" ;
 	EXPECT_EQ( fl.getTotalCountHint(), 3 ) << "FilterList contains Opaque - getTotalCountHint()" ;
@@ -710,9 +693,9 @@ TEST(FilterListTests, testFilterListContainsOpaqueXmlAnsiPageDecodeAll)
 TEST(FilterListTests, testFilterListEncodeDecodeAll)
 {
 
-	RsslDataDictionary dictionary;
+	DictionaryPtr dictionary = makeDictionaryFromFile();
 
-	ASSERT_TRUE(loadDictionaryFromFile( &dictionary )) << "Failed to load dictionary";
+	ASSERT_TRUE((bool) dictionary ) << "Failed to load dictionary";
 
 	DataDictionary dataDictionary, dataDictionaryEmpty;
 
@@ -803,7 +786,7 @@ TEST(FilterListTests, testFilterListEncodeDecodeAll)
 		EXPECT_EQ( flEmpty.toString( dataDictionary ), "FilterList\nFilterListEnd\n" ) << "FieldList.toString() == FilterList\nFilterListEnd\n";
 
 		//Decoding
-		StaticDecoder::setData( &flEnc, &dictionary );
+		StaticDecoder::setData( &flEnc, dictionary.get() );
 		EXPECT_EQ( flEnc.toString(), filterListString) << "FilterList.toString() == filterListString";
 
 		try
@@ -1030,7 +1013,7 @@ TEST(FilterListTests, testFilterListEncodeDecodeAll)
 		flEnc.complete();
 
 		//Decoding
-		StaticDecoder::setData( &flEnc, &dictionary );
+		StaticDecoder::setData( &flEnc, dictionary.get() );
 
 
 		try
@@ -1138,9 +1121,9 @@ TEST(FilterListTests, testFilterListContainsFieldListsEncodeDecodeAll)
 {
 
 	// load dictionary for decoding of the field list
-	RsslDataDictionary dictionary;
+	DictionaryPtr dictionary = makeDictionaryFromFile();
 
-	ASSERT_TRUE(loadDictionaryFromFile( &dictionary )) << "Failed to load dictionary";
+	ASSERT_TRUE((bool) dictionary ) << "Failed to load dictionary";
 
 	FilterList filterListEnc;
 	filterListEnc.totalCountHint( 5 );
@@ -1171,7 +1154,7 @@ TEST(FilterListTests, testFilterListContainsFieldListsEncodeDecodeAll)
 
 
 		//Now do EMA decoding of FilterList
-		StaticDecoder::setData( &filterListEnc, &dictionary );
+		StaticDecoder::setData( &filterListEnc, dictionary.get() );
 
 
 		EXPECT_TRUE( filterListEnc.hasTotalCountHint() ) << "FilterList contains FieldList - hasTotalCountHint()" ;
@@ -1254,9 +1237,9 @@ TEST(FilterListTests, testFilterListContainsElementListsEncodeDecodeAll)
 {
 
 	// load dictionary for decoding of the field list
-	RsslDataDictionary dictionary;
+	DictionaryPtr dictionary = makeDictionaryFromFile();
 
-	ASSERT_TRUE(loadDictionaryFromFile( &dictionary )) << "Failed to load dictionary";
+	ASSERT_TRUE((bool) dictionary ) << "Failed to load dictionary";
 
 	FilterList filterListEnc;
 	filterListEnc.totalCountHint( 5 );
@@ -1287,7 +1270,7 @@ TEST(FilterListTests, testFilterListContainsElementListsEncodeDecodeAll)
 
 
 		//Now do EMA decoding of FilterList
-		StaticDecoder::setData( &filterListEnc, &dictionary );
+		StaticDecoder::setData( &filterListEnc, dictionary.get() );
 
 
 		EXPECT_TRUE( filterListEnc.hasTotalCountHint() ) << "FilterList contains ElementList - hasTotalCountHint()" ;
@@ -1367,9 +1350,9 @@ TEST(FilterListTests, testFilterListContainsMapsEncodeDecodeAll)
 {
 
 	// load dictionary for decoding of the field list
-	RsslDataDictionary dictionary;
+	DictionaryPtr dictionary = makeDictionaryFromFile();
 
-	ASSERT_TRUE(loadDictionaryFromFile( &dictionary )) << "Failed to load dictionary";
+	ASSERT_TRUE((bool) dictionary ) << "Failed to load dictionary";
 
 	FilterList filterListEnc;
 	filterListEnc.totalCountHint( 5 );
@@ -1400,7 +1383,7 @@ TEST(FilterListTests, testFilterListContainsMapsEncodeDecodeAll)
 
 
 		//Now do EMA decoding of FilterList
-		StaticDecoder::setData( &filterListEnc, &dictionary );
+		StaticDecoder::setData( &filterListEnc, dictionary.get() );
 
 
 		EXPECT_TRUE( filterListEnc.hasTotalCountHint() ) << "FilterList contains Map - hasTotalCountHint()" ;
@@ -1591,7 +1574,6 @@ TEST(FilterListTests, testFilterListContainsMapsEncodeDecodeAll)
 	{
 		EXPECT_FALSE( true ) << "FilterList contains Map - exception not expected" ;
 	}
-
 }
 
 
@@ -1605,18 +1587,15 @@ void testErrorFilterListDecode()
 
 TEST(FilterListTests, testFilterListDecodetoString)
 {
+	DictionaryPtr dictionary = makeDictionaryFromFile();
 
-	RsslDataDictionary dictionary;
-
-	ASSERT_TRUE(loadDictionaryFromFile( &dictionary )) << "Failed to load dictionary";
+	ASSERT_TRUE((bool) dictionary ) << "Failed to load dictionary";
 
 	try
 	{
 		// encoding order:  Clear, FieldList-Set, FieldList-Set, FieldList-Update
 
-		RsslBuffer filterListBuffer;
-		filterListBuffer.length = 2048;
-		filterListBuffer.data = ( char* )malloc( sizeof( char ) * 2048 );
+		EsslBuffer<2048> filterListBuffer;
 
 		RsslFilterList rsslFL;
 		RsslEncodeIterator filterEncodeIter;
@@ -1624,7 +1603,7 @@ TEST(FilterListTests, testFilterListDecodetoString)
 		rsslClearFilterList( &rsslFL );
 		rsslClearEncodeIterator( &filterEncodeIter );
 		rsslSetEncodeIteratorRWFVersion( &filterEncodeIter, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION );
-		rsslSetEncodeIteratorBuffer( &filterEncodeIter, &filterListBuffer );
+		rsslSetEncodeIteratorBuffer( &filterEncodeIter, filterListBuffer );
 		rsslFL.flags = RSSL_FTF_HAS_TOTAL_COUNT_HINT ;
 
 		rsslFL.containerType = RSSL_DT_FIELD_LIST;
@@ -1642,9 +1621,8 @@ TEST(FilterListTests, testFilterListDecodetoString)
 		//second entry  //Add FieldList
 		rsslClearFilterEntry( &filterEntry );
 		// allocate buffer for the field list for FilterEntries
-		RsslBuffer rsslBuf1;
-		rsslBuf1.length = 1000;
-		rsslBuf1.data = ( char* )malloc( sizeof( char ) * 1000 );
+		EsslBuffer<1000> rsslBuf1;
+
 		RsslEncodeFieldListAll( rsslBuf1 );
 		filterEntry.flags = RSSL_FTEF_NONE;
 		filterEntry.action = RSSL_FTEA_SET_ENTRY;
@@ -1670,20 +1648,14 @@ TEST(FilterListTests, testFilterListDecodetoString)
 
 		//Now do EMA decoding of FilterList
 		FilterList fl;
-		StaticDecoder::setRsslData( &fl, &filterListBuffer, RSSL_DT_FILTER_LIST, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary );
-
-
-		free( filterListBuffer.data );
+		StaticDecoder::setRsslData( &fl, filterListBuffer, RSSL_DT_FILTER_LIST, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, dictionary.get() );
 
 		EXPECT_TRUE( true ) << "FilterList toString Decode - exception not expected" ;
-
 	}
 	catch ( const OmmException& )
 	{
 		EXPECT_FALSE( true ) << "FilterList toString Decode - exception not expected" ;
 	}
-
-	rsslDeleteDataDictionary( &dictionary );
 }
 
 TEST(FilterListTests, testFilterListError)
@@ -1777,11 +1749,11 @@ TEST(FilterListTests, testFilterListError)
 
 		container.add( 1, FilterEntry::SetEnum, msg );
 
-		EXPECT_FALSE( true ) << "FilterList::add( RefreshMsg ) while RefreshMsg is empty - exception expected" ;
+		EXPECT_TRUE( true ) << "FilterList::add( RefreshMsg ) while RefreshMsg is empty - exception not expected" ;
 	}
 	catch ( const OmmException& )
 	{
-		EXPECT_TRUE( true ) << "FilterList::add( RefreshMsg ) while RefreshMsg is empty - exception expected" ;
+		EXPECT_FALSE( true ) << "FilterList::add( RefreshMsg ) while RefreshMsg is empty - exception not expected" ;
 	}
 
 	try
@@ -1805,9 +1777,10 @@ TEST(FilterListTests, testFilterListError)
 
 		EXPECT_TRUE( true ) << "FilterList::add( RefreshMsg ) while RefreshMsg is populated - exception not expected" ;
 	}
-	catch ( const OmmException& )
+	catch ( const OmmException& ex)
 	{
-		EXPECT_FALSE( true ) << "FilterList::add( RefreshMsg ) while RefreshMsg is populated - exception not expected" ;
+		EXPECT_FALSE( true ) << "FilterList::add( RefreshMsg ) while RefreshMsg is populated - exception not expected: "
+							 << ex.getText() ;
 	}
 
 
@@ -1819,11 +1792,11 @@ TEST(FilterListTests, testFilterListError)
 
 		container.add( 1, FilterEntry::SetEnum, msg );
 
-		EXPECT_FALSE( true ) << "FilterList::add( GenericMsg ) while GenericMsg is empty - exception expected" ;
+		EXPECT_TRUE( true ) << "FilterList::add( GenericMsg ) while GenericMsg is empty - exception not expected" ;
 	}
 	catch ( const OmmException& )
 	{
-		EXPECT_TRUE( true ) << "FilterList::add( GenericMsg ) while GenericMsg is empty - exception expected" ;
+		EXPECT_FALSE( true ) << "FilterList::add( GenericMsg ) while GenericMsg is empty - exception not expected" ;
 	}
 
 	try
@@ -1847,9 +1820,10 @@ TEST(FilterListTests, testFilterListError)
 
 		EXPECT_TRUE( true ) << "FilterList::add( GenericMsg ) while GenericMsg is populated - exception not expected" ;
 	}
-	catch ( const OmmException& )
+	catch ( const OmmException& ex )
 	{
-		EXPECT_FALSE( true ) << "FilterList::add( GenericMsg ) while GenericMsg is populated - exception not expected" ;
+		EXPECT_FALSE( true ) << "FilterList::add( GenericMsg ) while GenericMsg is populated - exception not expected: "
+							 << ex.getText();
 	}
 
 
@@ -2062,9 +2036,9 @@ TEST(FilterListTests, testFilterListAddTotalCountAfterInitialized)
 TEST(FilterListTests, testFilterListAddMismatchEntryDataType_Encode)
 {
 	// load dictionary for decoding of the field list
-	RsslDataDictionary dictionary;
+	DictionaryPtr dictionary = makeDictionaryFromFile();
 
-	ASSERT_TRUE(loadDictionaryFromFile(&dictionary)) << "Failed to load dictionary";
+	ASSERT_TRUE((bool) dictionary ) << "Failed to load dictionary";
 
 	try
 	{
@@ -2077,7 +2051,7 @@ TEST(FilterListTests, testFilterListAddMismatchEntryDataType_Encode)
 			.add(2, FilterEntry::UpdateEnum)
 			.complete();
 
-		StaticDecoder::setData(&filterList, &dictionary);
+		StaticDecoder::setData(&filterList, dictionary.get());
 
 		EXPECT_TRUE(filterList.hasTotalCountHint()) << "Check has total count hint attribute";
 		EXPECT_TRUE(filterList.getTotalCountHint() == 2) << "Check the total count hint attribute";
@@ -2301,7 +2275,7 @@ TEST(FilterListTests, testFilterListAddNotCompletedContainer)
 	}
 	catch (const OmmException& exp)
 	{
-		EXPECT_FALSE(true) << "FilterList add not completed GenericMsg - exception not expected with text: " << exp.getText();
+		EXPECT_TRUE(false) << "FilterList add not completed GenericMsg - exception not expected with text: " << exp.getText();
 	}
 
 	try

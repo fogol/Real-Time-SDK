@@ -26,9 +26,9 @@
 #include "DictionaryCallbackClient.h"
 #include "ReqMsg.h"
 #include "DataType.h"
-#include "ReqMsgEncoder.h"
+#include "ReqMsgImpl.h"
 #include "RefreshMsg.h"
-#include "RefreshMsgEncoder.h"
+#include "RefreshMsgImpl.h"
 #include "ProgrammaticConfigure.h"
 #include "OmmOAuth2CredentialImpl.h"
 #include "OmmException.h"
@@ -1137,7 +1137,7 @@ void EmaConfigImpl::host( const EmaString& host )
 
 void EmaConfigImpl::addAdminMsg( const ReqMsg& reqMsg )
 {
-	RsslRequestMsg* pRsslRequestMsg = static_cast<const ReqMsgEncoder&>( reqMsg.getEncoder() ).getRsslRequestMsg();
+	RsslRequestMsg* pRsslRequestMsg = MsgImpl::getImpl(reqMsg)->getRsslRequestMsg();
 
 	switch ( pRsslRequestMsg->msgBase.domainType )
 	{
@@ -1145,8 +1145,8 @@ void EmaConfigImpl::addAdminMsg( const ReqMsg& reqMsg )
 		addLoginReqMsg( pRsslRequestMsg );
 		break;
 	case RSSL_DMT_DICTIONARY:
-		addDictionaryReqMsg( pRsslRequestMsg, static_cast<const ReqMsgEncoder&>( reqMsg.getEncoder() ).hasServiceName() ?
-			&static_cast<const ReqMsgEncoder&>( reqMsg.getEncoder() ).getServiceName() : 0 );
+		addDictionaryReqMsg( pRsslRequestMsg, MsgImpl::getImpl(reqMsg)->hasServiceName() ?
+							 &MsgImpl::getImpl(reqMsg)->getServiceName() : 0 );
 		break;
 	case RSSL_DMT_SOURCE:
 		addDirectoryReqMsg( pRsslRequestMsg );
@@ -1164,7 +1164,7 @@ void EmaConfigImpl::addAdminMsg( const ReqMsg& reqMsg )
 
 void EmaConfigImpl::addAdminMsg( const RefreshMsg& refreshMsg )
 {
-	RsslRefreshMsg* pRsslRefreshMsg = static_cast<const RefreshMsgEncoder&>( refreshMsg.getEncoder() ).getRsslRefreshMsg();
+	RsslRefreshMsg* pRsslRefreshMsg = MsgImpl::getImpl(refreshMsg)->getRsslRefreshMsg();
 
 	switch ( pRsslRefreshMsg->msgBase.domainType )
 	{
@@ -1510,7 +1510,7 @@ void EmaConfigImpl::addLoginMsgCredential(const ReqMsg& reqMsg, const EmaString&
 {
 	LoginRdmReqMsgImpl* newCredential = new LoginRdmReqMsgImpl();
 
-	newCredential->set(this, static_cast<const ReqMsgEncoder&>(reqMsg.getEncoder()).getRsslRequestMsg());
+	newCredential->set(this, MsgImpl::getImpl(reqMsg)->getRsslRequestMsg());
 	newCredential->setChannelList(channelList);
 
 	_LoginRequestMsgs.push_back(newCredential);
@@ -1521,7 +1521,7 @@ void EmaConfigImpl::addLoginMsgCredential(const ReqMsg& reqMsg, const EmaString&
 {
 	LoginRdmReqMsgImpl* newCredential = new LoginRdmReqMsgImpl(const_cast<OmmLoginCredentialConsumerClient&>(client));
 
-	newCredential->set(this, static_cast<const ReqMsgEncoder&>(reqMsg.getEncoder()).getRsslRequestMsg());
+	newCredential->set(this, MsgImpl::getImpl(reqMsg)->getRsslRequestMsg());
 	newCredential->setChannelList(channelList);
 
 	_LoginRequestMsgs.push_back(newCredential);
@@ -1531,7 +1531,7 @@ void EmaConfigImpl::addLoginMsgCredential(const ReqMsg& reqMsg, const EmaString&
 {
 	LoginRdmReqMsgImpl* newCredential = new LoginRdmReqMsgImpl(const_cast<OmmLoginCredentialConsumerClient&>(client), closure);
 
-	newCredential->set(this, static_cast<const ReqMsgEncoder&>(reqMsg.getEncoder()).getRsslRequestMsg());
+	newCredential->set(this, MsgImpl::getImpl(reqMsg)->getRsslRequestMsg());
 	newCredential->setChannelList(channelList);
 
 	_LoginRequestMsgs.push_back(newCredential);
@@ -1659,7 +1659,7 @@ void EmaConfigServerImpl::clear()
 
 void EmaConfigServerImpl::addAdminMsg( const RefreshMsg& refreshMsg )
 {
-	RsslRefreshMsg* pRsslRefreshMsg = static_cast<const RefreshMsgEncoder&>(refreshMsg.getEncoder()).getRsslRefreshMsg();
+	RsslRefreshMsg* pRsslRefreshMsg = MsgImpl::getImpl(refreshMsg)->getRsslRefreshMsg();
 
 	switch ( pRsslRefreshMsg->msgBase.domainType )
 	{

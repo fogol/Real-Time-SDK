@@ -1539,7 +1539,7 @@ Int64 OmmServerBaseImpl::rsslReactorDispatchLoop(Int64 timeOut, UInt32 count, bo
 			}
 
 			if (_pipeReadEventFdsIdx == -1)
-				for (int i = 0; i < _eventFdsCount; ++i)
+				for (nfds_t i = 0; i < _eventFdsCount; ++i)
 					if (_eventFds[i].fd == _pipe.readFD())
 					{
 						_pipeReadEventFdsIdx = i;

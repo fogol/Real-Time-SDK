@@ -55,7 +55,6 @@ class AckMsg;
 class GenericMsg;
 class RefreshMsg;
 class ReqMsg;
-class StatusMsg;
 class UpdateMsg;
 class FilterList;
 class Map;

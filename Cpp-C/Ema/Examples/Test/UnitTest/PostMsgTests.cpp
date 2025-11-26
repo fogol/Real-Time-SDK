@@ -2,15 +2,17 @@
  *|            This source code is provided under the Apache 2.0 license
  *|  and is provided AS IS with no warranty or guarantee of fit for purpose.
  *|                See the project's LICENSE.md for details.
- *|           Copyright (C) 2018-2020,2024 LSEG. All rights reserved.
+ *|        Copyright (C) 2019-2025 LSEG. All rights reserved.
  *|-----------------------------------------------------------------------------
  */
+
+#include <array>
+#include <utility>
 
 #include "TestUtilities.h"
 
 using namespace refinitiv::ema::access;
 using namespace refinitiv::ema::rdm;
-using namespace std;
 
 // encoding by ETA and decoding by EMA
 TEST(PostMsgTests, testPostMsgDecode)
@@ -249,21 +251,22 @@ TEST(PostMsgTests, testPostMsgFieldListEncodeDecode)
 		post.extendedHeader( extendedHeader );
 		post.attrib( flEnc );
 		post.payload( flEnc );
-		EXPECT_EQ( post.toString(), "\ntoString() method could not be used for just encoded object. Use toString(dictionary) for just encoded object.\n") << "PostMsg.toString() == toString() method could not be used for just encoded object. Use toString(dictionary) for just encoded object.";
+
+		EXPECT_NE( -1, post.toString().find("ErrorCode=\"NoDictionary\"") ) << "PostMsg.toString() == toString() method can be used for just encoded object when the dictionary was previously loaded. Use toString(dictionary) for just encoded object.";
 
 		EXPECT_EQ( post.toString( emaDataDictionaryEmpty ), "\nDictionary is not loaded.\n" ) << "PostMsg.toString() == Dictionary is not loaded.";
 
-		EXPECT_EQ( postEmpty.toString(emaDataDictionary), postMsgEmptyString ) << "PostMsg.toString() == postMsgEmptyString";
+		EXPECT_STREQ( postEmpty.toString(emaDataDictionary), postMsgEmptyString ) << "PostMsg.toString() == postMsgEmptyString";
 
-		EXPECT_EQ( post.toString( emaDataDictionary ), postMsgString ) << "PostMsg.toString() == postMsgString";
+		EXPECT_STREQ( post.toString( emaDataDictionary ), postMsgString ) << "PostMsg.toString() == postMsgString";
 
 		StaticDecoder::setData(&post, &dictionary);
 
 		PostMsg postClone( post );
 		postClone.clear();
-		EXPECT_EQ( postClone.toString( emaDataDictionary ), postMsgEmptyString ) << "PostMsg.toString() == postMsgEmptyString";
+		EXPECT_STREQ( postClone.toString( emaDataDictionary ), postMsgEmptyString ) << "PostMsg.toString() == postMsgEmptyString";
 
-		EXPECT_EQ( post.toString(), postMsgString ) << "PostMsg.toString() == postMsgString";
+		EXPECT_STREQ( post.toString(), postMsgString ) << "PostMsg.toString() == postMsgString";
 
 		EXPECT_TRUE( post.hasMsgKey() ) << "PostMsg::hasMsgKey() == true" ;
 
@@ -533,18 +536,6 @@ TEST(PostMsgTests, testPostMsgtoString)
 		post.msgBase.encDataBody = rsslBuf;
 		post.msgBase.containerType = RSSL_DT_FIELD_LIST;
 
-		RsslState rsslState;
-
-		rsslState.code = RSSL_SC_INVALID_ARGUMENT;
-		rsslState.dataState = RSSL_DATA_NO_CHANGE;
-		rsslState.streamState = RSSL_STREAM_CLOSED_RECOVER;
-
-		RsslBuffer statusText;
-		statusText.data = const_cast<char*>("Status Text");
-		statusText.length = 11;
-
-		rsslState.text = statusText;
-
 		PostMsg postMsg;
 
 		StaticDecoder::setRsslData( &postMsg, ( RsslMsg* )&post, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary );
@@ -593,11 +584,11 @@ TEST(PostMsgTests, testPostMsgError)
 
 			msg.attrib( attrib );
 
-			EXPECT_FALSE( true ) << "PostMsg::attrib( RefreshMsg ) where RefreshMsg is empty - exception expected" ;
+			EXPECT_TRUE( true ) << "PostMsg::attrib( RefreshMsg ) where RefreshMsg is empty - exception not expected" ;
 		}
 		catch ( const OmmException& )
 		{
-			EXPECT_TRUE( true ) << "PostMsg::attrib( RefreshMsg ) where RefreshMsg is empty - exception expected" ;
+			EXPECT_FALSE( true ) << "PostMsg::attrib( RefreshMsg ) where RefreshMsg is empty - exception not expected" ;
 		}
 	}
 
@@ -627,152 +618,16 @@ TEST(PostMsgTests, testPostMsgError)
 
 			msg.payload( load );
 
-			EXPECT_FALSE( true ) << "PostMsg::payload( RefreshMsg ) where RefreshMsg is empty - exception expected" ;
+			EXPECT_TRUE( true ) << "PostMsg::payload( RefreshMsg ) where RefreshMsg is empty - exception not expected" ;
 		}
 		catch ( const OmmException& )
 		{
-			EXPECT_TRUE( true ) << "PostMsg::payload( RefreshMsg ) where RefreshMsg is empty - exception expected" ;
+			EXPECT_FALSE( true ) << "PostMsg::payload( RefreshMsg ) where RefreshMsg is empty - exception not expected" ;
 		}
 	}
 
 }
 
-TEST(PostMsgTests, testPostMsgClone)
-{
-
-	// load dictionary for decoding of the field list
-	RsslDataDictionary dictionary;
-
-	ASSERT_TRUE(loadDictionaryFromFile(&dictionary)) << "Failed to load dictionary";
-
-	try
-	{
-		RsslPostMsg post;
-
-		rsslClearPostMsg(&post);
-
-		RsslMsgKey msgKey;
-
-		rsslClearMsgKey(&msgKey);
-
-		RsslBuffer nameBuffer;
-		nameBuffer.data = const_cast<char*>("TRI.N");
-		nameBuffer.length = 5;
-
-		msgKey.name = nameBuffer;
-		rsslMsgKeyApplyHasName(&msgKey);
-
-		msgKey.nameType = 1;
-		rsslMsgKeyApplyHasNameType(&msgKey);
-
-		msgKey.serviceId = 2;
-		rsslMsgKeyApplyHasServiceId(&msgKey);
-
-		msgKey.identifier = 4;
-		rsslMsgKeyApplyHasIdentifier(&msgKey);
-
-		msgKey.filter = 8;
-		rsslMsgKeyApplyHasFilter(&msgKey);
-
-		RsslBuffer rsslBuf;
-		rsslBuf.length = 1000;
-		rsslBuf.data = (char*)malloc(sizeof(char) * 1000);
-
-		EmaString inText;
-		encodeFieldList(rsslBuf, inText);
-
-		msgKey.attribContainerType = RSSL_DT_FIELD_LIST;
-		msgKey.encAttrib = rsslBuf;
-		rsslMsgKeyApplyHasAttrib(&msgKey);
-
-		post.msgBase.msgKey = msgKey;
-		rsslPostMsgApplyHasMsgKey(&post);
-
-		post.msgBase.encDataBody = rsslBuf;
-		post.msgBase.containerType = RSSL_DT_FIELD_LIST;
-
-		RsslState rsslState;
-
-		rsslState.code = RSSL_SC_INVALID_ARGUMENT;
-		rsslState.dataState = RSSL_DATA_NO_CHANGE;
-		rsslState.streamState = RSSL_STREAM_CLOSED_RECOVER;
-
-		RsslBuffer statusText;
-		statusText.data = const_cast<char*>("Status Text");
-		statusText.length = 11;
-
-		rsslState.text = statusText;
-
-		RsslEncodeIterator encIter;
-
-		rsslClearEncodeIterator(&encIter);
-
-		/* set version information of the connection on the encode iterator so proper versioning can be performed */
-		rsslSetEncodeIteratorRWFVersion(&encIter, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION);
-		int retval = 0;
-
-		RsslBuffer msgBuf;
-		msgBuf.length = 2048;
-		msgBuf.data = (char*)malloc(sizeof(char) * 2048);
-
-		/* set the buffer on an RsslEncodeIterator */
-		if ((retval = rsslSetEncodeIteratorBuffer(&encIter, &msgBuf)) < RSSL_RET_SUCCESS)
-		{
-			//rsslReleaseBuffer(msgBuf, &error);
-			EXPECT_FALSE(true) << "rsslSetEncodeIteratorBuffer() failed with return code: " << retval << endl;
-		}
-
-		retval = rsslEncodeMsg(&encIter, (RsslMsg*)&post);
-
-		RsslMsg postDecode;
-		RsslDecodeIterator decodeIter;
-
-		rsslClearDecodeIterator(&decodeIter);
-
-		// Set the RWF version to decode with this iterator 
-		rsslSetDecodeIteratorRWFVersion(&decodeIter, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION);
-
-		// Associates the RsslDecodeIterator with the RsslBuffer from which to decode.
-		if ((retval = rsslSetDecodeIteratorBuffer(&decodeIter, &msgBuf)) != RSSL_RET_SUCCESS)
-		{
-			EXPECT_FALSE(true) << "rsslSetDecodeIteratorBuffer() failed with return code: " << retval << endl;
-		}
-
-		// decode contents into the RsslMsg structure
-		retval = rsslDecodeMsg(&decodeIter, (RsslMsg*)&postDecode);
-		if (retval != RSSL_RET_SUCCESS)
-		{
-			EXPECT_FALSE(true) << "rsslDecodeMsg() failed with return code: " << retval << endl;
-		}
-
-		PostMsg respMsg;
-
-		StaticDecoder::setRsslData(&respMsg, (RsslMsg*)&postDecode, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary);
-
-		PostMsg clonePostMsg(respMsg);
-
-		EXPECT_TRUE(clonePostMsg.getDomainType() == respMsg.getDomainType()) << "Compare domainType";
-		EXPECT_TRUE(clonePostMsg.getStreamId() == respMsg.getStreamId()) << "Compare streamId";
-		EXPECT_TRUE(clonePostMsg.hasMsgKey() == respMsg.hasMsgKey()) << "Compare hasMsgKey";
-
-		EXPECT_STREQ(respMsg.toString(), clonePostMsg.toString()) << "Check equal toString()";
-
-		EXPECT_TRUE(true) << "PostMsg Clone Success";
-
-		rsslBuf.length = 0;
-		free(rsslBuf.data);
-
-		msgBuf.length = 0;
-		free(msgBuf.data);
-
-	}
-	catch (const OmmException&)
-	{
-		EXPECT_FALSE(true) << "PostMsg Clone - exception not expected";
-	}
-
-	rsslDeleteDataDictionary(&dictionary);
-}
 
 TEST(PostMsgTests, testPostMsgEditClone)
 {
@@ -828,18 +683,6 @@ TEST(PostMsgTests, testPostMsgEditClone)
 		post.msgBase.encDataBody = rsslBuf;
 		post.msgBase.containerType = RSSL_DT_FIELD_LIST;
 
-		RsslState rsslState;
-
-		rsslState.code = RSSL_SC_INVALID_ARGUMENT;
-		rsslState.dataState = RSSL_DATA_NO_CHANGE;
-		rsslState.streamState = RSSL_STREAM_CLOSED_RECOVER;
-
-		RsslBuffer statusText;
-		statusText.data = const_cast<char*>("Status Text");
-		statusText.length = 11;
-
-		rsslState.text = statusText;
-
 		RsslEncodeIterator encIter;
 
 		rsslClearEncodeIterator(&encIter);
@@ -856,7 +699,7 @@ TEST(PostMsgTests, testPostMsgEditClone)
 		if ((retval = rsslSetEncodeIteratorBuffer(&encIter, &msgBuf)) < RSSL_RET_SUCCESS)
 		{
 			//rsslReleaseBuffer(msgBuf, &error);
-			EXPECT_FALSE(true) << "rsslSetEncodeIteratorBuffer() failed with return code: " << retval << endl;
+			EXPECT_FALSE(true) << "rsslSetEncodeIteratorBuffer() failed with return code: " << retval << std::endl;
 		}
 
 		retval = rsslEncodeMsg(&encIter, (RsslMsg*)&post);
@@ -866,20 +709,20 @@ TEST(PostMsgTests, testPostMsgEditClone)
 
 		rsslClearDecodeIterator(&decodeIter);
 
-		// Set the RWF version to decode with this iterator 
+		// Set the RWF version to decode with this iterator
 		rsslSetDecodeIteratorRWFVersion(&decodeIter, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION);
 
 		// Associates the RsslDecodeIterator with the RsslBuffer from which to decode.
 		if ((retval = rsslSetDecodeIteratorBuffer(&decodeIter, &msgBuf)) != RSSL_RET_SUCCESS)
 		{
-			EXPECT_FALSE(true) << "rsslSetDecodeIteratorBuffer() failed with return code: " << retval << endl;
+			EXPECT_FALSE(true) << "rsslSetDecodeIteratorBuffer() failed with return code: " << retval << std::endl;
 		}
 
 		// decode contents into the RsslMsg structure
 		retval = rsslDecodeMsg(&decodeIter, (RsslMsg*)&postDecode);
 		if (retval != RSSL_RET_SUCCESS)
 		{
-			EXPECT_FALSE(true) << "rsslDecodeMsg() failed with return code: " << retval << endl;
+			EXPECT_FALSE(true) << "rsslDecodeMsg() failed with return code: " << retval << std::endl;
 		}
 
 		PostMsg respMsg;
@@ -1124,4 +967,204 @@ TEST(PostMsgTests, testPostMsgCloneMsgKeyPermissionData)
 	}
 
 	rsslDeleteDataDictionary(&dictionary);
+}
+
+// holds the memory (buffers, dictionary, etc.) needed to encode and decode a message
+// releases all resources upon destruction
+struct PostMsg_forClone
+{
+	RsslPostMsg post{};
+	RsslMsg postDecode{};
+	PostMsg respMsg{};
+	RsslBuffer msgBuf;
+	std::array<char, 2048> msgBufData;
+	std::array<char, 1024> rsslBufData;
+	EmaString toString{};
+
+	// load dictionary for decoding of the field list
+	RsslDataDictionary dictionary{};
+
+	PostMsg_forClone() {
+		EXPECT_TRUE(loadDictionaryFromFile(&dictionary)) << "Failed to load dictionary";
+		msgBuf.length = (UInt32)msgBufData.size();
+		msgBuf.data = (char*)msgBufData.data();
+	}
+
+	~PostMsg_forClone() {
+		rsslDeleteDataDictionary(&dictionary);
+	}
+
+	void encode_forClone(PostMsg& respMsg)
+	{
+		rsslClearPostMsg(&post);
+
+		RsslMsgKey msgKey;
+
+		rsslClearMsgKey(&msgKey);
+
+		RsslBuffer nameBuffer;
+		nameBuffer.data = const_cast<char*>("TRI.N");
+		nameBuffer.length = 5;
+
+		msgKey.name = nameBuffer;
+		rsslMsgKeyApplyHasName(&msgKey);
+
+		msgKey.nameType = 1;
+		rsslMsgKeyApplyHasNameType(&msgKey);
+
+		msgKey.serviceId = 2;
+		rsslMsgKeyApplyHasServiceId(&msgKey);
+
+		msgKey.identifier = 4;
+		rsslMsgKeyApplyHasIdentifier(&msgKey);
+
+		msgKey.filter = 8;
+		rsslMsgKeyApplyHasFilter(&msgKey);
+
+		RsslBuffer rsslBuf;
+		rsslBuf.length = (UInt32)rsslBufData.size();
+		rsslBuf.data = (char*)rsslBufData.data();
+
+		EmaString inText;
+		encodeFieldList(rsslBuf, inText);
+
+		msgKey.attribContainerType = RSSL_DT_FIELD_LIST;
+		msgKey.encAttrib = rsslBuf;
+		rsslMsgKeyApplyHasAttrib(&msgKey);
+
+		post.msgBase.msgKey = msgKey;
+		rsslPostMsgApplyHasMsgKey(&post);
+
+		post.msgBase.encDataBody = rsslBuf;
+		post.msgBase.containerType = RSSL_DT_FIELD_LIST;
+
+		RsslEncodeIterator encIter;
+
+		rsslClearEncodeIterator(&encIter);
+
+		/* set version information of the connection on the encode iterator so proper versioning can be performed */
+		rsslSetEncodeIteratorRWFVersion(&encIter, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION);
+		int retval = 0;
+
+		/* set the buffer on an RsslEncodeIterator */
+		if ((retval = rsslSetEncodeIteratorBuffer(&encIter, &msgBuf)) < RSSL_RET_SUCCESS)
+		{
+			//rsslReleaseBuffer(msgBuf, &error);
+			EXPECT_FALSE(true) << "rsslSetEncodeIteratorBuffer() failed with return code: " << retval << std::endl;
+		}
+
+		retval = rsslEncodeMsg(&encIter, (RsslMsg*)&post);
+
+		RsslDecodeIterator decodeIter;
+
+		rsslClearDecodeIterator(&decodeIter);
+
+		// Set the RWF version to decode with this iterator
+		rsslSetDecodeIteratorRWFVersion(&decodeIter, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION);
+
+		// Associates the RsslDecodeIterator with the RsslBuffer from which to decode.
+		if ((retval = rsslSetDecodeIteratorBuffer(&decodeIter, &msgBuf)) != RSSL_RET_SUCCESS)
+		{
+			EXPECT_FALSE(true) << "rsslSetDecodeIteratorBuffer() failed with return code: " << retval << std::endl;
+		}
+
+		// decode contents into the RsslMsg structure
+		retval = rsslDecodeMsg(&decodeIter, (RsslMsg*)&postDecode);
+		if (retval != RSSL_RET_SUCCESS)
+		{
+			EXPECT_FALSE(true) << "rsslDecodeMsg() failed with return code: " << retval << std::endl;
+		}
+
+		StaticDecoder::setRsslData(&respMsg, (RsslMsg*)&postDecode, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &dictionary);
+
+		toString = respMsg.toString();
+	}
+
+	bool check_afterClone(const PostMsg& msg)
+	{
+		EXPECT_EQ(msg.getDomainType(), 0) << "Compare domainType";
+		EXPECT_EQ(msg.getStreamId(), 0) << "Compare streamId";
+		EXPECT_TRUE(msg.hasMsgKey()) << "Compare hasMsgKey";
+		EXPECT_STREQ(msg.toString(), toString) << "Check equal toString()";
+
+		return true;
+	}
+
+	PostMsg generateMessage() {
+		PostMsg msg;
+		encode_forClone(msg);
+		return msg;
+	}
+};
+
+TEST(PostMsgTests, testPostMsgClone_CopyConstruct)
+{
+	PostMsg_forClone encoder;
+
+	const PostMsg respMsg = encoder.generateMessage();
+
+	// Clone message
+	PostMsg clonePostMsg(respMsg);
+
+	EXPECT_TRUE(encoder.check_afterClone(clonePostMsg)) << "PostMsg Clone Success";
+}
+
+TEST(PostMsgTests, testPostMsgClone_CopyAssign)
+{
+	PostMsg_forClone encoder;
+
+	const PostMsg respMsg = encoder.generateMessage();
+
+	PostMsg clonePostMsg;
+
+	// Clone message via copy assignment
+	clonePostMsg = respMsg;
+
+	EXPECT_TRUE(encoder.check_afterClone(clonePostMsg)) << "PostMsg Clone Success";
+}
+
+TEST(PostMsgTests, testPostMsgClone_CopyAssignReserved)
+{
+	PostMsg_forClone encoder;
+
+	const PostMsg _tmp = encoder.generateMessage();
+
+	for (const UInt32 reservation : { 0, 1, 3, 15, 1024 })
+	{
+		PostMsg srcMsg;
+
+		// use the RsslMsg because its buffers point outside of the encMsgBuffer
+		StaticDecoder::setRsslData(&srcMsg, (RsslMsg*)&encoder.post, RSSL_RWF_MAJOR_VERSION, RSSL_RWF_MINOR_VERSION, &encoder.dictionary);
+
+		PostMsg clonePostMsg{reservation};
+
+		// Clone message via copy assignment
+		clonePostMsg = srcMsg;
+
+		EXPECT_TRUE(encoder.check_afterClone(clonePostMsg)) << "PostMsg Clone Success";
+	}
+}
+
+TEST(PostMsgTests, testPostMsgClone_MoveConstruct)
+{
+	PostMsg_forClone encoder;
+	PostMsg msg = encoder.generateMessage();
+
+	// Steal message via move construct
+	PostMsg clonePostMsg{std::move(msg)};
+
+	EXPECT_TRUE(encoder.check_afterClone(clonePostMsg)) << "PostMsg Clone Success";
+}
+
+TEST(PostMsgTests, testPostMsgClone_MoveAssign)
+{
+	PostMsg_forClone encoder;
+	PostMsg respMsg = encoder.generateMessage();
+
+	PostMsg clonePostMsg;
+
+	// Steal message via move assign
+	clonePostMsg = std::move(respMsg);
+
+	EXPECT_TRUE(encoder.check_afterClone(clonePostMsg)) << "PostMsg Clone Success";
 }

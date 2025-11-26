@@ -244,7 +244,7 @@ const EmaString& OAuth2Credential::getChannelList()
 
 @return takeExclusiveSignOnControl value
 */
-const bool OAuth2Credential::getTakeExclusiveSignOnControl()
+bool OAuth2Credential::getTakeExclusiveSignOnControl()
 {
 	return _takeExclusiveSignOnControl;
 }

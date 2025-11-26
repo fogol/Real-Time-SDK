@@ -36,13 +36,13 @@
 #include "Access/Impl/MapDecoder.h"
 #include "Access/Impl/SeriesDecoder.h"
 #include "Access/Impl/VectorDecoder.h"
-#include "Access/Impl/AckMsgDecoder.h"
-#include "Access/Impl/GenericMsgDecoder.h"
-#include "Access/Impl/PostMsgDecoder.h"
-#include "Access/Impl/ReqMsgDecoder.h"
-#include "Access/Impl/RefreshMsgDecoder.h"
-#include "Access/Impl/StatusMsgDecoder.h"
-#include "Access/Impl/UpdateMsgDecoder.h"
+#include "Access/Impl/AckMsgImpl.h"
+#include "Access/Impl/GenericMsgImpl.h"
+#include "Access/Impl/PostMsgImpl.h"
+#include "Access/Impl/ReqMsgImpl.h"
+#include "Access/Impl/RefreshMsgImpl.h"
+#include "Access/Impl/StatusMsgImpl.h"
+#include "Access/Impl/UpdateMsgImpl.h"
 
 using namespace refinitiv::ema::access;
 using namespace std;
@@ -254,13 +254,13 @@ TEST(NoDataSizeTest, testNoDataDecoderSize)
 
 		size_t errorSize = sizeof( OmmErrorDecoder );
 
-		size_t ackMsgSize = sizeof( AckMsgDecoder );
-		size_t genMsgSize = sizeof( GenericMsgDecoder );
-		size_t postMsgSize = sizeof( PostMsgDecoder );
-		size_t reqMsgSize = sizeof( ReqMsgDecoder );
-		size_t refreshMsgSize = sizeof( RefreshMsgDecoder );
-		size_t updateMsgSize = sizeof( UpdateMsgDecoder );
-		size_t statusMsgSize = sizeof( StatusMsgDecoder );
+		size_t ackMsgSize = sizeof( AckMsgImpl );
+		size_t genMsgSize = sizeof( GenericMsgImpl );
+		size_t postMsgSize = sizeof( PostMsgImpl );
+		size_t reqMsgSize = sizeof( ReqMsgImpl );
+		size_t refreshMsgSize = sizeof( RefreshMsgImpl );
+		size_t updateMsgSize = sizeof( UpdateMsgImpl );
+		size_t statusMsgSize = sizeof( StatusMsgImpl );
 
 		EXPECT_TRUE(noDataSize >= integerSize) << "2160 >= OmmIntDecoder" ;
 		EXPECT_TRUE(noDataSize >= uIntegerSize) << "2160 >= OmmUIntDecoder" ;
@@ -295,7 +295,7 @@ TEST(NoDataSizeTest, testNoDataDecoderSize)
 		EXPECT_TRUE(noDataSize >= reqMsgSize) << "2160 >= ReqMsgDecoder" ;
 		EXPECT_TRUE(noDataSize >= refreshMsgSize) << "2160 >= RefreshMsgDecoder" ;
 		EXPECT_TRUE(noDataSize >= updateMsgSize) << "2160 >= UpdateMsgDecoder" ;
-		EXPECT_TRUE(noDataSize >= statusMsgSize) << "2160 >= StatusMsgDecoder" ;
+		EXPECT_TRUE(noDataSize >= statusMsgSize) << "2160 >= StatusMsgImpl" ;
 
 		EXPECT_TRUE(noDataSize >= errorSize) << "2160 >= OmmErrorDecoder" ;
 

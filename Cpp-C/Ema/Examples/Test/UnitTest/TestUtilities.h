@@ -16,6 +16,9 @@
 #include "ActiveConfig.h"
 #include "Ema.h"
 
+#include <memory>
+#include <array>
+
 /* These are user defined FIDs to be used in the example so that we can show types */
 /* that are not in the standard dictionary. User defined FIDs are always negative  */
 #define FID_INT			-1
@@ -75,5 +78,44 @@ bool comparingData(RsslBuffer& rsslBuffer, const refinitiv::ema::access::EmaStri
 void prepareMsgToCopy(RsslEncodeIterator& encIter, RsslBuffer& msgBuf,
 	RsslMsg* pRsslMsg, RsslDecodeIterator& decodeIter, RsslMsg* pRsslMsgDecode, refinitiv::ema::access::Msg& respMsg,
 	RsslDataDictionary const& dictionary);
+
+// RAII wrapper over RsslBuffer of constant size
+template<size_t N>
+struct EsslBuffer
+{
+	EsslBuffer() :
+	  _data(),
+	  _buffer()
+	{
+		reset();
+	};
+
+	void reset()
+	{
+		_buffer.data = _data.data();
+		_buffer.length = static_cast<refinitiv::ema::access::UInt32>(_data.size());
+	};
+
+	operator RsslBuffer*() { return &_buffer; };
+
+	operator RsslBuffer&() { return _buffer; };
+
+	RsslBuffer* operator->() { return &_buffer; };
+
+	EsslBuffer( const EsslBuffer& ) = delete;
+	EsslBuffer( EsslBuffer&& ) = delete;
+
+private :
+
+	std::array<char, N> _data;
+	RsslBuffer _buffer;
+};
+
+void DictionaryDeleter(RsslDataDictionary*);
+
+using DictionaryPtr = std::unique_ptr<RsslDataDictionary, decltype(&DictionaryDeleter)>;
+
+DictionaryPtr makeDictionaryFromFile();
+
 
 #endif // __TestUtilities_h

@@ -48,8 +48,7 @@ else()
 
     set(EmaSrcFiles
             Impl/AckMsg.cpp Impl/Attrib.cpp
-            Impl/AckMsgDecoder.cpp Impl/AckMsgDecoder.h
-            Impl/AckMsgEncoder.cpp Impl/AckMsgEncoder.h
+            Impl/AckMsgImpl.cpp Impl/AckMsgImpl.h
             Impl/ActiveConfig.cpp Impl/ActiveConfig.h
             # Impl/C....
             Impl/ChannelCallbackClient.cpp Impl/ChannelCallbackClient.h
@@ -99,8 +98,9 @@ else()
             Impl/FilterEntry.cpp Impl/FilterList.cpp
             Impl/FilterListDecoder.cpp Impl/FilterListDecoder.h
             Impl/FilterListEncoder.cpp Impl/FilterListEncoder.h
-            Impl/GenericMsg.cpp Impl/GenericMsgDecoder.cpp Impl/GenericMsgDecoder.h
-            Impl/GenericMsgEncoder.cpp Impl/GenericMsgEncoder.h
+            Impl/FixedBuffer.h
+            Impl/GenericMsg.cpp
+            Impl/GenericMsgImpl.cpp Impl/GenericMsgImpl.h
             Impl/GetTime.cpp
             Impl/GlobalPool.h
             # Impl/H,I,K,L
@@ -119,8 +119,9 @@ else()
             Impl/MapEntry.cpp
             Impl/MarketItemHandler.cpp Impl/MarketItemHandler.h
             Impl/Msg.cpp
-            Impl/MsgDecoder.cpp Impl/MsgDecoder.h
+            Impl/MsgDecoder.h
             Impl/MsgEncoder.cpp Impl/MsgEncoder.h
+            Impl/MsgImpl.cpp Impl/MsgImpl.h
             Impl/Mutex.cpp Impl/Mutex.h
             Impl/NoDataImpl.cpp Impl/NoDataImpl.h
             # Impl/O....
@@ -209,16 +210,16 @@ else()
             # Impl/R,P...
             Impl/Payload.cpp
             Impl/Pipe.cpp Impl/Pipe.h
-            Impl/PostMsg.cpp Impl/PostMsgDecoder.cpp Impl/PostMsgDecoder.h
-            Impl/PostMsgEncoder.cpp Impl/PostMsgEncoder.h
+            Impl/PostMsg.cpp
+            Impl/PostMsgImpl.cpp Impl/PostMsgImpl.h
             Impl/PreferredHostOptions.cpp
             Impl/PreferredHostInfo.cpp
             Impl/ProgrammaticConfigure.cpp Impl/ProgrammaticConfigure.h
             Impl/ProviderSessionInfo.cpp
-            Impl/RefreshMsg.cpp Impl/RefreshMsgDecoder.cpp Impl/RefreshMsgDecoder.h
-            Impl/RefreshMsgEncoder.cpp Impl/RefreshMsgEncoder.h
-            Impl/ReqMsg.cpp Impl/ReqMsgDecoder.cpp Impl/ReqMsgDecoder.h
-            Impl/ReqMsgEncoder.cpp Impl/ReqMsgEncoder.h
+            Impl/RefreshMsg.cpp
+            Impl/RefreshMsgImpl.cpp Impl/RefreshMsgImpl.h
+            Impl/ReqMsg.cpp
+            Impl/ReqMsgImpl.cpp Impl/ReqMsgImpl.h
             Impl/RestLoggingCallbackClient.cpp Impl/RestLoggingCallbackClient.h
             Impl/RmtesBuffer.cpp Impl/RmtesBufferImpl.cpp Impl/RmtesBufferImpl.h
             # Impl/S....
@@ -236,8 +237,8 @@ else()
             Impl/ServerChannelHandler.cpp Impl/ServerChannelHandler.h
 			Impl/ServiceList.cpp
             Impl/StaticDecoder.cpp Impl/StaticDecoder.h
-            Impl/StatusMsg.cpp Impl/StatusMsgDecoder.cpp Impl/StatusMsgDecoder.h
-            Impl/StatusMsgEncoder.cpp Impl/StatusMsgEncoder.h
+            Impl/StatusMsg.cpp
+            Impl/StatusMsgImpl.cpp Impl/StatusMsgImpl.h
             Impl/StreamId.cpp Impl/StreamId.h
             Impl/SummaryData.cpp
             # Impl/T,U,V...
@@ -245,8 +246,8 @@ else()
             Impl/TimeOut.cpp Impl/TimeOut.h
             Impl/TunnelStreamLoginReqMsgImpl.cpp Impl/TunnelStreamLoginReqMsgImpl.h
             Impl/TunnelStreamRequest.cpp
-            Impl/UpdateMsg.cpp Impl/UpdateMsgDecoder.cpp Impl/UpdateMsgDecoder.h
-            Impl/UpdateMsgEncoder.cpp Impl/UpdateMsgEncoder.h
+            Impl/UpdateMsg.cpp
+            Impl/UpdateMsgImpl.cpp Impl/UpdateMsgImpl.h
             Impl/Utilities.cpp Impl/Utilities.h
             Impl/Vector.cpp Impl/VectorDecoder.cpp Impl/VectorDecoder.h
             Impl/VectorEncoder.cpp Impl/VectorEncoder.h

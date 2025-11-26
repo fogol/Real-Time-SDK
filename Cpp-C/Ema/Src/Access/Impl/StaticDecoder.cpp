@@ -2,7 +2,7 @@
  *|            This source code is provided under the Apache 2.0 license
  *|  and is provided AS IS with no warranty or guarantee of fit for purpose.
  *|                See the project's LICENSE.md for details.
- *|           Copyright (C) 2015-2017,2019-2020,2024 LSEG. All rights reserved.
+ *|           Copyright (C) 2015-2025 LSEG. All rights reserved.
  *|-----------------------------------------------------------------------------
  */
 
@@ -59,9 +59,17 @@
 
 using namespace refinitiv::ema::access;
 
+DataType::DataTypeEnum messageTypeFromRssl(UInt8 msgClass)
+{
+	if (msgClass < 10)
+		return msgDataType[msgClass];
+	else
+		return (DataType::DataTypeEnum)(-1); // UnknownDT from Utilities.cpp
+}
+
 void StaticDecoder::setRsslData( Data* pData, RsslMsg* pRsslMsg, UInt8 majVer, UInt8 minVer, const RsslDataDictionary* dictionary )
 {
-	DataType::DataTypeEnum dType = msgDataType[ pRsslMsg->msgBase.msgClass ];
+	DataType::DataTypeEnum dType = messageTypeFromRssl( pRsslMsg->msgBase.msgClass );
 
 	morph( pData, dType );
 
@@ -97,7 +105,7 @@ void StaticDecoder::setRsslData( Data* pData, RsslBuffer* pRsslBuffer, RsslDataT
 			return;
 		}
 
-		dType = msgDataType[ rsslExtractMsgClass( &decodeIter ) ];
+		dType = messageTypeFromRssl( rsslExtractMsgClass( &decodeIter ) );
 	}
 	else
 		dType = (DataType::DataTypeEnum)rsslType;
@@ -111,7 +119,7 @@ void StaticDecoder::setRsslData( Data* pData, RsslBuffer* pRsslBuffer, RsslDataT
 void StaticDecoder::setData( Data* pData, const RsslDataDictionary* dictionary )
 {
 	pData->getDecoder().setRsslData( pData->getEncoder().getMajVer(), pData->getEncoder().getMinVer(),
-									&pData->getEncoder().getRsslBuffer(), dictionary, 0 );
+									&pData->getEncoder().getEncodedBuffer(), dictionary, 0 );
 }
 
 void StaticDecoder::setRsslData( OmmQos* pData, RsslQos* pRsslQos )

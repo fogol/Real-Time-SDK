@@ -2,7 +2,7 @@
  *|            This source code is provided under the Apache 2.0 license
  *|  and is provided AS IS with no warranty or guarantee of fit for purpose.
  *|                See the project's LICENSE.md for details.
- *|           Copyright (C) 2015,2019-2020,2024 LSEG. All rights reserved.
+ *|           Copyright (C) 2015-2025 LSEG. All rights reserved.
  *|-----------------------------------------------------------------------------
  */
 
@@ -17,7 +17,7 @@
 
 	\code
 
-	class AppClient ; public OmmConsumerClient
+	class AppClient : public OmmConsumerClient
 	{
 		...
 
@@ -69,6 +69,8 @@ namespace ema {
 
 namespace access {
 
+class UpdateMsgImpl;
+
 class EMA_ACCESS_API UpdateMsg : public Msg
 {
 public :
@@ -79,11 +81,21 @@ public :
 	*/
 	UpdateMsg();
 
+	/** Constructs UpdateMsg and reserves specified amount of memory for storing its data.
+		@param[in] size reserved memory buffer size
+	*/
+	explicit UpdateMsg(UInt32 size);
+
 	/** Copy constructor.
 		\remark this is used to copy and process UpdateMsg outside of EMA's callback methods.
 		\remark this method does not support passing in just encoded UpdateMsg in the application space.
 	*/
 	UpdateMsg( const UpdateMsg& other );
+
+	/** Move constructor.
+		\remark Created instance acquires all resources from the passed in message.
+	 */
+	UpdateMsg( UpdateMsg&& ) noexcept;
 	//@}
 
 	///@name Constructor
@@ -215,6 +227,19 @@ public :
 
 	///@name Operations
 	//@{
+
+	/** Performs deep copy of the operand into the current message.
+		\remark this is used to copy and process messages outside of EMA's callback methods.
+		@return reference to this object
+	 */
+	UpdateMsg& operator=( const UpdateMsg& );
+
+	/** Moves resources from the operand into the current message.
+		\remark Operand is left in "empty" state.
+		@return reference to this object
+	 */
+	UpdateMsg& operator=( UpdateMsg&& ) noexcept;
+
 	/** Clears the UpdateMsg.
 		\remark Invoking clear() method clears all the values and resets all the defaults
 		@return reference to this object
@@ -342,15 +367,16 @@ public :
 
 private :
 
-	friend class ItemCallbackClient;
+	friend class MsgImpl;
 
 	const EmaString& toString( UInt64 ) const;
 
 	Decoder& getDecoder();
 
-	UpdateMsg& operator=( const UpdateMsg& );
-
 	mutable EmaString		_toString;
+
+	UpdateMsgImpl* impl();
+	const UpdateMsgImpl* impl() const;
 };
 
 }

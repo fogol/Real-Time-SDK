@@ -85,6 +85,7 @@ namespace ema {
 
 namespace access {
 
+class MsgImpl;
 class ReqMsg;
 class RefreshMsg;
 class UpdateMsg;
@@ -103,8 +104,6 @@ class OmmXml;
 class OmmJson;
 class OmmAnsiPage;
 class OmmError;
-
-class MsgDecoder;
 
 class EMA_ACCESS_API Attrib
 {
@@ -244,7 +243,7 @@ private :
 
 	friend class Msg;
 
-	const Data*		_pAttrib;
+	const MsgImpl*		_pMsgImpl;
 
 	Attrib();
 	Attrib( const Attrib& );

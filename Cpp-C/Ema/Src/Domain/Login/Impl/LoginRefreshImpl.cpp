@@ -23,6 +23,7 @@ LoginRefreshImpl::LoginRefreshImpl() :
 
 {
 	clear();
+	encode(_refreshMsg);
 }
 
 LoginRefreshImpl::LoginRefreshImpl(const LoginRefreshImpl& other) :
@@ -581,8 +582,6 @@ bool LoginRefreshImpl::hasSeqNum() const
 
 const RefreshMsg& LoginRefreshImpl::getMessage()
 {
-	_refreshMsg.clear();
-
 	_refreshMsg.domainType(_domainType);
 	if (_nameTypeSet)
 		_refreshMsg.nameType(_nameType);

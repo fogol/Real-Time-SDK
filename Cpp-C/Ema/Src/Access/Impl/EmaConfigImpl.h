@@ -343,7 +343,7 @@ public:
 			return NamePair<bool>( true, false );
 		}
 
-		for ( int i = 0; i < sizeof configReplacementPairs / sizeof configReplacementPairs[0]; ++i )
+		for ( size_t i = 0; i < sizeof configReplacementPairs / sizeof configReplacementPairs[0]; ++i )
 		{
 			if ( ( configReplacementPairs[i].first == existingElement->name() && configReplacementPairs[i].second == newElement->name() ) ||
 			     ( configReplacementPairs[i].first == newElement->name() && configReplacementPairs[i].second == existingElement->name() ) )

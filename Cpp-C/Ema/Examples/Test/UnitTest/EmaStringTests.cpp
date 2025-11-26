@@ -580,7 +580,7 @@ TEST(EmaStringTests, testEmaStringBasicFunctionality)
 			EXPECT_EQ( temp.find( EmaString( "ll" ) ), 2 ) << "EmaString::find()" ;
 			EXPECT_EQ( temp.find( EmaString( "" ) ), npos ) << "EmaString::find()";
 			EXPECT_EQ( temp.find( EmaString( "sdf" ) ), npos) << "EmaString::find()";
-			EXPECT_EQ( temp.find( EmaString( "", 5 ) ), npos) << "EmaString::find()";
+			EXPECT_EQ( temp.find( EmaString( "" ), 5 ), npos) << "EmaString::find()";
 			EXPECT_EQ( temp.find( EmaString( "l" ) ), 2 ) << "EmaString::find()" ;
 			EXPECT_EQ( temp.find( EmaString( "l" ), 3 ), 3 ) << "EmaString::find()" ;
 			EXPECT_EQ( temp.find( EmaString( "l" ), 4 ), 9 ) << "EmaString::find()" ;
