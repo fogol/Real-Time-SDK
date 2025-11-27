@@ -75,13 +75,13 @@ endmacro()
 
 
 if(NOT libxml2_url)
-	set(libxml2_url "https://download.gnome.org/sources/libxml2/2.13/libxml2-2.13.8.tar.xz")
+	set(libxml2_url "https://download.gnome.org/sources/libxml2/2.13/libxml2-2.13.9.tar.xz")
 endif()
 if(NOT libxml2_hash)
-	set(libxml2_hash "MD5=740751403c075e55812ecaaafe9d495f")
+	set(libxml2_hash "MD5=ad95ba044a372e2f4c886cbac679e798")
 endif()
 if(NOT libxml2_version)
-	set(libxml2_version "2.13.8")
+	set(libxml2_version "2.13.9")
 endif()
 
 # If the option for using the system installed 

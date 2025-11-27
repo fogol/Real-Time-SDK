@@ -8,7 +8,7 @@
 include(rcdevExternalUtils)
 
 if(NOT l8w8jwt_url)
-	set(l8w8jwt_url "https://github.com/GlitchedPolygons/l8w8jwt.git" CACHE STRING "l8w8jwt url")
+	set(l8w8jwt_url "https://codeberg.org/GlitchedPolygons/l8w8jwt.git" CACHE STRING "l8w8jwt url")
 endif()
 
 if(NOT l8w8jwt_tag)

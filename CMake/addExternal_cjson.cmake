@@ -2,19 +2,19 @@
  *|            This source code is provided under the Apache 2.0 license
  *|  and is provided AS IS with no warranty or guarantee of fit for purpose.
  *|                See the project's LICENSE.md for details.
- *|           Copyright (C) 2019-2020,2022-2024 LSEG. All rights reserved.
+ *|           Copyright (C) 2019-2020,2022-2025 LSEG. All rights reserved.
 #]=============================================================================]
 
 include(rcdevExternalUtils)
 
 if(NOT cjson_url)
-	set(cjson_url "https://github.com/DaveGamble/cJSON/archive/v1.7.18.tar.gz")
+	set(cjson_url "https://github.com/DaveGamble/cJSON/archive/v1.7.19.tar.gz")
 endif()
 if(NOT cjson_hash)
-	set(cjson_hash "MD5=926245ca76bd04f338efcac489e2da9d")
+	set(cjson_hash "MD5=60d39f4f639a90907b305b36727430e1")
 endif()
 if(NOT cjson_version)
-	set(cjson_version "1.7.18")
+	set(cjson_version "1.7.19")
 endif()
 	
 # If the option for using the system installed 
