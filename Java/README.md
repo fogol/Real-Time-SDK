@@ -24,15 +24,15 @@ External modules used by this version of RTSDK Java:
     commons-logging           1.3.5
     commons-text              1.13.1
     Conscrypt OpenJDK Uber    2.5.2
-    jackson-annotations       2.19.1
-    jackson-core              2.19.1  
-    jackson-databind          2.19.1
+    jackson-annotations       2.20.0
+    jackson-core              2.20.0  
+    jackson-databind          2.20.0
     jose4j                    0.9.6
     json                      20250517
     HikariCP-java7            2.4.13
-    httpclient5               5.5
-    httpclient5-cache         5.5
-    httpcore5                 5.3.4
+    httpclient5               5.5.1
+    httpclient5-cache         5.5.1
+    httpcore5                 5.3.6
     lz4-java                  1.8.0
     mchange-commons-java      0.2.15
     slf4j-api                 2.0.17
@@ -41,7 +41,7 @@ External modules used by this version of RTSDK Java:
     xpp3                      1.1.4c
 
 Additional dependencies used for testing:
-    mockito-core              5.18.0
+    mockito-core              5.20.0
     junit                     4.13.2
 
 

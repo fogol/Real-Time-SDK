@@ -111,8 +111,8 @@ allprojects {
 		testImplementation ('junit:junit:4.13.2') {
 			exclude group: 'org.hamcrest'
 		}
-		testImplementation 'org.hamcrest:hamcrest-core:3.0'
-		testImplementation 'org.mockito:mockito-core:5.18.0'
+		testImplementation 'org.hamcrest:hamcrest:3.0'
+		testImplementation 'org.mockito:mockito-core:5.20.0'
 	}
 
 	compileJava {

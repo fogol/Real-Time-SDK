@@ -21,7 +21,9 @@ import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import static com.refinitiv.eta.codec.CodecReturnCodes.BLANK_DATA;
 import static com.refinitiv.eta.codec.CodecReturnCodes.SUCCESS;
@@ -186,11 +188,9 @@ public class EnumeratedValuesTests
 	 {
 		int index = 0;
 		
-		Iterator<Entry<String,JsonNode>> it = jsonNode.fields();
-		
-		while(it.hasNext())
+		Set<Map.Entry<String, JsonNode>> fields = jsonNode.properties();
+		for (Map.Entry<String, JsonNode> entry : fields)
 		{
-			Entry<String,JsonNode> entry = it.next();
 			++index;
 			
 			switch(index)
