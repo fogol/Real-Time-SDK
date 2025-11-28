@@ -891,7 +891,7 @@ class BasicPrimitiveConverter {
 
     static boolean writeDate(Date date, JsonBuffer buffer, JsonConverterError error) {
 
-        if (date.isValid() && BufferHelper.checkAndResize(buffer, getDateLength(date), error)) {
+        if (BufferHelper.checkAndResize(buffer, getDateLength(date), error)) {
             if (date.isBlank()) {
                 BufferHelper.copyToByteArray(ConstCharArrays.nullBytes, buffer);
             } else {
@@ -907,7 +907,7 @@ class BasicPrimitiveConverter {
 
     static boolean writeTime(Time time, JsonBuffer buffer, JsonConverterError error) {
 
-        if (time.isValid() && BufferHelper.checkAndResize(buffer, getTimeMaxLength(time), error)) {
+        if (BufferHelper.checkAndResize(buffer, getTimeMaxLength(time), error)) {
             if (time.isBlank()) {
                 BufferHelper.copyToByteArray(ConstCharArrays.nullBytes, buffer);
             } else {
@@ -923,7 +923,7 @@ class BasicPrimitiveConverter {
 
     static boolean writeDateTime(DateTime dateTime, JsonBuffer buffer, JsonConverterError error) {
 
-        if (dateTime.isValid() && BufferHelper.checkAndResize(buffer, getDateTimeMaxLength(dateTime), error)) {
+        if (BufferHelper.checkAndResize(buffer, getDateTimeMaxLength(dateTime), error)) {
             if (dateTime.isBlank()) {
                 BufferHelper.copyToByteArray(ConstCharArrays.nullBytes, buffer);
             } else {
