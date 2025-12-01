@@ -611,6 +611,8 @@ namespace LSEG.Eta.ValueAdd.Reactor
         [MethodImpl(MethodImplOptions.AggressiveOptimization | MethodImplOptions.AggressiveInlining)]
         public void Close()
         {
+            /* Closes all pending WlItemRequest when the requested service is not avaiable. */
+            ItemHandler.CloseWlItemRequestFromPendingService();
             Dispose();
             Clear();
         }

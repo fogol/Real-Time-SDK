@@ -2704,6 +2704,15 @@ namespace LSEG.Ema.Access
         {
             return m_NextStreamId > (CONSUMER_MAX_STREAM_ID_MINUSONE - numOfItem);
         }
+
+        /* Remove all pending request items */
+        internal void RemoveAllItems()
+        {
+            foreach(var item in m_ItemHandleDict.Values)
+            {
+                item.Remove();
+            }
+        }
     }
 
     internal sealed class ItemCallbackClientConsumer : ItemCallbackClient<IOmmConsumerClient>

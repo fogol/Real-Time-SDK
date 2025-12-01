@@ -4721,5 +4721,46 @@ namespace LSEG.Eta.ValueAdd.Reactor
                 m_Watchlist.Reactor!.SendWatchlistDispatchNowEvent(m_Watchlist.ReactorChannel!);
             }
         }
+
+        public void CloseWlItemRequestFromPendingService()
+        {
+            /* Pending WlItemRequest by service ID */
+            foreach (var kvp in PendingRequestByIdDict)
+            {
+                LinkedList<WlItemRequest> pendingRequests = kvp.Value;
+                LinkedListNode<WlItemRequest>? itemNode = pendingRequests.First;
+                LinkedListNode<WlItemRequest>? nextNode;
+                while (itemNode != null)
+                {
+                    WlItemRequest itemInList = itemNode.Value;
+                    nextNode = itemNode.Next;
+
+                    CloseWlRequest(itemInList);
+                    RepoolWlRequest(itemInList);
+
+                    itemNode = nextNode;
+                }
+                pendingRequests.Clear();
+            }
+
+            /* Pending WlItemRequest by service name */
+            foreach (var kvp in PendingRequestByNameDict)
+            {
+                LinkedList<WlItemRequest> pendingRequests = kvp.Value;
+                LinkedListNode<WlItemRequest>? itemNode = pendingRequests.First;
+                LinkedListNode<WlItemRequest>? nextNode;
+                while (itemNode != null)
+                {
+                    WlItemRequest itemInList = itemNode.Value;
+                    nextNode = itemNode.Next;
+
+                    CloseWlRequest(itemInList);
+                    RepoolWlRequest(itemInList);
+
+                    itemNode = nextNode;
+                }
+                pendingRequests.Clear();
+            }
+        }
     }
 }

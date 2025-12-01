@@ -21,5 +21,7 @@ namespace LSEG.Eta.ValueAdd.Reactor
         ReactorReturnCode LoginStreamClosed(State? state);
 
         ReactorReturnCode LoginStreamOpen(out ReactorErrorInfo? errorInfo);
+
+        void CloseWlItemRequestFromPendingService();
     }
 }

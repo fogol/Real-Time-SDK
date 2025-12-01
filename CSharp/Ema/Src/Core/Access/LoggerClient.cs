@@ -45,9 +45,11 @@ namespace LSEG.Ema.Access
 
         public static readonly int ProcessId;
 
-        private static readonly LoggingConfiguration LoggingConf;
+        private LoggingConfiguration m_loggingConf = new();
 
         private readonly StringBuilder m_StrBuilder = new(1024);
+
+        private string m_TargetName = string.Empty;
 
         void SetNLogConfigure(IOmmCommonImpl commonImpl, LoggerConfig loggerConfig)
         {
@@ -81,7 +83,9 @@ namespace LSEG.Ema.Access
                         Layout = messageLayout,
                         AutoFlush = true
                     };
-                    LoggingConf.AddRuleForAllLevels(consoleTarget, loggerName);
+                    m_loggingConf.AddRuleForAllLevels(consoleTarget, loggerName);
+
+                    m_TargetName = consoleTarget.Name;
                 }
                 else if (loggerConfig.LoggerType == LoggerType.FILE)
                 {
@@ -102,13 +106,14 @@ namespace LSEG.Ema.Access
                         ArchiveAboveSize = (int)loggerConfig.MaxLogFileSize,
                         KeepFileOpen = false
                     };
-                    
-                    LoggingConf.AddRuleForAllLevels(fileTarget, loggerName);
+                    m_loggingConf.AddRuleForAllLevels(fileTarget, loggerName);
+
+                    m_TargetName = fileTarget.Name;
                 }
 
                 // To avoid conflicts with the rest of the components in the system obtain our own
                 // logger from a LogFactory instead of the LogManager singleton
-                m_logFactory.Configuration = LoggingConf;
+                m_logFactory.Configuration = m_loggingConf;
                 m_NLogger = m_logFactory.GetLogger(loggerName);
 
                 Level = loggerConfig.LoggerSeverity;
@@ -124,8 +129,6 @@ namespace LSEG.Ema.Access
             ProcessId = System.Environment.ProcessId;
 
             DefaultLogger = LogManager.GetCurrentClassLogger();
-
-            LoggingConf = new();
         }
 
 #pragma warning disable CS8618
@@ -179,6 +182,13 @@ namespace LSEG.Ema.Access
 
         public void Cleanup()
         {
+            m_loggingConf.RemoveTarget(m_TargetName);
+
+            foreach (var target in m_loggingConf.AllTargets)
+            {
+                target?.Dispose();
+            }
+
             m_logFactory.Shutdown();
             m_logFactory.Dispose();
         }

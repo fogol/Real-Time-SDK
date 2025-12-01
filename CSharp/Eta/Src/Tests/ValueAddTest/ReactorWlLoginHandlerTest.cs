@@ -153,6 +153,11 @@ public class ReactorWlLoginHandlerTest
             throw new System.NotImplementedException();
         }
 
+        public void CloseWlItemRequestFromPendingService()
+        {
+            throw new NotImplementedException();
+        }
+
         public ReactorReturnCode Dispatch(out ReactorErrorInfo errorInfo)
         {
             errorInfo = null;

@@ -798,7 +798,13 @@ namespace LSEG.Ema.Access
                 FreeSingleItemPool = () =>
                 {
                     SingleItem<T>? item;
-                    while ((item = (SingleItem<T>?)m_singleItemPool.Poll()) != null) { item.m_handle.Free(); }
+                    while ((item = (SingleItem<T>?)m_singleItemPool.Poll()) != null) 
+                    {
+                        if (item.m_handle.IsAllocated)
+                        {
+                            item.m_handle.Free();
+                        }
+                    }
                 };
             }
         }

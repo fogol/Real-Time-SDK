@@ -459,6 +459,10 @@ namespace LSEG.Ema.Access
                     ChannelCallbackClient.CloseChannels();
                 }
 
+                if (ItemCallbackClient != null)
+                {
+                    ItemCallbackClient.RemoveAllItems();
+                }
 
                 ReactorErrorInfo? errorInfo = null;
                 if (reactor?.Shutdown(out errorInfo) != ReactorReturnCode.SUCCESS)
