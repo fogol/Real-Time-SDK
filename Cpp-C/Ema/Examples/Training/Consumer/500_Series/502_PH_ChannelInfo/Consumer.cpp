@@ -199,8 +199,8 @@ int main( int argc, char* argv[] )
 		consumer.registerClient(ReqMsg().serviceName("DIRECT_FEED").name("IBM.N"), client);
 
 		bool isModifyIOCtlDone = false;
-		long startTimeFallback = time(NULL);
-		long startTimeIoctl = time(NULL);
+		time_t startTimeFallback = time(NULL);
+		time_t startTimeIoctl = time(NULL);
 		int printInterval = 1;
 
 		consumer.getChannelInformation(channelInfo);
@@ -215,9 +215,9 @@ int main( int argc, char* argv[] )
 					cout<< channelInfo  << endl;
 			}
 
-			long currentTime = time(NULL);
-			int periodFallback = (int)(currentTime - startTimeFallback);
-			int periodIoctl = (int)(currentTime - startTimeIoctl);
+			time_t currentTime = time(NULL);
+			UInt32 periodFallback = (UInt32)(currentTime - startTimeFallback);
+			UInt32 periodIoctl = (UInt32)(currentTime - startTimeIoctl);
 
 			if (ioctlInterval > 0 && periodIoctl >= ioctlInterval && !isModifyIOCtlDone)
 			{
