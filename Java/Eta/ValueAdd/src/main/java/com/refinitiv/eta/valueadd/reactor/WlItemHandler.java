@@ -979,12 +979,6 @@ class WlItemHandler implements WlHandler
     { 	
         int ret = ReactorReturnCodes.SUCCESS;
 
-        if (wlRequest.stream() == null ) 
-        {
-            return _watchlist.reactor().populateErrorInfo(errorInfo, ReactorReturnCodes.FAILURE,
-                    "WlItemHandler.handleReissue", "Reissue request not allowed on an unopen stream.");
-        }
-
         if (requestMsg.domainType() != wlRequest.requestMsg().domainType())
         {
             return _watchlist.reactor().populateErrorInfo(errorInfo, ReactorReturnCodes.FAILURE,
@@ -1033,26 +1027,31 @@ class WlItemHandler implements WlHandler
         	wlRequest._reissue_hasChange = true;
 		}
 
-            /* handle reissue only if streaming flag has not changed
-         * (it's an error if the streaming flag is changed) */
+        // Handle reissue only if streaming flag has not changed
+        // It's an error if the streaming flag is changed
         if (requestMsg.checkStreaming() == wlRequest.requestMsg().checkStreaming())
         {
-            if ( requestMsg.checkStreaming())
+            RequestMsg streamRequestMsg = null;
+            if (wlRequest.stream() != null)
             {
-            	if (requestMsg.checkPause() &&  !wlRequest.requestMsg().checkPause())
-            	{
-            		wlRequest.stream().numPausedRequestsCount(wlRequest.stream().numPausedRequestsCount() +1);
-                  	if(wlRequest.stream().numPausedRequestsCount() == wlRequest.stream()._userRequestList.size())  	  
-                  		wlRequest._reissue_hasChange= true;
-            	}
-            	if (!requestMsg.checkPause() && wlRequest.requestMsg().checkPause())
-            	{
-            		wlRequest.stream().numPausedRequestsCount(wlRequest.stream().numPausedRequestsCount() -1);
-            		wlRequest._reissue_hasChange = true;
-            	}        	
+                if (requestMsg.checkStreaming())
+                {
+                    if (requestMsg.checkPause() && !wlRequest.requestMsg().checkPause())
+                    {
+                        wlRequest.stream().numPausedRequestsCount(wlRequest.stream().numPausedRequestsCount() +1);
+                        if(wlRequest.stream().numPausedRequestsCount() == wlRequest.stream()._userRequestList.size())
+                            wlRequest._reissue_hasChange= true;
+                    }
+                    if (!requestMsg.checkPause() && wlRequest.requestMsg().checkPause())
+                    {
+                        wlRequest.stream().numPausedRequestsCount(wlRequest.stream().numPausedRequestsCount() -1);
+                        wlRequest._reissue_hasChange = true;
+                    }
+                }
+
+                // retrieve request from stream
+                streamRequestMsg = wlRequest.stream().requestMsg();
             }
-            // retrieve request from stream
-            RequestMsg streamRequestMsg = wlRequest.stream().requestMsg();
 
             boolean removeOldView = true;
             boolean effectiveViewChange = true;
@@ -1095,18 +1094,24 @@ class WlItemHandler implements WlHandler
                         return ret;
             		}	        
             		 // for only one view, aggView is that view and might be removed later
-            		if(_wlViewHandler.aggregateViewContainsView(wlRequest.stream()._aggregateView, tempWlRequest) && streamRequestMsg.checkHasView())
-                        effectiveViewChange = false;
-            	}     			
+                    if (wlRequest.stream() != null)
+                    {
+                        if(_wlViewHandler.aggregateViewContainsView(wlRequest.stream()._aggregateView, tempWlRequest) && streamRequestMsg.checkHasView())
+                            effectiveViewChange = false;
+                    }
+            	}
     		}
-            WlView oldView = null; 
-            if (wlRequest.viewElemCount() > 0 && removeOldView)
+            WlView oldView = null;
+            if (wlRequest.stream() != null)
             {
-            	// has old view and can be removed
-            	oldView = removeRequestView(wlRequest.stream(), wlRequest, errorInfo);
-            	wlRequest._reissue_hasViewChange = true;
-            }                            	
-                    
+                if (wlRequest.viewElemCount() > 0 && removeOldView)
+                {
+                    // has old view and can be removed
+                    oldView = removeRequestView(wlRequest.stream(), wlRequest, errorInfo);
+                    wlRequest._reissue_hasViewChange = true;
+                }
+            }
+
             if (requestMsg.checkHasView())
             {
             	extractViewFromMsg(wlRequest, requestMsg, errorInfo);  	  
@@ -1115,25 +1120,28 @@ class WlItemHandler implements WlHandler
             	wlRequest._reissue_hasViewChange = true;
             	
             	// if only one view re-issue, the original aggView could be removed above, this check hence becomes no-op
-            	if(_wlViewHandler.aggregateViewContainsNewViews(wlRequest.stream()._aggregateView) && streamRequestMsg.checkHasView()) 
-            		wlRequest._reissue_hasViewChange = false;				
-            	
-            	if(!streamRequestMsg.checkHasView() && wlRequest.stream()._requestsWithViewCount != wlRequest.stream()._userRequestList.size())
-            		wlRequest._reissue_hasViewChange = false;            
-            	
+                if (wlRequest.stream() != null)
+                {
+                    if(_wlViewHandler.aggregateViewContainsNewViews(wlRequest.stream()._aggregateView) && streamRequestMsg.checkHasView())
+                        wlRequest._reissue_hasViewChange = false;
+
+                    if(!streamRequestMsg.checkHasView() && wlRequest.stream()._requestsWithViewCount != wlRequest.stream()._userRequestList.size())
+                        wlRequest._reissue_hasViewChange = false;
+                }
+
             	if (!effectiveViewChange) wlRequest._reissue_hasViewChange = false;
             }
                         
-            if ( tempWlRequest != null) 
+            if (tempWlRequest != null)
             {
             	repoolWlRequest(tempWlRequest);
             	repooled = true;
             }
-        
+
             // User requested no refresh flag, so temporarily for this message, set it and turn it off after send
-            if (requestMsg.checkNoRefresh())
+            if (streamRequestMsg != null && requestMsg.checkNoRefresh())
             	streamRequestMsg.applyNoRefresh();
-            
+
             // update priority only if present on reissue request
             if (requestMsg.checkHasPriority())
             {
@@ -1144,33 +1152,36 @@ class WlItemHandler implements WlHandler
                     wlRequest.requestMsg().priority().priorityClass(1);
                     wlRequest.requestMsg().priority().count(1);
                 }
-                
-                // update priorityClass only if changed
-                if (requestMsg.priority().priorityClass() != wlRequest.requestMsg().priority().priorityClass())
+
+                if (streamRequestMsg != null)
                 {
-                    // use priorityClass of reissue request if private stream or greater than existing one 
-                    if (streamRequestMsg.checkPrivateStream() || requestMsg.priority().priorityClass() > streamRequestMsg.priority().priorityClass())
+                    // update priorityClass only if changed
+                    if (requestMsg.priority().priorityClass() != wlRequest.requestMsg().priority().priorityClass())
                     {
-                        streamRequestMsg.priority().priorityClass(requestMsg.priority().priorityClass());
+                        // use priorityClass of reissue request if private stream or greater than existing one
+                        if (streamRequestMsg.checkPrivateStream() || requestMsg.priority().priorityClass() > streamRequestMsg.priority().priorityClass())
+                        {
+                            streamRequestMsg.priority().priorityClass(requestMsg.priority().priorityClass());
+                            wlRequest._reissue_hasChange = true;
+                        }
+                    }
+
+                    // update priorityCount only if changed
+                    if (requestMsg.priority().count() != wlRequest.requestMsg().priority().count())
+                    {
+                        // get difference between reissue request priority count and request's previous priority count
+                        int priorityCountDiff = requestMsg.priority().count() - wlRequest.requestMsg().priority().count();
+
+                        // add priorityCount difference to that of existing one
+                        streamRequestMsg.priority().count(streamRequestMsg.priority().count() +
+                                priorityCountDiff);
                         wlRequest._reissue_hasChange = true;
                     }
                 }
-                
-                // update priorityCount only if changed
-                if (requestMsg.priority().count() != wlRequest.requestMsg().priority().count())
-                {
-                    // get difference between reissue request priority count and request's previous priority count 
-                    int priorityCountDiff = requestMsg.priority().count() - wlRequest.requestMsg().priority().count();
-                    
-                    // add priorityCount difference to that of existing one
-                    streamRequestMsg.priority().count(streamRequestMsg.priority().count() +
-                                                      priorityCountDiff);
-                    wlRequest._reissue_hasChange = true;
-                }
             }
-            
+
             // if dictionary domain, update MsgKey filter if changed
-            if (requestMsg.domainType() == DomainTypes.DICTIONARY)
+            if (streamRequestMsg != null && requestMsg.domainType() == DomainTypes.DICTIONARY)
             {
                 if (requestMsg.msgKey().filter() != streamRequestMsg.msgKey().filter())
                 {
@@ -1178,60 +1189,63 @@ class WlItemHandler implements WlHandler
                     wlRequest._reissue_hasChange = true;
                 } 
             }
-            
-	            if (wlRequest.stream().state().streamState() == StreamStates.OPEN)
-	            {
-	                // handle reissue only if not in the middle of multi-part refresh
-	                if ( wlRequest.stream().refreshState() != WlStream.RefreshStates.REFRESH_COMPLETE_PENDING )
-	                {                   
-	                    // send message to stream
-	            		if( wlRequest._reissue_hasChange || wlRequest._reissue_hasViewChange)
-	            		{
-	            			if(wlRequest._reissue_hasViewChange) wlRequest.stream()._pendingViewChange = true;
-	            			
-	            			ret = wlRequest.stream().sendMsgOutOfLoop(streamRequestMsg, submitOptions, errorInfo);
-	              			
-	            			// Check if we repooled already, making the view null and already destroyed
-	            			if (!repooled && oldView != null &&  wlRequest._reissue_hasViewChange)
-	            			{
-	               				// this stems from when no_refresh is set on request, but later still get refresh callback from Provider,
-	               				// need this flag to send fan out to all
-	              				 if (requestMsg.checkNoRefresh()) wlRequest.stream().refreshState(WlStream.RefreshStates.REFRESH_VIEW_PENDING);
-	            				_wlViewHandler.destroyView(oldView);
-	            			} 
-	            			
-	            		
-	              			// update request state to PENDING_REFRESH if refresh is desired
-	              			if (!requestMsg.checkNoRefresh())
-	              			{
-	              				wlRequest.state(WlRequest.State.PENDING_REFRESH);
-	              			}
-	            		}
-	            		            	
-	            		if (streamRequestMsg.checkNoRefresh())
-	                    	streamRequestMsg.flags(streamRequestMsg.flags() & ~RequestMsgFlags.NO_REFRESH);
-	            		
-	            		if (_hasPendingViewRequest)
-	            		{
-	            			wlRequest.stream().waitingRequestList().add(wlRequest);
-	            			_hasPendingViewRequest = false;
-	            		}
-	                }
-	                else
-	                {
-	                    // add to waiting request list
-	                	if(wlRequest._reissue_hasChange)
-	                		wlRequest.stream().waitingRequestList().add(wlRequest);
-	                }
-	            }
-	            else
-	            {
-	                ret = _watchlist.reactor().populateErrorInfo(errorInfo,
-	                                                              ReactorReturnCodes.FAILURE,
-	                                                              "WlItemHandler.handleReissue",
-	                                                              "Reissue requests must occur while stream state is known as open.");           	
-	            }
 
+            if (wlRequest.stream() != null)
+            {
+                if (wlRequest.stream().state().streamState() == StreamStates.OPEN)
+                {
+                    // handle reissue only if not in the middle of multi-part refresh
+                    if ( wlRequest.stream().refreshState() != WlStream.RefreshStates.REFRESH_COMPLETE_PENDING )
+                    {
+                        // send message to stream
+                        if( wlRequest._reissue_hasChange || wlRequest._reissue_hasViewChange)
+                        {
+                            if(wlRequest._reissue_hasViewChange) wlRequest.stream()._pendingViewChange = true;
+
+                            ret = wlRequest.stream().sendMsgOutOfLoop(streamRequestMsg, submitOptions, errorInfo);
+
+                            // Check if we repooled already, making the view null and already destroyed
+                            if (!repooled && oldView != null &&  wlRequest._reissue_hasViewChange)
+                            {
+                                // this stems from when no_refresh is set on request, but later still get refresh callback from Provider,
+                                // need this flag to send fan out to all
+                                if (requestMsg.checkNoRefresh())
+                                    wlRequest.stream().refreshState(WlStream.RefreshStates.REFRESH_VIEW_PENDING);
+                                _wlViewHandler.destroyView(oldView);
+                            }
+
+
+                            // update request state to PENDING_REFRESH if refresh is desired
+                            if (!requestMsg.checkNoRefresh())
+                            {
+                                wlRequest.state(WlRequest.State.PENDING_REFRESH);
+                            }
+                        }
+
+                        if (streamRequestMsg.checkNoRefresh())
+                            streamRequestMsg.flags(streamRequestMsg.flags() & ~RequestMsgFlags.NO_REFRESH);
+
+                        if (_hasPendingViewRequest)
+                        {
+                            wlRequest.stream().waitingRequestList().add(wlRequest);
+                            _hasPendingViewRequest = false;
+                        }
+                    }
+                    else
+                    {
+                        // add to waiting request list
+                        if(wlRequest._reissue_hasChange)
+                            wlRequest.stream().waitingRequestList().add(wlRequest);
+                    }
+                }
+                else
+                {
+                    ret = _watchlist.reactor().populateErrorInfo(errorInfo,
+                            ReactorReturnCodes.FAILURE,
+                            "WlItemHandler.handleReissue",
+                            "Reissue requests must occur while stream state is known as open.");
+                }
+            }
         }
         else // streaming flag has changed
         {

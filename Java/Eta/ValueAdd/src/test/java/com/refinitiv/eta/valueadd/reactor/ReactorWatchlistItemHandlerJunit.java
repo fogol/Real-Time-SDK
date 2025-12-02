@@ -52,6 +52,8 @@ public class ReactorWatchlistItemHandlerJunit {
     private WlItemHandler itemHandler;
     private RequestMsg wlRequestMsg;
 
+    private static final int STREAM_ID = 5;
+
     @Before
     public void init() {
         // Prepare mocks & stabs
@@ -678,5 +680,31 @@ public class ReactorWatchlistItemHandlerJunit {
 
         msg.containerType(DataTypes.ELEMENT_LIST);
         msg.encodedDataBody(buf);
+    }
+
+    @Test
+    public void handleReissue_wlRequestStreamIsNull_ReturnSuccess() {
+        WlItemHandler wlItemHandler = new WlItemHandler(watchlist);
+
+        WlStream wlStream = new WlStream();
+        wlStream.watchlist(watchlist);
+        WlRequest wlRequest = ReactorFactory.createWlRequest();
+        wlRequest.state(WlRequest.State.OPEN);
+        RequestMsg requestMsg = (RequestMsg)CodecFactory.createMsg();
+        requestMsg.streamId(STREAM_ID);
+        requestMsg.msgClass(MsgClasses.REQUEST);
+        wlRequest._requestMsg = requestMsg;
+        wlStream.userRequestList().add(wlRequest);
+
+        ReactorSubmitOptions submitOptions = ReactorFactory.createReactorSubmitOptions();
+        ReactorErrorInfo errorInfo = ReactorFactory.createReactorErrorInfo();
+
+        assertNull(wlRequest.stream());
+
+        // It emulates situation when consumer sends item request one more time after receiving
+        // status message with stream closed recoverable state
+        int ret = wlItemHandler.handleReissue(wlRequest, requestMsg, submitOptions, errorInfo);
+
+        assertEquals(ReactorCallbackReturnCodes.SUCCESS, ret);
     }
 }
