@@ -959,7 +959,8 @@ public class ReactorWatchlistPreferredHostJunit {
 			}
     		
     		// Call fallback method
-    		consumer.reactorChannel().fallbackPreferredHost(null);
+            ReactorErrorInfo errorInfo = new ReactorErrorInfo();
+            consumer.reactorChannel().fallbackPreferredHost(errorInfo);
 
 			consumer.testReactor().dispatch(2);
 
@@ -2673,7 +2674,8 @@ public class ReactorWatchlistPreferredHostJunit {
 			}
     		
     		// Consumer calls fallback method
-    		consumer.reactorChannel().fallbackPreferredHost(null);
+            ReactorErrorInfo errorInfo = new ReactorErrorInfo();
+            consumer.reactorChannel().fallbackPreferredHost(errorInfo);
     		
     		// Consumer immediately calls ioctl changing preferred index to 2
     		ioctlCall = ReactorFactory.createReactorPreferredHostOptions();
@@ -3086,7 +3088,8 @@ public class ReactorWatchlistPreferredHostJunit {
 			}
     		
     		// Consumer calls fallback method
-    		consumer.reactorChannel().fallbackPreferredHost(null);
+            ReactorErrorInfo errorInfo = new ReactorErrorInfo();
+            consumer.reactorChannel().fallbackPreferredHost(errorInfo);
 			
 			provider2.testReactor().accept(opts, provider2);
 			
@@ -5697,7 +5700,8 @@ public class ReactorWatchlistPreferredHostJunit {
 			}
     		
     		// Consumer calls fallback function
-    		consumer.reactorChannel().fallbackPreferredHost(null);
+            ReactorErrorInfo errorInfo = new ReactorErrorInfo();
+            consumer.reactorChannel().fallbackPreferredHost(errorInfo);
     		
     		consumer.testReactor().dispatch(2);
 
@@ -17418,7 +17422,8 @@ public class ReactorWatchlistPreferredHostJunit {
             assertTrue(msgEvent.streamInfo().serviceName().equals(Provider.defaultService().info().serviceName().toString()));
 			
             // Consumer calls fallback to switchover to WSB Group 1 (Provider 1 / 2)
-            consumer.reactorChannel().fallbackPreferredHost(null);
+            ReactorErrorInfo errorInfo = new ReactorErrorInfo();
+            consumer.reactorChannel().fallbackPreferredHost(errorInfo);
 			
             consumer.testReactor().switchingReactorChannel = true;
             
@@ -18032,7 +18037,8 @@ public class ReactorWatchlistPreferredHostJunit {
             assertTrue(msgEvent.streamInfo().serviceName().equals(Provider.defaultService().info().serviceName().toString()));
 			
             // Consumer calls fallback to switchover to WSB Group 1 (Provider 1 / 2)
-            consumer.reactorChannel().fallbackPreferredHost(null);
+            ReactorErrorInfo errorInfo = new ReactorErrorInfo();
+            consumer.reactorChannel().fallbackPreferredHost(errorInfo);
 			
             consumer.testReactor().switchingReactorChannel = true;
             
@@ -18960,7 +18966,8 @@ public class ReactorWatchlistPreferredHostJunit {
 			assertEquals(ReactorChannelEventTypes.CHANNEL_READY, channelEvent.eventType());
 
 			// Consumer calls fallback method, should switch to Provider 3 as active instead of moving to WSB PH Group 1
-			consumer.reactorChannel().fallbackPreferredHost(null);
+            ReactorErrorInfo errorInfo = new ReactorErrorInfo();
+			consumer.reactorChannel().fallbackPreferredHost(errorInfo);
 			
 	        consumer.testReactor().dispatch(2);
 
@@ -19692,7 +19699,8 @@ public class ReactorWatchlistPreferredHostJunit {
 			assertEquals(ReactorChannelEventTypes.CHANNEL_READY, channelEvent.eventType());
 
 			// Consumer calls fallback method, should switch to Provider 3 as active instead of moving to WSB PH Group 1
-			consumer.reactorChannel().fallbackPreferredHost(null);
+            ReactorErrorInfo errorInfo = new ReactorErrorInfo();
+            consumer.reactorChannel().fallbackPreferredHost(errorInfo);
 			
 	        consumer.testReactor().dispatch(2);
 
@@ -20424,7 +20432,8 @@ public class ReactorWatchlistPreferredHostJunit {
 			assertEquals(ReactorChannelEventTypes.CHANNEL_READY, channelEvent.eventType());
 
 			// Consumer calls fallback method, should switch to Provider 3 as active instead of moving to WSB PH Group 1
-			consumer.reactorChannel().fallbackPreferredHost(null);
+            ReactorErrorInfo errorInfo = new ReactorErrorInfo();
+            consumer.reactorChannel().fallbackPreferredHost(errorInfo);
 			
 	        consumer.testReactor().dispatch(2);
 
@@ -21109,7 +21118,8 @@ public class ReactorWatchlistPreferredHostJunit {
 			assertEquals(ReactorChannelEventTypes.CHANNEL_READY, channelEvent.eventType());
 
 			// Consumer calls fallback method, should switch to Provider 3 as active instead of moving to WSB PH Group 1
-			consumer.reactorChannel().fallbackPreferredHost(null);
+            ReactorErrorInfo errorInfo = new ReactorErrorInfo();
+            consumer.reactorChannel().fallbackPreferredHost(errorInfo);
 			
 	        consumer.testReactor().dispatch(2);
 
