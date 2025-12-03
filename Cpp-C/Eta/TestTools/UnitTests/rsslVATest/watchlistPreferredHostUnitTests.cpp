@@ -7995,47 +7995,10 @@ void preferredHost_WSBLogin_FallbackWithinWSBGroup(PreferredHostTestParameters p
 	pWtfTestServer = getWtfTestServer(pEvent->rdmMsg.serverIndex);
 	pWtfTestServer->warmStandbyMode = WTF_WSBM_LOGIN_BASED_SERVER_TYPE_ACTIVE;
 
-	consumerChannel = wtfGetChannel(WTF_TC_CONSUMER);
-	ASSERT_TRUE(RSSL_RET_SUCCESS == rsslReactorFallbackToPreferredHost(consumerChannel, &errorInfo));
-
-	wtfDispatch(WTF_TC_CONSUMER, 100);
-
-	// Dispatch to make sure all the events and the user gets a preferred host complete
-	ASSERT_TRUE(pEvent = wtfGetEvent());
-	ASSERT_TRUE(pEvent->base.type == WTF_DE_CHNL);
-	ASSERT_TRUE(pEvent->channelEvent.channelEventType == RSSL_RC_CET_PREFERRED_HOST_COMPLETE);
-
-	wtfDispatch(WTF_TC_PROVIDER, 100);
-	ASSERT_FALSE(pEvent = wtfGetEvent());
-
-	consumerChannel = wtfGetChannel(WTF_TC_CONSUMER);
-	ASSERT_TRUE(RSSL_RET_SUCCESS == rsslReactorFallbackToPreferredHost(consumerChannel, &errorInfo));
-
-	wtfDispatch(WTF_TC_CONSUMER, 400);
-
-	// Dispatch to make sure all the events and the user gets a preferred host complete
-	ASSERT_TRUE(pEvent = wtfGetEvent());
-	ASSERT_TRUE(pEvent->base.type == WTF_DE_CHNL);
-	ASSERT_TRUE(pEvent->channelEvent.channelEventType == RSSL_RC_CET_PREFERRED_HOST_COMPLETE);
-
-	wtfDispatch(WTF_TC_PROVIDER, 100);
-	ASSERT_FALSE(pEvent = wtfGetEvent());
-
-	/* Provider should now accept. */
+	/* Accepts the starting server connection from the reconnection logic */
 	wtfAccept(0);
 
-	/* Consumer channel up. */
-	wtfDispatch(WTF_TC_CONSUMER, 100);
-
-	/* Consumer channel FD change. */
-	ASSERT_TRUE(pEvent = wtfGetEvent());
-	ASSERT_TRUE(pEvent->base.type == WTF_DE_CHNL);
-	ASSERT_TRUE(pEvent->channelEvent.channelEventType == RSSL_RC_CET_FD_CHANGE);
-
-	/* Provider channel up & ready
-	 * (must be checked before consumer; in the case of raw providers,
-	 * this call will initialize the channel). */
-	wtfDispatch(WTF_TC_PROVIDER, 200, 0);
+	wtfDispatch(WTF_TC_PROVIDER, 200);
 	ASSERT_TRUE(pEvent = wtfGetEvent());
 	ASSERT_TRUE(pEvent->base.type == WTF_DE_CHNL);
 	ASSERT_TRUE(pEvent->channelEvent.channelEventType == RSSL_RC_CET_CHANNEL_UP);
@@ -8043,6 +8006,15 @@ void preferredHost_WSBLogin_FallbackWithinWSBGroup(PreferredHostTestParameters p
 	ASSERT_TRUE(pEvent = wtfGetEvent());
 	ASSERT_TRUE(pEvent->base.type == WTF_DE_CHNL);
 	ASSERT_TRUE(pEvent->channelEvent.channelEventType == RSSL_RC_CET_CHANNEL_READY);
+
+	wtfDispatch(WTF_TC_CONSUMER, 100);
+
+	// Dispatch to make sure all the events and the user gets the FD_CHANGE event as the starting server channel is up
+	ASSERT_TRUE(pEvent = wtfGetEvent());
+	ASSERT_TRUE(pEvent->base.type == WTF_DE_CHNL);
+	ASSERT_TRUE(pEvent->channelEvent.channelEventType == RSSL_RC_CET_FD_CHANGE);
+
+	wtfDispatch(WTF_TC_CONSUMER, 100);
 
 	pEvent = wtfGetEvent();
 	if (pEvent == NULL)
