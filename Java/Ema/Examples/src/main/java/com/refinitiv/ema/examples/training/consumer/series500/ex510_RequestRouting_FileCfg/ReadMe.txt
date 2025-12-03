@@ -25,7 +25,7 @@ ex510_RequestRouting_FileCfg implements the following high-level steps:
   - overrides desired methods
   - provides own methods as needed
 + Instantiates AppClient object that receives and processes item messages
-+ Create a service list named "SVG1" which contains the "DIRECT_FEED" and "DIRECT_FEED1"
++ Create a service list named "SVG1" which contains the "DIRECT_FEED" and "DIRECT_FEED_2"
 + Instantiates and modifies OmmConsumerConfig object
   - Sets the consumer name to "Consumer_10"
   - Adds the service list into this object.

@@ -1,27 +1,40 @@
 Summary
 =======
 
-The ex500_MP_PreferredHost_FileCfg application is provided as an example
-of OMM Consumer application written to the EMA library.
+The 500_PH_FileConfig application is provided as an example of OMM Consumer 
+application written to the EMA library. Note that "PH" stands for the 
+"Preferred Host" feature.
 
 This application demonstrates basic usage of the EMA library for accessing and
-parsing of OMM MarketPrice Domain data from LSEG Data Feed Direct (RDF-D),
-directly from an OMM Provider application, or from an Advanced Distribution Server.
+parsing of OMM MarketPrice Domain data from an LSEG Data Feed, directly from 
+an OMM Provider application, or from an Advanced Distribution Server.
 
-The ex500_MP_PreferredHost_FileCfg illustrates a fallback to preferred host feature,
-which allows to switch to preferred host/endpoint if the feature is enabled when 
-the connection is lost.The fallback performs full connection recovery to establish 
-a new connection, handle admin domains (login, source directory, dictionary), 
-re-request market data items when the watchlist is enabled.
+The 502_PH_FileConfig example illustrates aspects of the preferred host feature,
+which, when enabled, allows to switch to preferred host/endpoint upon connection loss,
+preferred host feature specific time based triggers or when a function call is made
+to perform a fallback to a preferred host. EMA performs fallback and 
+full connection recovery by establishing a new connection, handling admin domains 
+(login, source directory, dictionary), and re-requesting market data items using 
+the underlying ETA layer's watchlist capabilities.
 
-This application depends on EmaConfig.xml located in the application's working 
-directory to determine its connectivity parameters and additional configuration 
+This application depends on EmaConfig.xml located in the application's working
+directory to determine its connectivity parameters and additional configuration
 parameters to enable and configure a fallback to preferred host feature.
+
+Specifically, the ConsumerName used in this example is associated with 
+Consumer/Channel/etc sections defined in the default EmaConfig.xml file to
+specify fallback triggers and a channel preferences. When used in conjunction
+with servers represented in the config, this application may be used to 
+visualize the connection recovery to the specified preferred host.
+
+This application prints ChannelInformation periodically to reflect changes to
+channel upon fallback.
+
 
 Detailed Description
 ====================
 
-The ex500_MP_PreferredHost_FileCfg implements the following high level steps:
+500_PH_FileConfig implements the following high level steps:
 
 + Implements OmmConsumerClient class in AppClient
   - overrides desired methods

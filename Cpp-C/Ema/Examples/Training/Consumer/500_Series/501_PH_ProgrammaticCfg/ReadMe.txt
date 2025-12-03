@@ -1,28 +1,32 @@
 Summary
 =======
 
-The ex501_PreferredHost_ProgCfg application is provided as an example
-of OMM Consumer application written to the EMA library.
+The 501_PH_ProgrammaticCfg application is provided as an example of OMM Consumer 
+application written to the EMA library. Note that "PH" stands for the
+"Preferred Host" feature.
 
 This application demonstrates basic usage of the EMA library for accessing and
-parsing of OMM MarketPrice Domain data from LSEG Data Feed Direct (RDF-D),
-directly from an OMM Provider application, or from an Advanced Distribution Server.
+parsing of OMM MarketPrice Domain data from an LSEG Data Feed, directly from 
+an OMM Provider application, or from an Advanced Distribution Server.
 
-The ex501_PreferredHost_ProgCfg illustrates a fallback to preferred host feature,
-which allows to switch to preferred host/endpoint if the feature is enabled when 
-the connection is lost.The fallback performs full connection recovery to establish 
-a new connection, handle admin domains (login, source directory, dictionary), 
-re-request market data items when the watchlist is enabled.
+The 501_PH_ProgrammaticCfg example illustrates aspects of the preferred host feature,
+which, when enabled, allows to switch to preferred host/endpoint upon connection loss,
+preferred host feature specific time based triggers or when a function call is made
+to perform a fallback to a preferred host. EMA performs fallback and 
+full connection recovery by establishing a new connection, handling admin domains 
+(login, source directory, dictionary), and re-requesting market data items using 
+the underlying ETA layer's watchlist capabilities.
 
 This application showcases creation and usage of the programmatic configuration 
-feature of EMA. In addition to file configuration, EMA allows users to 
-programmatically configure Omm Consumer instances.
+feature of EMA including Preferred Host feature configuration. In general, 
+in addition to file configuration, EMA allows users to programmatically 
+configure Omm Consumer instances.
 
 
 Detailed Description
 ====================
 
-The ex501_PreferredHost_ProgCfg implements the following high level steps:
+501_PH_ProgrammaticCfg implements the following high level steps:
 + Passes preferred host options through command line arguments
   including:
   - enablePH Enable preferred host feature (optional).
@@ -33,19 +37,15 @@ The ex501_PreferredHost_ProgCfg implements the following high level steps:
   - channelNamePreferred Specifies a channel name in the Channel or ChannelSet 
     element (optional).
 
-Example command to run the example from the command line from Java folder:
-On Unix:
-./gradlew runConsumer501 -PcommandLineArgs='-enablePH <true/false> -detectionTimeSchedule <cron_expression> -detectionTimeInterval <detectionTimeInterval> -channelNamePreferred <channelNamePreferred>'
-
-On Windows:
-gradlew.bat runConsumer501 -PcommandLineArgs='-enablePH <true/false> -detectionTimeSchedule <cron_expression> -detectionTimeInterval <detectionTimeInterval> -channelNamePreferred <channelNamePreferred>'
++ Example command line:
+  Cons501 -enablePH -detectionTimeSchedule <cron_expression> -detectionTimeInterval <detectionTimeInterval> -channelNamePreferred <channelNamePreferred>
 
 + Implements OmmConsumerClient class in AppClient
   - overrides desired methods
   - provides own methods as needed
 + Instantiates AppClient object that receives and processes item messages
 + Instantiates a Map (configMap object) and populates it with configuration info
-  - sets the default consumer name to "Consumer_A". It contains channel set with two 
+  - sets consumer name to "Consumer_9". It contains channel set with two 
     channels
 + Instantiates and modifies OmmConsumerConfig object
   - sets Omm Consumer configuration with data from the programmatic configuration
@@ -55,7 +55,7 @@ gradlew.bat runConsumer501 -PcommandLineArgs='-enablePH <true/false> -detectionT
   - MarketPrice Domain IBM.N item from DIRECT_FEED service
 + Switches over to a preferred host according to preferred host configuration for 
   a consumer
-  - default preferred host is set to 'Channel_A'. This value can be overridden by
+  - default preferred host is set to 'Channel_1'. This value can be overridden by
     command line argument
 + Processes data received from API for 600 seconds
   - all received messages are processed on API thread of control

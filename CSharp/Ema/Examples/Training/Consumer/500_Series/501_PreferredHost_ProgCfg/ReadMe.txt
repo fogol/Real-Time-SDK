@@ -4,21 +4,24 @@ Summary
 The 501_PreferredHost_ProgCfg application is provided as an example of OMM
 Consumer application written to the EMA library.
 
+Note that "PH", used in ReadMe or example code refers to the "Preferred Host" feature.
+
 This application demonstrates basic usage of the EMA library for accessing and
 parsing of OMM MarketPrice Domain data from Refinitiv Data Feed Direct (RDF-D),
-directly from an OMM Provider application, or from an Advanced Distribution
-Server.
+directly from an OMM Provider application, or from an Advanced Distribution Server.
 
-The 501_PreferredHost_ProgCfg illustrates a fallback to preferred host feature,
-which allows to switch to preferred host/endpoint if the feature is enabled when
-the connection is lost.The fallback performs full connection recovery to
-establish a new connection, handle admin domains (login, source directory,
-dictionary), re-request market data items when the watchlist is enabled.
+The 501_PreferredHost_ProgCfg example illustrates aspects of the preferred host feature,
+which, when enabled, allows to switch to preferred host/endpoint upon connection loss,
+preferred host feature specific time based triggers or when a function call is made
+to perform a fallback to a preferred host. EMA performs fallback and 
+full connection recovery by establishing a new connection, handling admin domains 
+(login, source directory, dictionary), and re-requesting market data items using 
+the underlying ETA layer's watchlist capabilities.
 
-This application showcases creation and usage of the programmatic configuration
-feature of EMA. In addition to file configuration, EMA allows users to
-programmatically configure Omm Consumer instances.
-
+This application showcases creation and usage of the programmatic configuration 
+feature of EMA including Preferred Host feature configuration. In general, 
+in addition to file configuration, EMA allows users to programmatically 
+configure Omm Consumer instances.
 
 Detailed Description
 ====================
@@ -44,7 +47,7 @@ dotnet run -- -enablePH <true/false> -detectionTimeSchedule <cron_expression> -d
   - provides own methods as needed
 + Instantiates AppClient object that receives and processes item messages
 + Instantiates a Map (configMap object) and populates it with configuration info
-  - sets the default consumer name to "Consumer_A". It contains channel set with
+  - sets the default consumer name to "Consumer_1". It contains channel set with
     two channels
 + Instantiates and modifies OmmConsumerConfig object
   - sets Omm Consumer configuration with data from the programmatic configuration

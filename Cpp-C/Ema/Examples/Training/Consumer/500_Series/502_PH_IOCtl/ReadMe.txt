@@ -1,27 +1,45 @@
 Summary
 =======
 
-The ex502_PreferredHost_Ioctl application is provided as an example of OMM Consumer 
-application written to the EMA library.
+The 502_PH_IOCtl application is provided as an example of OMM Consumer 
+application written to the EMA library. Note that "PH" stands for the 
+"Preferred Host" feature.
 
 This application demonstrates basic usage of the EMA library for accessing and
-parsing of OMM MarketPrice Domain data from LSEG Data Feed Direct (RDF-D),
-directly from an OMM Provider application, or from an Advanced Distribution Server.
+parsing of OMM MarketPrice Domain data from an LSEG Data Feed, directly from 
+an OMM Provider application, or from an Advanced Distribution Server.
 
-The ex500_MP_PreferredHost_FileCfg illustrates a fallback to preferred host feature,
-which allows to switch to preferred host/endpoint if the feature is enabled when 
-the connection is lost.The fallback performs full connection recovery to establish 
-a new connection, handle admin domains (login, source directory, dictionary), 
-re-request market data items when the watchlist is enabled.
+The 502_PH_IOCtl example illustrates aspects of the preferred host feature,
+which, when enabled, allows to switch to preferred host/endpoint upon connection loss,
+preferred host feature specific time based triggers or when a function call is made
+to perform a fallback to a preferred host. EMA performs fallback and 
+full connection recovery by establishing a new connection, handling admin domains 
+(login, source directory, dictionary), and re-requesting market data items using 
+the underlying ETA layer's watchlist capabilities.
 
 This application depends on EmaConfig.xml located in the application's working 
 directory to determine its connectivity parameters and additional configuration 
 parameters to enable and configure a fallback to preferred host feature.
 
+Specifically, the ConsumerName used in this example is associated with 
+Consumer/Channel/etc sections defined in the default EmaConfig.xml file to
+specify fallback triggers and a channel preferences. When used in conjunction
+with servers represented in the config, this application may be used to 
+visualize the connection recovery to the specified preferred host.
+
+IO Control (IOCtl) call permit changing certain configuration parameters dyanmically
+at runtime. Most aspects of the preferred host configuration may be altered
+using IOCtl including enabling and disable the feature from the application code.
+
+This application demonstrates how various configuration parameters may be altered
+at runtime. If configured to do so via commandline, this application also 
+demonstrates the adhoc function call to attempt a fallback to a specified preferred 
+host.
+
 Detailed Description
 ====================
 
-The ex502_PreferredHost_Ioctl implements the following high level steps:
+The 502_PH_IOCtl example implements the following high level steps:
 + Passes preferred host options through command line arguments
   including:
   - ioctlInterval Specifies time interval in seconds before call IOCtl is 
@@ -40,12 +58,8 @@ The ex502_PreferredHost_Ioctl implements the following high level steps:
   - ioctlFallBackWithinWSBGroup Specifies whether to fallback within a WSB group 
     instead of moving into a preferred WSB group (optional).
 
-Example command to run the example from the command line from Java folder:
-On Unix:
-./gradlew runConsumer502 -PcommandLineArgs='-ioctlInterval <ioctlInterval> -fallbackInterval <fallbackInterval> -ioctlEnablePH <true/false> -ioctlDetectionTimeSchedule <cron_expression> -ioctlDetectionTimeInterval <ioctlDetectionTimeInterval> -ioctlChannelName <ioctlChannelName> -ioctlWarmStandbyGroup <ioctlWarmStandbyGroup> -ioctlFallBackWithinWSBGroup <true/false>'
-
-On Windows:
-gradlew.bat runConsumer502 -PcommandLineArgs='-ioctlInterval <ioctlInterval> -fallbackInterval <fallbackInterval> -ioctlEnablePH <true/false> -ioctlDetectionTimeSchedule <cron_expression> -ioctlDetectionTimeInterval <ioctlDetectionTimeInterval> -ioctlChannelName <ioctlChannelName> -ioctlWarmStandbyGroup <ioctlWarmStandbyGroup> -ioctlFallBackWithinWSBGroup <true/false>'
++ Example command line:
+Cons502 -ioctlInterval <ioctlInterval> -fallbackInterval <fallbackInterval> -ioctlEnablePH <true/false> -ioctlDetectionTimeSchedule <cron_expression> -ioctlDetectionTimeInterval <ioctlDetectionTimeInterval> -ioctlChannelName <ioctlChannelName> -ioctlWarmStandbyGroup <ioctlWarmStandbyGroup> -ioctlFallBackWithinWSBGroup <true/false>
 
 + Implements OmmConsumerClient class in AppClient
   - overrides desired methods
