@@ -868,9 +868,16 @@ RSSL_API RsslRet rsslRMTESToUTF8(RsslRmtesCacheBuffer *pRmtesBuffer, RsslBuffer 
 			}
 			else /* Just copy the data, since it's already encoded in UTF8 */
 			{
-				*outIter = *inIter;
-				outIter++;
-				inIter++;
+				if (outIter >= endOutput)
+				{
+					return RSSL_RET_BUFFER_TOO_SMALL;
+				}
+				else
+				{
+					*outIter = *inIter;
+					outIter++;
+					inIter++;
+				}
 			}
 		}
 	}

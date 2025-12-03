@@ -904,6 +904,7 @@ void deleteCharTest()
 }
 
 unsigned char overflowIn[] = { 'A', 'B', 'C' };
+unsigned char utf8ControOverflowIn[] = { 0x1B, 0x25, 0x30, 'A', 'B', 'C' };
 
 void overflowTest()
 {
@@ -921,6 +922,27 @@ void overflowTest()
 	cacheBuffer.data = charBuf1;
 
 	ASSERT_TRUE(rsslRMTESApplyToCache(&inBuffer, &cacheBuffer) == RSSL_RET_SUCCESS); //Apply to cache
+	
+	outBuffer.data = charBuf2;
+	outBuffer.length = 2;
+	memset(charBuf2, 0, 100);
+
+	ASSERT_TRUE(rsslRMTESToUTF8(&cacheBuffer, &outBuffer) == RSSL_RET_BUFFER_TOO_SMALL); //Buffer too small
+	ASSERT_TRUE(strcmp("ABC", (const char*)charBuf2) != 0); //Buffer overflow check
+
+	outBuffer.length = 3;
+	ASSERT_TRUE(rsslRMTESToUTF8(&cacheBuffer, &outBuffer) == RSSL_RET_SUCCESS); //Buffer set
+	ASSERT_TRUE(strcmp("ABC", (const char*)charBuf2) == 0); //Buffer proplery set
+
+	inBuffer.data = (char*)utf8ControOverflowIn;
+	inBuffer.length = 6;
+
+	cacheBuffer.allocatedLength = 100;
+	cacheBuffer.length = 0;
+	cacheBuffer.data = charBuf1;
+
+	ASSERT_TRUE(rsslRMTESApplyToCache(&inBuffer, &cacheBuffer) == RSSL_RET_SUCCESS); //Apply to cache
+	
 	outBuffer.data = charBuf2;
 	outBuffer.length = 2;
 	memset(charBuf2, 0, 100);
