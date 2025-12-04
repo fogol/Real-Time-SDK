@@ -2577,13 +2577,13 @@ class WlItemHandler implements WlHandler
         	/* Checks the ensure that the channel is up before submitting the message */
         	if(wlStream.isChannelUp())
         	{
-	            if ((ret = wlStream.sendMsgOnLoop(wlStream.requestMsg(), _submitOptions, _errorInfo)) < ReactorReturnCodes.SUCCESS)
+	            if ((ret = wlStream.sendMsgOnLoop(wlStream.requestMsg(), _submitOptions, _errorInfo, true)) < ReactorReturnCodes.SUCCESS)
 	            {
 	            	/* No buffers means that the request was re-queued, so we can end the loop here */
 	            	if(ret == ReactorReturnCodes.NO_BUFFERS)
 	            	{
-	            		// trigger dispatch method to recover the remaining messages when there is no stream in the timeout list to recover the items and ETA Channel is ACTIVE.
-	            		if(isETAChannelActive() && _watchlist._streamTimeoutInfoList.isEmpty())
+	            		// trigger dispatch method to recover the remaining messages when ETA Channel is ACTIVE.
+	            		if (isETAChannelActive())
 	            		{
 	            			_watchlist.reactor().sendWatchlistDispatchNowEvent(_watchlist.reactorChannel());
 	            		}
@@ -2803,13 +2803,13 @@ class WlItemHandler implements WlHandler
         	/* Checks the ensure that the channel is up before submitting the message */
         	if(wlStream.isChannelUp())
         	{
-	        	if ((ret = wlStream.sendMsgOnLoop(wlStream.requestMsg(), _submitOptions, _errorInfo)) < ReactorReturnCodes.SUCCESS)
+	        	if ((ret = wlStream.sendMsgOnLoop(wlStream.requestMsg(), _submitOptions, _errorInfo, true)) < ReactorReturnCodes.SUCCESS)
 	            {
 	            	/* No buffers means that the request was re-queued, so we can end the loop here */
 	            	if(ret == ReactorReturnCodes.NO_BUFFERS)
 	            	{
-	            		// trigger dispatch method to recover the remaining messages when there is no stream in the timeout list to recover the items and ETA Channel is ACTIVE.
-	            		if(isETAChannelActive() && _watchlist._streamTimeoutInfoList.isEmpty())
+	            		// trigger dispatch method to recover the remaining messages when ETA Channel is ACTIVE.
+	            		if (isETAChannelActive())
 	            		{
 	            			_watchlist.reactor().sendWatchlistDispatchNowEvent(_watchlist.reactorChannel());
 	            		}
