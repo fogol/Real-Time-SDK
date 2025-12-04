@@ -1021,36 +1021,63 @@ namespace LSEG.Eta.ValueAdd.Reactor
 
             // call SendMsg on all streams in pending stream send list
             var stream = PendingSendMsgDlList.Pop();
+            int loopCount = PendingSendMsgDlList.Count();
             while (stream != null)
             {
                 stream.PendingSendMsg = false;
-
-                if ((ret = stream.SendMsg(stream.RequestMsg, m_SubmitOptions, false, out errorInfo)) < ReactorReturnCode.SUCCESS)
+                if (m_Watchlist.IsChannelUp())
                 {
-                    // No buffers means that the request was re-queued, so we can end the loop here
-                    if (ret == ReactorReturnCode.NO_BUFFERS)
+                    if ((ret = stream.SendMsg(stream.RequestMsg, m_SubmitOptions, false, out errorInfo, true)) < ReactorReturnCode.SUCCESS)
+                    {
+                        if (!stream.PendingSendMsg) StreamDlList.PushBack(stream);
+
+                        // No buffers means that the request was re-queued, so we can end the loop here
+                        if (ret == ReactorReturnCode.NO_BUFFERS)
+                        {
+                            if (IsETAChannelActive())
+                            {
+                                m_Watchlist.Reactor!.SendWatchlistDispatchNowEvent(m_Watchlist.ReactorChannel!);
+                            }
+                            return ReactorReturnCode.SUCCESS;
+                        }
+                        else
+                        {
+                            return ret;
+                        }
+                    }
+
+                    StreamDlList.PushBack(stream);
+
+                    loopCount--;
+                    if (loopCount == 0)
                     {
                         return ReactorReturnCode.SUCCESS;
                     }
-                    else
-                    {
-                        return ret;
-                    }
+
+                    stream = PendingSendMsgDlList.Pop();
                 }
-
-                StreamDlList.PushBack(stream);
-
-                if (PendingSendMsgDlList.Count() == 0)
-                {
+                else
+                { 
+                    StreamDlList.PushBack(stream);
+                    ClearPendingList();
                     return ReactorReturnCode.SUCCESS;
                 }
-
-                stream = PendingSendMsgDlList.Pop();
             }
 
             UserStreamIdListToRecover.Clear();
 
             return ret;
+        }
+
+        private void ClearPendingList()
+        {
+            var stream = PendingSendMsgDlList.Pop();
+            while (stream != null)
+            {
+                stream.PendingSendMsg = false;
+                StreamDlList.PushBack(stream);
+                stream = PendingSendMsgDlList.Pop();
+            }
         }
 
         private bool UserRequestExistsInStream(WlService service, VaDoubleLinkList<WlItemStream> list, VaDoubleLinkList<WlItemStream>.ILink<WlItemStream> link)
@@ -3763,35 +3790,66 @@ namespace LSEG.Eta.ValueAdd.Reactor
             }
 
             // send request for all pending item stream in the list
+            int loopCount = PendingSendMsgDlList.Count();
             var stream = PendingSendMsgDlList.Pop();
             while (stream != null)
             {
                 stream.PendingSendMsg = false;
+                if (m_Watchlist.IsChannelUp())
+                {                
+                    if ((ret = stream.SendMsg(stream.RequestMsg, m_SubmitOptions, false, out errorInfo, true)) < ReactorReturnCode.SUCCESS)
+                    {
+                        if (!stream.PendingSendMsg) StreamDlList.PushBack(stream);
+                        
+                        // No buffers means that the request was re-queued, so we can end the loop here
+                        if (ret == ReactorReturnCode.NO_BUFFERS)
+                        {
+                            if (IsETAChannelActive())
+                            {
+                                m_Watchlist.Reactor!.SendWatchlistDispatchNowEvent(m_Watchlist.ReactorChannel!);
+                            }
+                            return ReactorReturnCode.SUCCESS;
+                        }
+                        else
+                        {
+                            return ret;
+                        }
+                    }
 
-                if ((ret = stream.SendMsg(stream.RequestMsg, m_SubmitOptions, false, out errorInfo)) < ReactorReturnCode.SUCCESS)
-                {
-                    // No buffers means that the request was re-queued, so we can end the loop here
-                    if (ret == ReactorReturnCode.NO_BUFFERS)
+                    StreamDlList.PushBack(stream);
+
+                    loopCount--;
+                    if (loopCount == 0)
                     {
                         return ReactorReturnCode.SUCCESS;
                     }
-                    else
-                    {
-                        return ret;
-                    }
+
+                    stream = PendingSendMsgDlList.Pop();
                 }
                 else
                 {
-                    if (PendingSendMsgDlList.Count() == 0)
-                    {
-                        return ReactorReturnCode.SUCCESS;
-                    }
+                    StreamDlList.PushBack(stream);
+                    ClearPendingList();
+                    return ReactorReturnCode.SUCCESS;
                 }
-                StreamDlList.PushBack(stream);
-                stream = PendingSendMsgDlList.Pop();
             }
 
             return ret;
+        }
+
+        internal bool IsETAChannelActive()
+        {
+            if (m_Watchlist.ReactorChannel != null)
+            {
+                var channel = m_Watchlist.ReactorChannel.Channel;
+
+                if (channel != null && channel.State == Transports.ChannelState.ACTIVE)
+                {
+                    return true;
+                }
+            }            
+
+            return false;
         }
 
         /* Handles login stream open event. */
