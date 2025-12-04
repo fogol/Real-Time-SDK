@@ -597,6 +597,9 @@ void IProviderTestClientBase::onReqMsg(const ReqMsg& reqMsg, const OmmProviderEv
 	{
 	case MMT_LOGIN:
 	{
+		ChannelInformation chnlInfo = event.getChannelInformation();
+
+		//std::cout << "IProviderTestClientBase::onReqMsg Received Login Request. sendLoginRefresh: " << options.sendLoginRefresh << std::endl;
 		if (options.sendLoginRefresh == false)
 			break;
 
@@ -821,4 +824,367 @@ RequestAttributes::RequestAttributes() :
 
 RequestAttributes::~RequestAttributes()
 {
+}
+
+void OAuthClientTest::onCredentialRenewal( const refinitiv::ema::access::OmmConsumerEvent& consumerEvent )
+{
+	//std::cout << "OAuthClientTest::onCredentialRenewal event called!" << std::endl;
+}
+
+NiProviderTestClientBase::NiProviderTestClientBase( ProviderTestOptions& testOptions ) :
+	EmaTestClientBase(),
+	ommProvider(nullptr)
+
+{
+	options = testOptions;
+}
+
+void NiProviderTestClientBase::onRefreshMsg( const RefreshMsg& refreshMsg, const OmmProviderEvent& event )
+{
+	RSSL_MUTEX_LOCK(&_poolLock);
+
+	RefreshMsg* newRefreshMsg = new RefreshMsg(refreshMsg);
+	_messageQueue.push_back(newRefreshMsg);
+	_messageList.push_back(newRefreshMsg);
+
+	RSSL_MUTEX_UNLOCK(&_poolLock);
+}
+
+void NiProviderTestClientBase::onStatusMsg(const StatusMsg& statusMsg, const OmmProviderEvent& event)
+{
+	RSSL_MUTEX_LOCK(&_poolLock);
+
+	StatusMsg* newStatusMsg = new StatusMsg(statusMsg);
+	_messageQueue.push_back(newStatusMsg);
+	_messageList.push_back(newStatusMsg);
+
+	RSSL_MUTEX_UNLOCK(&_poolLock);
+}
+
+void NiProviderTestClientBase::onGenericMsg(const GenericMsg& genericMsg, const OmmProviderEvent& event)
+{
+	RSSL_MUTEX_LOCK(&_poolLock);
+
+	GenericMsg* newGenericMsg = new GenericMsg(genericMsg);
+	_messageQueue.push_back(newGenericMsg);
+	_messageList.push_back(newGenericMsg);
+
+	RSSL_MUTEX_UNLOCK(&_poolLock);
+}
+
+void NiProviderTestClientBase::onAllMsg(const Msg& msg, const OmmProviderEvent& event)
+{
+	//std::cout << "NiProviderTestClientBase::onAllMsg event called!" << std::endl;
+	return;
+}
+
+void NiProviderTestClientBase::onClose(const ReqMsg& reqMsg, const OmmProviderEvent& event)
+{
+	RSSL_MUTEX_LOCK(&_poolLock);
+
+	ReqMsg* newReqMsg = new ReqMsg(reqMsg);
+	_messageQueue.push_back(newReqMsg);
+	_messageList.push_back(newReqMsg);
+
+	RSSL_MUTEX_UNLOCK(&_poolLock);
+}
+
+void IProviderProgrammaticTestConfig::createProgrammaticConfig( Map& configMap )
+{
+	Map innerMap;
+	ElementList elementList;
+	unsigned i;
+
+	// Need at least one provider
+	if (numProviders < 1)
+		numProviders = 1;
+
+	// Start <IProviderGroup>
+	elementList.addAscii("DefaultIProvider", "ProviderProgrammaticTest_1");
+
+	// <IProviderList> Create the provider configurations.
+	for (i = 0; i < numProviders; i++)
+	{
+		std::string indexProv = std::to_string(i + 1);
+
+		innerMap.addKeyAscii(("ProviderProgrammaticTest_" + indexProv).c_str(), MapEntry::AddEnum,
+			ElementList()
+			.addAscii("Server", ("ServerProgrammatic_" + indexProv).c_str())
+			.addAscii("Directory", "DirectoryProgrammatic_1")
+			.addAscii("Logger", "LoggerProgrammatic_1")
+			.addUInt("ItemCountHint", 10000)
+			.addUInt("ServiceCountHint", 10000)
+			.addInt("DispatchTimeoutUserThread", 500)
+			//.addUInt("CatchUnhandledException", 0)
+			.addUInt("MaxDispatchCountApiThread", 500)
+			.addUInt("MaxDispatchCountUserThread", 500)
+			.addUInt("EnumTypeFragmentSize", 128000)
+			.addUInt("FieldDictionaryFragmentSize", 8192)
+			//.addUInt("DispatchTimeoutApiThread", 0)
+			.addUInt("LoginRequestTimeOut", 45000)
+			.addInt("RequestTimeout", 15000)
+			//.addUInt("RefreshFirstRequired", 1)
+			.complete());
+			//.complete()).complete();
+	}
+
+	innerMap.complete();
+	elementList.addMap("IProviderList", innerMap);
+
+	elementList.complete();
+	innerMap.clear();
+
+	configMap.addKeyAscii("IProviderGroup", MapEntry::AddEnum, elementList);
+	// End <IProviderGroup>
+
+	// Start <ServerGroup>
+	elementList.clear();
+
+	// <ServerList> Create the server configurations.
+	for (i = 0; i < numProviders; i++)
+	{
+		std::string indexProv = std::to_string(i + 1);
+
+		innerMap.addKeyAscii(("ServerProgrammatic_" + indexProv).c_str(), MapEntry::AddEnum,
+			ElementList()
+			.addEnum("ServerType", 0)
+			.addEnum("CompressionType", 0)
+			.addUInt("GuaranteedOutputBuffers", 5000)
+			.addUInt("ConnectionMinPingTimeout", 20000)
+			.addUInt("ConnectionPingTimeout", 30000)
+			.addUInt("TcpNodelay", 1)
+			.addUInt("CompressionThreshold", 100)
+			.addUInt("HighWaterMark", 6144)
+			.addAscii("Port", std::to_string(startPortNum + i).c_str())
+			.addAscii("Host", "localhost")
+			.addUInt("NumInputBuffers", 10)
+			.addUInt("SysRecvBufSize", 10)
+			.addUInt("SysSendBufSize", 10)
+			.complete());
+			//.complete()).complete();
+	}
+
+	innerMap.complete();
+	elementList.addMap("ServerList", innerMap);
+
+	elementList.complete();
+	innerMap.clear();
+
+	configMap.addKeyAscii("ServerGroup", MapEntry::AddEnum, elementList);
+	// End <ServerGroup>
+
+	elementList.clear();
+
+	innerMap.addKeyAscii("LoggerProgrammatic_1", MapEntry::AddEnum,
+		ElementList()
+		.addEnum("LoggerType", 1)
+		.addAscii("FileName", "logFile")
+		.addEnum("LoggerSeverity", static_cast<UInt16>(loggerSeverity))
+		.complete()).complete();
+
+	elementList.addMap("LoggerList", innerMap);
+
+	elementList.complete();
+	innerMap.clear();
+
+	configMap.addKeyAscii("LoggerGroup", MapEntry::AddEnum, elementList);
+	elementList.clear();
+
+	innerMap.addKeyAscii("DictionaryProgrammatic_1", MapEntry::AddEnum,
+		ElementList()
+		.addEnum("DictionaryType", 0)
+		.addAscii("RdmFieldDictionaryFileName", "./RDMFieldDictionaryTest")
+		.addAscii("EnumTypeDefFileName", "./enumtypeTest.def")
+		.addAscii("RdmFieldDictionaryItemName", "RWFFld")
+		.addAscii("EnumTypeDefItemName", "RWFEnum").complete()).complete();
+
+	elementList.addMap("DictionaryList", innerMap);
+	elementList.complete();
+	innerMap.clear();
+
+	configMap.addKeyAscii("DictionaryGroup", MapEntry::AddEnum, elementList);
+	elementList.clear();
+
+	Map serviceMap;
+	serviceMap.addKeyAscii("DIRECT_FEED", MapEntry::AddEnum,
+		ElementList()
+		.addElementList("InfoFilter",
+			ElementList().addUInt("ServiceId", 1)
+			.addAscii("Vendor", "company name")
+			.addUInt("IsSource", 0)
+			.addUInt("AcceptingConsumerStatus", 0)
+			.addUInt("SupportsQoSRange", 0)
+			.addUInt("SupportsOutOfBandSnapshots", 0)
+			.addAscii("ItemList", "#.itemlist")
+			.addArray("Capabilities",
+				OmmArray().addAscii("MMT_MARKET_PRICE")
+				.addAscii("MMT_MARKET_BY_PRICE")
+				.addAscii("MMT_DICTIONARY")
+				.addAscii("200")
+				.complete())
+			.addArray("DictionariesProvided",
+				OmmArray().addAscii("DictionaryProgrammatic_1")
+				.complete())
+			.addArray("DictionariesUsed",
+				OmmArray().addAscii("DictionaryProgrammatic_1")
+				.complete())
+			.addSeries("QoS",
+				Series()
+				.add(
+					ElementList().addAscii("Timeliness", "Timeliness::RealTime")
+					.addAscii("Rate", "Rate::TickByTick")
+					.complete())
+				.add(
+					ElementList().addUInt("Timeliness", 100)
+					.addUInt("Rate", 100)
+					.complete())
+				.complete())
+			.complete())
+
+		.addElementList("StateFilter",
+			ElementList().addUInt("ServiceState", 1)
+			.addUInt("AcceptingRequests", 1)
+			.complete())
+
+		.addElementList("LoadFilter",
+			ElementList()
+			.addUInt("OpenLimit", 5)
+			.addUInt("OpenWindow", 5)
+			.addUInt("LoadFactor", 1)
+			.complete())
+		.complete())
+		.complete();
+
+	innerMap.addKeyAscii("DirectoryProgrammatic_1", MapEntry::AddEnum, serviceMap).complete();
+
+	elementList.clear();
+	elementList.addAscii("DefaultDirectory", "DirectoryProgrammatic_1");
+	elementList.addMap("DirectoryList", innerMap).complete();
+
+	configMap.addKeyAscii("DirectoryGroup", MapEntry::AddEnum, elementList).complete();
+}
+
+void ConsumerProgrammaticTestConfig::createProgrammaticConfig( Map& configMap )
+{
+	Map innerMap;
+	ElementList elementList;
+	ElementList consumerElementList;
+	unsigned i;
+
+	// Need at least one channel
+	if ( numChannels < 1 )
+		numChannels = 1;
+
+	// <ConsumerGroup>
+	elementList.addAscii("DefaultConsumer", "ConsumerProgrammaticTest_1");
+
+	/* Add one of the lines to the configuration: */
+	/* 1) configure only one channel */
+	/* <Channel value="ChannelProgrammatic_1"/> */
+	/* 2) configure multiple channels */
+	/* <ChannelSet value="ChannelProgrammatic_1,ChannelProgrammatic_2,...,ChannelProgrammatic_n"/> */
+	if ( numChannels == 1 )
+	{
+		consumerElementList
+			.addAscii("Channel", "ChannelProgrammatic_1");
+	}
+	else
+	{
+		std::string strChannelSet;
+		for (i = 0; i < numChannels; i++)
+		{
+			std::string indexChannel = std::to_string(i + 1);
+
+			if (i > 0)
+				strChannelSet.append(",");
+
+			strChannelSet.append("ChannelProgrammatic_").append(indexChannel);
+		}
+
+		consumerElementList
+			.addAscii("ChannelSet", strChannelSet.c_str());
+	}
+
+	consumerElementList
+		.addAscii("Logger", "LoggerProgrammatic_1")
+		.addAscii("Dictionary", "DictionaryProgrammatic_1")
+		.addUInt("LoginRequestTimeOut", loginRequestTimeOut)
+		.addUInt("RequestTimeout", 5000)
+		//.addInt("ReconnectAttemptLimit", 10)
+		.addInt("ReconnectMinDelay", 2000)
+		.addInt("ReconnectMaxDelay", 6000)
+		.complete();
+
+	innerMap.addKeyAscii("ConsumerProgrammaticTest_1",
+		MapEntry::AddEnum,
+		consumerElementList)
+		.complete();
+
+	elementList.addMap("ConsumerList", innerMap);
+	elementList.complete();
+	consumerElementList.clear();
+
+	configMap.addKeyAscii("ConsumerGroup", MapEntry::AddEnum, elementList);
+	// End of <ConsumerGroup>
+
+	// <ChannelGroup>
+	elementList.clear();
+	innerMap.clear();
+
+	for (i = 0; i < numChannels; i++)
+	{
+		std::string indexChannel = std::to_string(i + 1);
+		innerMap.addKeyAscii(("ChannelProgrammatic_" + indexChannel).c_str(),
+			MapEntry::AddEnum,
+			ElementList()
+			.addEnum("ChannelType", 0)
+			.addUInt("GuaranteedOutputBuffers", 5000)
+			.addUInt("ConnectionPingTimeout", 30000)
+			.addUInt("InitializationTimeout", channelInitializationTimeout)
+			.addAscii("Host", "localhost")
+			.addAscii("Port", std::to_string(startPortNum + i).c_str())
+			.addUInt("TcpNodelay", 1)
+			.complete());
+	}
+
+	innerMap.complete();
+	elementList.addMap("ChannelList", innerMap);
+
+	elementList.complete();
+	innerMap.clear();
+
+	configMap.addKeyAscii("ChannelGroup", MapEntry::AddEnum, elementList);
+	// End of <ChannelGroup>
+	elementList.clear();
+
+	innerMap.addKeyAscii("LoggerProgrammatic_1", MapEntry::AddEnum,
+		ElementList()
+		.addEnum("LoggerType", 0)
+		.addAscii("FileName", "logFile")
+		.addEnum("LoggerSeverity", static_cast<UInt16>(loggerSeverity))
+		.complete())
+	.complete();
+
+	elementList.addMap("LoggerList", innerMap);
+
+	elementList.complete();
+	innerMap.clear();
+
+	configMap.addKeyAscii("LoggerGroup", MapEntry::AddEnum, elementList);
+	elementList.clear();
+
+	innerMap.addKeyAscii("DictionaryProgrammatic_1", MapEntry::AddEnum,
+		ElementList()
+		.addEnum("DictionaryType", 0)
+		.addAscii("RdmFieldDictionaryFileName", "./RDMFieldDictionaryTest")
+		.addAscii("EnumTypeDefFileName", "./enumtypeTest.def").complete()).complete();
+
+	elementList.addMap("DictionaryList", innerMap);
+
+	elementList.complete();
+
+	configMap.addKeyAscii("DictionaryGroup", MapEntry::AddEnum, elementList);
+	elementList.clear();
+
+	configMap.complete();
 }

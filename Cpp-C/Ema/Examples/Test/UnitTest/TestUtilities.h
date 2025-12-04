@@ -117,5 +117,16 @@ using DictionaryPtr = std::unique_ptr<RsslDataDictionary, decltype(&DictionaryDe
 
 DictionaryPtr makeDictionaryFromFile();
 
+static void testSleep(int millisecs)
+{
+#if defined WIN32
+	::Sleep((DWORD)(millisecs));
+#else
+	struct timespec sleeptime;
+	sleeptime.tv_sec = millisecs / 1000;
+	sleeptime.tv_nsec = (millisecs % 1000) * 1000000;
+	nanosleep(&sleeptime, 0);
+#endif
+}
 
 #endif // __TestUtilities_h
