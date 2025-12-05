@@ -19,8 +19,10 @@ public class BeforeAfterAttribute : BeforeAfterTestAttribute
 {
     private IDisposable? clearEtaPoolSection;
     private ExceptionDiscoverer? exceptionDiscoverer;
+
     public override void Before(MethodInfo _)
     {
+        EtaObjectGlobalPool.Instance.m_objectPoolTracker.Enabled = false;
         clearEtaPoolSection = EtaGlobalPoolTestUtil.CreateClearableSection();
         var testRunnerThreadId = Thread.CurrentThread.ManagedThreadId;
         exceptionDiscoverer = new ExceptionDiscoverer(exceptionThread => exceptionThread != testRunnerThreadId);

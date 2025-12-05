@@ -92,17 +92,15 @@ namespace LSEG.Ema.Access
                     string fileName = string.IsNullOrEmpty(loggerConfig.FileName) ?
                         EMA_Default_File_Name : loggerConfig.FileName;
 
-                    ulong maxArchivesFiles = loggerConfig.NumberOfLogFiles > 0 ?
-                        loggerConfig.NumberOfLogFiles : 1;
-
                     var fileTarget = new FileTarget
                     {
                         Name = EMA_File_Name,
                         FileName = $"{fileName}_{ProcessId}.log",
+                        ArchiveFileName = $"{fileName}_{ProcessId}.{{#}}.log",
                         Layout = messageLayout,
-                        MaxArchiveFiles = (int)maxArchivesFiles,
+                        MaxArchiveFiles = (int)loggerConfig.NumberOfLogFiles,
                         ArchiveEvery = loggerConfig.FileArchivePeriod,
-                        ArchiveSuffixFormat = "_{1:yyyyMMdd}_{0:00}",
+                        ArchiveSuffixFormat = ".{0:0}",
                         ArchiveAboveSize = (int)loggerConfig.MaxLogFileSize,
                         KeepFileOpen = false
                     };

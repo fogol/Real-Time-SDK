@@ -7,6 +7,7 @@
  */
 
 using LSEG.Ema.Rdm;
+using LSEG.Eta.Codec;
 using LSEG.Eta.Common;
 using LSEG.Eta.Tests.Utils;
 using System;
@@ -16,7 +17,7 @@ using Xunit.Abstractions;
 
 namespace LSEG.Ema.Access.Tests.RequestRouting
 {
-    internal class ConsumerTestClient : IOmmConsumerClient
+    internal class ConsumerTestClient : IOmmConsumerClient, IDisposable
     {
         private readonly WaitableMessageQueue<Msg> m_MessageQueue = new();
 
@@ -34,6 +35,11 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
         private OmmConsumer? m_Consumer;
 
         readonly ITestOutputHelper m_Output;
+
+        /* Keep a list of messages to mark for clear at the end of each test case. */
+        private HashSet<Msg> EmaCallbackMsgSet = new();
+
+        private bool _isDisposed = false;
 
         public ConsumerTestClient(ITestOutputHelper output)
         {
@@ -213,11 +219,16 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
             using var _ = EtaGlobalPoolTestUtil.CreateClearableSection();
 
+            if (!EmaCallbackMsgSet.Contains(refreshMsg))
+            {
+                EmaCallbackMsgSet.Add(refreshMsg);
+            }
+
             try
             {
                 m_Handles.Add(consumerEvent.Handle);
 
-                RefreshMsg cloneMsg = new RefreshMsg(refreshMsg);
+                RefreshMsg cloneMsg = new(refreshMsg);
 
                 m_Output.WriteLine($"\n>>>>>>>>>>>>>> Consumer received refresh message in domain {cloneMsg.DomainType()}");
                 if (cloneMsg.HasServiceName)
@@ -272,9 +283,14 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
         {
             AccessLock.Enter();
 
+            if (!EmaCallbackMsgSet.Contains(updateMsg))
+            {
+                EmaCallbackMsgSet.Add(updateMsg);
+            }
+
             try
             {
-                UpdateMsg cloneMsg =new (updateMsg);
+                UpdateMsg cloneMsg = new(updateMsg);
 
                 m_Output.WriteLine(cloneMsg.ToString());
 
@@ -291,6 +307,11 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
         public void OnStatusMsg(StatusMsg statusMsg, IOmmConsumerEvent consumerEvent) 
         {
             AccessLock.Enter();
+
+            if(!EmaCallbackMsgSet.Contains(statusMsg))
+            {
+                EmaCallbackMsgSet.Add(statusMsg);
+            }
 
             try
             {
@@ -312,6 +333,11 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
         {
             AccessLock.Enter();
 
+            if (!EmaCallbackMsgSet.Contains(ackMsg))
+            {
+                EmaCallbackMsgSet.Add(ackMsg);
+            }
+
             try
             {
                 AckMsg cloneMsg = new(ackMsg);
@@ -332,6 +358,11 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
         {
             AccessLock.Enter();
 
+            if (!EmaCallbackMsgSet.Contains(genericMsg))
+            {
+                EmaCallbackMsgSet.Add(genericMsg);
+            }
+
             try
             {
                 GenericMsg cloneMsg = new(genericMsg);
@@ -346,6 +377,29 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
             {
                 AccessLock.Exit();
             }
+        }
+
+        public void Dispose()
+        {
+            if (_isDisposed)
+                return;
+
+            using var _ = EtaGlobalPoolTestUtil.CreateClearableSection();
+
+            foreach (var msg in EmaCallbackMsgSet)
+            {
+                msg.MarkForClear();
+            }
+
+            EmaCallbackMsgSet.Clear();
+
+            while (m_MessageQueue.Count > 0)
+            {
+                Msg msg = m_MessageQueue.Dequeue();
+                msg.MarkForClear();
+            }
+
+            _isDisposed = true;
         }
     }
 }

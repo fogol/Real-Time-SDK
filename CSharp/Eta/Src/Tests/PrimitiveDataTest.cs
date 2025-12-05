@@ -2661,7 +2661,7 @@ namespace CodecTestProject
             Assert.Equal(CodecReturnCode.INVALID_ARGUMENT, thisState.DataState(-1));
             Assert.Equal(CodecReturnCode.INVALID_ARGUMENT, thisState.StreamState(-1));
             Assert.Equal(CodecReturnCode.INVALID_ARGUMENT, thisState.Text(null));
-            Assert.Equal(CodecReturnCode.INVALID_ARGUMENT, thisState.Code(128));
+            Assert.Equal(CodecReturnCode.INVALID_ARGUMENT, thisState.Code(256));
             Assert.Equal(CodecReturnCode.INVALID_ARGUMENT, thisState.DataState(8));
             Assert.Equal(CodecReturnCode.INVALID_ARGUMENT, thisState.StreamState(32));
             Assert.Equal(CodecReturnCode.SUCCESS, thisState.Code(StateCodes.UNABLE_TO_REQUEST_AS_BATCH));

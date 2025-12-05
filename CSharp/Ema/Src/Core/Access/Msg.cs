@@ -386,15 +386,10 @@ namespace LSEG.Ema.Access
             {
                 destMsg.SetName(Name());
             }
-        }
 
-        /// <inheritdoc />
-        protected void CopyTo(Msg dest)
-        {
-            CopyMsg(dest);
             if (m_isUpdatedAfterCopying)
             {
-                CopyAttributesTo(dest);
+                CopyAttributesTo(destMsg);
             }
         }
 

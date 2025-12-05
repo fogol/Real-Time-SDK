@@ -1015,7 +1015,7 @@ namespace LSEG.Ema.Access.Tests.OmmNiProviderTests
 
             string expectedConnectedComponentInfo = Transport.QueryVersion().ProductInternalVersion();
             string expectedChannelInfoStr =
-                $"hostname: localhost{NewLine}\tIP address: not available for OmmNiProvider connections{NewLine}\tport: {adhSimulator.ServerPort}" +
+                $"channelName: DefaultEmaChannel{NewLine}hostname: localhost{NewLine}\tIP address: not available for OmmNiProvider connections{NewLine}\tport: {adhSimulator.ServerPort}" +
                 $"{NewLine}\tconnected component info: {expectedConnectedComponentInfo}{NewLine}\tchannel state: active{NewLine}\tconnection type: SOCKET{NewLine}\tprotocol type: Rssl wire format" +
                 $"{NewLine}\tmajor version: 14{NewLine}\tminor version: 1{NewLine}\tping timeout: 60{NewLine}\tmax fragmentation size: 6142{NewLine}\tmax output buffers: 100{NewLine}\tguaranteed output buffers: 100" +
                 $"{NewLine}\tnumber input buffers: 100{NewLine}\tsystem send buffer size: 0{NewLine}\tsystem receive buffer size: 0{NewLine}\tcompression type: none{NewLine}\tcompression threshold: 0" +
@@ -1044,8 +1044,6 @@ namespace LSEG.Ema.Access.Tests.OmmNiProviderTests
                 long handle = provider.RegisterClient(requestMsg, providerClient, this);
 
                 Assert.True(handle != 0);
-
-                expectedChannelInfoStr = $"channelName: DefaultEmaChannel{NewLine}" + expectedChannelInfoStr;
 
                 /* Checks the expected RefreshMsg from the login request */
                 providerClient.RefreshMsgHandler = (refreshMsg, consEvent) =>

@@ -853,7 +853,7 @@ namespace LSEG.Ema.Access
         public RequestMsg Clone()
         {
             var copy = new RequestMsg();
-            CopyTo(copy);
+            CopyMsg(copy);
 
             /* Set the service list name if the service name is not set. */
             if (!m_msgEncoder!.m_serviceNameSet && m_ServiceListName != null)
@@ -875,7 +875,7 @@ namespace LSEG.Ema.Access
         /// </summary>
         /// <param name="destRequestMsg">object to copy <see cref="RequestMsg"/> into.</param>
         public void Copy(RequestMsg destRequestMsg) =>
-            CopyTo(destRequestMsg);
+            CopyMsg(destRequestMsg);
 
         /// <inheritdoc />
         protected override void CopyAttributesTo(Msg dest)

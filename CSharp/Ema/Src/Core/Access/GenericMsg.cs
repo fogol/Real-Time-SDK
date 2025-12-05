@@ -406,7 +406,7 @@ namespace LSEG.Ema.Access
         public GenericMsg Clone()
         {
             var copy = new GenericMsg();
-            CopyTo(copy);
+            CopyMsg(copy);
             return copy;
         }
 
@@ -420,7 +420,7 @@ namespace LSEG.Ema.Access
         /// </summary>
         /// <param name="destGenericMsg">object to copy <see cref="GenericMsg"/> into.</param>
         public void Copy(GenericMsg destGenericMsg) =>
-            CopyTo(destGenericMsg);
+            CopyMsg(destGenericMsg);
 
         /// <inheritdoc />
         protected override void CopyAttributesTo(Msg dest)

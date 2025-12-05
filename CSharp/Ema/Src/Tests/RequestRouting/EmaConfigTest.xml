@@ -43,6 +43,30 @@
 			<SessionEnhancedItemRecovery value="0"/>
 		</Consumer>
 		<Consumer>
+			<Name value="Consumer_9_2"/>
+			<SessionChannelSet value="Connection_11, Connection_12"/>
+			<Dictionary value="Dictionary_3"/>
+			<ReconnectAttemptLimit value="10"/>
+			<ReconnectMinDelay value="2000" />
+			<ReconnectMaxDelay value="6000" />
+			<LoginRequestTimeOut value="6500"/>
+			<DirectoryRequestTimeOut value="5000"/>
+			<RequestTimeout value="5000"/>
+			<SessionEnhancedItemRecovery value="0"/>
+		</Consumer>
+		<Consumer>
+			<Name value="Consumer_9_3"/>
+			<SessionChannelSet value="Connection_13, Connection_14"/>
+			<Dictionary value="Dictionary_3"/>
+			<ReconnectAttemptLimit value="10"/>
+			<ReconnectMinDelay value="2000" />
+			<ReconnectMaxDelay value="6000" />
+			<LoginRequestTimeOut value="6500"/>
+			<DirectoryRequestTimeOut value="5000"/>
+			<RequestTimeout value="5000"/>
+			<SessionEnhancedItemRecovery value="0"/>
+		</Consumer>
+		<Consumer>
 			<Name value="Consumer_10"/>
 			<SessionChannelSet value="Connection_1"/>
 			<Dictionary value="Dictionary_3"/>
@@ -309,6 +333,118 @@
 			<Host value="localhost"/>
 			<Port value="19008"/>
 		</Channel>
+		<Channel>
+			<Name value="Channel_9"/>
+			<ChannelType value="ChannelType::RSSL_SOCKET"/>
+			<CompressionType value="CompressionType::None"/>
+			<GuaranteedOutputBuffers value="5000"/>
+			<Host value="localhost"/>
+			<Port value="19009"/>
+		</Channel>
+		<Channel>
+			<Name value="Channel_10"/>
+			<ChannelType value="ChannelType::RSSL_SOCKET"/>
+			<CompressionType value="CompressionType::None"/>
+			<GuaranteedOutputBuffers value="5000"/>
+			<Host value="localhost"/>
+			<Port value="19010"/>
+		</Channel>
+		<Channel>
+			<Name value="Channel_11"/>
+			<ChannelType value="ChannelType::RSSL_SOCKET"/>
+			<CompressionType value="CompressionType::None"/>
+			<GuaranteedOutputBuffers value="5000"/>
+			<Host value="localhost"/>
+			<Port value="19011"/>
+		</Channel>
+		<Channel>
+			<Name value="Channel_12"/>
+			<ChannelType value="ChannelType::RSSL_SOCKET"/>
+			<CompressionType value="CompressionType::None"/>
+			<GuaranteedOutputBuffers value="5000"/>
+			<Host value="localhost"/>
+			<Port value="19012"/>
+		</Channel>
+		<Channel>
+			<Name value="Channel_13"/>
+			<ChannelType value="ChannelType::RSSL_SOCKET"/>
+			<CompressionType value="CompressionType::None"/>
+			<GuaranteedOutputBuffers value="5000"/>
+			<Host value="localhost"/>
+			<Port value="19013"/>
+		</Channel>
+		<Channel>
+			<Name value="Channel_14"/>
+			<ChannelType value="ChannelType::RSSL_SOCKET"/>
+			<CompressionType value="CompressionType::None"/>
+			<GuaranteedOutputBuffers value="5000"/>
+			<Host value="localhost"/>
+			<Port value="19014"/>
+		</Channel>
+		<Channel>
+			<Name value="Channel_15"/>
+			<ChannelType value="ChannelType::RSSL_SOCKET"/>
+			<CompressionType value="CompressionType::None"/>
+			<GuaranteedOutputBuffers value="5000"/>
+			<Host value="localhost"/>
+			<Port value="19015"/>
+		</Channel>
+		<Channel>
+			<Name value="Channel_16"/>
+			<ChannelType value="ChannelType::RSSL_SOCKET"/>
+			<CompressionType value="CompressionType::None"/>
+			<GuaranteedOutputBuffers value="5000"/>
+			<Host value="localhost"/>
+			<Port value="19016"/>
+		</Channel>
+		<Channel>
+			<Name value="Channel_17"/>
+			<ChannelType value="ChannelType::RSSL_SOCKET"/>
+			<CompressionType value="CompressionType::None"/>
+			<GuaranteedOutputBuffers value="5000"/>
+			<Host value="localhost"/>
+			<Port value="19017"/>
+		</Channel>
+		<Channel>
+			<Name value="Channel_18"/>
+			<ChannelType value="ChannelType::RSSL_SOCKET"/>
+			<CompressionType value="CompressionType::None"/>
+			<GuaranteedOutputBuffers value="5000"/>
+			<Host value="localhost"/>
+			<Port value="19018"/>
+		</Channel>
+		<Channel>
+			<Name value="Channel_19"/>
+			<ChannelType value="ChannelType::RSSL_SOCKET"/>
+			<CompressionType value="CompressionType::None"/>
+			<GuaranteedOutputBuffers value="5000"/>
+			<Host value="localhost"/>
+			<Port value="19019"/>
+		</Channel>
+		<Channel>
+			<Name value="Channel_20"/>
+			<ChannelType value="ChannelType::RSSL_SOCKET"/>
+			<CompressionType value="CompressionType::None"/>
+			<GuaranteedOutputBuffers value="5000"/>
+			<Host value="localhost"/>
+			<Port value="19020"/>
+		</Channel>
+		<Channel>
+			<Name value="Channel_21"/>
+			<ChannelType value="ChannelType::RSSL_SOCKET"/>
+			<CompressionType value="CompressionType::None"/>
+			<GuaranteedOutputBuffers value="5000"/>
+			<Host value="localhost"/>
+			<Port value="19021"/>
+		</Channel>
+		<Channel>
+			<Name value="Channel_22"/>
+			<ChannelType value="ChannelType::RSSL_SOCKET"/>
+			<CompressionType value="CompressionType::None"/>
+			<GuaranteedOutputBuffers value="5000"/>
+			<Host value="localhost"/>
+			<Port value="19022"/>
+		</Channel>
 	</ChannelList>
 </ChannelGroup>
 
@@ -397,8 +533,8 @@
                 </SessionChannelInfo>
 				<SessionChannelInfo>
                         <Name value="Connection_5"/>
-                        <ChannelSet value="Channel_1, Channel_2" />
-						<PreferredChannelName value="Channel_2" />
+                        <ChannelSet value="Channel_1, Channel_9" />
+						<PreferredChannelName value="Channel_9" />
 						<ReconnectAttemptLimit value="10"/>
 						<ReconnectMinDelay value="1000" />
 						<ReconnectMaxDelay value="1000" />
@@ -407,8 +543,8 @@
 				</SessionChannelInfo>
                 <SessionChannelInfo>
                         <Name value="Connection_6"/>
-                        <ChannelSet value="Channel_4, Channel_5"/>
-						<PreferredChannelName value="Channel_5" />
+                        <ChannelSet value="Channel_4, Channel_10"/>
+						<PreferredChannelName value="Channel_10" />
                         <ReconnectAttemptLimit value="10"/>
                         <ReconnectMinDelay value="1000"/>
                         <ReconnectMaxDelay value="1000"/>
@@ -417,8 +553,8 @@
                 </SessionChannelInfo>
 				<SessionChannelInfo>
                         <Name value="Connection_7"/>
-                        <ChannelSet value="Channel_1, Channel_2" />
-						<PreferredChannelName value="Channel_2" />
+                        <ChannelSet value="Channel_15, Channel_16" />
+						<PreferredChannelName value="Channel_16" />
 						<ReconnectAttemptLimit value="10"/>
 						<ReconnectMinDelay value="1000" />
 						<ReconnectMaxDelay value="1000" />
@@ -426,8 +562,8 @@
 				</SessionChannelInfo>
                 <SessionChannelInfo>
                         <Name value="Connection_8"/>
-                        <ChannelSet value="Channel_4, Channel_5"/>
-						<PreferredChannelName value="Channel_5" />
+                        <ChannelSet value="Channel_17, Channel_18"/>
+						<PreferredChannelName value="Channel_18" />
                         <ReconnectAttemptLimit value="10"/>
                         <ReconnectMinDelay value="1000"/>
                         <ReconnectMaxDelay value="1000"/>
@@ -450,6 +586,34 @@
                         <ReconnectMinDelay value="1000"/>
                         <ReconnectMaxDelay value="1000"/>
 						<EnablePreferredHostOptions value="0"/>
+                </SessionChannelInfo>
+				<SessionChannelInfo>
+                        <Name value="Connection_11"/>
+                        <ChannelSet value="Channel_11, Channel_12"/>
+                        <ReconnectAttemptLimit value="2"/>
+                        <ReconnectMinDelay value="2000"/>
+                        <ReconnectMaxDelay value="4000"/>
+                </SessionChannelInfo>
+                <SessionChannelInfo>
+                        <Name value="Connection_12"/>
+                        <ChannelSet value="Channel_13, Channel_14"/>
+                        <ReconnectAttemptLimit value="4"/>
+                        <ReconnectMinDelay value="2000"/>
+                        <ReconnectMaxDelay value="4000"/>
+                </SessionChannelInfo>
+				<SessionChannelInfo>
+                        <Name value="Connection_13"/>
+                        <ChannelSet value="Channel_19, Channel_20"/>
+                        <ReconnectAttemptLimit value="2"/>
+                        <ReconnectMinDelay value="2000"/>
+                        <ReconnectMaxDelay value="4000"/>
+                </SessionChannelInfo>
+                <SessionChannelInfo>
+                        <Name value="Connection_14"/>
+                        <ChannelSet value="Channel_21, Channel_22"/>
+                        <ReconnectAttemptLimit value="4"/>
+                        <ReconnectMinDelay value="2000"/>
+                        <ReconnectMaxDelay value="4000"/>
                 </SessionChannelInfo>
         </SessionChannelList>
 </SessionChannelGroup>

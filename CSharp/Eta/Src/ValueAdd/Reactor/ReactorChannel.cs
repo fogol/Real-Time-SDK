@@ -48,7 +48,7 @@ namespace LSEG.Eta.ValueAdd.Reactor
         private ReactorRole? m_Role;
 
         private Reactor? m_Reactor;
-        private IReactorEventSender? m_ReactorEventSender;
+        private IReactor? m_IReactor;
 
         internal Watchlist? Watchlist { get; set; }
 
@@ -118,7 +118,7 @@ namespace LSEG.Eta.ValueAdd.Reactor
             internal set
             {
                 m_Reactor = value;
-                m_ReactorEventSender = value;
+                m_IReactor = value;
             }
         }
 
@@ -786,16 +786,16 @@ namespace LSEG.Eta.ValueAdd.Reactor
         {
             errorInfo = null;
 
-            if (Reactor == null)
+            if (m_IReactor == null)
             {
                 return Reactor.PopulateErrorInfo(out errorInfo, ReactorReturnCode.FAILURE, "ReactorChannel.FallbackPreferredHost", "Reactor cannot be null");
             }
 
-            Reactor.ReactorLock.Enter();
+            m_IReactor.ReactorLock.Enter();
 
             try
             {
-                if (Reactor.IsShutdown)
+                if (m_IReactor.IsShutdown)
                 {
                     return Reactor.PopulateErrorInfo(out errorInfo, ReactorReturnCode.SHUTDOWN, "ReactorChannel.FallbackPreferredHost", "Reactor is shutdown, FallbackPreferredHost aborted.");
                 }
@@ -813,16 +813,15 @@ namespace LSEG.Eta.ValueAdd.Reactor
 
                 if (!ShouldFallbackToPreferredHost)
                 {
-                    m_ReactorEventSender!.SendPreferredHostNoFallback(this);
+                    m_IReactor!.SendPreferredHostNoFallback(this);
                     return ReactorReturnCode.SUCCESS;
                 }
 
-                return m_ReactorEventSender!.SendWorkerImplEvent(ReactorEventImpl.ImplType.PREFERRED_HOST_START_FALLBACK, this);
+                return m_IReactor!.SendWorkerImplEvent(ReactorEventImpl.ImplType.PREFERRED_HOST_START_FALLBACK, this);
             }
             finally
             {
-                Reactor.ReactorLock.Exit();
-
+                m_IReactor.ReactorLock.Exit();
             }
         }
 
@@ -1027,18 +1026,18 @@ namespace LSEG.Eta.ValueAdd.Reactor
         /// </summary>
         /// <param name="connectOptions"></param>
         /// <param name="connectionInfoSelector"></param>
-        /// <param name="reactorEventSender"></param>
+        /// <param name="reactor"></param>
         internal ReactorChannel(
             ReactorConnectOptions connectOptions,
             IConnectionInfoSelector? connectionInfoSelector = null,
-            IReactorEventSender? reactorEventSender = null)
+            IReactor? reactor = null)
             : this()
         {
             ConnectOptions = connectOptions;
             if (connectionInfoSelector != null)
                 m_ConnectionInfoSelectorSwitcher!.SetConnectionInfoSelector(connectionInfoSelector);
-            if (reactorEventSender != null)
-                m_ReactorEventSender = reactorEventSender;
+            if (reactor != null)
+                m_IReactor = reactor;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveOptimization)]

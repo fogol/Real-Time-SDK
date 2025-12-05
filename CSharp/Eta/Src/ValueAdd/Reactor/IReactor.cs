@@ -6,13 +6,19 @@
  *|-----------------------------------------------------------------------------
  */
 
+using LSEG.Eta.Common;
+
 namespace LSEG.Eta.ValueAdd.Reactor
 {
     /// <summary>
-    /// Allows mocking of <see cref="Reactor"/> methods related to sending internal events.
+    /// Allows mocking of <see cref="Reactor"/> methods.
     /// </summary>
-    internal interface IReactorEventSender
+    internal interface IReactor
     {
+        internal bool IsShutdown { get; }
+
+        internal Locker ReactorLock { get; }
+
         internal void SendPreferredHostComplete(ReactorChannel reactorChannel);
 
         internal void SendPreferredHostNoFallback(ReactorChannel reactorChannel);

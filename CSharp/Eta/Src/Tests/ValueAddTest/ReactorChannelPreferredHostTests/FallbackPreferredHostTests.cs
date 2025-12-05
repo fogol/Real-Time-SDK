@@ -7,6 +7,7 @@
  */
 
 using FakeItEasy;
+using LSEG.Eta.Common;
 using LSEG.Eta.ValueAdd.Reactor;
 using LSEG.Eta.ValueAdd.Reactor.Fallback.ConnectionInfoSelectors;
 using System.Collections.Generic;
@@ -17,19 +18,30 @@ namespace LSEG.Eta.Tests.ValueAddTest.ReactorChannelPreferredHostTests
 {
     public class FallbackPreferredHostTests
     {
+        private readonly IReactor m_ReactorMock;
+
+        public FallbackPreferredHostTests()
+        {
+            m_ReactorMock = A.Fake<IReactor>();
+            A.CallTo(() => m_ReactorMock.ReactorLock).Returns(A.Fake<Locker>());
+        }
+
         [Theory]
         [MemberData(nameof(GetDisabledPreferredHostOptions))]
         public void Should_return_error_when_preferred_host_disabled(ReactorConnectOptions connectOptions)
         {
             // Arrange
             var expectedRetCode = ReactorReturnCode.INVALID_USAGE;
-            var reactorChannel = new ReactorChannel(connectOptions);
+            var reactorChannel = new ReactorChannel(connectOptions, A.Fake<IConnectionInfoSelector>(), m_ReactorMock)
+            {
+                Role = new ConsumerRole()
+            };
             // Act
             var retCode = reactorChannel.FallbackPreferredHost(out var errorInfo);
             // Assert
             Assert.Equal(expectedRetCode, retCode);
             Assert.NotNull(errorInfo);
-            Assert.StartsWith("Preferred host fallback is disabled", errorInfo.Error.Text);
+            Assert.StartsWith("Preferred host feature is not enabled for the specified ReactorChannel", errorInfo.Error.Text);
             Assert.Equal("ReactorChannel.FallbackPreferredHost", errorInfo.Location);
             Assert.Equal(expectedRetCode, errorInfo.Code);
         }
@@ -58,8 +70,10 @@ namespace LSEG.Eta.Tests.ValueAddTest.ReactorChannelPreferredHostTests
             // Arrange
             var expectedRetCode = ReactorReturnCode.SUCCESS;
             var connectionInfoSelectorMock = A.Fake<IConnectionInfoSelector>(opt => opt.Implements<IConnectionInfoSelectorPreservedState>());
-            var reactorEventSenderMock = A.Fake<IReactorEventSender>();
-            var reactorChannel = new ReactorChannel(connectOptions, connectionInfoSelectorMock, reactorEventSenderMock);
+            var reactorChannel = new ReactorChannel(connectOptions, connectionInfoSelectorMock, m_ReactorMock)
+            {
+                Role = new ConsumerRole()
+            };
 
             A.CallTo(() => connectionInfoSelectorMock.ShouldSwitchPrematurely).Returns(false);
 
@@ -69,7 +83,7 @@ namespace LSEG.Eta.Tests.ValueAddTest.ReactorChannelPreferredHostTests
             // Assert
             Assert.Equal(expectedRetCode, retCode);
             Assert.Null(errorInfo);
-            A.CallTo(() => reactorEventSenderMock.SendPreferredHostNoFallback(reactorChannel)).MustHaveHappenedOnceExactly();
+            A.CallTo(() => m_ReactorMock.SendPreferredHostNoFallback(reactorChannel)).MustHaveHappenedOnceExactly();
         }
 
         [Theory]
@@ -79,8 +93,10 @@ namespace LSEG.Eta.Tests.ValueAddTest.ReactorChannelPreferredHostTests
             // Arrange
             var expectedRetCode = ReactorReturnCode.SUCCESS;
             var connectionInfoSelectorMock = A.Fake<IConnectionInfoSelector>(opt => opt.Implements<IConnectionInfoSelectorPreservedState>());
-            var reactorEventSenderMock = A.Fake<IReactorEventSender>();
-            var reactorChannel = new ReactorChannel(connectOptions, connectionInfoSelectorMock, reactorEventSenderMock);
+            var reactorChannel = new ReactorChannel(connectOptions, connectionInfoSelectorMock, m_ReactorMock)
+            {
+                Role = new ConsumerRole()
+            };
 
             A.CallTo(() => connectionInfoSelectorMock.ShouldSwitchPrematurely).Returns(true);
 
@@ -90,7 +106,7 @@ namespace LSEG.Eta.Tests.ValueAddTest.ReactorChannelPreferredHostTests
             // Assert
             Assert.Equal(expectedRetCode, retCode);
             Assert.Null(errorInfo);
-            A.CallTo(() => reactorEventSenderMock.SendWorkerImplEvent(ReactorEventImpl.ImplType.PREFERRED_HOST_START_FALLBACK, reactorChannel, null))
+            A.CallTo(() => m_ReactorMock.SendWorkerImplEvent(ReactorEventImpl.ImplType.PREFERRED_HOST_START_FALLBACK, reactorChannel, null))
                 .MustHaveHappenedOnceExactly();
         }
 

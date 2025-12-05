@@ -464,7 +464,7 @@ namespace LSEG.Ema.Access
         public StatusMsg Clone()
         {
             var copy = new StatusMsg();
-            CopyTo(copy);
+            CopyMsg(copy);
             return copy;
         }
 
@@ -478,7 +478,7 @@ namespace LSEG.Ema.Access
         /// </summary>
         /// <param name="destStatusMsg">object to copy <see cref="StatusMsg"/> into.</param>
         public void Copy(StatusMsg destStatusMsg) =>
-            CopyTo(destStatusMsg);
+            CopyMsg(destStatusMsg);
 
         /// <inheritdoc />
         protected override void CopyAttributesTo(Msg dest)
