@@ -398,7 +398,17 @@ class OmmNiProviderConfigImpl extends EmaConfigImpl implements OmmNiProviderConf
 	}
 
 	@Override
-	String sessionChannel(String instanceName) {
-		return null;
+	String sessionChannel(String instanceName) 	{
+		String sessionChannel;
+
+		if ( _programmaticConfigure != null )
+		{
+			sessionChannel = _programmaticConfigure.activeEntryNames(instanceName, InstanceEntryFlag.SESSION_CHANNEL_FLAG);
+			if (sessionChannel != null)
+				return sessionChannel;
+		}
+	
+		sessionChannel = (String) xmlConfig().getNiProviderAttributeValue(instanceName, ConfigManager.NiProviderSessionChannelSet);
+		return sessionChannel;
 	}
 }

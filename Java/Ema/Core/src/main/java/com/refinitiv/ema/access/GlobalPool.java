@@ -191,6 +191,7 @@ class GlobalPool
 		return _UIntPool.pop();
 	}
 	
+
 	static void returnPool(int dataType,Object value)
 	{
 		if ( dataType == com.refinitiv.eta.codec.DataTypes.UNKNOWN )

@@ -28,6 +28,7 @@ public abstract class SessionInfo {
         return channelInformation;
     }
 
+    // This is only called for Consumers.  It is overridden for NiProviders
     protected void loadSessionInfo(ReactorChannel channel) {
         channelInformation.clear();
         
@@ -41,18 +42,18 @@ public abstract class SessionInfo {
         	
         	if(chnlInfo.sessionChannelInfo() != null)
         	{
-        		channelInformation.set(channel, chnlInfo.sessionChannelInfo().sessionChannelConfig());
+        		channelInformation.set(channel, (ConsumerSessionChannelConfig)chnlInfo.sessionChannelInfo().sessionChannelConfig());
         	}
         	else
         	{
-        		channelInformation.set(channel, null);
+        		channelInformation.set(channel);
         	}
         	
         	channelInformation.channelName(chnlInfo._channelConfig.name);
         }
         else
         {
-        	channelInformation.set(channel, null);
+        	channelInformation.set(channel);
         }
     }
 }

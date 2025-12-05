@@ -982,6 +982,10 @@ Series200NiProvider201-ProvFunc-001
 Series200NiProvider201-ProvFunc-001
     Alter NiProvider to add programmatic config and tunneling arguments.
 
+Module:  Series300NiProvider350
+-------------------------------
+Series300NiProvider350-ProvFunc-005: Alters Series300Provider350 to print SessionInfo for testing feature NiProvider Session Multiconnection
+
 Module:  Series300NiProvider360
 ----------------------------------
 Series300NiProvider360-ProvFunc-001:  Alters Series300NiProvider360 to provide the following optional
@@ -1035,6 +1039,11 @@ Series400NiProvider430_Auth-002
    Alters NiProvider to use programmatic configuration to set host, port 
    and instanceID instead of reading this from XML config file. 
 
+Module:  Series500NiProvider510
+------------------------------
+Series500NiProvider510-ProvFunc-001: Alters Series500Provider510 to send valid user 'apiqa' to test with dacs enabled.
+Series500NiProvider510-ProvFunc-002: Alters Series500Provider510 to send valid user 'invaliduser' to test with dacs enabled.
+Series500NiProvider510-ProvFunc-003: Alters Series500Provider510 to add options for testing connectionType encrypted.
 
 Module:  Emalibs 
 ---------------------------

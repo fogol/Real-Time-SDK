@@ -78,23 +78,27 @@ class OmmEventImpl<T> implements OmmConsumerEvent, OmmProviderEvent
 			if(channelInfo != null)
 			{
 				@SuppressWarnings("unchecked")
-				SessionChannelInfo<T> sessionChannelInfo = (SessionChannelInfo<T>) channelInfo.sessionChannelInfo();
+				BaseSessionChannelInfo<T> sessionChannelInfo = (BaseSessionChannelInfo<T>) channelInfo.sessionChannelInfo();
 				
 				if(sessionChannelInfo != null)
 				{
-					channelInfoImpl.set(reactorChannel, sessionChannelInfo.sessionChannelConfig());
+					if(sessionChannelInfo.sessionChannelConfig() instanceof ConsumerSessionChannelConfig)
+						channelInfoImpl.set(reactorChannel, (ConsumerSessionChannelConfig)sessionChannelInfo.sessionChannelConfig());
+					else if(sessionChannelInfo.sessionChannelConfig() instanceof NiProviderSessionChannelConfig)
+						channelInfoImpl.set(reactorChannel, (NiProviderSessionChannelConfig)sessionChannelInfo.sessionChannelConfig());
+					
 					channelInfoImpl.sessionChannelName(sessionChannelInfo.sessionChannelConfig().name);
 				}
 				else
 				{
-					channelInfoImpl.set(reactorChannel, null);
+					channelInfoImpl.set(reactorChannel);
 				}
 				
 				channelInfoImpl.channelName(channelInfo._channelConfig.name);
 			}
 			else
 			{
-				channelInfoImpl.set(reactorChannel, null);
+				channelInfoImpl.set(reactorChannel);
 			}
 			
 			if (_ommProvider == null) {
@@ -102,6 +106,7 @@ class OmmEventImpl<T> implements OmmConsumerEvent, OmmProviderEvent
 				channelInfoImpl.port(reactorChannel.port());
 			} else if (_ommProvider != null && _ommProvider.providerRole() == ProviderRole.NON_INTERACTIVE)
 				channelInfoImpl.ipAddress("not available for OmmNiProvider connections");		
+				channelInfoImpl.port(reactorChannel.port());
 		}
 	}
 
@@ -117,7 +122,7 @@ class OmmEventImpl<T> implements OmmConsumerEvent, OmmProviderEvent
 		if (_channel != null) {
 
 			if (_ommProvider != null && _ommProvider.providerRole() == ProviderRole.INTERACTIVE) {
-				_channelInfo.set(_channel, null);
+				_channelInfo.set(_channel);
 			}
 			else { //Consumer & NiProvider
 				ChannelInfo channelInfo = (ChannelInfo)_channel.userSpecObj();
@@ -135,7 +140,7 @@ class OmmEventImpl<T> implements OmmConsumerEvent, OmmProviderEvent
 				List<ChannelInfo> chInfo = (((OmmNiProviderImpl)(_ommProvider))._loginCallbackClient).loginChannelList();
 				if (!chInfo.isEmpty()) {
 					if (chInfo.get(0).rsslReactorChannel() != null) {
-						_channelInfo.set(chInfo.get(0).rsslReactorChannel(), null);
+						_channelInfo.set(chInfo.get(0).rsslReactorChannel());
 						_channelInfo.ipAddress("not available for OmmNiProvider connections");
 						return _channelInfo;
 					}
@@ -160,9 +165,9 @@ class OmmEventImpl<T> implements OmmConsumerEvent, OmmProviderEvent
 		
 		if(_ommBaseImpl != null && _ommBaseImpl.consumerSession() != null)
 		{
-			List<SessionChannelInfo<T>> sessionChannelInfoList = _ommBaseImpl.consumerSession().sessionChannelList();
+			List<BaseSessionChannelInfo<T>> sessionChannelInfoList = _ommBaseImpl.consumerSession().sessionChannelList();
 			
-			for(SessionChannelInfo<T> sessionChInfo : sessionChannelInfoList)
+			for(BaseSessionChannelInfo<T> sessionChInfo : sessionChannelInfoList)
 			{
 				ReactorChannel reactorChannel = sessionChInfo.reactorChannel();
 				
@@ -180,6 +185,29 @@ class OmmEventImpl<T> implements OmmConsumerEvent, OmmProviderEvent
 					}
 				}
 			}
-		}		
+		}
+		else if(_ommBaseImpl != null && _ommBaseImpl.niProviderSession() != null)
+		{
+			List<BaseSessionChannelInfo<T>> sessionChannelInfoList = _ommBaseImpl.niProviderSession().sessionChannelList();
+			
+			for(BaseSessionChannelInfo<T> sessionChInfo : sessionChannelInfoList)
+			{
+				ReactorChannel reactorChannel = sessionChInfo.reactorChannel();
+				
+				if(reactorChannel != null)
+				{
+					channelInfo = (ChannelInfo)reactorChannel.userSpecObj();
+					
+					if(channelInfo != null)
+					{
+						channelInfoImpl = new ChannelInformationImpl();
+						
+						populateChannelInfomation(channelInfoImpl, reactorChannel, channelInfo);
+						
+						channelInfoList.add(channelInfoImpl);
+					}
+				}
+			}
+		}	
 	}
 }

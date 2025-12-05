@@ -16,15 +16,10 @@ import java.util.Map;
 import com.refinitiv.eta.valueadd.reactor.ReactorConnectOptions;
 import com.refinitiv.eta.valueadd.reactor.ReactorFactory;
 
-class SessionChannelConfig {
+class ConsumerSessionChannelConfig extends BaseSessionChannelConfig {
 	
-	String					name;
-	List<ChannelConfig>		configChannelSet;
 	List<WarmStandbyChannelConfig> configWarmStandbySet;
-	int reconnectAttemptLimit;
-	int reconnectMinDelay;
-	int reconnectMaxDelay;
-	
+
 	/* Preferred host configuration options */
 	boolean enablePerferredHostOptions;
 	String preferredChannelName = "";
@@ -37,29 +32,16 @@ class SessionChannelConfig {
 	
 	Map<String, Integer>  _wsbModeMap;
 	
-	private ReactorConnectOptions 		_rsslReactorConnOptions = ReactorFactory.createReactorConnectOptions();
 	
-	SessionChannelConfig(String name)
+	ConsumerSessionChannelConfig(String name)
     {
-        this.name = name;
+		super(name);
         clear();
     }
-	
-	ReactorConnectOptions connectOptions()
-	{
-		return _rsslReactorConnOptions;
-	}
 
     void clear()
     {
-		 reconnectAttemptLimit = ActiveConfig.DEFAULT_RECONNECT_ATTEMPT_LIMIT;
-		 reconnectMinDelay = ActiveConfig.DEFAULT_RECONNECT_MIN_DELAY;
-		 reconnectMaxDelay = ActiveConfig.DEFAULT_RECONNECT_MAX_DELAY;
-    	
-    	if(configChannelSet != null)
-    		configChannelSet.clear();
-    	else
-    		configChannelSet = new ArrayList<ChannelConfig>();
+		super.clear();
     	
     	if(configWarmStandbySet != null)
     		configWarmStandbySet.clear();

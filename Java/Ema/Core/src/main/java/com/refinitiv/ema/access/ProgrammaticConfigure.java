@@ -670,10 +670,16 @@ class ProgrammaticConfigure
 		return fileCfg;
 	}
 	
-	void retrieveSessionChannelConfig(String connectionName, ActiveConfig activeConfig, SessionChannelConfig fileCfg)
+	void retrieveSessionChannelConfig(String connectionName, ActiveConfig activeConfig, ConsumerSessionChannelConfig fileCfg)
 	{
 		for (Map map : _configList)
 			retrieveSessionChannel(map, connectionName, activeConfig, fileCfg);
+	}
+	
+	void retrieveNiProvSessionChannelConfig(String connectionName, ActiveConfig activeConfig, NiProviderSessionChannelConfig fileCfg)
+	{
+		for (Map map : _configList)
+			retrieveNiProvSessionChannel(map, connectionName, activeConfig, fileCfg);
 	}
 
 	void retrieveWSBServerInfoConfig(String serverName, ActiveConfig activeConfig,WarmStandbyServerInfoConfig currentCfg,
@@ -1541,7 +1547,7 @@ class ProgrammaticConfigure
 		}
 	}
 	
-	void retrieveChannelForSessionChannel( Map map, String channelName, SessionChannelConfig sessionChannelConfig, int hostFnCalled, ChannelConfig fileCfg)
+	void retrieveChannelForSessionChannel( Map map, String channelName, ConsumerSessionChannelConfig sessionChannelConfig, int hostFnCalled, ChannelConfig fileCfg)
 	{
 		for (MapEntry mapEntry : map)
 		{
@@ -1597,7 +1603,7 @@ class ProgrammaticConfigure
 		return fileCfg;
 	}
 	
-	void retrieveSessionChannel(Map map, String sessionChannelName, ActiveConfig activeConfig, SessionChannelConfig fileCfg)
+	void retrieveSessionChannel(Map map, String sessionChannelName, ActiveConfig activeConfig, ConsumerSessionChannelConfig fileCfg)
 	{
 		for (MapEntry mapEntry : map)
 		{
@@ -1616,6 +1622,33 @@ class ProgrammaticConfigure
 								mapListEntry.loadType() == DataTypes.ELEMENT_LIST )
 							{
 								retrieveSessionChannelInfo( mapListEntry, sessionChannelName, activeConfig, fileCfg);
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	
+	void retrieveNiProvSessionChannel(Map map, String sessionChannelName, ActiveConfig activeConfig, NiProviderSessionChannelConfig fileCfg)
+	{
+		for (MapEntry mapEntry : map)
+		{
+			if ( mapEntry.key().dataType() == DataTypes.ASCII &&
+				 mapEntry.key().ascii().ascii().equals("SessionChannelGroup") &&
+				 mapEntry.loadType() == DataTypes.ELEMENT_LIST )
+			{
+				for (ElementEntry elementEntry : mapEntry.elementList())
+				{
+					if ( elementEntry.loadType() == DataTypes.MAP && elementEntry.name().equals("SessionChannelList"))
+					{
+						for (MapEntry mapListEntry : elementEntry.map())
+						{
+							if ( mapListEntry.key().dataType() == DataTypes.ASCII  &&
+								mapListEntry.key().ascii().ascii().equals(sessionChannelName) &&
+								mapListEntry.loadType() == DataTypes.ELEMENT_LIST )
+							{
+								retrieveNiProvSessionChannelInfo( mapListEntry, sessionChannelName, activeConfig, fileCfg);
 							}
 						}
 					}
@@ -2872,7 +2905,7 @@ class ProgrammaticConfigure
 	}
 	
 	void retrieveSessionChannelInfo(MapEntry mapEntry, String sessionChannelName, ActiveConfig activeConfig,
-			SessionChannelConfig fileSessionChannelConfig)
+			ConsumerSessionChannelConfig fileSessionChannelConfig)
 	{
 		String channelSet = "";
 		String warmStandbyChannelSet = "";
@@ -2965,7 +2998,7 @@ class ProgrammaticConfigure
 			}
 		}
 		
-		SessionChannelConfig sessionChannelConfig = new SessionChannelConfig(sessionChannelName);
+		ConsumerSessionChannelConfig sessionChannelConfig = new ConsumerSessionChannelConfig(sessionChannelName);
 		
 		sessionChannelConfig.reconnectAttemptLimit = activeConfig.reconnectAttemptLimit;
 		sessionChannelConfig.reconnectMaxDelay = activeConfig.reconnectMaxDelay;
@@ -3077,6 +3110,113 @@ class ProgrammaticConfigure
 			
 			/* Add session channel configure to the active configuration. */
 			activeConfig.configSessionChannelSet.add(sessionChannelConfig);
+		}
+	}
+	
+	void retrieveNiProvSessionChannelInfo(MapEntry mapEntry, String sessionChannelName, ActiveConfig activeConfig,
+			NiProviderSessionChannelConfig fileSessionChannelConfig)
+	{
+		String channelSet = "";
+
+		int reconnectAttemptLimit = 0;
+		int reconnectMinDelay = 0;
+		int reconnectMaxDelay = 0;
+		int flags = 0;
+		
+		for(ElementEntry sessionChannelEntry : mapEntry.elementList())
+		{
+		switch (sessionChannelEntry.loadType())
+		{
+			case DataTypes.ASCII:
+			if(sessionChannelEntry.name().equalsIgnoreCase("ChannelSet"))
+			{
+				channelSet = sessionChannelEntry.ascii().ascii();
+				flags |= SessionChannelFlag.CHANNELSET_FLAG;
+			}
+			break;
+			case DataTypes.INT:
+				if (sessionChannelEntry.name().equals("ReconnectAttemptLimit"))
+				{
+					if (sessionChannelEntry.intValue() >= -1)
+					{
+						reconnectAttemptLimit = convertToInt(sessionChannelEntry.intValue());
+						flags |= SessionChannelFlag.RECONNECT_ATTEMPT_LIMIT;
+					}
+				}
+				else if (sessionChannelEntry.name().equals("ReconnectMinDelay"))
+				{
+					if (sessionChannelEntry.intValue() >= 0)
+					{
+						reconnectMinDelay = convertToInt(sessionChannelEntry.intValue());
+						flags |= SessionChannelFlag.RECONNECT_MIN_DELAY;
+					}
+				}
+				else if (sessionChannelEntry.name().equals("ReconnectMaxDelay"))
+				{
+					if (sessionChannelEntry.intValue() >= 0)
+					{
+						reconnectMaxDelay = convertToInt(sessionChannelEntry.intValue());
+						flags |= SessionChannelFlag.RECONNECT_MAX_DELAY;
+					}
+				} 
+			break;
+			}
+		}
+		
+		NiProviderSessionChannelConfig sessionChannelConfig = new NiProviderSessionChannelConfig(sessionChannelName);
+		
+		sessionChannelConfig.reconnectAttemptLimit = activeConfig.reconnectAttemptLimit;
+		sessionChannelConfig.reconnectMaxDelay = activeConfig.reconnectMaxDelay;
+		sessionChannelConfig.reconnectMinDelay = activeConfig.reconnectMinDelay;
+		
+		if ((flags & SessionChannelFlag.RECONNECT_ATTEMPT_LIMIT) != 0)
+		{
+			sessionChannelConfig.reconnectAttemptLimit = reconnectAttemptLimit;
+		}
+		
+		if ((flags & SessionChannelFlag.RECONNECT_MIN_DELAY) != 0)
+		{
+			sessionChannelConfig.reconnectMinDelay = reconnectMinDelay;
+		}
+		
+		if ((flags & SessionChannelFlag.RECONNECT_MAX_DELAY) != 0)
+		{
+			sessionChannelConfig.reconnectMaxDelay = reconnectMaxDelay;
+		}
+		
+		if( (flags & (SessionChannelFlag.CHANNELSET_FLAG | SessionChannelFlag.WSB_CHANNELSET_FLAG)) != 0)
+		{
+			if((flags & SessionChannelFlag.CHANNELSET_FLAG) != 0)
+			{
+				String[] names = channelSet.split(",");
+				for (int i = 0; i < names.length; i++)
+				{
+					String channelName = names[i].trim();
+					ChannelConfig fileConfig = null;
+					if(fileSessionChannelConfig != null)
+					{
+						Optional<ChannelConfig> optionalConfig = fileSessionChannelConfig.configChannelSet.stream()
+								.filter(e -> e.name.equals(channelName)).findFirst();
+						
+						if(optionalConfig.isPresent())
+							fileConfig = optionalConfig.get();
+					}
+					
+					retrieveChannelConfig( channelName, null, sessionChannelConfig.configChannelSet, 0, fileConfig );
+				}
+			}
+			else
+			{
+				if(fileSessionChannelConfig.configChannelSet != null)
+					sessionChannelConfig.configChannelSet = fileSessionChannelConfig.configChannelSet;
+			}
+			
+			/* Remove the session configure from the file configuration if any. */
+			if(fileSessionChannelConfig != null)
+				activeConfig.niProvConfigSessionChannelSet.removeIf(e -> e.name.equals(fileSessionChannelConfig.name));
+			
+			/* Add session channel configure to the active configuration. */
+			activeConfig.niProvConfigSessionChannelSet.add(sessionChannelConfig);
 		}
 	}
 	

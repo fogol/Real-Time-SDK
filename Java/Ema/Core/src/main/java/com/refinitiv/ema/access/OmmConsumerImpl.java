@@ -596,7 +596,7 @@ class OmmConsumerImpl extends OmmBaseImpl<OmmConsumerClient> implements OmmConsu
 		/* Checks whether the session channel is enabled */
 		if (!activeConfig().configSessionChannelSet.isEmpty())
 		{
-			new ConsumerSession<>(this, _serviceListMap);
+			_consumerSession = new ConsumerSession<>(this, _serviceListMap);
 			
 			/* Turn on SingleOpen feature in the watchlist as it is needed to recover items for the WSB feature */
 			_loginCallbackClient.rsslLoginRequest().attrib().applyHasSingleOpen();
@@ -768,7 +768,7 @@ class OmmConsumerImpl extends OmmBaseImpl<OmmConsumerClient> implements OmmConsu
 			if (reactorChannel == null)
 				reactorChannel = _loginCallbackClient.loginChannelList().get(0).rsslReactorChannel();
 
-			((ChannelInformationImpl)channelInformation).set(reactorChannel, null);
+			((ChannelInformationImpl)channelInformation).set(reactorChannel);
 			channelInformation.ipAddress("not available for OmmConsumer connections");
 		}
 		finally {
@@ -804,8 +804,9 @@ class OmmConsumerImpl extends OmmBaseImpl<OmmConsumerClient> implements OmmConsu
 		{
 			if(_consumerSession != null)
 			{
-				for(SessionChannelInfo<OmmConsumerClient> sessionChannelInfo : _consumerSession.sessionChannelList())
+				for(BaseSessionChannelInfo<OmmConsumerClient> baseChannelInfo : _consumerSession.sessionChannelList())
 				{
+					SessionChannelInfo<OmmConsumerClient> sessionChannelInfo  = (SessionChannelInfo<OmmConsumerClient>)baseChannelInfo;
 					if(sessionChannelInfo.reactorChannel() != null && value instanceof PreferredHostOptions)
 					{
 						PreferredHostOptions preferredHostOptions = (PreferredHostOptions)value;
@@ -813,7 +814,7 @@ class OmmConsumerImpl extends OmmBaseImpl<OmmConsumerClient> implements OmmConsu
 						if(preferredHostOptions.sesionChannelName() != null && 
 								preferredHostOptions.sesionChannelName().equalsIgnoreCase(sessionChannelInfo.sessionChannelConfig().name))
 						{
-							super.modifyIOCtl(code, value, sessionChannelInfo.reactorChannel(), sessionChannelInfo.sessionChannelConfig());
+							super.modifyIOCtl(code, value, sessionChannelInfo.reactorChannel(), (ConsumerSessionChannelConfig)sessionChannelInfo.sessionChannelConfig());
 						}
 					}
 					else
@@ -851,7 +852,7 @@ class OmmConsumerImpl extends OmmBaseImpl<OmmConsumerClient> implements OmmConsu
 		{
 			if(_consumerSession != null)
 			{
-				for(SessionChannelInfo<OmmConsumerClient> sessionChannelInfo : _consumerSession.sessionChannelList())
+				for(BaseSessionChannelInfo<OmmConsumerClient> sessionChannelInfo : _consumerSession.sessionChannelList())
 				{
 					ReactorErrorInfo errorInfo = ReactorFactory.createReactorErrorInfo();
 					if(sessionChannelInfo.reactorChannel() != null)
@@ -971,33 +972,13 @@ class OmmConsumerImpl extends OmmBaseImpl<OmmConsumerClient> implements OmmConsu
 		return ReactorCallbackReturnCodes.SUCCESS;
 	}
 	
-	private void populateChannelInfomation(ChannelInformationImpl channelInfoImpl, ReactorChannel reactorChannel, ChannelInfo channelInfo)
+	@Override
+	protected void populateChannelInfomation(ChannelInformationImpl channelInfoImpl, ReactorChannel reactorChannel, ChannelInfo channelInfo)
 	{
+		super.populateChannelInfomation(channelInfoImpl, reactorChannel, channelInfo);
 		if (reactorChannel != null) {
 			
-			if(channelInfo != null)
-			{
-				SessionChannelInfo<OmmConsumerClient> sessionChannelInfo = channelInfo.sessionChannelInfo();
-				
-				if(sessionChannelInfo != null)
-				{
-					channelInfoImpl.set(reactorChannel, sessionChannelInfo.sessionChannelConfig());
-					channelInfoImpl.sessionChannelName(sessionChannelInfo.sessionChannelConfig().name);
-				}
-				else
-				{
-					channelInfoImpl.set(reactorChannel, null);
-				}
-				
-				channelInfoImpl.channelName(channelInfo._channelConfig.name);
-			}
-			else
-			{
-				channelInfoImpl.set(reactorChannel, null);
-			}
-			
 			channelInfoImpl.ipAddress("not available for OmmConsumer connections");
-			channelInfoImpl.port(reactorChannel.port());
 		}
 	}
 
@@ -1019,9 +1000,9 @@ class OmmConsumerImpl extends OmmBaseImpl<OmmConsumerClient> implements OmmConsu
 			
 			if(consumerSession() != null)
 			{
-				List<SessionChannelInfo<OmmConsumerClient>> sessionChannelInfoList = consumerSession().sessionChannelList();
+				List<BaseSessionChannelInfo<OmmConsumerClient>> sessionChannelInfoList = consumerSession().sessionChannelList();
 				
-				for(SessionChannelInfo<OmmConsumerClient> sessionChInfo : sessionChannelInfoList)
+				for(BaseSessionChannelInfo<OmmConsumerClient> sessionChInfo : sessionChannelInfoList)
 				{
 					ReactorChannel reactorChannel = sessionChInfo.reactorChannel();
 					

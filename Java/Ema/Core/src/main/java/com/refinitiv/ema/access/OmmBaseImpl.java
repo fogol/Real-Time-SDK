@@ -145,6 +145,7 @@ abstract class OmmBaseImpl<T> implements OmmCommonImpl, Runnable, TimeoutClient,
 		final static int LOGIN_STREAM_CLOSED = 9;
 		final static int DIRECTORY_STREAM_OPEN_SUSPECT = 10;
 		final static int DIRECTORY_STREAM_OPEN_OK = 11;
+		final static int NIPROV_DIRECTORY_SENT = 12;
 	}
 	
 	private static int INSTANCE_ID = 0;
@@ -194,6 +195,7 @@ abstract class OmmBaseImpl<T> implements OmmCommonImpl, Runnable, TimeoutClient,
 	private SelectionKey _pipeSelectKey;
 	protected boolean _inOAuth2Callback = false;
 	protected ConsumerSession<T> _consumerSession;
+	protected NiProviderSession<T> _niProviderSession;
 	Map<String, ServiceListImpl> _serviceListMap; /* Transfer the ownership from OmmConsumerConfigImpl to this class */
 	
 	abstract Logger createLoggerClient();
@@ -753,18 +755,23 @@ abstract class OmmBaseImpl<T> implements OmmCommonImpl, Runnable, TimeoutClient,
 	
 	void ommImplState(int state)
 	{
-		if(_consumerSession == null)
-			_state = state;
-		else
+		if(_consumerSession != null)
 			_consumerSession.ommImplState(state);
+		else if(_niProviderSession != null)
+			_niProviderSession.ommImplState(state);
+		else
+			_state = state;
 	}
 	
 	int ommImplState()
 	{
-		if(_consumerSession == null)
-			return _state;
-		else
+		if(_consumerSession != null)
 			return _consumerSession.ommImplState();
+		else if(_niProviderSession != null)
+			return _niProviderSession.ommImplState();
+		else
+			return _state;
+		
 	}
 
 	ConcurrentLinkedQueue<TimeoutEvent> timerEventQueue()
@@ -999,6 +1006,13 @@ abstract class OmmBaseImpl<T> implements OmmCommonImpl, Runnable, TimeoutClient,
 			if ((ce = attributes.getPrimitiveValue(ConfigManager.JsonExpandedEnumFields)) != null) {
 				_activeConfig.jsonExpandedEnumFields = ce.intLongValue() > 0;
 			}
+			
+			if ((ce = attributes.getPrimitiveValue(ConfigManager.DefaultServiceID)) != null) {
+				value = ce.intLongValue();
+				if (value >= 0) {
+					_activeConfig.defaultConverterServiceId = ce.intLongValue();
+				}
+			}
 
 			if ((ce = attributes.getPrimitiveValue(ConfigManager.CatchUnknownJsonKeys)) != null) {
 				_activeConfig.catchUnknownJsonKeys = ce.intLongValue() > 0;
@@ -1051,9 +1065,19 @@ abstract class OmmBaseImpl<T> implements OmmCommonImpl, Runnable, TimeoutClient,
 			if (sessionChannelSet != null)
 			{
 				String[] pieces = sessionChannelSet.split(",");
-				for (int i = 0; i < pieces.length; i++)
+				if(implType() == ImplementationType.CONSUMER)
 				{
-					_activeConfig.configSessionChannelSet.add( readSessionChannelConfig(_activeConfig, config,  pieces[i].trim()));
+					for (int i = 0; i < pieces.length; i++)
+					{
+						_activeConfig.configSessionChannelSet.add( readSessionChannelConfig(_activeConfig, config,  pieces[i].trim()));
+					}
+				}
+				else if(implType() == ImplementationType.NIPROVIDER)
+				{
+					for (int i = 0; i < pieces.length; i++)
+					{
+						_activeConfig.niProvConfigSessionChannelSet.add( readNiProvSessionChannelConfig(_activeConfig, config,  pieces[i].trim()));
+					}
 				}
 			}
 		}
@@ -1226,17 +1250,36 @@ abstract class OmmBaseImpl<T> implements OmmCommonImpl, Runnable, TimeoutClient,
 			if(sessionChannelSet != null)
 			{
 				String[] connectionsNames = sessionChannelSet.split(",");
-				SessionChannelConfig fileSessionChannelConfig = null;
-				for (int i = 0; i < connectionsNames.length; i++)
+				
+				if(implType() == ImplementationType.CONSUMER)
 				{
-					String connectionName = connectionsNames[i].trim();
-					Optional<SessionChannelConfig> optionalConfig = _activeConfig.configSessionChannelSet.stream()
-							.filter(e -> e.name.equals(connectionName)).findFirst();
-					
-					if(optionalConfig.isPresent())
-						fileSessionChannelConfig = optionalConfig.get();
-					
-					pc.retrieveSessionChannelConfig(connectionName, _activeConfig, fileSessionChannelConfig);
+					ConsumerSessionChannelConfig fileSessionChannelConfig = null;
+					for (int i = 0; i < connectionsNames.length; i++)
+					{
+						String connectionName = connectionsNames[i].trim();
+						Optional<ConsumerSessionChannelConfig> optionalConfig = _activeConfig.configSessionChannelSet.stream()
+								.filter(e -> e.name.equals(connectionName)).findFirst();
+						
+						if(optionalConfig.isPresent())
+							fileSessionChannelConfig = optionalConfig.get();
+						
+						pc.retrieveSessionChannelConfig(connectionName, _activeConfig, fileSessionChannelConfig);
+					}
+				}
+				else if(implType() == ImplementationType.NIPROVIDER)
+				{
+					NiProviderSessionChannelConfig fileSessionChannelConfig = null;
+					for (int i = 0; i < connectionsNames.length; i++)
+					{
+						String connectionName = connectionsNames[i].trim();
+						Optional<NiProviderSessionChannelConfig> optionalConfig = _activeConfig.niProvConfigSessionChannelSet.stream()
+								.filter(e -> e.name.equals(connectionName)).findFirst();
+						
+						if(optionalConfig.isPresent())
+							fileSessionChannelConfig = optionalConfig.get();
+						
+						pc.retrieveNiProvSessionChannelConfig(connectionName, _activeConfig, fileSessionChannelConfig);
+					}
 				}
 			}
 		}
@@ -1317,9 +1360,9 @@ abstract class OmmBaseImpl<T> implements OmmCommonImpl, Runnable, TimeoutClient,
 		_activeConfig.rsslRDMLoginRequest = config.loginReq();
 	}
 
-	SessionChannelConfig readSessionChannelConfig(ActiveConfig activeConfig, EmaConfigImpl configImpl, String sessionChannel) {
+	ConsumerSessionChannelConfig readSessionChannelConfig(ActiveConfig activeConfig, EmaConfigImpl configImpl, String sessionChannel) {
 		ConfigElement ce = null;
-		SessionChannelConfig newSessionChannelConfig = new SessionChannelConfig(sessionChannel);
+		ConsumerSessionChannelConfig newSessionChannelConfig = new ConsumerSessionChannelConfig(sessionChannel);
 		ConfigAttributes attributes = null;
 		
 		/* Initializes these parameters to be the same as OmmConsumer instance which can be overwritten by SessionChannelInfo */
@@ -1391,6 +1434,44 @@ abstract class OmmBaseImpl<T> implements OmmCommonImpl, Runnable, TimeoutClient,
 
 		if( (ce = attributes.getPrimitiveValue(ConfigManager.PreferredDetectionTimeInterval)) != null) {
 			newSessionChannelConfig.detectionTimeInterval = ce.intLongValue();
+		}
+		
+		return newSessionChannelConfig;
+	}
+	
+	NiProviderSessionChannelConfig readNiProvSessionChannelConfig(ActiveConfig activeConfig, EmaConfigImpl configImpl, String sessionChannel) {
+		ConfigElement ce = null;
+		NiProviderSessionChannelConfig newSessionChannelConfig = new NiProviderSessionChannelConfig(sessionChannel);
+		ConfigAttributes attributes = null;
+		
+		newSessionChannelConfig.reconnectAttemptLimit = activeConfig.reconnectAttemptLimit;
+		newSessionChannelConfig.reconnectMaxDelay = activeConfig.reconnectMaxDelay;
+		newSessionChannelConfig.reconnectMinDelay = activeConfig.reconnectMinDelay;
+		
+		attributes = configImpl.xmlConfig().getSessionChannelGroupAttributes(sessionChannel);
+		
+		if (attributes != null && (ce = attributes.getPrimitiveValue(ConfigManager.ChannelSet)) != null)
+		{
+			String[] pieces = ce.asciiValue().split(",");
+			for (int i = 0; i < pieces.length; i++)
+			{
+				newSessionChannelConfig.configChannelSet.add( readChannelConfig(configImpl,  pieces[i].trim()));
+			}
+		}
+		
+		if (attributes != null && (ce = attributes.getPrimitiveValue(ConfigManager.ReconnectAttemptLimit)) != null)
+		{
+			newSessionChannelConfig.reconnectAttemptLimit = ce.intValue();
+		}
+		
+		if (attributes != null && (ce = attributes.getPrimitiveValue(ConfigManager.ReconnectMinDelay)) != null)
+		{
+			newSessionChannelConfig.reconnectMinDelay = ce.intValue();
+		}
+		
+		if (attributes != null && (ce = attributes.getPrimitiveValue(ConfigManager.ReconnectMaxDelay)) != null)
+		{
+			newSessionChannelConfig.reconnectMaxDelay = ce.intValue();
 		}
 		
 		return newSessionChannelConfig;
@@ -2097,8 +2178,6 @@ abstract class OmmBaseImpl<T> implements OmmCommonImpl, Runnable, TimeoutClient,
 
 					if (ret < ReactorReturnCodes.SUCCESS)
 					{
-						System.out.println("ReactorChannel dispatch failed: " + ret + "(" + _rsslErrorInfo.error().text() + ")");
-
 						_userLock.lock();
 						try {
 							if (_loggerClient.isErrorEnabled() || hasErrorClient())
@@ -2324,10 +2403,21 @@ abstract class OmmBaseImpl<T> implements OmmCommonImpl, Runnable, TimeoutClient,
 		return _consumerSession;
 	}
 	
+	NiProviderSession<T> niProviderSession()
+	{
+		return _niProviderSession;
+	}
+	
 	void consumerSession(ConsumerSession<T> consumerSession)
 	{
 		_consumerSession = consumerSession;
 	}
+	
+	void niProviderSession(NiProviderSession<T> niProviderSession)
+	{
+		_niProviderSession = niProviderSession;
+	}
+
 
 	void closeRsslChannel(ReactorChannel rsslReactorChannel)
 	{
@@ -2357,7 +2447,7 @@ abstract class OmmBaseImpl<T> implements OmmCommonImpl, Runnable, TimeoutClient,
 		_channelCallbackClient.removeChannel(channelInfo);
 	}
 	
-	void closeSessionChannelOnly(SessionChannelInfo<T> sessionChannelInfo)
+	void closeSessionChannelOnly(BaseSessionChannelInfo<T> sessionChannelInfo)
 	{
 		ReactorChannel reactorChannel = sessionChannelInfo.reactorChannel();
 		
@@ -2384,7 +2474,7 @@ abstract class OmmBaseImpl<T> implements OmmCommonImpl, Runnable, TimeoutClient,
 		}
 	}
 	
-	void closeSessionChannel(SessionChannelInfo<T> sessionChannelInfo)
+	void closeSessionChannel(BaseSessionChannelInfo<T> sessionChannelInfo)
 	{
 		closeSessionChannelOnly(sessionChannelInfo);
 		
@@ -2393,23 +2483,27 @@ abstract class OmmBaseImpl<T> implements OmmCommonImpl, Runnable, TimeoutClient,
 	
 	void closeConsumerSession()
 	{
-		if(_consumerSession == null)
+		if(_consumerSession == null && _niProviderSession == null)
 			return;
+		
+		BaseSession<T> baseSession = _consumerSession != null ? _consumerSession : 
+			_niProviderSession != null ? _niProviderSession : null;
 
-		List<SessionChannelInfo<T>> sessionChannelList = _consumerSession.sessionChannelList();
+		List<BaseSessionChannelInfo<T>> sessionChannelList = baseSession.sessionChannelList();
 		
 		for (int index = sessionChannelList.size() -1; index >= 0; index--)
 		{
 			sessionChannelList.get(index).close();
-			closeSessionChannel(sessionChannelList.get(index));
+			closeSessionChannel((sessionChannelList.get(index)));
 		}
 		
-		_consumerSession.close();
+		if(_consumerSession != null)
+			_consumerSession.close();
 	}
 	
 	void processChannelEvent( ReactorChannelEvent reactorChannelEvent){}
 	
-	void reLoadDirectory() {}
+	void reLoadDirectory(BaseSessionChannelInfo<T> sessionChannelInfo) {}
 	
 	@Override
 	public void eventReceived()
@@ -2464,7 +2558,7 @@ abstract class OmmBaseImpl<T> implements OmmCommonImpl, Runnable, TimeoutClient,
 		}
 	}
 
-	protected void modifyIOCtl(int code, Object value, ReactorChannel reactorChannel, SessionChannelConfig sessionChannelConfig)
+	protected void modifyIOCtl(int code, Object value, ReactorChannel reactorChannel, ConsumerSessionChannelConfig sessionChannelConfig)
 	{
 		if(reactorChannel == null)
 		{
@@ -2494,7 +2588,7 @@ abstract class OmmBaseImpl<T> implements OmmCommonImpl, Runnable, TimeoutClient,
 	}
 
 	private ReactorPreferredHostOptions convertPreferredHostOptionsIntoReactorPreferredHostOptions(PreferredHostOptions emaPreferredHostOptions, 
-			SessionChannelConfig sessionChannelConfig) 
+			ConsumerSessionChannelConfig sessionChannelConfig) 
 	{
 		ReactorPreferredHostOptions reactorPreferredHostOptions = ReactorFactory.createReactorPreferredHostOptions();
 		reactorPreferredHostOptions.isPreferredHostEnabled(emaPreferredHostOptions.isPreferredHostEnabled());
@@ -2570,6 +2664,35 @@ abstract class OmmBaseImpl<T> implements OmmCommonImpl, Runnable, TimeoutClient,
 			return true;
 		}
 		return false;
+	}
+	
+	protected void populateChannelInfomation(ChannelInformationImpl channelInfoImpl, ReactorChannel reactorChannel, ChannelInfo channelInfo)
+	{
+		if (reactorChannel != null) {
+			
+			if(channelInfo != null)
+			{
+				BaseSessionChannelInfo<OmmConsumerClient> sessionChannelInfo = channelInfo.sessionChannelInfo();
+				
+				if(sessionChannelInfo != null)
+				{
+					channelInfoImpl.set(reactorChannel, (ConsumerSessionChannelConfig)sessionChannelInfo.sessionChannelConfig());
+					channelInfoImpl.sessionChannelName(sessionChannelInfo.sessionChannelConfig().name);
+				}
+				else
+				{
+					channelInfoImpl.set(reactorChannel);
+				}
+				
+				channelInfoImpl.channelName(channelInfo._channelConfig.name);
+			}
+			else
+			{
+				channelInfoImpl.set(reactorChannel);
+			}
+			
+			channelInfoImpl.port(reactorChannel.port());
+		}
 	}
 	
 	void resetEventTimeout()

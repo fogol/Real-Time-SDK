@@ -79,14 +79,14 @@ class DirectoryCallbackClient<T> extends CallbackClient<T> implements RDMDirecto
 		if (channelInfo.getParentChannel() != null)
 			channelInfo = channelInfo.getParentChannel();
 		
-		SessionChannelInfo<OmmConsumerClient> sessionChannelInfo = channelInfo.sessionChannelInfo();
-		ConsumerSession<OmmConsumerClient> consumerSession = sessionChannelInfo!= null ? sessionChannelInfo.consumerSession() : null;
+		BaseSessionChannelInfo<OmmConsumerClient> sessionChannelInfo = channelInfo.sessionChannelInfo();
+		ConsumerSession<OmmConsumerClient> consumerSession = sessionChannelInfo!= null ? (ConsumerSession<OmmConsumerClient>)sessionChannelInfo.baseSession() : null;
 		
 		if (directoryMsg == null)
 		{
 			if(consumerSession != null)
 			{
-				_ommBaseImpl.closeSessionChannel((SessionChannelInfo<T>) sessionChannelInfo);
+				_ommBaseImpl.closeSessionChannel((BaseSessionChannelInfo<T>) sessionChannelInfo);
 			}
 			else
 			{
@@ -137,7 +137,7 @@ class DirectoryCallbackClient<T> extends CallbackClient<T> implements RDMDirecto
 					{
 						consumerSession.processDirectoryPayload(((DirectoryRefresh)directoryMsg).serviceList(), channelInfo);
 						
-						_ommBaseImpl.closeSessionChannel((SessionChannelInfo<T>) sessionChannelInfo);
+						_ommBaseImpl.closeSessionChannel((BaseSessionChannelInfo<T>) sessionChannelInfo);
 					}
 					else
 					{
@@ -224,7 +224,7 @@ class DirectoryCallbackClient<T> extends CallbackClient<T> implements RDMDirecto
 					{
 						if(consumerSession != null)
 						{
-							_ommBaseImpl.closeSessionChannel((SessionChannelInfo<T>) sessionChannelInfo);
+							_ommBaseImpl.closeSessionChannel((BaseSessionChannelInfo<T>) sessionChannelInfo);
 						}
 						else
 						{

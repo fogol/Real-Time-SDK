@@ -8,6 +8,8 @@
 
 package com.refinitiv.ema.access;
 
+import java.util.List;
+
 /**
  * OmmProviderEvent encapsulates item identifiers.
  * 
@@ -59,4 +61,13 @@ public interface OmmProviderEvent
 	 * @return the channel information associated with the event
 	 */
 	public ChannelInformation channelInformation();
+	
+	/**
+	 * Returns a list of channel information for session channels associated with the event.
+	 * 
+	 * <p>This function returns an empty list if this event does not have any session channels.</p>
+	 * 
+	 * @param sessionChannelInfo the ChannelInformation List
+	 */
+	public void sessionChannelInfo(List<ChannelInformation> sessionChannelInfo);
 }

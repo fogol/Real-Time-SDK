@@ -8953,8 +8953,9 @@ public class Reactor
 
 								if (reactorChnl.state() == State.EDP_RT
 									|| reactorChnl.state() == State.EDP_RT_DONE
-									|| reactorChnl.state() == State.EDP_RT_FAILED)
-									continue;	// Skip reading this key as we are in an authentication state
+									|| reactorChnl.state() == State.EDP_RT_FAILED
+									|| reactorChnl.state() == State.CLOSED)
+									continue;	// Skip reading this key as we are in an authentication state, or the channel has been closed
 											
                                 // remove Reactor's channel key(s) from keySet
                                 if (_reactorChannel == reactorChnl)

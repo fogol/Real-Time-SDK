@@ -1277,6 +1277,7 @@ class OmmIProviderImpl extends OmmServerBaseImpl implements OmmProvider, Directo
 		else
 		{
 			packedMsgImpl.setTransportBuffer(null);
+			packedMsgImpl.setCalledInitbuffer(false);
 		}
 
 		userLock().unlock();
@@ -1522,7 +1523,7 @@ class OmmIProviderImpl extends OmmServerBaseImpl implements OmmProvider, Directo
 		case ReactorChannelEventTypes.CHANNEL_DOWN_RECONNECTING:
 			
 			if ( _itemWatchList != null )
-				_itemWatchList.processChannelEvent(reactorChannelEvent);
+				_itemWatchList.processIProviderChannelEvent(reactorChannelEvent);
 			
 			break;
 		default:
@@ -1763,5 +1764,13 @@ class OmmIProviderImpl extends OmmServerBaseImpl implements OmmProvider, Directo
 			return true;
 		}
 		return false;
+	}
+	
+	@Override
+	public void sessionChannelInfo(List<ChannelInformation> sessionChannelInfo) {
+		throw ommIUExcept().message(
+				"IProvider applications do not support the sessionChannelInfo() method",
+				OmmInvalidUsageException.ErrorCode.INVALID_OPERATION
+		);
 	}
 }

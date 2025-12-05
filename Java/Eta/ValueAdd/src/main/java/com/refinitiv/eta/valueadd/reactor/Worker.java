@@ -1556,168 +1556,176 @@ class Worker implements Runnable
 
     private void processWorkerEvent()
     {
-        WorkerEvent event = (WorkerEvent)_queue.read();
-        WorkerEventTypes eventType = event.eventType();
-        ReactorChannel reactorChannel = event.reactorChannel();
-
-        switch (eventType)
+        WorkerEvent event;
+        WorkerEventTypes eventType;
+        ReactorChannel reactorChannel;
+        
+        // Process all worker events in the queue.
+        while(_queue.readQueueSize() != 0)
         {
-            case CHANNEL_INIT:
-                processChannelInit(reactorChannel);
-                break;
-            case CHANNEL_DOWN:
-                processChannelClose(reactorChannel, reactorChannel.channel());
-                if (!reactorChannel.isClosedAckSent && reactorChannel.server() == null && !event.reactorChannel().recoveryAttemptLimitReached())
-                {
-                    /* Go into connection recovery. */
-                    if (reactorChannel.nextRecoveryTime() < System.currentTimeMillis()) // We are not in connection recovery already and will not overwrite any reconnect time
-                    	reactorChannel.calculateNextReconnectTime();
-                    /* If we have connected with a V2 session management connection and wiled the access token, reset the session management state */
-                    if(reactorChannel.tokenSession() != null && reactorChannel.tokenSession().authTokenInfo().tokenVersion() == TokenVersion.V2 && !reactorChannel.tokenSession().hasAccessToken())
-                    {
-                    	reactorChannel.tokenSession().resetSessionMgntState();
-                    }
-
-                    _reconnectingChannelQueue.add(reactorChannel);
-				}
-                else
-                {
-    				// Cancels the fallback timer if there is no retry for the ReactorChannel
-                	cancelPHTimerEvent(reactorChannel);
-                }
-                
-                break;
-            case CHANNEL_CLOSE:
-                processChannelClose(reactorChannel, reactorChannel.channel());
-                if(reactorChannel.warmStandByHandlerImpl != null)
-                {
-                	/* Remove the channel from any session management lists */
-            		_reactor.removeReactorChannel(reactorChannel);
-
-                }
-                
-                // Cancels the fallback timer if there is no retry for the ReactorChannel
-                cancelPHTimerEvent(reactorChannel);
-                
-                reactorChannel.isClosedAckSent = true;
-                sendWorkerEvent(reactorChannel, WorkerEventTypes.CHANNEL_CLOSE_ACK,
-                        ReactorReturnCodes.SUCCESS, null, null);
-                break;
-            case SHUTDOWN:
-                _running = false;
-                break;
-            case FLUSH:
-                processChannelFlush(reactorChannel);
-                break;
-            case FD_CHANGE:
-                processChannelFDChange(reactorChannel);
-                break;
-            case TOKEN_MGNT:
-                // Setup a timer for token management
-                ReactorTokenSession tokenSession = event._tokenSession;
-
-                if(tokenSession.sessionMgntState() == SessionState.REQUEST_TOKEN_FAILURE)
-                {
-                    event.timeout(tokenSession.nextTokenReissueAttemptReqTime());
-                }
-                else if (tokenSession.sessionMgntState() == SessionState.AUTHENTICATE_USING_PASSWD_GRANT)
-                {
-                    event.timeout(System.nanoTime()); /* Sends a request to get an access token now */
-                }
-                else
-                {
-                    tokenSession.calculateNextAuthTokenRequestTime(tokenSession.authTokenInfo().expiresIn());
-                    event.timeout(tokenSession.nextAuthTokenRequestTime());
-                }
-                
-                if(tokenSession.authTokenInfo().tokenVersion() == TokenVersion.V1)
-                {
-	                /* Remove token session from the previous event and set a new event to the token session */
-	                if(tokenSession.tokenReissueEvent() != null && tokenSession.tokenReissueEvent() != event)
+        	event = (WorkerEvent)_queue.read();
+	        eventType = event.eventType();
+	        reactorChannel = event.reactorChannel();
+	
+	        switch (eventType)
+	        {
+	            case CHANNEL_INIT:
+	                processChannelInit(reactorChannel);
+	                break;
+	            case CHANNEL_DOWN:
+	                processChannelClose(reactorChannel, reactorChannel.channel());
+	                if (!reactorChannel.isClosedAckSent && reactorChannel.server() == null && !event.reactorChannel().recoveryAttemptLimitReached())
 	                {
-	                	tokenSession.tokenReissueEvent()._tokenSession = null;
-	                	tokenSession.tokenReissueEvent().timeout(System.nanoTime());
-	                	tokenSession.tokenReissueEvent(event);
+	                    /* Go into connection recovery. */
+	                    if (reactorChannel.nextRecoveryTime() < System.currentTimeMillis()) // We are not in connection recovery already and will not overwrite any reconnect time
+	                    	reactorChannel.calculateNextReconnectTime();
+	                    /* If we have connected with a V2 session management connection and wiled the access token, reset the session management state */
+	                    if(reactorChannel.tokenSession() != null && reactorChannel.tokenSession().authTokenInfo().tokenVersion() == TokenVersion.V2 && !reactorChannel.tokenSession().hasAccessToken())
+	                    {
+	                    	reactorChannel.tokenSession().resetSessionMgntState();
+	                    }
+	
+	                    _reconnectingChannelQueue.add(reactorChannel);
+					}
+	                else
+	                {
+	    				// Cancels the fallback timer if there is no retry for the ReactorChannel
+	                	cancelPHTimerEvent(reactorChannel);
+	                }
+	                
+	                break;
+	            case CHANNEL_CLOSE:
+	                processChannelClose(reactorChannel, reactorChannel.channel());
+	                if(reactorChannel.warmStandByHandlerImpl != null)
+	                {
+	                	/* Remove the channel from any session management lists */
+	            		_reactor.removeReactorChannel(reactorChannel);
+	
+	                }
+	                
+	                // Cancels the fallback timer if there is no retry for the ReactorChannel
+	                cancelPHTimerEvent(reactorChannel);
+	                
+	                reactorChannel.isClosedAckSent = true;
+	                sendWorkerEvent(reactorChannel, WorkerEventTypes.CHANNEL_CLOSE_ACK,
+	                        ReactorReturnCodes.SUCCESS, null, null);
+	                break;
+	            case SHUTDOWN:
+	                _running = false;
+	                break;
+	            case FLUSH:
+	                processChannelFlush(reactorChannel);
+	                break;
+	            case FD_CHANGE:
+	                processChannelFDChange(reactorChannel);
+	                break;
+	            case TOKEN_MGNT:
+	                // Setup a timer for token management
+	                ReactorTokenSession tokenSession = event._tokenSession;
+	
+	                if(tokenSession.sessionMgntState() == SessionState.REQUEST_TOKEN_FAILURE)
+	                {
+	                    event.timeout(tokenSession.nextTokenReissueAttemptReqTime());
+	                }
+	                else if (tokenSession.sessionMgntState() == SessionState.AUTHENTICATE_USING_PASSWD_GRANT)
+	                {
+	                    event.timeout(System.nanoTime()); /* Sends a request to get an access token now */
 	                }
 	                else
 	                {
-	                	tokenSession.tokenReissueEvent(event);
+	                    tokenSession.calculateNextAuthTokenRequestTime(tokenSession.authTokenInfo().expiresIn());
+	                    event.timeout(tokenSession.nextAuthTokenRequestTime());
 	                }
-                }
-
-                _timerEventQueue.add(event);
-                return;
-            case START_DISPATCH_TIMER:
-            case START_WATCHLIST_TIMER:
-                _timerEventQueue.add(event);
-                return;
-            case PREFERRED_HOST_TIMER:
-            	if (event.reactorChannel()._preferredHostOptions.isPreferredHostEnabled())
-            	{
-            		// If timer event already exists, then we are calling ioctl to change it. Cancel the old PH timer event.
-            		cancelExistingPHTimerEvent(event.reactorChannel());
- 
-            		 if (event.reactorChannel()._preferredHostOptions.detectionTimeSchedule() != null &&
-            				 !event.reactorChannel()._preferredHostOptions.detectionTimeSchedule().isEmpty())
-            		 {
-						event.reactorChannel()._cronCurrentTime = new Date(System.currentTimeMillis());
-						event.reactorChannel()._cronNextTime = event.reactorChannel()._cronExpression.getNextValidTimeAfter(event.reactorChannel()._cronCurrentTime);
-           		 		event.reactorChannel()._nextReconnectTimeMs = event.reactorChannel()._cronNextTime.getTime();
-           		 		event.timeout(System.nanoTime() + (event.reactorChannel()._cronNextTime.getTime() - event.reactorChannel()._cronCurrentTime.getTime()) * 1000000);
-           		 		event.reactorChannel()._currentPHTimerEvent = event; // Update with the current PH timer event
-						_timerEventQueue.add(event); 
-            		 }
-            		else if (event.reactorChannel()._preferredHostOptions.detectionTimeInterval() > 0)
-         		 	{
-         		 		event.reactorChannel()._nextReconnectTimeMs = System.currentTimeMillis() + event.reactorChannel()._preferredHostOptions.detectionTimeInterval() * 1000;
-         		 		event.timeout(System.nanoTime() + (event.reactorChannel()._preferredHostOptions.detectionTimeInterval() * 1000000000));
-         		 		event.reactorChannel()._currentPHTimerEvent = event; // Update with the current PH timer event
-         		 		_timerEventQueue.add(event); 
-         		 		return;
-         		 	}
-            	}
-            	else
-            	{
-            		/* Cancels the existing one if any from calling ioctl */
-            		cancelExistingPHTimerEvent(event.reactorChannel());
-            	}
-            	
-            	return;
-            case PREFERRED_HOST_START_FALLBACK:
-   		 		_timerEventQueue.add(event); 
-   		 		return;
-            case PREFERRED_HOST_IOCTL:
-        		// Put event into timerEventQueue so we can handle it when we are ready
-        		_timerEventQueue.add(event); 
-        		return;
-            case PREFERRED_HOST_CHANNEL_CLOSE:
-            	if(reactorChannel.oldPHStartingChannel != null)
-            	{
-            		processChannelClose(reactorChannel, reactorChannel.oldPHStartingChannel);
-            		
-            		/* Adds the reactorChannel back as the ReactorChannel is removed in the processChannelClose() method. */
-            		_activeChannelQueue.add(reactorChannel);
-            		
-            		reactorChannel.oldPHStartingChannel = null;
-            	}
-            	sendWorkerEvent(reactorChannel, WorkerEventTypes.PREFERRED_HOST_CHANNEL_CLOSE_ACK,
-                        ReactorReturnCodes.SUCCESS, null, null);
-            	break;
-            case PREFERRED_HOST_CHANNEL_DOWN:
-            	processChannelClose(reactorChannel, reactorChannel.channel());	
-                if(reactorChannel.warmStandByHandlerImpl != null)
-                {
-                	/* Remove the channel from any session management lists */
-            		_reactor.removeReactorChannel(reactorChannel);
-
-                }
-            	break;
-            default:
-                System.out.println("Worker.processWorkerEvent(): received unexpected eventType=" + eventType);
-                break;
+	                
+	                if(tokenSession.authTokenInfo().tokenVersion() == TokenVersion.V1)
+	                {
+		                /* Remove token session from the previous event and set a new event to the token session */
+		                if(tokenSession.tokenReissueEvent() != null && tokenSession.tokenReissueEvent() != event)
+		                {
+		                	tokenSession.tokenReissueEvent()._tokenSession = null;
+		                	tokenSession.tokenReissueEvent().timeout(System.nanoTime());
+		                	tokenSession.tokenReissueEvent(event);
+		                }
+		                else
+		                {
+		                	tokenSession.tokenReissueEvent(event);
+		                }
+	                }
+	
+	                _timerEventQueue.add(event);
+	                return;
+	            case START_DISPATCH_TIMER:
+	            case START_WATCHLIST_TIMER:
+	                _timerEventQueue.add(event);
+	                return;
+	            case PREFERRED_HOST_TIMER:
+	            	if (event.reactorChannel()._preferredHostOptions.isPreferredHostEnabled())
+	            	{
+	            		// If timer event already exists, then we are calling ioctl to change it. Cancel the old PH timer event.
+	            		cancelExistingPHTimerEvent(event.reactorChannel());
+	 
+	            		 if (event.reactorChannel()._preferredHostOptions.detectionTimeSchedule() != null &&
+	            				 !event.reactorChannel()._preferredHostOptions.detectionTimeSchedule().isEmpty())
+	            		 {
+							event.reactorChannel()._cronCurrentTime = new Date(System.currentTimeMillis());
+							event.reactorChannel()._cronNextTime = event.reactorChannel()._cronExpression.getNextValidTimeAfter(event.reactorChannel()._cronCurrentTime);
+	           		 		event.reactorChannel()._nextReconnectTimeMs = event.reactorChannel()._cronNextTime.getTime();
+	           		 		event.timeout(System.nanoTime() + (event.reactorChannel()._cronNextTime.getTime() - event.reactorChannel()._cronCurrentTime.getTime()) * 1000000);
+	           		 		event.reactorChannel()._currentPHTimerEvent = event; // Update with the current PH timer event
+							_timerEventQueue.add(event); 
+	            		 }
+	            		else if (event.reactorChannel()._preferredHostOptions.detectionTimeInterval() > 0)
+	         		 	{
+	         		 		event.reactorChannel()._nextReconnectTimeMs = System.currentTimeMillis() + event.reactorChannel()._preferredHostOptions.detectionTimeInterval() * 1000;
+	         		 		event.timeout(System.nanoTime() + (event.reactorChannel()._preferredHostOptions.detectionTimeInterval() * 1000000000));
+	         		 		event.reactorChannel()._currentPHTimerEvent = event; // Update with the current PH timer event
+	         		 		_timerEventQueue.add(event); 
+	         		 		return;
+	         		 	}
+	            	}
+	            	else
+	            	{
+	            		/* Cancels the existing one if any from calling ioctl */
+	            		cancelExistingPHTimerEvent(event.reactorChannel());
+	            	}
+	            	
+	            	return;
+	            case PREFERRED_HOST_START_FALLBACK:
+	   		 		_timerEventQueue.add(event); 
+	   		 		return;
+	            case PREFERRED_HOST_IOCTL:
+	        		// Put event into timerEventQueue so we can handle it when we are ready
+	        		_timerEventQueue.add(event); 
+	        		return;
+	            case PREFERRED_HOST_CHANNEL_CLOSE:
+	            	if(reactorChannel.oldPHStartingChannel != null)
+	            	{
+	            		processChannelClose(reactorChannel, reactorChannel.oldPHStartingChannel);
+	            		
+	            		/* Adds the reactorChannel back as the ReactorChannel is removed in the processChannelClose() method. */
+	            		_activeChannelQueue.add(reactorChannel);
+	            		
+	            		reactorChannel.oldPHStartingChannel = null;
+	            	}
+	            	sendWorkerEvent(reactorChannel, WorkerEventTypes.PREFERRED_HOST_CHANNEL_CLOSE_ACK,
+	                        ReactorReturnCodes.SUCCESS, null, null);
+	            	break;
+	            case PREFERRED_HOST_CHANNEL_DOWN:
+	            	processChannelClose(reactorChannel, reactorChannel.channel());	
+	                if(reactorChannel.warmStandByHandlerImpl != null)
+	                {
+	                	/* Remove the channel from any session management lists */
+	            		_reactor.removeReactorChannel(reactorChannel);
+	
+	                }
+	            	break;
+	            default:
+	                System.out.println("Worker.processWorkerEvent(): received unexpected eventType=" + eventType);
+	                break;
+	        }
+	
+	        event.returnToPool();
         }
-
-        event.returnToPool();
     }
 
     private void processChannelInit(ReactorChannel reactorChannel)
