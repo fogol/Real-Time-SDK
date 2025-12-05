@@ -4509,9 +4509,11 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
                 consumer.RegisterClient(reqMsg.ServiceListName("SVG1").Payload(batch).MarkForClear(), consumerClient);
 
+#pragma warning disable xUnit1031
                 int providerIdx = Task.WaitAny(
                     providerClient1.WaitForNonEmptinessAsync(),
                     providerClient2.WaitForNonEmptinessAsync());
+#pragma warning restore xUnit1031
                 ProviderTestClient providerClient = providerIdx == 0 ? providerClient1 : providerClient2;
 
                 RequestMsg requestMsg = providerClient.WaitForMessage<RequestMsg>();
