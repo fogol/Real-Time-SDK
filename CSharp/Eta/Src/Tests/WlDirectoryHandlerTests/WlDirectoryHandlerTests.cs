@@ -1953,7 +1953,6 @@ namespace LSEG.Eta.ValuedAdd.Tests
 
         public void CloseWlItemRequestFromPendingService()
         {
-            throw new NotImplementedException();
         }
 
         public ReactorReturnCode Dispatch(out ReactorErrorInfo errorInfo)
