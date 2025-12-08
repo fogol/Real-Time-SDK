@@ -60,7 +60,7 @@ class AppClient : IOmmConsumerClient
 
     public async Task ExitAsync(TimeSpan timeout)
     {
-        await _exitCts.CancelAsync();
+        _exitCts.Cancel();
         await Task.WhenAny(_executor, Task.Delay(timeout));
     }
 

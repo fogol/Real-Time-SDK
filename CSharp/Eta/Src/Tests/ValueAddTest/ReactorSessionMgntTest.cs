@@ -177,7 +177,7 @@ namespace LSEG.Eta.ValuedAdd.Tests
                     Assert.Equal(TOKEN_TYPE, reactorAuthTokenInfo.TokenType);
                     Assert.Equal(EXPIRES_IN, reactorAuthTokenInfo.ExpiresIn);
 
-                    Socket.Select(new[] { reactorEventFD }, null, null, TimeSpan.FromSeconds(10));
+                    Socket.Select(new[] { reactorEventFD }, null, null, 10 * 1000 * 1000);
 
                     while (reactorEventFD.Available > 0)
                     {
@@ -191,7 +191,7 @@ namespace LSEG.Eta.ValuedAdd.Tests
             readSockets.Clear();
             readSockets.Add(reactorChannel.Socket);
 
-            Socket.Select(readSockets, null, null, TimeSpan.FromSeconds(10));
+            Socket.Select(readSockets, null, null, 10 * 1000 * 1000);
             while (reactorChannel.Socket.Available > 0)
             {
                 reactor.Dispatch(dispatchOpts, out errorInfo);
@@ -278,7 +278,7 @@ namespace LSEG.Eta.ValuedAdd.Tests
             Assert.Equal(TOKEN_TYPE, reactorAuthTokenInfo.TokenType);
             Assert.Equal(EXPIRES_IN, reactorAuthTokenInfo.ExpiresIn);
 
-            reactorEventFD.Poll(TimeSpan.FromSeconds(15), SelectMode.SelectRead);
+            reactorEventFD.Poll(15 * 1000 * 1000, SelectMode.SelectRead);
 
             Assert.True(reactorEventFD.Available > 0, $"No Reactor events emitted");
             reactor.Dispatch(dispatchOpts, out errorInfo);
