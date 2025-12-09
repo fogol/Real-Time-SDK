@@ -9,10 +9,11 @@
 using System;
 
 using LSEG.Eta.Common;
+using LSEG.Eta.Transports;
 using Xunit;
 using Xunit.Categories;
 
-namespace LSEG.Eta.Transports.Tests
+namespace LSEG.Eta.Tests.Transports
 {
     [Category("TransportBuffer")]
     public class TransportBufferTests

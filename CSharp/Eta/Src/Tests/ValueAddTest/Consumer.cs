@@ -9,7 +9,7 @@
 using LSEG.Eta.ValueAdd.Reactor;
 
 
-namespace LSEG.Eta.ValuedAdd.Tests;
+namespace LSEG.Eta.Tests.ValueAddTest;
 
 
 /// <summary>

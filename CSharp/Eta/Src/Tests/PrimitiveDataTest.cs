@@ -13,7 +13,7 @@ using LSEG.Eta.Common;
 using Xunit;
 using Xunit.Categories;
 
-namespace CodecTestProject
+namespace LSGE.Eta.Tests.Codecs
 {
     [Category("ByteBuffer")]
     public class PrimitiveDataTest

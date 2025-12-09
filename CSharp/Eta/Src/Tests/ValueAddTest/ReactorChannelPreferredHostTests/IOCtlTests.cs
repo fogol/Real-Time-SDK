@@ -9,7 +9,7 @@
 using FakeItEasy;
 using LSEG.Eta.Transports;
 using LSEG.Eta.ValueAdd.Reactor;
-using LSEG.Eta.ValuedAdd.Tests;
+using LSEG.Eta.Tests.ValueAddTest;
 using System;
 using System.Linq;
 using Xunit;

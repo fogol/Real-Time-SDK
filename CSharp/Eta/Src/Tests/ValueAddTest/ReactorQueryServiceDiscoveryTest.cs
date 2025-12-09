@@ -14,7 +14,7 @@ using Xunit.Abstractions;
 using System.IO;
 using System.Text.RegularExpressions;
 
-namespace LSEG.Eta.ValuedAdd.Tests
+namespace LSEG.Eta.Tests.ValueAddTest
 {
     public class ReactorQueryServiceDiscoveryTest : IReactorServiceEndpointEventCallback
     {

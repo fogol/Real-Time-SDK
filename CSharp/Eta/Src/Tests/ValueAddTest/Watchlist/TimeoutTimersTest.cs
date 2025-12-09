@@ -15,7 +15,7 @@ using Xunit.Categories;
 
 using LSEG.Eta.ValueAdd.Reactor;
 
-namespace LSEG.Eta.ValuedAdd.Tests;
+namespace LSEG.Eta.Tests.ValueAddTest.Watchlist;
 
 /// <summary>
 /// Test <see cref="WlTimeoutTimer"/> and <see cref="WlTimeoutTimerManager"/>
@@ -206,7 +206,7 @@ public class TimeoutTimersTest
         WlTimeoutTimerGroup group = manager.CreateTimerGroup(1000);
 
         bool invoked = false;
-        WlTimeoutTimer timer = new (group, (WlTimeoutTimer t) => invoked = true);
+        WlTimeoutTimer timer = new (group, (t) => invoked = true);
 
         timer.Start();
         timer.Stop();
@@ -228,7 +228,7 @@ public class TimeoutTimersTest
         WlTimeoutTimerGroup group = manager.CreateTimerGroup(1000);
 
         bool invoked = false;
-        WlTimeoutTimer timer = new (group, (WlTimeoutTimer t) => invoked = true);
+        WlTimeoutTimer timer = new (group, (t) => invoked = true);
 
         timer.Start();
         timer.InvokeCallback();

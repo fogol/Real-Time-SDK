@@ -16,7 +16,7 @@ using LSEG.Eta.Rdm;
 using LSEG.Eta.Common;
 using System.Threading;
 
-namespace LSEG.Eta.ValuedAdd.Tests
+namespace LSEG.Eta.Tests.ValueAddTest
 {
     internal class ServerComponentTest : TestComponent
     {

@@ -14,7 +14,7 @@ using Xunit;
 using Xunit.Categories;
 using static LSEG.Eta.Rdm.Dictionary;
 
-namespace LSEG.Eta.ValuedAdd.Tests
+namespace LSEG.Eta.Tests.ValueAddTest
 {
     public class ReactorRolesTests
     {

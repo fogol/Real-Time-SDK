@@ -15,7 +15,7 @@ using LSEG.Eta.ValueAdd.Rdm;
 using LSEG.Eta.ValueAdd.Reactor;
 using Xunit;
 
-namespace LSEG.Eta.ValuedAdd.Tests;
+namespace LSEG.Eta.Tests.ValueAddTest;
 
 public class Provider : TestReactorComponent, IProviderCallback
 {

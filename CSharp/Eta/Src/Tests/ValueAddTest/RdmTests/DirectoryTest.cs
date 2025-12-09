@@ -16,7 +16,7 @@ using static LSEG.Eta.Rdm.Directory;
 using Buffer = LSEG.Eta.Codec.Buffer;
 using DataTypes = LSEG.Eta.Codec.DataTypes;
 
-namespace LSEG.Eta.ValuedAdd.Tests
+namespace LSEG.Eta.Tests.ValueAddTest
 {
     public class DirectoryTest
     {

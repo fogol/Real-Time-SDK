@@ -10,7 +10,7 @@ using Xunit;
 using LSEG.Eta.ValueAdd.Rdm;
 using LSEG.Eta.Example.Common;
 
-namespace LSEG.Eta.ValuedAdd.Tests
+namespace LSEG.Eta.Tests.ValueAddTest
 {
     internal class ClientComponentTest : TestComponent
     {

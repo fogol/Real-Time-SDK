@@ -11,7 +11,7 @@ using Xunit.Categories;
 using LSEG.Eta.Codec;
 using LSEG.Eta.Common;
 
-namespace CodecTestProject
+namespace LSGE.Eta.Tests.Codecs
 {
     [Category("ByteBuffer")]
     public class BufferTest

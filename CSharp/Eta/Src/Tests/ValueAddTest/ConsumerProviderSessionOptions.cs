@@ -11,7 +11,7 @@ using System;
 using LSEG.Eta.Transports;
 using LSEG.Eta.ValueAdd.Reactor;
 
-namespace LSEG.Eta.ValuedAdd.Tests;
+namespace LSEG.Eta.Tests.ValueAddTest;
 
 public class ConsumerProviderSessionOptions
 {

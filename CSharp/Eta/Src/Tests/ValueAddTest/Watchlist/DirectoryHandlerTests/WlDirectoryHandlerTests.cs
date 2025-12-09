@@ -15,7 +15,7 @@ using System.Collections.Generic;
 using Xunit;
 using static LSEG.Eta.Rdm.Directory;
 
-namespace LSEG.Eta.ValuedAdd.Tests
+namespace LSEG.Eta.Tests.ValueAddTest.Watchlist.DirectoryHandlerTests
 {
     public class WlDirectoryHandlerTests
     {
@@ -58,7 +58,7 @@ namespace LSEG.Eta.ValuedAdd.Tests
             DirectoryRequest dirRequest = dirMsg.DirectoryRequest;
             Assert.NotNull(dirRequest);
 
-            List<String> serviceNames = new List<string>{"IDN_RDF", "ELEKTRON_DD", "QPR0V1", "QPR0V2", "NI_PUB"};
+            List<string> serviceNames = new List<string>{"IDN_RDF", "ELEKTRON_DD", "QPR0V1", "QPR0V2", "NI_PUB"};
             List<int> serviceIds = new List<int> { 460, 7191, 7001, 7002, 37397 };
             List<ServiceFlags> serviceFlags = new List<ServiceFlags>() { ServiceFlags.HAS_INFO | ServiceFlags.HAS_LOAD, 
                 ServiceFlags.HAS_INFO | ServiceFlags.HAS_LINK | ServiceFlags.HAS_DATA,
@@ -112,7 +112,7 @@ namespace LSEG.Eta.ValuedAdd.Tests
             Assert.Equal("NI_PUB", serviceCache.ServiceName(37397));
             Assert.Equal(37397, serviceCache.ServiceId("NI_PUB"));
 
-            directoryRefresh = CreateDirectoryRefresh(new List<String> { "NI_PUB" }, 
+            directoryRefresh = CreateDirectoryRefresh(new List<string> { "NI_PUB" }, 
                 new List<int> { 37397 }, 
                 new List<ServiceFlags> { ServiceFlags.HAS_INFO | ServiceFlags.HAS_LINK | ServiceFlags.HAS_LOAD },
                 new List<MapEntryActions> { MapEntryActions.DELETE }, false, 7, false, StreamStates.OPEN, DataStates.OK);
@@ -134,7 +134,7 @@ namespace LSEG.Eta.ValuedAdd.Tests
             Service serviceByIdBeforeUpdate = new Service();
             serviceCache.Service(460).RdmService.Copy(serviceByIdBeforeUpdate);
 
-            directoryRefresh = CreateDirectoryRefresh(new List<String> { "IDN_RDF" },
+            directoryRefresh = CreateDirectoryRefresh(new List<string> { "IDN_RDF" },
                 new List<int> { 460 },
                 new List<ServiceFlags> { ServiceFlags.HAS_INFO | ServiceFlags.HAS_LOAD | ServiceFlags.HAS_LINK | ServiceFlags.HAS_DATA },
                 new List<MapEntryActions> { MapEntryActions.UPDATE }, false, 7, false, StreamStates.OPEN, DataStates.OK);
@@ -205,7 +205,7 @@ namespace LSEG.Eta.ValuedAdd.Tests
 
             Assert.Equal(ALL_FILTERS, dirRequest.Filter);
 
-            List<String> serviceNames = new List<string> { "IDN_RDF", "ELEKTRON_DD", "QPR0V1", "QPR0V2", "NI_PUB" };
+            List<string> serviceNames = new List<string> { "IDN_RDF", "ELEKTRON_DD", "QPR0V1", "QPR0V2", "NI_PUB" };
             List<int> serviceIds = new List<int> { 460, 7191, 7001, 7002, 37397 };
             List<ServiceFlags> serviceFlags = new List<ServiceFlags>() { ServiceFlags.HAS_INFO | ServiceFlags.HAS_LOAD,
                 ServiceFlags.HAS_INFO | ServiceFlags.HAS_LINK | ServiceFlags.HAS_DATA,
@@ -335,7 +335,7 @@ namespace LSEG.Eta.ValuedAdd.Tests
 
             Assert.Equal(ALL_FILTERS, dirRequest.Filter);
 
-            List<String> serviceNames = new List<string> { "IDN_RDF", "ELEKTRON_DD", "QPR0V1", "QPR0V2", "NI_PUB" };
+            List<string> serviceNames = new List<string> { "IDN_RDF", "ELEKTRON_DD", "QPR0V1", "QPR0V2", "NI_PUB" };
             List<int> serviceIds = new List<int> { 460, 7191, 7001, 7002, 37397 };
             List<ServiceFlags> serviceFlags = new List<ServiceFlags>() { ServiceFlags.HAS_INFO | ServiceFlags.HAS_LOAD,
                 ServiceFlags.HAS_INFO | ServiceFlags.HAS_LINK | ServiceFlags.HAS_DATA,
@@ -395,7 +395,7 @@ namespace LSEG.Eta.ValuedAdd.Tests
             requestMsg.MsgKey.ApplyHasServiceId();
             requestMsg.MsgKey.ApplyHasFilter();
             requestMsg.StreamId = 2;
-            requestMsg.MsgKey.Filter = Directory.ServiceFilterFlags.GROUP | Directory.ServiceFilterFlags.LINK;
+            requestMsg.MsgKey.Filter = ServiceFilterFlags.GROUP | ServiceFilterFlags.LINK;
             requestMsg.MsgKey.ServiceId = 10;
             submitOptions.ServiceName = "IDN_RDF";
             Assert.Equal(ReactorReturnCode.INVALID_USAGE, consumer.Submit(requestMsg, submitOptions, true));
@@ -458,7 +458,7 @@ namespace LSEG.Eta.ValuedAdd.Tests
 
             Assert.Equal(ALL_FILTERS, dirRequest.Filter);
 
-            List<String> serviceNames = new List<string> { "IDN_RDF", "ELEKTRON_DD", "QPR0V1", "QPR0V2", "NI_PUB" };
+            List<string> serviceNames = new List<string> { "IDN_RDF", "ELEKTRON_DD", "QPR0V1", "QPR0V2", "NI_PUB" };
             List<int> serviceIds = new List<int> { 460, 7191, 7001, 7002, 37397 };
             List<ServiceFlags> serviceFlags = new List<ServiceFlags>() { ServiceFlags.HAS_INFO | ServiceFlags.HAS_LOAD,
                 ServiceFlags.HAS_INFO | ServiceFlags.HAS_LINK | ServiceFlags.HAS_DATA,
@@ -574,7 +574,7 @@ namespace LSEG.Eta.ValuedAdd.Tests
 
             Assert.Equal(ALL_FILTERS, dirRequest.Filter);
 
-            List<String> serviceNames = new List<string> { "IDN_RDF", "ELEKTRON_DD", "QPR0V1", "QPR0V2", "NI_PUB" };
+            List<string> serviceNames = new List<string> { "IDN_RDF", "ELEKTRON_DD", "QPR0V1", "QPR0V2", "NI_PUB" };
             List<int> serviceIds = new List<int> { 460, 7191, 7001, 7002, 37397 };
             List<ServiceFlags> serviceFlags = new List<ServiceFlags>() { ServiceFlags.HAS_INFO | ServiceFlags.HAS_LOAD,
                 ServiceFlags.HAS_INFO | ServiceFlags.HAS_LINK | ServiceFlags.HAS_DATA,
@@ -677,7 +677,7 @@ namespace LSEG.Eta.ValuedAdd.Tests
 
             Assert.Equal(ALL_FILTERS, dirRequest.Filter);
 
-            List<String> serviceNames = new List<string> { "IDN_RDF", "ELEKTRON_DD", "QPR0V1", "QPR0V2", "NI_PUB" };
+            List<string> serviceNames = new List<string> { "IDN_RDF", "ELEKTRON_DD", "QPR0V1", "QPR0V2", "NI_PUB" };
             List<int> serviceIds = new List<int> { 460, 7191, 7001, 7002, 37397 };
             List<ServiceFlags> serviceFlags = new List<ServiceFlags>() { ServiceFlags.HAS_INFO | ServiceFlags.HAS_LOAD,
                 ServiceFlags.HAS_INFO | ServiceFlags.HAS_LINK | ServiceFlags.HAS_DATA,
@@ -790,7 +790,7 @@ namespace LSEG.Eta.ValuedAdd.Tests
 
             Assert.Equal(ALL_FILTERS, dirRequest.Filter);
 
-            List<String> serviceNames = new List<string> { "IDN_RDF", "ELEKTRON_DD", "QPR0V1", "QPR0V2", "NI_PUB" };
+            List<string> serviceNames = new List<string> { "IDN_RDF", "ELEKTRON_DD", "QPR0V1", "QPR0V2", "NI_PUB" };
             List<int> serviceIds = new List<int> { 460, 7191, 7001, 7002, 37397 };
             List<ServiceFlags> serviceFlags = new List<ServiceFlags>() { ServiceFlags.HAS_INFO | ServiceFlags.HAS_LOAD,
                 ServiceFlags.HAS_INFO | ServiceFlags.HAS_LINK | ServiceFlags.HAS_DATA,
@@ -916,7 +916,7 @@ namespace LSEG.Eta.ValuedAdd.Tests
             Assert.NotNull(dirRequest);
             Assert.Equal(ALL_FILTERS, dirRequest.Filter);
 
-            List<String> serviceNames = new List<string> { "IDN_RDF", "ELEKTRON_DD", "QPR0V1", "QPR0V2", "NI_PUB" };
+            List<string> serviceNames = new List<string> { "IDN_RDF", "ELEKTRON_DD", "QPR0V1", "QPR0V2", "NI_PUB" };
             List<int> serviceIds = new List<int> { 460, 7191, 7001, 7002, 37397 };
             List<ServiceFlags> serviceFlags = new List<ServiceFlags>() { ServiceFlags.HAS_INFO | ServiceFlags.HAS_LOAD,
                 ServiceFlags.HAS_INFO | ServiceFlags.HAS_LINK | ServiceFlags.HAS_DATA,
@@ -1050,7 +1050,7 @@ namespace LSEG.Eta.ValuedAdd.Tests
             Assert.NotNull(dirRequest);
             Assert.Equal(ALL_FILTERS, dirRequest.Filter);
 
-            List<String> serviceNames = new List<string> { "IDN_RDF", "ELEKTRON_DD", "QPR0V1", "QPR0V2", "NI_PUB" };
+            List<string> serviceNames = new List<string> { "IDN_RDF", "ELEKTRON_DD", "QPR0V1", "QPR0V2", "NI_PUB" };
             List<int> serviceIds = new List<int> { 460, 7191, 7001, 7002, 37397 };
             List<ServiceFlags> serviceFlags = new List<ServiceFlags>() { ServiceFlags.HAS_INFO | ServiceFlags.HAS_LOAD,
                 ServiceFlags.HAS_INFO | ServiceFlags.HAS_LINK | ServiceFlags.HAS_DATA,
@@ -1201,7 +1201,7 @@ namespace LSEG.Eta.ValuedAdd.Tests
             Assert.NotNull(dirRequest);
             Assert.Equal(ALL_FILTERS, dirRequest.Filter);
 
-            List<String> serviceNames = new List<string> { "IDN_RDF", "ELEKTRON_DD", "QPR0V1", "QPR0V2", "NI_PUB" };
+            List<string> serviceNames = new List<string> { "IDN_RDF", "ELEKTRON_DD", "QPR0V1", "QPR0V2", "NI_PUB" };
             List<int> serviceIds = new List<int> { 460, 7191, 7001, 7002, 37397 };
             List<ServiceFlags> serviceFlags = new List<ServiceFlags>() { ServiceFlags.HAS_INFO | ServiceFlags.HAS_LOAD,
                 ServiceFlags.HAS_INFO | ServiceFlags.HAS_LINK | ServiceFlags.HAS_DATA,
@@ -1307,7 +1307,7 @@ namespace LSEG.Eta.ValuedAdd.Tests
             Assert.Equal(CodecReturnCode.SUCCESS, consumer.ReactorChannel.Watchlist.ConvertRDMToCodecMsg(directoryRequest3, msg));
             Assert.Equal(ReactorReturnCode.SUCCESS, consumer.Submit(msg, submitOptions));
 
-            List<String> serviceNames = new List<string> { "IDN_RDF", "ELEKTRON_DD", "QPR0V1", "QPR0V2", "NI_PUB" };
+            List<string> serviceNames = new List<string> { "IDN_RDF", "ELEKTRON_DD", "QPR0V1", "QPR0V2", "NI_PUB" };
             List<int> serviceIds = new List<int> { 460, 7191, 7001, 7002, 37397 };
             List<ServiceFlags> serviceFlags = new List<ServiceFlags>() { ServiceFlags.HAS_INFO | ServiceFlags.HAS_LOAD,
                 ServiceFlags.HAS_INFO | ServiceFlags.HAS_LINK | ServiceFlags.HAS_DATA,
@@ -1387,7 +1387,7 @@ namespace LSEG.Eta.ValuedAdd.Tests
 
             Assert.Equal(ALL_FILTERS, dirRequest.Filter);
 
-            List<String> serviceNames = new List<string> { "IDN_RDF", "ELEKTRON_DD", "QPR0V1", "QPR0V2", "NI_PUB" };
+            List<string> serviceNames = new List<string> { "IDN_RDF", "ELEKTRON_DD", "QPR0V1", "QPR0V2", "NI_PUB" };
             List<int> serviceIds = new List<int> { 460, 7191, 7001, 7002, 37397 };
             List<ServiceFlags> serviceFlags = new List<ServiceFlags>() { ServiceFlags.HAS_INFO | ServiceFlags.HAS_LOAD,
                 ServiceFlags.HAS_INFO | ServiceFlags.HAS_LINK | ServiceFlags.HAS_DATA,

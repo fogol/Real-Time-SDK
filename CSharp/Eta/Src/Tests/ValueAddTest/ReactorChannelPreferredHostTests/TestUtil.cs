@@ -8,7 +8,7 @@
 
 using LSEG.Eta.ValueAdd.Rdm;
 using LSEG.Eta.ValueAdd.Reactor;
-using LSEG.Eta.ValuedAdd.Tests;
+using LSEG.Eta.Tests.ValueAddTest;
 using System;
 
 namespace LSEG.Eta.Tests.ValueAddTest.ReactorChannelPreferredHostTests

@@ -15,7 +15,7 @@ using Xunit.Categories;
 
 using LSEG.Eta.Common;
 
-namespace LSEG.Eta.Transports.Tests
+namespace LSEG.Eta.Tests.Transports
 {
     public class LockerTests
     {

@@ -11,7 +11,7 @@ using LSEG.Eta.Transports;
 using System.Text;
 using Xunit;
 
-namespace LSEG.Eta.ValuedAdd.Tests
+namespace LSEG.Eta.Tests.ValueAddTest
 {
     public class CopiedTransportBuffer : ITransportBuffer
     {

@@ -11,7 +11,7 @@ using LSEG.Eta.Common;
 using LSEG.Eta.ValueAdd.Rdm;
 using LSEG.Eta.ValueAdd.Reactor;
 
-namespace LSEG.Eta.ValuedAdd.Tests;
+namespace LSEG.Eta.Tests.ValueAddTest;
 
 
 /// <summary>
@@ -140,7 +140,7 @@ public class TestReactorEvent
                 }
 
             default:
-                throw new Xunit.Sdk.XunitException("Unknown ComponentEvent type.");
+                throw new global::Xunit.Sdk.XunitException("Unknown ComponentEvent type.");
 
         }
 

@@ -18,7 +18,7 @@ using Xunit;
 using Xunit.Abstractions;
 using Xunit.Categories;
 
-namespace LSEG.Eta.Transports.Tests
+namespace LSEG.Eta.Tests.ValueAddTest.Watchlist
 {
     [Category("StreamIdManagerTest")]
     public class WlStreamIdManagenentTest

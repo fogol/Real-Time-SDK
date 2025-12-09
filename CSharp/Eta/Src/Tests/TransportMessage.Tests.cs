@@ -21,8 +21,9 @@ using LSEG.Eta.Transports;
 using System.Text;
 using System.Reflection;
 using LSEG.Eta.Tests;
+using ProtocolType = LSEG.Eta.Transports.ProtocolType;
 
-namespace LSEG.Eta.Transports.Tests;
+namespace LSEG.Eta.Tests.Transports;
 
 
 /// <summary>

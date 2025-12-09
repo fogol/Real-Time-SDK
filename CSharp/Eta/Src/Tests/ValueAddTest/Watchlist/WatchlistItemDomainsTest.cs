@@ -21,7 +21,7 @@ using System.Linq;
 using static LSEG.Eta.Rdm.Dictionary;
 using System.Threading;
 
-namespace LSEG.Eta.ValuedAdd.Tests;
+namespace LSEG.Eta.Tests.ValueAddTest.Watchlist;
 
 internal class SymbolAction
 {
@@ -1616,7 +1616,7 @@ public class WatchlistItemDomainsTest
 
         // Checks whether the provider receives the view request
         DecodeViewDataForFieldId(consumer.ReactorChannel, receivedRequestMsg, decodedViewFieldList);
-        Assert.True(Enumerable.SequenceEqual(viewFieldList, decodedViewFieldList));
+        Assert.True(viewFieldList.SequenceEqual(decodedViewFieldList));
 
         providerStreamId = receivedRequestMsg.StreamId;
 
@@ -1675,7 +1675,7 @@ public class WatchlistItemDomainsTest
 
         // Checks whether the provider receives the view request
         DecodeViewDataForFieldId(consumer.ReactorChannel, receivedRequestMsg, decodedViewFieldList);
-        Assert.True(Enumerable.SequenceEqual(viewFieldList, decodedViewFieldList));
+        Assert.True(viewFieldList.SequenceEqual(decodedViewFieldList));
 
         providerStreamId = receivedRequestMsg.StreamId;
 
@@ -2049,7 +2049,7 @@ public class WatchlistItemDomainsTest
         // Checks the request view list.
         DecodeViewDataForFieldId(consumer.ReactorChannel, receivedRequestMsg, requestedViewList);
 
-        Assert.True(Enumerable.SequenceEqual(expectedViewList, requestedViewList));
+        Assert.True(expectedViewList.SequenceEqual(requestedViewList));
 
         /* Provider sends refresh .*/
         refreshMsg.Clear();
@@ -2139,7 +2139,7 @@ public class WatchlistItemDomainsTest
         // Checks the request view list.
         DecodeViewDataForFieldId(consumer.ReactorChannel, receivedRequestMsg, requestedViewList);
 
-        Assert.True(Enumerable.SequenceEqual(expectedViewList, requestedViewList));
+        Assert.True(expectedViewList.SequenceEqual(requestedViewList));
 
         /* Provider sends refresh .*/
         refreshMsg.Clear();
@@ -2308,7 +2308,7 @@ public class WatchlistItemDomainsTest
        {
            ReactorSubmitOptions submitOptions = new();
            Msg msg = new();
-           IRequestMsg requestMsg = (IRequestMsg)msg;
+           IRequestMsg requestMsg = msg;
            List<int> viewFieldList = new List<int>();
            
            if (evt.EventType == ReactorChannelEventType.CHANNEL_OPENED)
@@ -2609,7 +2609,7 @@ public class WatchlistItemDomainsTest
 
         // Check RDM Message
         Assert.Equal(DirectoryMsgType.REFRESH, directoryMsgEvent.DirectoryMsg.DirectoryMsgType);
-        DirectoryRefresh directoryRefresh = (DirectoryRefresh)directoryMsgEvent.DirectoryMsg.DirectoryRefresh;
+        DirectoryRefresh directoryRefresh = directoryMsgEvent.DirectoryMsg.DirectoryRefresh;
         Assert.Equal(2, directoryRefresh.StreamId);
         Assert.True(directoryRefresh.Solicited);
         Assert.True(directoryRefresh.ServiceList[0].HasInfo);
@@ -2778,7 +2778,7 @@ public class WatchlistItemDomainsTest
             base.RdmDirectoryMsgCallback(evt);
 
             // close user stream 7
-            ICloseMsg closeMsg = (ICloseMsg)new Msg();
+            ICloseMsg closeMsg = new Msg();
             closeMsg.Clear();
             closeMsg.MsgClass = MsgClasses.CLOSE;
             closeMsg.StreamId = 7;
@@ -2805,9 +2805,9 @@ public class WatchlistItemDomainsTest
         TestReactorEvent evt;
         ReactorMsgEvent msgEvent;
         Msg msg = new Msg();
-        IRequestMsg requestMsg = (IRequestMsg)msg;
+        IRequestMsg requestMsg = msg;
         IRequestMsg receivedRequestMsg;
-        IRefreshMsg refreshMsg = (IRefreshMsg)msg;
+        IRefreshMsg refreshMsg = msg;
         IRefreshMsg receivedRefreshMsg;
         IUpdateMsg receivedUpdateMsg;
         IStatusMsg receivedStatusMsg;
@@ -3269,9 +3269,9 @@ public class WatchlistItemDomainsTest
         ReactorSubmitOptions submitOptions = new ReactorSubmitOptions();
         TestReactorEvent evt;
         ReactorMsgEvent msgEvent;
-        IRequestMsg requestMsg = (IRequestMsg)new Msg();
+        IRequestMsg requestMsg = new Msg();
         IRequestMsg receivedRequestMsg;
-        IRefreshMsg refreshMsg = (IRefreshMsg)new Msg();
+        IRefreshMsg refreshMsg = new Msg();
         IRefreshMsg receivedRefreshMsg;
         IStatusMsg receivedStatusMsg;
         RDMDirectoryMsgEvent directoryMsgEvent;
@@ -3763,9 +3763,9 @@ public class WatchlistItemDomainsTest
         TestReactorEvent evt;
         ReactorMsgEvent msgEvent;
         Msg msg = new Msg();
-        IRequestMsg requestMsg = (IRequestMsg)msg;
+        IRequestMsg requestMsg = msg;
         IRequestMsg receivedRequestMsg;
-        IRefreshMsg refreshMsg = (IRefreshMsg)msg;
+        IRefreshMsg refreshMsg = msg;
         IRefreshMsg receivedRefreshMsg;
         int providerStreamId;
         int testUserSpecObj = 997;
@@ -4335,9 +4335,9 @@ public class WatchlistItemDomainsTest
         TestReactorEvent evt;
         ReactorMsgEvent msgEvent;
         RDMDirectoryMsgEvent directoryMsgEvent;
-        IRequestMsg requestMsg = (IRequestMsg)new Msg();
+        IRequestMsg requestMsg = new Msg();
         IRequestMsg receivedRequestMsg;
-        IRefreshMsg refreshMsg = (IRefreshMsg)new Msg();
+        IRefreshMsg refreshMsg = new Msg();
         IRefreshMsg receivedRefreshMsg;
         IStatusMsg receivedStatusMsg;
         int providerStreamId;
@@ -4520,9 +4520,9 @@ public class WatchlistItemDomainsTest
         TestReactorEvent evt;
         ReactorMsgEvent msgEvent;
         Msg msg = new Msg();
-        IRequestMsg requestMsg = (IRequestMsg)msg;
+        IRequestMsg requestMsg = msg;
         IRequestMsg receivedIRequestMsg;
-        IRefreshMsg refreshMsg = (IRefreshMsg)msg;
+        IRefreshMsg refreshMsg = msg;
         IRefreshMsg receivedRefreshMsg;
         IUpdateMsg receivedIUpdateMsg;
         IStatusMsg receivedIStatusMsg;
@@ -4824,7 +4824,7 @@ public class WatchlistItemDomainsTest
         {
             ReactorSubmitOptions submitOptions = new ReactorSubmitOptions();
             Msg msg = new Msg();
-            IRequestMsg requestMsg = (IRequestMsg)msg;
+            IRequestMsg requestMsg = msg;
 
             if (evt.EventType == ReactorChannelEventType.CHANNEL_OPENED)
             {
@@ -4929,11 +4929,11 @@ public class WatchlistItemDomainsTest
         ReactorSubmitOptions submitOptions = new ReactorSubmitOptions();
         TestReactorEvent evt;
         ReactorMsgEvent msgEvent;
-        IGenericMsg genericMsg = (IGenericMsg)new Msg();
+        IGenericMsg genericMsg = new Msg();
         IGenericMsg receivedGenericMsg;
-        IRequestMsg requestMsg = (IRequestMsg)new Msg();
+        IRequestMsg requestMsg = new Msg();
         IRequestMsg receivedRequestMsg;
-        IRefreshMsg refreshMsg = (IRefreshMsg)new Msg();
+        IRefreshMsg refreshMsg = new Msg();
         IRefreshMsg receivedRefreshMsg;
         DirectoryRequest _directoryRequest = new DirectoryRequest();
         DirectoryRefresh directoryRefresh = new DirectoryRefresh();
@@ -5255,9 +5255,9 @@ public class WatchlistItemDomainsTest
         ReactorSubmitOptions submitOptions = new ReactorSubmitOptions();
         TestReactorEvent evt;
         ReactorMsgEvent msgEvent;
-        IRequestMsg requestMsg = (IRequestMsg)new Msg();
+        IRequestMsg requestMsg = new Msg();
         IRequestMsg receivedRequestMsg;
-        IRefreshMsg refreshMsg = (IRefreshMsg)new Msg();
+        IRefreshMsg refreshMsg = new Msg();
         IRefreshMsg receivedRefreshMsg;
         IStatusMsg receivedStatusMsg;
         RDMDirectoryMsgEvent directoryMsgEvent;
@@ -5392,7 +5392,7 @@ public class WatchlistItemDomainsTest
 
         directoryUpdateMsg.ServiceList.Add(wlService.RdmService);
 
-        IUpdateMsg updateMsg = (IUpdateMsg)new Msg();
+        IUpdateMsg updateMsg = new Msg();
         updateMsg.Clear();
 
         Assert.True(provider.SubmitAndDispatch(directoryUpdateMsg, submitOptions) >= ReactorReturnCode.SUCCESS);
@@ -5420,7 +5420,7 @@ public class WatchlistItemDomainsTest
         Assert.Equal(TestReactorEventType.DIRECTORY_MSG, evt.EventType);
         directoryMsgEvent = (RDMDirectoryMsgEvent)evt.ReactorEvent;
         Assert.Equal(MsgClasses.UPDATE, directoryMsgEvent.Msg.MsgClass);
-        DirectoryUpdate receivedUpdateMsg = (DirectoryUpdate)directoryMsgEvent.DirectoryMsg.DirectoryUpdate;
+        DirectoryUpdate receivedUpdateMsg = directoryMsgEvent.DirectoryMsg.DirectoryUpdate;
         Assert.True(receivedUpdateMsg.HasFilter);
         Assert.Equal(Directory.ServiceFilterFlags.INFO | Directory.ServiceFilterFlags.STATE, receivedUpdateMsg.Filter);
         Assert.True(receivedUpdateMsg.ServiceList.Count == 1);
@@ -5457,7 +5457,7 @@ public class WatchlistItemDomainsTest
 
         directoryUpdateMsg.ServiceList.Add(wlService.RdmService);
 
-        updateMsg = (IUpdateMsg)new Msg();
+        updateMsg = new Msg();
         updateMsg.Clear();
 
         Assert.True(provider.SubmitAndDispatch(directoryUpdateMsg, submitOptions) >= ReactorReturnCode.SUCCESS);
@@ -5485,7 +5485,7 @@ public class WatchlistItemDomainsTest
         Assert.Equal(TestReactorEventType.DIRECTORY_MSG, evt.EventType);
         directoryMsgEvent = (RDMDirectoryMsgEvent)evt.ReactorEvent;
         Assert.Equal(MsgClasses.UPDATE, directoryMsgEvent.Msg.MsgClass);
-        receivedUpdateMsg = (DirectoryUpdate)directoryMsgEvent.DirectoryMsg.DirectoryUpdate;
+        receivedUpdateMsg = directoryMsgEvent.DirectoryMsg.DirectoryUpdate;
         Assert.True(receivedUpdateMsg.HasFilter);
         Assert.Equal(Directory.ServiceFilterFlags.INFO | Directory.ServiceFilterFlags.STATE, receivedUpdateMsg.Filter);
         Assert.True(receivedUpdateMsg.ServiceList.Count == 1);
@@ -5520,7 +5520,7 @@ public class WatchlistItemDomainsTest
 
         directoryUpdateMsg.ServiceList.Add(wlService.RdmService);
 
-        updateMsg = (IUpdateMsg)new Msg();
+        updateMsg = new Msg();
         updateMsg.Clear();
 
         Assert.True(provider.SubmitAndDispatch(directoryUpdateMsg, submitOptions) >= ReactorReturnCode.SUCCESS);
@@ -5531,7 +5531,7 @@ public class WatchlistItemDomainsTest
         Assert.Equal(TestReactorEventType.DIRECTORY_MSG, evt.EventType);
         directoryMsgEvent = (RDMDirectoryMsgEvent)evt.ReactorEvent;
         Assert.Equal(MsgClasses.UPDATE, directoryMsgEvent.Msg.MsgClass);
-        receivedUpdateMsg = (DirectoryUpdate)directoryMsgEvent.DirectoryMsg.DirectoryUpdate;
+        receivedUpdateMsg = directoryMsgEvent.DirectoryMsg.DirectoryUpdate;
         Assert.True(receivedUpdateMsg.HasFilter);
         Assert.Equal(Directory.ServiceFilterFlags.INFO | Directory.ServiceFilterFlags.STATE, receivedUpdateMsg.Filter);
         Assert.True(receivedUpdateMsg.ServiceList.Count == 1);
@@ -5568,7 +5568,7 @@ public class WatchlistItemDomainsTest
 
         directoryUpdateMsg.ServiceList.Add(wlService.RdmService);
 
-        updateMsg = (IUpdateMsg)new Msg();
+        updateMsg = new Msg();
         updateMsg.Clear();
 
         Assert.True(provider.SubmitAndDispatch(directoryUpdateMsg, submitOptions) >= ReactorReturnCode.SUCCESS);
@@ -5614,7 +5614,7 @@ public class WatchlistItemDomainsTest
 
         directoryUpdateMsg.ServiceList.Add(wlService.RdmService);
 
-        updateMsg = (IUpdateMsg)new Msg();
+        updateMsg = new Msg();
         updateMsg.Clear();
 
         Assert.True(provider.SubmitAndDispatch(directoryUpdateMsg, submitOptions) >= ReactorReturnCode.SUCCESS);
@@ -5678,7 +5678,7 @@ public class WatchlistItemDomainsTest
 
         directoryUpdateMsg.ServiceList.Add(wlService.RdmService);
 
-        updateMsg = (IUpdateMsg)new Msg();
+        updateMsg = new Msg();
         updateMsg.Clear();
 
         Assert.True(provider.SubmitAndDispatch(directoryUpdateMsg, submitOptions) >= ReactorReturnCode.SUCCESS);
@@ -5732,9 +5732,9 @@ public class WatchlistItemDomainsTest
         TestReactorEvent evt;
         ReactorMsgEvent msgEvent;
         Msg msg = new Msg();
-        IRequestMsg requestMsg = (IRequestMsg)msg;
+        IRequestMsg requestMsg = msg;
         IRequestMsg receivedRequestMsg;
-        IRefreshMsg refreshMsg = (IRefreshMsg)msg;
+        IRefreshMsg refreshMsg = msg;
         IRefreshMsg receivedRefreshMsg;
         int providerStreamId;
 
@@ -5857,7 +5857,7 @@ public class WatchlistItemDomainsTest
         TestReactorEvent evt;
         ReactorMsgEvent msgEvent;
         Msg msg = new Msg();
-        IRequestMsg requestMsg = (IRequestMsg)msg;
+        IRequestMsg requestMsg = msg;
         IRequestMsg receivedRequestMsg;
 
         /* Create reactors. */
@@ -5973,7 +5973,7 @@ public class WatchlistItemDomainsTest
         TestReactorEvent evt;
         ReactorMsgEvent msgEvent;
         Msg msg = new Msg();
-        IRequestMsg requestMsg = (IRequestMsg)msg;
+        IRequestMsg requestMsg = msg;
         IRequestMsg receivedRequestMsg;
 
         /* Create reactors. */
@@ -6091,19 +6091,19 @@ public class WatchlistItemDomainsTest
         ReactorSubmitOptions submitOptions = new ReactorSubmitOptions();
         TestReactorEvent evt;
         ReactorMsgEvent msgEvent;
-        IRequestMsg requestMsg = (IRequestMsg)new Msg();
+        IRequestMsg requestMsg = new Msg();
         IRequestMsg receivedRequestMsg;
-        IRefreshMsg refreshMsg = (IRefreshMsg)new Msg();
+        IRefreshMsg refreshMsg = new Msg();
         IRefreshMsg receivedRefreshMsg;
-        IUpdateMsg updateMsg = (IUpdateMsg)new Msg();
+        IUpdateMsg updateMsg = new Msg();
         IUpdateMsg receivedUpdateMsg;
-        IGenericMsg genericMsg = (IGenericMsg)new Msg();
+        IGenericMsg genericMsg = new Msg();
         IGenericMsg receivedGenericMsg;
-        IStatusMsg statusMsg = (IStatusMsg)new Msg();
+        IStatusMsg statusMsg = new Msg();
         IStatusMsg receivedStatusMsg;
-        IPostMsg postMsg = (IPostMsg)new Msg();
+        IPostMsg postMsg = new Msg();
         IPostMsg receivedPostMsg;
-        IAckMsg ackMsg = (IAckMsg)new Msg();
+        IAckMsg ackMsg = new Msg();
         IAckMsg receivedAckMsg;
         int providerStreamId;
 
@@ -6111,8 +6111,8 @@ public class WatchlistItemDomainsTest
         {
             for (int j = 0; j < 2; ++j)
             {
-                bool applyMsgKeyInUpdates = (i == 0);
-                bool requestByServiceName = (j == 0);
+                bool applyMsgKeyInUpdates = i == 0;
+                bool requestByServiceName = j == 0;
 
                 /* Create reactors. */
                 TestReactor consumerReactor = new TestReactor();
@@ -6672,9 +6672,9 @@ public class WatchlistItemDomainsTest
         TestReactorEvent evt;
         ReactorMsgEvent msgEvent;
         Msg msg = new Msg();
-        IRequestMsg requestMsg = (IRequestMsg)msg;
+        IRequestMsg requestMsg = msg;
         IRequestMsg receivedRequestMsg;
-        IRefreshMsg refreshMsg = (IRefreshMsg)msg;
+        IRefreshMsg refreshMsg = msg;
         IRefreshMsg receivedRefreshMsg;
         int providerStreamId;
 
@@ -6843,7 +6843,7 @@ public class WatchlistItemDomainsTest
 
     internal class TestData
     {
-        public TestData(int idStream, int idService, String nameService)
+        public TestData(int idStream, int idService, string nameService)
         {
             StreamId = idStream;
             ServiceId = idService;
@@ -6851,7 +6851,7 @@ public class WatchlistItemDomainsTest
         }
         public int StreamId { get; set; }
         public int ServiceId { get; set; }
-        public String ServiceName { get; set; }
+        public string ServiceName { get; set; }
     }
 
     [Fact]
@@ -6861,8 +6861,8 @@ public class WatchlistItemDomainsTest
         {
             ReactorSubmitOptions submitOptions = new ReactorSubmitOptions();
             Msg msg = new Msg();
-            IRequestMsg requestMsg = (IRequestMsg)msg;
-            ICloseMsg closeMsg = (ICloseMsg)msg;
+            IRequestMsg requestMsg = msg;
+            ICloseMsg closeMsg = msg;
 
             /* Create reactors. */
             TestReactor consumerReactor = new TestReactor();
@@ -6973,9 +6973,9 @@ public class WatchlistItemDomainsTest
         TestReactorEvent evt;
         ReactorMsgEvent msgEvent;
         Msg msg = new Msg();
-        IRequestMsg requestMsg = (IRequestMsg)new Msg();
+        IRequestMsg requestMsg = new Msg();
         IRequestMsg receivedRequestMsg;
-        IRefreshMsg refreshMsg = (IRefreshMsg)msg;
+        IRefreshMsg refreshMsg = msg;
         IRefreshMsg receivedRefreshMsg;
         int providerStreamId;
 
@@ -7190,11 +7190,11 @@ public class WatchlistItemDomainsTest
         ReactorSubmitOptions submitOptions = new ReactorSubmitOptions();
         TestReactorEvent evt;
         ReactorMsgEvent msgEvent;
-        IRequestMsg requestMsg = (IRequestMsg)new Msg();
+        IRequestMsg requestMsg = new Msg();
         IRequestMsg receivedRequestMsg;
-        IRefreshMsg refreshMsg = (IRefreshMsg)new Msg();
+        IRefreshMsg refreshMsg = new Msg();
         IRefreshMsg receivedRefreshMsg;
-        IUpdateMsg updateMsg = (IUpdateMsg)new Msg();
+        IUpdateMsg updateMsg = new Msg();
         IUpdateMsg receivedUpdateMsg;
         int providerStreamId;
         int testUserSpecObj = 997;
@@ -7424,7 +7424,7 @@ public class WatchlistItemDomainsTest
         {
             ReactorSubmitOptions submitOptions = new ReactorSubmitOptions();
             Msg msg = new Msg();
-            IRequestMsg requestMsg = (IRequestMsg)msg;
+            IRequestMsg requestMsg = msg;
             int testUserSpecObj = 997;
 
             if (evt.EventType == ReactorChannelEventType.CHANNEL_OPENED)
@@ -7475,7 +7475,7 @@ public class WatchlistItemDomainsTest
         {
             ReactorSubmitOptions submitOptions = new ReactorSubmitOptions();
             Msg msg = new Msg();
-            IRequestMsg requestMsg = (IRequestMsg)msg;
+            IRequestMsg requestMsg = msg;
             int testUserSpecObj = 997;
 
             if (evt.EventType == ReactorChannelEventType.CHANNEL_OPENED)
@@ -7525,9 +7525,9 @@ public class WatchlistItemDomainsTest
         TestReactorEvent evt;
         ReactorMsgEvent msgEvent;
         IRequestMsg receivedRequestMsg;
-        IRefreshMsg refreshMsg = (IRefreshMsg)new Msg();
+        IRefreshMsg refreshMsg = new Msg();
         IRefreshMsg receivedRefreshMsg;
-        IUpdateMsg updateMsg = (IUpdateMsg)new Msg();
+        IUpdateMsg updateMsg = new Msg();
         IUpdateMsg receivedUpdateMsg;
         int providerStreamId;
         int testUserSpecObj = 997;
@@ -7686,9 +7686,9 @@ public class WatchlistItemDomainsTest
         TestReactorEvent evt;
         ReactorMsgEvent msgEvent;
         IRequestMsg receivedRequestMsg;
-        IRefreshMsg refreshMsg = (IRefreshMsg)new Msg();
+        IRefreshMsg refreshMsg = new Msg();
         IRefreshMsg receivedRefreshMsg;
-        IUpdateMsg updateMsg = (IUpdateMsg)new Msg();
+        IUpdateMsg updateMsg = new Msg();
         IUpdateMsg receivedUpdateMsg;
         int providerStreamId;
         int testUserSpecObj = 997;
@@ -7845,9 +7845,9 @@ public class WatchlistItemDomainsTest
         ReactorSubmitOptions submitOptions = new ReactorSubmitOptions();
         TestReactorEvent evt;
         ReactorMsgEvent msgEvent;
-        IRequestMsg requestMsg = (IRequestMsg)new Msg();
+        IRequestMsg requestMsg = new Msg();
         IRequestMsg receivedRequestMsg;
-        IRefreshMsg refreshMsg = (IRefreshMsg)new Msg();
+        IRefreshMsg refreshMsg = new Msg();
         IRefreshMsg receivedRefreshMsg;
         int providerStreamId;
         int testUserSpecObj = 997;
@@ -8142,11 +8142,11 @@ public class WatchlistItemDomainsTest
         ReactorSubmitOptions submitOptions = new ReactorSubmitOptions();
         TestReactorEvent evt;
         ReactorMsgEvent msgEvent;
-        IRequestMsg requestMsg = (IRequestMsg)new Msg();
+        IRequestMsg requestMsg = new Msg();
         IRequestMsg receivedRequestMsg;
-        IRefreshMsg refreshMsg = (IRefreshMsg)new Msg();
+        IRefreshMsg refreshMsg = new Msg();
         IRefreshMsg receivedRefreshMsg;
-        IUpdateMsg updateMsg = (IUpdateMsg)new Msg();
+        IUpdateMsg updateMsg = new Msg();
         IUpdateMsg receivedUpdateMsg;
         int providerStreamId;
 
@@ -8356,9 +8356,9 @@ public class WatchlistItemDomainsTest
         TestReactorEvent evt;
         ReactorMsgEvent msgEvent;
         Msg msg = new Msg();
-        IRequestMsg requestMsg = (IRequestMsg)msg;
+        IRequestMsg requestMsg = msg;
         IRequestMsg receivedRequestMsg;
-        IRefreshMsg refreshMsg = (IRefreshMsg)msg;
+        IRefreshMsg refreshMsg = msg;
         IRefreshMsg receivedRefreshMsg;
         int providerStreamId;
         IStatusMsg receivedStatusMsg;
@@ -8586,11 +8586,11 @@ public class WatchlistItemDomainsTest
         TestReactorEvent evt;
         ReactorMsgEvent msgEvent;
         Msg msg = new Msg();
-        IRequestMsg requestMsg = (IRequestMsg)msg;
+        IRequestMsg requestMsg = msg;
         IRequestMsg receivedRequestMsg;
-        IRefreshMsg refreshMsg = (IRefreshMsg)msg;
+        IRefreshMsg refreshMsg = msg;
         IRefreshMsg receivedRefreshMsg;
-        ICloseMsg closeMsg = (ICloseMsg)msg;
+        ICloseMsg closeMsg = msg;
         int providerStreamId;
 
         /* Create reactors. */
@@ -8727,7 +8727,7 @@ public class WatchlistItemDomainsTest
 
         public override ReactorCallbackReturnCode DefaultMsgCallback(ReactorMsgEvent evt)
         {
-            IRequestMsg requestMsg = (IRequestMsg)new Msg();
+            IRequestMsg requestMsg = new Msg();
             ReactorSubmitOptions submitOptions = new ReactorSubmitOptions();
             base.DefaultMsgCallback(evt);
 
@@ -8760,9 +8760,9 @@ public class WatchlistItemDomainsTest
         TestReactorEvent evt;
         ReactorMsgEvent msgEvent;
         Msg msg = new Msg();
-        IRequestMsg requestMsg = (IRequestMsg)msg;
+        IRequestMsg requestMsg = msg;
         IRequestMsg receivedRequestMsg;
-        IRefreshMsg refreshMsg = (IRefreshMsg)msg;
+        IRefreshMsg refreshMsg = msg;
         IRefreshMsg receivedRefreshMsg;
         int providerStreamId;
 
@@ -8947,7 +8947,7 @@ public class WatchlistItemDomainsTest
         {
             ReactorSubmitOptions submitOptions = new ReactorSubmitOptions();
             Msg msg = new Msg();
-            IRequestMsg requestMsg = (IRequestMsg)msg;
+            IRequestMsg requestMsg = msg;
 
             if (evt.EventType == ReactorChannelEventType.CHANNEL_OPENED)
             {
@@ -8993,7 +8993,7 @@ public class WatchlistItemDomainsTest
         TestReactorEvent evt;
         ReactorMsgEvent msgEvent;
         IRequestMsg receivedRequestMsg;
-        IRefreshMsg refreshMsg = (IRefreshMsg)new Msg();
+        IRefreshMsg refreshMsg = new Msg();
         IRefreshMsg receivedRefreshMsg;
         int providerStreamId;
 
@@ -9121,8 +9121,8 @@ public class WatchlistItemDomainsTest
         { }
         public override ReactorCallbackReturnCode DefaultMsgCallback(ReactorMsgEvent evt)
         {
-            ICloseMsg closeMsg = (ICloseMsg)new Msg();
-            IRequestMsg requestMsg = (IRequestMsg)new Msg();
+            ICloseMsg closeMsg = new Msg();
+            IRequestMsg requestMsg = new Msg();
             ReactorSubmitOptions submitOptions = new ReactorSubmitOptions();
             base.DefaultMsgCallback(evt);
 
@@ -9161,13 +9161,13 @@ public class WatchlistItemDomainsTest
         ReactorSubmitOptions submitOptions = new ReactorSubmitOptions();
         TestReactorEvent evt;
         ReactorMsgEvent msgEvent;
-        IRequestMsg requestMsg = (IRequestMsg)new Msg();
+        IRequestMsg requestMsg = new Msg();
         IRequestMsg receivedRequestMsg;
-        IRefreshMsg refreshMsg = (IRefreshMsg)new Msg();
+        IRefreshMsg refreshMsg = new Msg();
         IRefreshMsg receivedRefreshMsg;
-        IUpdateMsg updateMsg = (IUpdateMsg)new Msg();
+        IUpdateMsg updateMsg = new Msg();
         IUpdateMsg receivedUpdateMsg;
-        ICloseMsg closeMsg = (ICloseMsg)new Msg();
+        ICloseMsg closeMsg = new Msg();
         ICloseMsg receivedCloseMsg;
         int providerStreamId;
 
@@ -9466,7 +9466,7 @@ public class WatchlistItemDomainsTest
 
         public override ReactorCallbackReturnCode DefaultMsgCallback(ReactorMsgEvent evt)
         {
-            ICloseMsg closeMsg = (ICloseMsg)new Msg();
+            ICloseMsg closeMsg = new Msg();
             ReactorSubmitOptions submitOptions = new ReactorSubmitOptions();
             base.DefaultMsgCallback(evt);
 
@@ -9501,11 +9501,11 @@ public class WatchlistItemDomainsTest
         ReactorSubmitOptions submitOptions = new ReactorSubmitOptions();
         TestReactorEvent evt;
         ReactorMsgEvent msgEvent;
-        IRequestMsg requestMsg = (IRequestMsg)new Msg();
+        IRequestMsg requestMsg = new Msg();
         IRequestMsg receivedRequestMsg;
-        IRefreshMsg refreshMsg = (IRefreshMsg)new Msg();
+        IRefreshMsg refreshMsg = new Msg();
         IRefreshMsg receivedRefreshMsg;
-        IUpdateMsg updateMsg = (IUpdateMsg)new Msg();
+        IUpdateMsg updateMsg = new Msg();
         IUpdateMsg receivedUpdateMsg;
         ICloseMsg receivedCloseMsg;
         int providerStreamId;
@@ -9739,11 +9739,11 @@ public class WatchlistItemDomainsTest
         ReactorSubmitOptions submitOptions = new ReactorSubmitOptions();
         TestReactorEvent evt;
         ReactorMsgEvent msgEvent;
-        IRequestMsg requestMsg = (IRequestMsg)new Msg();
+        IRequestMsg requestMsg = new Msg();
         IRequestMsg receivedRequestMsg;
-        IRefreshMsg refreshMsg = (IRefreshMsg)new Msg();
+        IRefreshMsg refreshMsg = new Msg();
         IRefreshMsg receivedRefreshMsg;
-        IUpdateMsg updateMsg = (IUpdateMsg)new Msg();
+        IUpdateMsg updateMsg = new Msg();
         IStatusMsg receivedStatusMsg;
         ICloseMsg receivedCloseMsg;
         RDMDirectoryMsgEvent directoryMsgEvent;
@@ -9789,7 +9789,7 @@ public class WatchlistItemDomainsTest
         for (int i = 0; i < 2; ++i)
         {
             /* Test closing in response to open & closed group status messages. */
-            int msgStreamState = (i == 0) ? StreamStates.OPEN : StreamStates.CLOSED;
+            int msgStreamState = i == 0 ? StreamStates.OPEN : StreamStates.CLOSED;
 
             for (int j = 0; j < 3; ++j)
             {
@@ -10016,7 +10016,7 @@ public class WatchlistItemDomainsTest
         {
             ReactorSubmitOptions submitOptions = new ReactorSubmitOptions();
             Msg msg = new Msg();
-            IRequestMsg requestMsg = (IRequestMsg)msg;
+            IRequestMsg requestMsg = msg;
 
             base.ReactorChannelEventCallback(evt);
 
@@ -10040,7 +10040,7 @@ public class WatchlistItemDomainsTest
 
         public override ReactorCallbackReturnCode RdmLoginMsgCallback(RDMLoginMsgEvent evt)
         {
-            ICloseMsg closeMsg = (ICloseMsg)new Msg();
+            ICloseMsg closeMsg = new Msg();
             ReactorSubmitOptions submitOptions = new ReactorSubmitOptions();
 
             base.RdmLoginMsgCallback(evt);
@@ -10112,7 +10112,7 @@ public class WatchlistItemDomainsTest
             Assert.Equal(TestReactorEventType.LOGIN_MSG, evt.EventType);
             loginMsgEvent = (RDMLoginMsgEvent)evt.ReactorEvent;
             Assert.Equal(LoginMsgType.REQUEST, loginMsgEvent.LoginMsg.LoginMsgType);
-            LoginRequest receivedLoginRequest = (LoginRequest)loginMsgEvent.LoginMsg.LoginRequest;
+            LoginRequest receivedLoginRequest = loginMsgEvent.LoginMsg.LoginRequest;
             provLoginStreamId = receivedLoginRequest.StreamId;
 
             /* Provider sends login refresh. */
@@ -10494,9 +10494,9 @@ public class WatchlistItemDomainsTest
         TestReactorEvent testEvent;
         ReactorMsgEvent msgEvent;
         Msg msg = new();
-        IRequestMsg requestMsg = (IRequestMsg)new Msg();
+        IRequestMsg requestMsg = new Msg();
         IRequestMsg receivedRequestMsg;
-        IRefreshMsg refreshMsg = (IRefreshMsg)msg;
+        IRefreshMsg refreshMsg = msg;
         IRefreshMsg receivedRefreshMsg;
 
         int providerStreamId;
@@ -14300,7 +14300,7 @@ public class WatchlistItemDomainsTest
         opts.SetupDefaultDirectoryStream = true;
         opts.ReconnectAttemptLimit = -1;
         opts.NumOfGuaranteedBuffers = 1000;
-        opts.CompressionType = Transports.CompressionType.ZLIB;
+        opts.CompressionType = Eta.Transports.CompressionType.ZLIB;
 
         provider.Bind(opts);
 
@@ -15720,9 +15720,9 @@ public class WatchlistItemDomainsTest
         TestReactorEvent evt;
         ReactorMsgEvent msgEvent;
         Msg msg = new Msg();
-        IRequestMsg requestMsg = (IRequestMsg)msg;
+        IRequestMsg requestMsg = msg;
         IRequestMsg receivedRequestMsg;
-        IRefreshMsg refreshMsg = (IRefreshMsg)msg;
+        IRefreshMsg refreshMsg = msg;
         IRefreshMsg receivedRefreshMsg;
         int providerStreamId;
 
@@ -15851,7 +15851,7 @@ public class WatchlistItemDomainsTest
 
         public override ReactorCallbackReturnCode DefaultMsgCallback(ReactorMsgEvent evt)
         {
-            IRequestMsg requestMsg = (IRequestMsg)new Msg();
+            IRequestMsg requestMsg = new Msg();
             ReactorSubmitOptions submitOptions = new ReactorSubmitOptions();
             base.DefaultMsgCallback(evt);
 
@@ -15895,9 +15895,9 @@ public class WatchlistItemDomainsTest
         ReactorSubmitOptions submitOptions = new ReactorSubmitOptions();
         TestReactorEvent evt;
         ReactorMsgEvent msgEvent;
-        IRequestMsg requestMsg = (IRequestMsg)new Msg();
+        IRequestMsg requestMsg = new Msg();
         IRequestMsg receivedRequestMsg;
-        IRefreshMsg refreshMsg = (IRefreshMsg)new Msg();
+        IRefreshMsg refreshMsg = new Msg();
         IRefreshMsg receivedRefreshMsg;
 
         /* Create reactors. */
@@ -16223,7 +16223,7 @@ public class WatchlistItemDomainsTest
 
         public override ReactorCallbackReturnCode DefaultMsgCallback(ReactorMsgEvent evt)
         {
-            IRequestMsg requestMsg = (IRequestMsg)new Msg();
+            IRequestMsg requestMsg = new Msg();
             ReactorSubmitOptions submitOptions = new ReactorSubmitOptions();
             base.DefaultMsgCallback(evt);
 
@@ -16255,9 +16255,9 @@ public class WatchlistItemDomainsTest
         ReactorSubmitOptions submitOptions = new ReactorSubmitOptions();
         TestReactorEvent evt;
         ReactorMsgEvent msgEvent;
-        IRequestMsg requestMsg = (IRequestMsg)new Msg();
+        IRequestMsg requestMsg = new Msg();
         IRequestMsg receivedRequestMsg;
-        IRefreshMsg refreshMsg = (IRefreshMsg)new Msg();
+        IRefreshMsg refreshMsg = new Msg();
         IRefreshMsg receivedRefreshMsg;
 
         /* Create reactors. */
@@ -16473,9 +16473,9 @@ public class WatchlistItemDomainsTest
      * Also submits a PostMsg and GenericMsg on stream 5, which will fail because there is no longer a stream to the provider. */
     class SubmitOnDisconnectConsumer : Consumer
     {
-        IRequestMsg requestMsg = (IRequestMsg)new Msg();
-        IPostMsg postMsg = (IPostMsg)new Msg();
-        IGenericMsg genericMsg = (IGenericMsg)new Msg();
+        IRequestMsg requestMsg = new Msg();
+        IPostMsg postMsg = new Msg();
+        IGenericMsg genericMsg = new Msg();
         ReactorSubmitOptions submitOptions = new ReactorSubmitOptions();
         ReactorErrorInfo errorInfo = new ReactorErrorInfo();
 
@@ -16537,9 +16537,9 @@ public class WatchlistItemDomainsTest
         TestReactorEvent evt;
         ReactorMsgEvent msgEvent;
         Msg msg = new Msg();
-        IRequestMsg requestMsg = (IRequestMsg)msg;
+        IRequestMsg requestMsg = msg;
         IRequestMsg receivedRequestMsg;
-        IRefreshMsg refreshMsg = (IRefreshMsg)msg;
+        IRefreshMsg refreshMsg = msg;
         IRefreshMsg receivedRefreshMsg;
         IStatusMsg receivedStatusMsg;
         int providerStreamId;
@@ -16721,7 +16721,7 @@ public class WatchlistItemDomainsTest
 
         public override ReactorCallbackReturnCode DefaultMsgCallback(ReactorMsgEvent evt)
         {
-            IRequestMsg requestMsg = (IRequestMsg)new Msg();
+            IRequestMsg requestMsg = new Msg();
             ReactorSubmitOptions submitOptions = new ReactorSubmitOptions();
             base.DefaultMsgCallback(evt);
 
@@ -16751,11 +16751,11 @@ public class WatchlistItemDomainsTest
         ReactorSubmitOptions submitOptions = new ReactorSubmitOptions();
         TestReactorEvent evt;
         ReactorMsgEvent msgEvent;
-        IRequestMsg requestMsg = (IRequestMsg)new Msg();
+        IRequestMsg requestMsg = new Msg();
         IRequestMsg receivedRequestMsg;
-        IStatusMsg statusMsg = (IStatusMsg)new Msg();
+        IStatusMsg statusMsg = new Msg();
         IStatusMsg receivedStatusMsg;
-        IRefreshMsg refreshMsg = (IRefreshMsg)new Msg();
+        IRefreshMsg refreshMsg = new Msg();
         IRefreshMsg receivedRefreshMsg;
         int providerStreamId;
 
@@ -16964,9 +16964,9 @@ public class WatchlistItemDomainsTest
         TestReactorEvent evt;
         ReactorMsgEvent msgEvent;
         Msg msg = new Msg();
-        IRequestMsg requestMsg = (IRequestMsg)new Msg();
+        IRequestMsg requestMsg = new Msg();
         IRequestMsg receivedRequestMsg;
-        IRefreshMsg refreshMsg = (IRefreshMsg)msg;
+        IRefreshMsg refreshMsg = msg;
         IRefreshMsg receivedRefreshMsg;
         IStatusMsg receivedStatusMsg;
 

@@ -14,7 +14,7 @@ using LSEG.Eta.Common;
 using LSEG.Eta.ValueAdd.Rdm;
 using LSEG.Eta.ValueAdd.Reactor;
 
-namespace LSEG.Eta.ValuedAdd.Tests
+namespace LSEG.Eta.Tests.ValueAddTest
 {
     public class TestUtil
     {
@@ -158,7 +158,7 @@ namespace LSEG.Eta.ValuedAdd.Tests
 
         public static void Fail(string message)
         {
-            throw new Xunit.Sdk.XunitException(message);
+            throw new global::Xunit.Sdk.XunitException(message);
         }
 
         public delegate ReactorReturnCode ReactorMethodDelegate(out ReactorErrorInfo reactorErrorInfo);

@@ -13,7 +13,7 @@ using LSEG.Eta.Common;
 using Xunit;
 using Xunit.Categories;
 
-namespace CodecTestProject
+namespace LSGE.Eta.Tests.Codecs
 {
     public class RealTest
     {
@@ -70,7 +70,7 @@ namespace CodecTestProject
         [Fact]
         [Category("Unit")]
         [Category("ByteBuffer")]
-        private void TestRealField()
+        public void TestRealField()
         {
             FieldEntry entry = new FieldEntry();
             FieldList fieldList = new FieldList();

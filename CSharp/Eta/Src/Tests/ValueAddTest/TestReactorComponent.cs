@@ -14,7 +14,7 @@ using LSEG.Eta.ValueAdd.Rdm;
 using LSEG.Eta.ValueAdd.Reactor;
 using System;
 
-namespace LSEG.Eta.ValuedAdd.Tests;
+namespace LSEG.Eta.Tests.ValueAddTest;
 
 /** A component represents a consumer, provider, etc. on the network (note the Consumer and Provider subclasses). */
 public abstract class TestReactorComponent : IDisposable

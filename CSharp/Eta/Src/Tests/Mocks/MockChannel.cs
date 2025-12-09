@@ -38,11 +38,11 @@ namespace LSEG.Eta.Tests
 
         public Socket Socket => null;
 
-        public event Transports.ConnectionStateChangeHandler OnConnected;
+        public event Eta.Transports.ConnectionStateChangeHandler OnConnected;
         public event DataXferHandler OnDataReady;
         public event DataXferHandler OnDataSent;
-        public event Transports.ConnectionStateChangeHandler OnDisconnected;
-        public event Transports.ConnectionStateChangeHandler OnError;
+        public event Eta.Transports.ConnectionStateChangeHandler OnDisconnected;
+        public event Eta.Transports.ConnectionStateChangeHandler OnError;
 
         internal ByteBuffer m_networkBuffer = new ByteBuffer(131072); // Default to write mode
 

@@ -19,7 +19,7 @@ using System.IO;
 using Xunit.Abstractions;
 using Polly;
 
-namespace LSEG.Eta.ValuedAdd.Tests
+namespace LSEG.Eta.Tests.ValueAddTest
 {
     public class ReactorSessionMgntTest : IReactorChannelEventCallback, IDefaultMsgCallback, 
         IReactorAuthTokenEventCallback, IReactorOAuthCredentialEventCallback, IRDMLoginMsgCallback,
@@ -122,7 +122,7 @@ namespace LSEG.Eta.ValuedAdd.Tests
             Socket reactorEventFD = reactor.EventSocket;
             ReactorDispatchOptions dispatchOpts = new ReactorDispatchOptions();
             ReactorConnectInfo connectInfo = new ReactorConnectInfo();
-            connectInfo.ConnectOptions.ConnectionType = Transports.ConnectionType.ENCRYPTED;
+            connectInfo.ConnectOptions.ConnectionType = Eta.Transports.ConnectionType.ENCRYPTED;
             connectInfo.ConnectOptions.MajorVersion = Codec.Codec.MajorVersion();
             connectInfo.ConnectOptions.MinorVersion = Codec.Codec.MinorVersion();
             connectInfo.EnableSessionManagement = true;
@@ -240,7 +240,7 @@ namespace LSEG.Eta.ValuedAdd.Tests
             Socket reactorEventFD = reactor.EventSocket;
             ReactorDispatchOptions dispatchOpts = new ReactorDispatchOptions();
             ReactorConnectInfo connectInfo = new ReactorConnectInfo();
-            connectInfo.ConnectOptions.ConnectionType = Transports.ConnectionType.ENCRYPTED;
+            connectInfo.ConnectOptions.ConnectionType = Eta.Transports.ConnectionType.ENCRYPTED;
             connectInfo.ConnectOptions.MajorVersion = Codec.Codec.MajorVersion();
             connectInfo.ConnectOptions.MinorVersion = Codec.Codec.MinorVersion();
             connectInfo.EnableSessionManagement = true;
@@ -327,7 +327,7 @@ namespace LSEG.Eta.ValuedAdd.Tests
             Socket reactorEventFD = reactor.EventSocket;
             ReactorDispatchOptions dispatchOpts = new ReactorDispatchOptions();
             ReactorConnectInfo connectInfo = new ReactorConnectInfo();
-            connectInfo.ConnectOptions.ConnectionType = Transports.ConnectionType.ENCRYPTED;
+            connectInfo.ConnectOptions.ConnectionType = Eta.Transports.ConnectionType.ENCRYPTED;
             connectInfo.EnableSessionManagement = true;
             connectInfo.ReactorAuthTokenEventCallback = this;
             connectInfo.Location = "mars-east-1"; // Specify a location
@@ -401,7 +401,7 @@ namespace LSEG.Eta.ValuedAdd.Tests
             ReactorConnectInfo firstConnectInfo = new ReactorConnectInfo();
 
             /* Expect to fails for the first connection */
-            firstConnectInfo.ConnectOptions.ConnectionType = Transports.ConnectionType.SOCKET;
+            firstConnectInfo.ConnectOptions.ConnectionType = Eta.Transports.ConnectionType.SOCKET;
             firstConnectInfo.ConnectOptions.MajorVersion = Codec.Codec.MajorVersion();
             firstConnectInfo.ConnectOptions.MinorVersion = Codec.Codec.MinorVersion();
             firstConnectInfo.ConnectOptions.UnifiedNetworkInfo.Address = "localhost";
@@ -409,7 +409,7 @@ namespace LSEG.Eta.ValuedAdd.Tests
 
             /* Establish a connection with RTO */
             ReactorConnectInfo secondConnectInfo = new ReactorConnectInfo();
-            secondConnectInfo.ConnectOptions.ConnectionType = Transports.ConnectionType.ENCRYPTED;
+            secondConnectInfo.ConnectOptions.ConnectionType = Eta.Transports.ConnectionType.ENCRYPTED;
             secondConnectInfo.ConnectOptions.MajorVersion = Codec.Codec.MajorVersion();
             secondConnectInfo.ConnectOptions.MinorVersion = Codec.Codec.MinorVersion();
             secondConnectInfo.EnableSessionManagement = true;
@@ -560,7 +560,7 @@ namespace LSEG.Eta.ValuedAdd.Tests
             ReactorConnectInfo firstConnectInfo = new ReactorConnectInfo();
 
             /* Expect to fails for the first connection */
-            firstConnectInfo.ConnectOptions.ConnectionType = Transports.ConnectionType.SOCKET;
+            firstConnectInfo.ConnectOptions.ConnectionType = Eta.Transports.ConnectionType.SOCKET;
             firstConnectInfo.ConnectOptions.MajorVersion = Codec.Codec.MajorVersion();
             firstConnectInfo.ConnectOptions.MinorVersion = Codec.Codec.MinorVersion();
             firstConnectInfo.ConnectOptions.UnifiedNetworkInfo.Address = "localhost";
@@ -568,7 +568,7 @@ namespace LSEG.Eta.ValuedAdd.Tests
 
             /* Establish a connection with RTO */
             ReactorConnectInfo secondConnectInfo = new ReactorConnectInfo();
-            secondConnectInfo.ConnectOptions.ConnectionType = Transports.ConnectionType.ENCRYPTED;
+            secondConnectInfo.ConnectOptions.ConnectionType = Eta.Transports.ConnectionType.ENCRYPTED;
             secondConnectInfo.ConnectOptions.MajorVersion = Codec.Codec.MajorVersion();
             secondConnectInfo.ConnectOptions.MinorVersion = Codec.Codec.MinorVersion();
             secondConnectInfo.EnableSessionManagement = true;
@@ -704,7 +704,7 @@ namespace LSEG.Eta.ValuedAdd.Tests
             Socket reactorEventFD = reactor.EventSocket;
             ReactorDispatchOptions dispatchOpts = new ReactorDispatchOptions();
             ReactorConnectInfo connectInfo = new ReactorConnectInfo();
-            connectInfo.ConnectOptions.ConnectionType = Transports.ConnectionType.ENCRYPTED;
+            connectInfo.ConnectOptions.ConnectionType = Eta.Transports.ConnectionType.ENCRYPTED;
             connectInfo.ConnectOptions.MajorVersion = Codec.Codec.MajorVersion();
             connectInfo.ConnectOptions.MinorVersion = Codec.Codec.MinorVersion();
             connectInfo.EnableSessionManagement = true;
@@ -745,7 +745,7 @@ namespace LSEG.Eta.ValuedAdd.Tests
 
             ReactorDispatchOptions dispatchOpts = new ReactorDispatchOptions();
             ReactorConnectInfo connectInfo = new ReactorConnectInfo();
-            connectInfo.ConnectOptions.ConnectionType = Transports.ConnectionType.ENCRYPTED;
+            connectInfo.ConnectOptions.ConnectionType = Eta.Transports.ConnectionType.ENCRYPTED;
             connectInfo.ConnectOptions.MajorVersion = Codec.Codec.MajorVersion();
             connectInfo.ConnectOptions.MinorVersion = Codec.Codec.MinorVersion();
             connectInfo.EnableSessionManagement = true;

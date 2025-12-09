@@ -7,11 +7,11 @@
  */
 
 using LSEG.Eta.ValueAdd.Reactor;
-using LSEG.Eta.ValuedAdd.Tests;
+using LSEG.Eta.Tests.ValueAddTest;
 using System;
 using Xunit;
 
-using static LSEG.Eta.ValuedAdd.Tests.TestUtil;
+using static LSEG.Eta.Tests.ValueAddTest.TestUtil;
 using static LSEG.Eta.Tests.ValueAddTest.ReactorChannelPreferredHostTests.TestUtil;
 
 namespace LSEG.Eta.Tests.ValueAddTest.ReactorChannelPreferredHostTests

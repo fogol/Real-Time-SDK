@@ -6,7 +6,7 @@
  *|-----------------------------------------------------------------------------
  */
 
-namespace LSEG.Eta.Transports.Tests
+namespace LSEG.Eta.Tests.Transports
 {
     public class TestMessages
     {

@@ -12,7 +12,7 @@ using System.Collections.Generic;
 using Xunit;
 using Xunit.Categories;
 
-namespace LSEG.Eta.ValuedAdd.Tests
+namespace LSEG.Eta.Tests.ValueAddTest.Watchlist.DirectoryHandlerTests
 {
     public class WlServiceCacheTests
     {

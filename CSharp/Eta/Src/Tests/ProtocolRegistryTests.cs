@@ -14,7 +14,7 @@ using Xunit.Categories;
 using LSEG.Eta.Internal;
 using LSEG.Eta.Transports;
 
-namespace LSEG.Eta.Transports.Tests
+namespace LSEG.Eta.Tests.Transports
 {
     public class ProtocolRegistryTests
     {
