@@ -127,6 +127,10 @@ RSSL_API RsslRet rsslRMTESApplyToCache(RsslBuffer *inBuffer, RsslRmtesCacheBuffe
  *	3.	Allocate memory for the unicode string.<BR>
  *	3.  Call rsslRMTESToUTF8 to convert the RMTES data for display or parsing.<BR>
  *
+ *  @note If the applied data in pRmtesBuffer contains a UTF-8 escape sequence, rsslRMTESToUTF8 will perform a copy of 
+ *  of the remaining data in the buffer, also applying any copy or repeat commands if present. This may result in an invalid
+ *  UTF-8 string if an upstream provider has truncated the string.
+ * 
  *	@param pRmtesBuffer Input RMTES cache buffer that contains RMTES data
  *	@param charBuffer character buffer, populated after the function is complete
  *	@return RsslRet code indicating success or failure:<BR>  
