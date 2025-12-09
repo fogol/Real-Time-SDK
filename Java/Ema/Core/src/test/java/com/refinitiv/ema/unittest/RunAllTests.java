@@ -2,7 +2,7 @@
  *|            This source code is provided under the Apache 2.0 license
  *|  and is provided AS IS with no warranty or guarantee of fit for purpose.
  *|                See the project's LICENSE.md for details.
- *|           Copyright (C) 2020,2024 LSEG. All rights reserved.
+ *|           Copyright (C) 2020,2024-2025 LSEG. All rights reserved.
  *|-----------------------------------------------------------------------------
  */
 
@@ -18,7 +18,7 @@ import com.refinitiv.ema.access.OmmConsumerTests;
 @RunWith(Suite.class)
 @SuiteClasses({FieldListTests.class, ElementListTests.class, MapTests.class, SeriesTests.class, FilterListTests.class, VectorTests.class, DataDictionaryJunitTest.class,
 	ArrayTests.class, AckMsgTests.class, GenericMsgTests.class, ReqMsgTests.class, RefreshMsgTests.class, StatusMsgTests.class, UpdateMsgTests.class, PostMsgTests.class, 
-	RmtesUnitTest.class, DateTimeTests.class, EmaFileConfigJunitTests.class, LoginHelperTest.class, EmaUtilityTests.class, OmmConsumerTests.class})
+	RmtesUnitTest.class, DateTimeTests.class, EmaFileConfigJunitTests.class, LoginHelperTest.class, EmaUtilityTests.class, OmmConsumerTests.class, NiProviderTests.class})
 public class RunAllTests {
 
 } 

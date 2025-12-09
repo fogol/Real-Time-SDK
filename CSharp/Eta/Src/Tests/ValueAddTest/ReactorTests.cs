@@ -22,7 +22,7 @@ using LSEG.Eta.Rdm;
 using Buffer = LSEG.Eta.Codec.Buffer;
 using System.Collections.Generic;
 
-namespace LSEG.Eta.ValuedAdd.Tests
+namespace LSEG.Eta.Tests.ValueAddTest
 {
     [Collection("ValueAdded")]
     public class ReactorTests
@@ -174,7 +174,7 @@ namespace LSEG.Eta.ValuedAdd.Tests
                 ServiceName = serviceName,
                 ServerBlocking = false,
                 ConnectionType = ConnectionType.SOCKET,
-                ProtocolType = Transports.ProtocolType.RWF,
+                ProtocolType = Eta.Transports.ProtocolType.RWF,
                 UserSpecObject = this,
                 InterfaceName = "localhost",
                 MajorVersion = Codec.Codec.MajorVersion(),
@@ -300,7 +300,7 @@ namespace LSEG.Eta.ValuedAdd.Tests
                 ServiceName = serviceName,
                 ServerBlocking = false,
                 ConnectionType = ConnectionType.SOCKET,
-                ProtocolType = Transports.ProtocolType.RWF,
+                ProtocolType = Eta.Transports.ProtocolType.RWF,
                 UserSpecObject = this,
                 InterfaceName = "localhost",
                 MajorVersion = Codec.Codec.MajorVersion(),
@@ -523,7 +523,7 @@ namespace LSEG.Eta.ValuedAdd.Tests
                 ServiceName = serviceName,
                 ServerBlocking = false,
                 ConnectionType = ConnectionType.SOCKET,
-                ProtocolType = Transports.ProtocolType.RWF,
+                ProtocolType = Eta.Transports.ProtocolType.RWF,
                 UserSpecObject = this,
                 InterfaceName = "localhost",
                 MajorVersion = Codec.Codec.MajorVersion(),
@@ -677,7 +677,7 @@ namespace LSEG.Eta.ValuedAdd.Tests
                 ServiceName = serviceName,
                 ServerBlocking = false,
                 ConnectionType = ConnectionType.SOCKET,
-                ProtocolType = Transports.ProtocolType.RWF,
+                ProtocolType = Eta.Transports.ProtocolType.RWF,
                 UserSpecObject = this,
                 InterfaceName = "localhost",
                 MajorVersion = Codec.Codec.MajorVersion(),
@@ -775,7 +775,7 @@ namespace LSEG.Eta.ValuedAdd.Tests
                 ServiceName = serviceName,
                 ServerBlocking = false,
                 ConnectionType = ConnectionType.SOCKET,
-                ProtocolType = Transports.ProtocolType.RWF,
+                ProtocolType = Eta.Transports.ProtocolType.RWF,
                 UserSpecObject = this,
                 InterfaceName = "localhost",
                 MajorVersion = Codec.Codec.MajorVersion(),
@@ -881,7 +881,7 @@ namespace LSEG.Eta.ValuedAdd.Tests
                 ServiceName = serviceName,
                 ServerBlocking = false,
                 ConnectionType = ConnectionType.SOCKET,
-                ProtocolType = Transports.ProtocolType.RWF,
+                ProtocolType = Eta.Transports.ProtocolType.RWF,
                 UserSpecObject = this,
                 InterfaceName = "localhost",
                 MajorVersion = Codec.Codec.MajorVersion(),
@@ -990,7 +990,7 @@ namespace LSEG.Eta.ValuedAdd.Tests
                 ServiceName = serviceName,
                 ServerBlocking = false,
                 ConnectionType = ConnectionType.SOCKET,
-                ProtocolType = Transports.ProtocolType.RWF,
+                ProtocolType = Eta.Transports.ProtocolType.RWF,
                 UserSpecObject = this,
                 InterfaceName = "localhost",
                 MajorVersion = Codec.Codec.MajorVersion(),
@@ -1108,7 +1108,7 @@ namespace LSEG.Eta.ValuedAdd.Tests
                 ServiceName = serviceName,
                 ServerBlocking = false,
                 ConnectionType = ConnectionType.SOCKET,
-                ProtocolType = Transports.ProtocolType.RWF,
+                ProtocolType = Eta.Transports.ProtocolType.RWF,
                 UserSpecObject = this,
                 InterfaceName = "localhost",
                 MajorVersion = Codec.Codec.MajorVersion(),
@@ -1228,7 +1228,7 @@ namespace LSEG.Eta.ValuedAdd.Tests
                 ServiceName = serviceName,
                 ServerBlocking = false,
                 ConnectionType = ConnectionType.SOCKET,
-                ProtocolType = Transports.ProtocolType.RWF,
+                ProtocolType = Eta.Transports.ProtocolType.RWF,
                 UserSpecObject = this,
                 InterfaceName = "localhost",
                 MajorVersion = Codec.Codec.MajorVersion(),
@@ -1319,7 +1319,7 @@ namespace LSEG.Eta.ValuedAdd.Tests
                 ServiceName = serviceName,
                 ServerBlocking = false,
                 ConnectionType = ConnectionType.SOCKET,
-                ProtocolType = Transports.ProtocolType.RWF,
+                ProtocolType = Eta.Transports.ProtocolType.RWF,
                 UserSpecObject = this,
                 InterfaceName = "localhost",
                 MajorVersion = Codec.Codec.MajorVersion(),
@@ -1448,7 +1448,7 @@ namespace LSEG.Eta.ValuedAdd.Tests
                 ServiceName = serviceName,
                 ServerBlocking = false,
                 ConnectionType = ConnectionType.SOCKET,
-                ProtocolType = Transports.ProtocolType.RWF,
+                ProtocolType = Eta.Transports.ProtocolType.RWF,
                 UserSpecObject = this,
                 InterfaceName = "localhost",
                 MajorVersion = Codec.Codec.MajorVersion(),
@@ -1560,7 +1560,7 @@ namespace LSEG.Eta.ValuedAdd.Tests
                 ServiceName = serviceName,
                 ServerBlocking = false,
                 ConnectionType = ConnectionType.SOCKET,
-                ProtocolType = Transports.ProtocolType.RWF,
+                ProtocolType = Eta.Transports.ProtocolType.RWF,
                 UserSpecObject = this,
                 InterfaceName = "localhost",
                 MajorVersion = Codec.Codec.MajorVersion(),
@@ -1679,7 +1679,7 @@ namespace LSEG.Eta.ValuedAdd.Tests
                 ServiceName = serviceName,
                 ServerBlocking = false,
                 ConnectionType = ConnectionType.SOCKET,
-                ProtocolType = Transports.ProtocolType.RWF,
+                ProtocolType = Eta.Transports.ProtocolType.RWF,
                 UserSpecObject = this,
                 InterfaceName = "localhost",
                 MajorVersion = Codec.Codec.MajorVersion(),
@@ -1799,7 +1799,7 @@ namespace LSEG.Eta.ValuedAdd.Tests
                 ServiceName = serviceName,
                 ServerBlocking = false,
                 ConnectionType = ConnectionType.SOCKET,
-                ProtocolType = Transports.ProtocolType.RWF,
+                ProtocolType = Eta.Transports.ProtocolType.RWF,
                 UserSpecObject = this,
                 InterfaceName = "localhost",
                 MajorVersion = Codec.Codec.MajorVersion(),
@@ -1894,7 +1894,7 @@ namespace LSEG.Eta.ValuedAdd.Tests
                 ServiceName = serviceName,
                 ServerBlocking = false,
                 ConnectionType = ConnectionType.SOCKET,
-                ProtocolType = Transports.ProtocolType.RWF,
+                ProtocolType = Eta.Transports.ProtocolType.RWF,
                 UserSpecObject = this,
                 InterfaceName = "localhost",
                 MajorVersion = Codec.Codec.MajorVersion(),
@@ -2212,7 +2212,7 @@ namespace LSEG.Eta.ValuedAdd.Tests
 
             public int MinorVersion => m_Channel.MinorVersion;
 
-            public Transports.ProtocolType ProtocolType => m_Channel.ProtocolType;
+            public Eta.Transports.ProtocolType ProtocolType => m_Channel.ProtocolType;
 
             public int PingTimeOut => m_Channel.PingTimeOut;
 
@@ -2411,7 +2411,7 @@ namespace LSEG.Eta.ValuedAdd.Tests
 
             public int MinorVersion => _channel.MinorVersion;
 
-            public Transports.ProtocolType ProtocolType => _channel.ProtocolType;
+            public Eta.Transports.ProtocolType ProtocolType => _channel.ProtocolType;
 
             public int PingTimeOut => _channel.PingTimeOut;
 

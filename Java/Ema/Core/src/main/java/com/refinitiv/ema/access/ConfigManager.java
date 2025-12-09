@@ -337,6 +337,7 @@ class ConfigManager
 	
 	public static final int ConsumerSessionChannelSet = 1300;
 	public static final int ConsumerSessionEnhancedItemRecovery = 1301;
+	public static final int NiProviderSessionChannelSet = 1302;
 	
 	public static final int SessionChannelGroup = 1305;
 	public static final int SessionChannelList = 1306;
@@ -517,6 +518,7 @@ class ConfigManager
 		NiProviderTagDict.add( "ReconnectMaxDelay",ReconnectMaxDelay );
 		NiProviderTagDict.add( "ReconnectMinDelay",ReconnectMinDelay );
 		NiProviderTagDict.add( "RequestTimeout", RequestTimeout);
+		NiProviderTagDict.add( "SessionChannelSet", NiProviderSessionChannelSet);
 		NiProviderTagDict.add( "XmlTraceFileName",XmlTraceFileName );		
 		NiProviderTagDict.add( "XmlTraceHex", XmlTraceHex );
 		NiProviderTagDict.add( "XmlTraceMaxFileSize", XmlTraceMaxFileSize );

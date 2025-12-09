@@ -2,7 +2,7 @@
  *|            This source code is provided under the Apache 2.0 license
  *|  and is provided AS IS with no warranty or guarantee of fit for purpose.
  *|                See the project's LICENSE.md for details.
- *|           Copyright (C) 2023-2024 LSEG. All rights reserved.
+ *|           Copyright (C) 2023-2025 LSEG. All rights reserved.
  *|-----------------------------------------------------------------------------
  */
 
@@ -19,7 +19,7 @@ using LSEG.Eta.ValueAdd.Reactor;
 using LSEG.Eta.Rdm;
 using LSEG.Eta.Common;
 
-namespace LSEG.Eta.ValuedAdd.Tests;
+namespace LSEG.Eta.Tests.ValueAddTest.Watchlist;
 
 [Collection("ValueAdded")]
 public class ReactorWlLoginHandlerTest
@@ -46,22 +46,22 @@ public class ReactorWlLoginHandlerTest
 
         public void AddPendingRequest(WlStream wlStream)
         {
-            throw new System.NotImplementedException();
+            throw new NotImplementedException();
         }
 
         public ReactorReturnCode CallbackUserWithMsg(string location, IMsg msg, WlRequest wlRequest, out ReactorErrorInfo errorInfo)
         {
-            throw new System.NotImplementedException();
+            throw new NotImplementedException();
         }
 
         public ReactorReturnCode CallbackUserWithMsgBase(string location, IMsg msg, IRdmMsg msgBase, WlRequest wlRequest, out ReactorErrorInfo errorInfo)
         {
-            throw new System.NotImplementedException();
+            throw new NotImplementedException();
         }
 
         public void ChannelDown()
         {
-            throw new System.NotImplementedException();
+            throw new NotImplementedException();
         }
 
         public void ChannelUp(out ReactorErrorInfo errorInfo)
@@ -71,7 +71,7 @@ public class ReactorWlLoginHandlerTest
 
         public void Clear()
         {
-            throw new System.NotImplementedException();
+            throw new NotImplementedException();
         }
 
         public void DeleteAllServices(bool isChannelDown, out ReactorErrorInfo errorInfo)
@@ -87,12 +87,12 @@ public class ReactorWlLoginHandlerTest
 
         public ReactorReturnCode LoginStreamClosed()
         {
-            throw new System.NotImplementedException();
+            throw new NotImplementedException();
         }
 
         public ReactorReturnCode LoginStreamOpen(out ReactorErrorInfo errorInfo)
         {
-            throw new System.NotImplementedException();
+            throw new NotImplementedException();
         }
 
         public void OnRequestTimeout(WlStream stream)
@@ -102,22 +102,22 @@ public class ReactorWlLoginHandlerTest
 
         public ReactorReturnCode ReadMsg(WlStream wlStream, DecodeIterator decodeIt, IMsg msg, out ReactorErrorInfo errorInfo)
         {
-            throw new System.NotImplementedException();
+            throw new NotImplementedException();
         }
 
         public int ServiceId(string serviceName)
         {
-            throw new System.NotImplementedException();
+            throw new NotImplementedException();
         }
 
         public ReactorReturnCode SubmitMsg(WlRequest request, IMsg msg, ReactorSubmitOptions submitOptions, out ReactorErrorInfo errorInfo)
         {
-            throw new System.NotImplementedException();
+            throw new NotImplementedException();
         }
 
         public ReactorReturnCode SubmitRequest(WlRequest request, IRequestMsg requestMsg, bool isReissue, ReactorSubmitOptions submitOptions, out ReactorErrorInfo errorInfo)
         {
-            throw new System.NotImplementedException();
+            throw new NotImplementedException();
         }
     }
 
@@ -125,22 +125,22 @@ public class ReactorWlLoginHandlerTest
     {
         public void AddPendingRequest(WlStream wlStream)
         {
-            throw new System.NotImplementedException();
+            throw new NotImplementedException();
         }
 
         public ReactorReturnCode CallbackUserWithMsg(string location, IMsg msg, WlRequest wlRequest, out ReactorErrorInfo errorInfo)
         {
-            throw new System.NotImplementedException();
+            throw new NotImplementedException();
         }
 
         public ReactorReturnCode CallbackUserWithMsgBase(string location, IMsg msg, IRdmMsg msgBase, WlRequest wlRequest, out ReactorErrorInfo errorInfo)
         {
-            throw new System.NotImplementedException();
+            throw new NotImplementedException();
         }
 
         public void ChannelDown()
         {
-            throw new System.NotImplementedException();
+            throw new NotImplementedException();
         }
 
         public void ChannelUp(out ReactorErrorInfo errorInfo)
@@ -150,7 +150,7 @@ public class ReactorWlLoginHandlerTest
 
         public void Clear()
         {
-            throw new System.NotImplementedException();
+            throw new NotImplementedException();
         }
 
         public void CloseWlItemRequestFromPendingService()
@@ -170,17 +170,17 @@ public class ReactorWlLoginHandlerTest
 
         public bool IsRequestRecoverable(WlRequest wlRequest, int streamState)
         {
-            throw new System.NotImplementedException();
+            throw new NotImplementedException();
         }
 
         public ReactorReturnCode LoginStreamClosed(State state)
         {
-            throw new System.NotImplementedException();
+            throw new NotImplementedException();
         }
 
         public ReactorReturnCode LoginStreamOpen(out ReactorErrorInfo errorInfo)
         {
-            throw new System.NotImplementedException();
+            throw new NotImplementedException();
         }
 
         public void OnRequestTimeout(WlStream stream)
@@ -190,22 +190,22 @@ public class ReactorWlLoginHandlerTest
 
         public ReactorReturnCode PauseAll()
         {
-            throw new System.NotImplementedException();
+            throw new NotImplementedException();
         }
 
         public ReactorReturnCode ReadMsg(WlStream wlStream, DecodeIterator decodeIt, IMsg msg, out ReactorErrorInfo errorInfo)
         {
-            throw new System.NotImplementedException();
+            throw new NotImplementedException();
         }
 
         public ReactorReturnCode ResumeAll()
         {
-            throw new System.NotImplementedException();
+            throw new NotImplementedException();
         }
 
         public ReactorReturnCode SubmitMsg(WlRequest request, IMsg msg, ReactorSubmitOptions submitOptions, out ReactorErrorInfo errorInfo)
         {
-            throw new System.NotImplementedException();
+            throw new NotImplementedException();
         }
 
         public ReactorReturnCode SubmitRequest(WlRequest request, IRequestMsg requestMsg, bool isReissue, ReactorSubmitOptions submitOptions, out ReactorErrorInfo errorInfo)
@@ -231,9 +231,9 @@ public class ReactorWlLoginHandlerTest
         TestReactorEvent reactorEvent;
         ReactorMsgEvent msgEvent;
         Msg msg = new Msg();
-        IRequestMsg requestMsg = (IRequestMsg)new Msg();
+        IRequestMsg requestMsg = new Msg();
         IRequestMsg receivedRequestMsg;
-        IRefreshMsg refreshMsg = (IRefreshMsg)msg;
+        IRefreshMsg refreshMsg = msg;
         IRefreshMsg receivedRefreshMsg;
         int providerStreamId;
 
@@ -410,9 +410,9 @@ public class ReactorWlLoginHandlerTest
         TestReactorEvent reactorEvent;
         ReactorMsgEvent msgEvent;
         Msg msg = new Msg();
-        IRequestMsg requestMsg = (IRequestMsg)new Msg();
+        IRequestMsg requestMsg = new Msg();
         IRequestMsg receivedRequestMsg;
-        IRefreshMsg refreshMsg = (IRefreshMsg)msg;
+        IRefreshMsg refreshMsg = msg;
         IRefreshMsg receivedRefreshMsg;
         int providerStreamId;
 
@@ -525,7 +525,7 @@ public class ReactorWlLoginHandlerTest
         Assert.Equal(msgEvent.StreamInfo.ServiceName, Provider.DefaultService.Info.ServiceName.ToString());
 
         // consumer reissues request with resume
-        IRequestMsg reissueRequestMsg = (IRequestMsg)new Msg();
+        IRequestMsg reissueRequestMsg = new Msg();
         reissueRequestMsg.ApplyNoRefresh();
 
         reissueRequestMsg.MsgClass = MsgClasses.REQUEST;
@@ -576,9 +576,9 @@ public class ReactorWlLoginHandlerTest
         TestReactorEvent reactorEvent;
         ReactorMsgEvent msgEvent;
         Msg msg = new Msg();
-        IRequestMsg requestMsg = (IRequestMsg)new Msg();
+        IRequestMsg requestMsg = new Msg();
         IRequestMsg receivedRequestMsg;
-        IRefreshMsg refreshMsg = (IRefreshMsg)msg;
+        IRefreshMsg refreshMsg = msg;
         IRefreshMsg receivedRefreshMsg;
         int providerStreamId;
         string authenticationToken1 = "authenticationToken1";
@@ -812,7 +812,7 @@ public class ReactorWlLoginHandlerTest
         TestReactorEvent reactorEvent;
         ReactorMsgEvent msgEvent;
         Msg msg = new Msg();
-        IRequestMsg requestMsg = (IRequestMsg)msg;
+        IRequestMsg requestMsg = msg;
         LoginRefresh loginRefresh = new LoginRefresh(), recvLoginRefresh;
         LoginStatus loginStatus = new LoginStatus(), recvLoginStatus;
         DirectoryRequest recvDirectoryRequest;
@@ -832,8 +832,8 @@ public class ReactorWlLoginHandlerTest
         long MeasureTransportReconnectDelay()
         {
             var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-            var channel = Transports.Transport.Connect(
-                new Transports.ConnectOptions
+            var channel = Eta.Transports.Transport.Connect(
+                new Eta.Transports.ConnectOptions
                 {
                     Blocking = true,
                     UnifiedNetworkInfo = { Address = "non-existent", ServiceName = "1111" }
@@ -961,7 +961,7 @@ public class ReactorWlLoginHandlerTest
                 recvStatusMsg = (IStatusMsg)msgEvent.Msg;
                 Assert.Equal(5, recvStatusMsg.StreamId);
                 Assert.True(recvStatusMsg.CheckHasState());
-                Assert.Equal((singleOpen ? StreamStates.OPEN : StreamStates.CLOSED_RECOVER),
+                Assert.Equal(singleOpen ? StreamStates.OPEN : StreamStates.CLOSED_RECOVER,
                               recvStatusMsg.State.StreamState());
             }
 
@@ -1154,7 +1154,7 @@ public class ReactorWlLoginHandlerTest
         reactorEvent = providerReactor.PollEvent();
         Assert.Equal(TestReactorEventType.DIRECTORY_MSG, reactorEvent.EventType);
         directoryMsgEvent = (RDMDirectoryMsgEvent)reactorEvent.ReactorEvent;
-        recvDirectoryRequest = (DirectoryRequest)directoryMsgEvent.DirectoryMsg.DirectoryRequest;
+        recvDirectoryRequest = directoryMsgEvent.DirectoryMsg.DirectoryRequest;
         Assert.Equal((int)DirectoryMsgType.REQUEST, recvDirectoryRequest.MsgClass);
 
         /* Do two loops of sending login ClosedRecover from the provider.
@@ -1479,7 +1479,7 @@ public class ReactorWlLoginHandlerTest
         {
             ReactorSubmitOptions submitOptions = new ReactorSubmitOptions();
             Msg msg = new Msg();
-            IRequestMsg requestMsg = (IRequestMsg)msg;
+            IRequestMsg requestMsg = msg;
 
             base.ReactorChannelEventCallback(evt);
 
@@ -1504,7 +1504,7 @@ public class ReactorWlLoginHandlerTest
 
         public override ReactorCallbackReturnCode RdmLoginMsgCallback(RDMLoginMsgEvent evt)
         {
-            ICloseMsg closeMsg = (ICloseMsg)new Msg();
+            ICloseMsg closeMsg = new Msg();
             ReactorSubmitOptions submitOptions = new ReactorSubmitOptions();
 
             base.RdmLoginMsgCallback(evt);
@@ -2226,7 +2226,7 @@ public class ReactorWlLoginHandlerTest
             Assert.Equal(LoginMsgType.REQUEST, loginMsgEvent.LoginMsg.LoginMsgType);
             output.WriteLine($"{test} 2) Provider received login request[0]");
 
-            provRequest[0] = (LoginRequest)loginMsgEvent.LoginMsg.LoginRequest;
+            provRequest[0] = loginMsgEvent.LoginMsg.LoginRequest;
             loginStreamId = provRequest[0].StreamId;
             Assert.True(provRequest[0].HasUserNameType);
             Assert.Equal(provRequest[0].UserNameType, userNameType);
@@ -2276,7 +2276,7 @@ public class ReactorWlLoginHandlerTest
             Assert.Equal(MsgClasses.REFRESH, loginMsgEvent.Msg.MsgClass);
             output.WriteLine($"{test} 4) Consumer received login refresh[0]");
 
-            consRefresh[0] = (LoginRefresh)loginMsgEvent.LoginMsg.LoginRefresh;
+            consRefresh[0] = loginMsgEvent.LoginMsg.LoginRefresh;
             Assert.Equal(consRefresh[0].StreamId, loginStreamId);
             Assert.Equal(StreamStates.OPEN, consRefresh[0].State.StreamState());
             Assert.Equal(DataStates.OK, consRefresh[0].State.DataState());
@@ -2305,8 +2305,8 @@ public class ReactorWlLoginHandlerTest
                 consRequest[k].HasUserNameType = true;
                 consRequest[k].UserNameType = userNameType;
 
-                bool matchRequestedUserName = (k == 2);
-                bool mismatchUserNameTypes = (k == 3);
+                bool matchRequestedUserName = k == 2;
+                bool mismatchUserNameTypes = k == 3;
 
                 if (userNameType == Login.UserIdTypes.AUTHN_TOKEN
                     || userNameType == Login.UserIdTypes.TOKEN)
@@ -2521,14 +2521,14 @@ public class ReactorWlLoginHandlerTest
         ReactorSubmitOptions submitOptions = new ReactorSubmitOptions();
         TestReactorEvent reactorEvent;
         ReactorMsgEvent msgEvent;
-        IRequestMsg requestMsg = (IRequestMsg)new Msg();
+        IRequestMsg requestMsg = new Msg();
         IRequestMsg receivedRequestMsg;
-        IRefreshMsg refreshMsg = (IRefreshMsg)new Msg();
+        IRefreshMsg refreshMsg = new Msg();
         IRefreshMsg receivedRefreshMsg;
         IStatusMsg receivedStatusMsg;
         RDMLoginMsgEvent loginMsgEvent;
-        IUpdateMsg updateMsg = (IUpdateMsg)new Msg();
-        ICloseMsg closeMsg = (ICloseMsg)new Msg();
+        IUpdateMsg updateMsg = new Msg();
+        ICloseMsg closeMsg = new Msg();
         LoginStatus loginStatus = new LoginStatus();
         LoginStatus receivedLoginStatus;
         int providerStreamId;
@@ -2652,7 +2652,7 @@ public class ReactorWlLoginHandlerTest
         Assert.Equal(TestReactorEventType.LOGIN_MSG, reactorEvent.EventType);
         loginMsgEvent = (RDMLoginMsgEvent)reactorEvent.ReactorEvent;
         Assert.Equal(LoginMsgType.STATUS, loginMsgEvent.LoginMsg.LoginMsgType);
-        receivedLoginStatus = (LoginStatus)loginMsgEvent.LoginMsg.LoginStatus;
+        receivedLoginStatus = loginMsgEvent.LoginMsg.LoginStatus;
         Assert.Equal(consumer.DefaultSessionLoginStreamId, receivedLoginStatus.StreamId);
         Assert.True(receivedLoginStatus.HasState);
         Assert.Equal(StreamStates.CLOSED, receivedLoginStatus.State.StreamState());
@@ -2860,7 +2860,7 @@ public class ReactorWlLoginHandlerTest
             else if (userNameType == Login.UserIdTypes.TOKEN)
                 Assert.Equal(provRequest[1].UserName.ToString(), userNames[1]);
             else if (userNameType != Login.UserIdTypes.COOKIE
-                && (protocolList != null && protocolList.Contains("json"))) /* JSON converter doesn't write name when nameType is COOKIE */
+                && protocolList != null && protocolList.Contains("json")) /* JSON converter doesn't write name when nameType is COOKIE */
                 Assert.Equal(provRequest[1].UserName.ToString(), userNames[0]);
 
             output.WriteLine($"{test} 7) Provider validated login request[1]");
@@ -2924,7 +2924,7 @@ public class ReactorWlLoginHandlerTest
             else if (userNameType == Login.UserIdTypes.TOKEN)
                 Assert.Equal(consRefresh[1].UserName.ToString(), userNames[1]);
             else if (userNameType != Login.UserIdTypes.COOKIE
-                     && (protocolList != null && protocolList.Contains("json"))) /* JSON converter doesn't write name when nameType is COOKIE */
+                     && protocolList != null && protocolList.Contains("json")) /* JSON converter doesn't write name when nameType is COOKIE */
                 Assert.Equal(consRefresh[1].UserName.ToString(), userNames[0]);
             output.WriteLine($"{test} 9) Consumer validated login refresh[0]");
 
@@ -3082,7 +3082,7 @@ public class ReactorWlLoginHandlerTest
             else if (userNameType == Login.UserIdTypes.TOKEN)
                 consRequest[1].UserName.Data(userNames[1]);
             else if (userNameType != Login.UserIdTypes.COOKIE
-                     && (protocolList != null && protocolList.Contains("json")))
+                     && protocolList != null && protocolList.Contains("json"))
                 consRequest[1].UserName.Data(userNames[0]);
 
             output.WriteLine($"{test} 5) Consumer sending login request[1]");
@@ -3123,7 +3123,7 @@ public class ReactorWlLoginHandlerTest
             else if (userNameType == Login.UserIdTypes.TOKEN)
                 Assert.Equal(provRequest[1].UserName.ToString(), userNames[1]);
             else if (userNameType != Login.UserIdTypes.COOKIE
-                     && (protocolList != null && protocolList.Contains("json")))
+                     && protocolList != null && protocolList.Contains("json"))
                 Assert.Equal(provRequest[1].UserName.ToString(), userNames[0]);
 
             output.WriteLine($"{test} 7) Provider validated login request[1]");
@@ -3186,7 +3186,7 @@ public class ReactorWlLoginHandlerTest
             }
             else if (userNameType == Login.UserIdTypes.TOKEN)
                 Assert.Equal(consRefresh[1].UserName.ToString(), userNames[1]);
-            else if (userNameType != Login.UserIdTypes.COOKIE && (protocolList != null && protocolList.Contains("json")))
+            else if (userNameType != Login.UserIdTypes.COOKIE && protocolList != null && protocolList.Contains("json"))
                 Assert.Equal(consRefresh[1].UserName.ToString(), userNames[0]);
             output.WriteLine($"{test} 9) Consumer validated login refresh[1]");
 
@@ -3352,7 +3352,7 @@ public class ReactorWlLoginHandlerTest
             }
             else if (userNameType == Login.UserIdTypes.TOKEN)
                 Assert.Equal(provRequest[1].UserName.ToString(), userNames[1]);
-            else if (userNameType != Login.UserIdTypes.COOKIE && (protocolList != null && protocolList.Contains("json")))
+            else if (userNameType != Login.UserIdTypes.COOKIE && protocolList != null && protocolList.Contains("json"))
                 Assert.Equal(provRequest[1].UserName.ToString(), userNames[0]);
 
             output.WriteLine($"{test} 7) Provider validated login request[1]");
@@ -3414,7 +3414,7 @@ public class ReactorWlLoginHandlerTest
             else if (userNameType == Login.UserIdTypes.TOKEN)
                 Assert.Equal(provRequest[1].UserName.ToString(), userNames[1]);
             else if (userNameType != Login.UserIdTypes.COOKIE
-                     && (protocolList != null && protocolList.Contains("json")))
+                     && protocolList != null && protocolList.Contains("json"))
                 Assert.Equal(provRequest[1].UserName.ToString(), userNames[0]);
 
             output.WriteLine($"{test} 9) Provider validated login request[1]");
@@ -3479,7 +3479,7 @@ public class ReactorWlLoginHandlerTest
             }
             else if (userNameType == Login.UserIdTypes.TOKEN)
                 Assert.Equal(consRefresh[1].UserName.ToString(), userNames[1]);
-            else if (userNameType != Login.UserIdTypes.COOKIE && (protocolList != null && protocolList.Contains("json")))
+            else if (userNameType != Login.UserIdTypes.COOKIE && protocolList != null && protocolList.Contains("json"))
                 Assert.Equal(consRefresh[1].UserName.ToString(), userNames[0]);
             output.WriteLine($"{test} 11) Consumer validated login refresh[1]");
 
@@ -3506,9 +3506,9 @@ public class ReactorWlLoginHandlerTest
         TestReactorEvent reactorEvent;
         ReactorMsgEvent msgEvent;
         Msg msg = new Msg();
-        IRequestMsg requestMsg = (IRequestMsg)msg;
+        IRequestMsg requestMsg = msg;
         IRequestMsg receivedRequestMsg;
-        IRefreshMsg refreshMsg = (IRefreshMsg)msg;
+        IRefreshMsg refreshMsg = msg;
         IRefreshMsg receivedRefreshMsg;
         int providerStreamId;
 
@@ -3633,7 +3633,7 @@ public class ReactorWlLoginHandlerTest
         offstreamPost = (IPostMsg)msgEvent.Msg;
 
         // provider sends post ACK to consumer
-        IAckMsg ackMsg = (IAckMsg)new Msg();
+        IAckMsg ackMsg = new Msg();
         ackMsg.MsgClass = MsgClasses.ACK;
         ackMsg.StreamId = consumerRole.RdmLoginRequest.StreamId;
         ackMsg.DomainType = offstreamPost.DomainType;
@@ -3656,12 +3656,12 @@ public class ReactorWlLoginHandlerTest
         dIter.SetBufferAndRWFVersion(offstreamPost.EncodedDataBody, msgEvent.ReactorChannel.MajorVersion, msgEvent.ReactorChannel.MinorVersion);
         Msg extractedMsg = new Msg();
         Assert.Equal(CodecReturnCode.SUCCESS, extractedMsg.Decode(dIter));
-        if (protocolList == null || (!protocolList.Contains("json"))) /* JSON Converter uses some default values for Refresh message, hence flags do not coincide */
+        if (protocolList == null || !protocolList.Contains("json")) /* JSON Converter uses some default values for Refresh message, hence flags do not coincide */
             Assert.Equal(0, extractedMsg.Flags);
         extractedMsg.StreamId = 3;
         Assert.True(provider.SubmitAndDispatch(extractedMsg, submitOptions) >= ReactorReturnCode.SUCCESS);
 
-        if (protocolList == null || (!protocolList.Contains("json")))
+        if (protocolList == null || !protocolList.Contains("json"))
         {
             /* Consumer receives extracted refresh message. */
             consumerReactor.Dispatch(1);
@@ -3705,7 +3705,7 @@ public class ReactorWlLoginHandlerTest
                     // if solicited, send off stream post message with refresh message as payload
                     if ((msg.Flags & RefreshMsgFlags.SOLICITED) > 0)
                     {
-                        IPostMsg postMsg = (IPostMsg)new Msg();
+                        IPostMsg postMsg = new Msg();
                         postMsg.Clear();
                         postMsg.MsgClass = MsgClasses.POST;
                         postMsg.StreamId = 1;
@@ -3738,7 +3738,7 @@ public class ReactorWlLoginHandlerTest
 
                         ReactorSubmitOptions submitOptions = new ReactorSubmitOptions();
                         ReactorErrorInfo errorInfo = new ReactorErrorInfo();
-                        if ((reactorEvent.ReactorChannel.Submit((Msg)postMsg, submitOptions, out errorInfo)) != ReactorReturnCode.SUCCESS)
+                        if (reactorEvent.ReactorChannel.Submit((Msg)postMsg, submitOptions, out errorInfo) != ReactorReturnCode.SUCCESS)
                         {
                             Assert.Fail("defaultMsgCallback() submit post failed");
                         }

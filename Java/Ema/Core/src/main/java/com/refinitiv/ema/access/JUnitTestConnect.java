@@ -31,6 +31,7 @@ public class JUnitTestConnect
 	public static final int ConfigGroupTypeWarmStandbyStartingServerInfo = 8;
 	public static final int ConfigGroupTypeWarmStandbyStandbyServerInfo = 9;
 	public static final int ConfigGroupTypeSessionChannel = 10;
+	public static final int ConfigGroupTypeNiProvider = 11;
 
 	// Common Parameters:
 	public static final int ChannelSet  = ConfigManager.ChannelSet; 
@@ -79,6 +80,11 @@ public class JUnitTestConnect
 	public static final int EnableSessionMgnt = ConfigManager.ChannelEnableSessionMgnt;
 	public static final int Location = ConfigManager.ChannelLocation;
 	public static final int EnableRtt = ConfigManager.EnableRtt;
+	public static final int CatchUnknownJsonFids = ConfigManager.CatchUnknownJsonFids;
+	public static final int CatchUnknownJsonKeys = ConfigManager.CatchUnknownJsonKeys;
+	public static final int CloseChannelFromConverterFailure = ConfigManager.CloseChannelFromConverterFailure;
+	public static final int DefaultServiceID = ConfigManager.DefaultServiceID;
+	public static final int JsonExpandedEnumFields = ConfigManager.JsonExpandedEnumFields;
 	public static final int SendJsonConvError = ConfigManager.SendJsonConvError;
 	public static final int UpdateTypeFilter = ConfigManager.UpdateTypeFilter;
 	public static final int NegativeUpdateTypeFilter = ConfigManager.NegativeUpdateTypeFilter;
@@ -777,7 +783,7 @@ public class JUnitTestConnect
 		return result;
 	}
 	
-	public static int configVerifyConsSessionChannelAttribs(OmmConsumer consumer, OmmConsumerConfig consConfig, String consumerName, List<SessionChannelConfig> sessionConfigSet)
+	public static int configVerifyConsSessionChannelAttribs(OmmConsumer consumer, OmmConsumerConfig consConfig, String consumerName, List<ConsumerSessionChannelConfig> sessionConfigSet)
 	{
 		int result = 0;
 		_lastErrorText = "";
@@ -805,7 +811,7 @@ public class JUnitTestConnect
 
 		for (int i = 0; i < connections.length; i++)
 		{
-			SessionChannelConfig sessionCfg = consImpl.activeConfig().configSessionChannelSet.get(i);
+			ConsumerSessionChannelConfig sessionCfg = consImpl.activeConfig().configSessionChannelSet.get(i);
 			connectionName = connections[i].trim();
 			position = Integer.toString(i);
 			if( connectionName.equals(sessionCfg.name) == false )
@@ -822,9 +828,9 @@ public class JUnitTestConnect
 			}
 		}
 		
-		List<SessionChannelConfig> activeSessionConfigSet = consImpl.activeConfig().configSessionChannelSet;
+		List<ConsumerSessionChannelConfig> activeSessionConfigSet = consImpl.activeConfig().configSessionChannelSet;
 		
-		SessionChannelConfig expectedCfg, activeCfg;
+		ConsumerSessionChannelConfig expectedCfg, activeCfg;
 		for(int i = 0; i < activeSessionConfigSet.size(); i++)
 		{
 			expectedCfg = sessionConfigSet.get(i);
@@ -907,15 +913,6 @@ public class JUnitTestConnect
 		return connectionType;
 	}
 	
-	public static SessionChannelConfig configGetSessionChannelInfo(OmmConsumerConfig consConfig, String connectionName)
-	{
-		OmmConsumerConfigImpl configImpl = ( (OmmConsumerConfigImpl ) consConfig);
-		ConfigAttributes attributes = configImpl.xmlConfig().getSessionChannelGroupAttributes(connectionName);
-		ConfigElement ce = null;
-		
-		return null;
-	}
-	
 	// used only for JUNIT tests
 	public static String configGetChanHost(OmmConsumerConfig consConfig, String channelName)
 	{
@@ -946,7 +943,554 @@ public class JUnitTestConnect
 		}
 
 		return port;
+	}
+	
+	// used only for JUNIT tests
+	public static String configGetNiProviderName(OmmNiProviderConfig niProvConfig)
+	{
+		return ((OmmNiProviderConfigImpl) niProvConfig).configuredName();
+	}
+	
+	// used only for JUINT tests
+	public static int configVerifyChannelEncrypTypeAttribs(ChannelConfig chanCfg, String position,  OmmNiProviderConfig niProvConfig, String channelName)
+	{
+		int result = 0;
+		_lastErrorText = "";
+		EncryptedChannelConfig encCfg = (EncryptedChannelConfig) chanCfg;
+		String strValue = configGetChanPort(niProvConfig, channelName);
+		if(strValue.equals(encCfg.serviceName) == false)
+		{
+			_lastErrorText = "Port mismatch in '";
+			_lastErrorText += channelName;
+			_lastErrorText += "' FileConfig port='";
+			_lastErrorText += strValue;
+			_lastErrorText += "' Internal Active ChannelSet[";
+			_lastErrorText += position;
+			_lastErrorText += "] port='";
+			_lastErrorText += encCfg.serviceName;
+			_lastErrorText += "' for ";
+			return 5;
+		}
+		strValue = configGetChanHost(niProvConfig, channelName);
+		if(strValue.equals(encCfg.hostName) == false)
+		{
+			_lastErrorText = "HostName mismatch in '";
+			_lastErrorText += channelName;
+			_lastErrorText += "' FileConfig host='";
+			_lastErrorText += strValue;
+			_lastErrorText += "' Internal Active ChannelSet[";
+			_lastErrorText += position;
+			_lastErrorText += "] host='";
+			_lastErrorText += encCfg.hostName;
+			_lastErrorText += "' for ";
+			return 6;	
+		}	
+		Boolean boolValue = JUnitTestConnect.configGetBooleanValue(niProvConfig, channelName, JUnitTestConnect.ConfigGroupTypeChannel, JUnitTestConnect.TcpNodelay);
+		if(boolValue != encCfg.tcpNodelay)
+		{
+			_lastErrorText = "TcpNodelay mismatch in '";
+			_lastErrorText += channelName;
+			_lastErrorText += "' FileConfig tcpNodelay ='";
+			_lastErrorText += (boolValue ? "1" : "0");
+			_lastErrorText += "' Internal Active ChannelSet[";
+			_lastErrorText += position;
+			_lastErrorText += "] tcpNodelay ='";
+			_lastErrorText += (encCfg.tcpNodelay ? "1" : "0");
+			_lastErrorText += "' for ";
+			return 7;
+		}	
+		
+		strValue = configGetStringValue(niProvConfig, channelName, JUnitTestConnect.ConfigGroupTypeChannel, JUnitTestConnect.ObjectName);
+		if(strValue.equals(encCfg.objectName) == false)
+		{
+			_lastErrorText = "ObjectName mismatch in '";
+			_lastErrorText += channelName;
+			_lastErrorText += "' FileConfig objectName='";
+			_lastErrorText += strValue;
+			_lastErrorText += "' Internal Active ChannelSet[";
+			_lastErrorText += position;
+			_lastErrorText += "] objectName='";
+			_lastErrorText += encCfg.objectName;
+			_lastErrorText += "' for ";
+			return 8;	
+		}	
+	
+		return result;			
+	}
+
+	// used only for JUINT tests
+	public static int configVerifyChannelSocketTypeAttribs(ChannelConfig chanCfg, String position,  OmmNiProviderConfig niProvConfig, String channelName)
+	{
+		int result = 0;
+		_lastErrorText = "";
+		SocketChannelConfig socCfg = (SocketChannelConfig) chanCfg;
+		String strValue = configGetChanPort(niProvConfig, channelName);
+		if(strValue.equals(socCfg.serviceName) == false)
+		{
+			_lastErrorText = "Port mismatch in '";
+			_lastErrorText += channelName;
+			_lastErrorText += "' FileConfig port='";
+			_lastErrorText += strValue;
+			_lastErrorText += "' Internal Active ChannelSet[";
+			_lastErrorText += position;
+			_lastErrorText += "] port='";
+			_lastErrorText += socCfg.serviceName;
+			_lastErrorText += "' for ";
+			return 5;
+		}
+		strValue = configGetChanHost(niProvConfig, channelName);
+		if(strValue.equals(socCfg.hostName) == false)
+		{
+			_lastErrorText = "HostName mismatch in '";
+			_lastErrorText += channelName;
+			_lastErrorText += "' FileConfig host='";
+			_lastErrorText += strValue;
+			_lastErrorText += "' Internal Active ChannelSet[";
+			_lastErrorText += position;
+			_lastErrorText += "] host='";
+			_lastErrorText += socCfg.hostName;
+			_lastErrorText += "' for ";
+			return 6;	
+		}	
+		Boolean boolValue = JUnitTestConnect.configGetBooleanValue(niProvConfig, channelName, JUnitTestConnect.ConfigGroupTypeChannel, JUnitTestConnect.TcpNodelay);
+		if(boolValue != socCfg.tcpNodelay)
+		{
+			_lastErrorText = "TcpNodelay mismatch in '";
+			_lastErrorText += channelName;
+			_lastErrorText += "' FileConfig tcpNodelay ='";
+			_lastErrorText += (boolValue ? "1" : "0");
+			_lastErrorText += "' Internal Active ChannelSet[";
+			_lastErrorText += position;
+			_lastErrorText += "] tcpNodelay ='";
+			_lastErrorText += (socCfg.tcpNodelay ? "1" : "0");
+			_lastErrorText += "' for ";
+			return 7;
+		}		
+		return result;
+	}
+
+	// used only for JUINT tests
+	public static int configVerifyChannelCommonAttribs(ChannelConfig chanCfg, String position,  OmmNiProviderConfig niProvConfig, String channelName, ChannelConfig lastChanCfg)
+	{
+		int result = 0;
+		int intValue = JUnitTestConnect.configGetIntValue(niProvConfig, channelName, JUnitTestConnect.ConfigGroupTypeChannel, JUnitTestConnect.CompressionType);
+		if(intValue != chanCfg.compressionType)
+		{
+			_lastErrorText = "CompressionType mismatch in '";
+			_lastErrorText += channelName;
+			_lastErrorText += "' FileConfig CompressionType='";
+			_lastErrorText += Integer.toString(intValue);
+			_lastErrorText += "' Internal Active ChannelSet[";
+			_lastErrorText += position;
+			_lastErrorText += "] CompressionType='";
+			_lastErrorText += Integer.toString(chanCfg.compressionType);
+			_lastErrorText += "' for ";
+			return 9;
+		}
+		
+		int intLongValue = JUnitTestConnect.configGetIntLongValue(niProvConfig, channelName, JUnitTestConnect.ConfigGroupTypeChannel, JUnitTestConnect.GuaranteedOutputBuffers);
+		if(intLongValue != chanCfg.guaranteedOutputBuffers)
+		{
+			_lastErrorText = "GuaranteedOutputBuffers mismatch in '";
+			_lastErrorText += channelName;
+			_lastErrorText += "' FileConfig guaranteedOutputBuffers ='";
+			_lastErrorText += Integer.toString(intValue);
+			_lastErrorText += "' Internal Active ChannelSet[";
+			_lastErrorText += position;
+			_lastErrorText += "] guaranteedOutputBuffers ='";
+			_lastErrorText += Integer.toString(chanCfg.guaranteedOutputBuffers);
+			_lastErrorText += "' for ";
+			return 10;
+		}
+		
+		intLongValue = JUnitTestConnect.configGetIntLongValue(niProvConfig, channelName, JUnitTestConnect.ConfigGroupTypeChannel, JUnitTestConnect.NumInputBuffers);
+		if(intLongValue != chanCfg.numInputBuffers)
+		{
+			_lastErrorText = "NumInputBuffers mismatch in '";
+			_lastErrorText += channelName;
+			_lastErrorText += "' FileConfig numInputBuffers ='";
+			_lastErrorText += Integer.toString(intValue);
+			_lastErrorText += "' Internal Active ChannelSet[";
+			_lastErrorText += position;
+			_lastErrorText += "] numInputBuffers ='";
+			_lastErrorText += Integer.toString(chanCfg.numInputBuffers);
+			_lastErrorText += "' for ";
+			return 11;
+		}
+
+		intLongValue = JUnitTestConnect.configGetIntLongValue(niProvConfig, channelName, JUnitTestConnect.ConfigGroupTypeChannel, JUnitTestConnect.SysRecvBufSize);
+		if(intLongValue != chanCfg.sysRecvBufSize)
+		{
+			_lastErrorText = "SysRecvBufSize mismatch in '";
+			_lastErrorText += channelName;
+			_lastErrorText += "' FileConfig sysRecvBufSize ='";
+			_lastErrorText += Integer.toString(intValue);
+			_lastErrorText += "' Internal Active ChannelSet[";
+			_lastErrorText += position;
+			_lastErrorText += "] sysRecvBufSize ='";
+			_lastErrorText += Integer.toString(chanCfg.sysRecvBufSize);
+			_lastErrorText += "' for ";
+			return 12;
+		}
+
+		intLongValue = JUnitTestConnect.configGetIntLongValue(niProvConfig, channelName, JUnitTestConnect.ConfigGroupTypeChannel, JUnitTestConnect.SysSendBufSize);
+		if(intLongValue != chanCfg.sysSendBufSize)
+		{
+			_lastErrorText = "SysSendBufSize mismatch in '";
+			_lastErrorText += channelName;
+			_lastErrorText += "' FileConfig sysSendBufSize ='";
+			_lastErrorText += Integer.toString(intValue);
+			_lastErrorText += "' Internal Active ChannelSet[";
+			_lastErrorText += position;
+			_lastErrorText += "] sysSendBufSize ='";
+			_lastErrorText += Integer.toString(chanCfg.sysSendBufSize);
+			_lastErrorText += "' for ";
+			return 13;
+		}
+		
+		intLongValue = JUnitTestConnect.configGetIntLongValue(niProvConfig, channelName, JUnitTestConnect.ConfigGroupTypeChannel, JUnitTestConnect.CompressionThreshold);
+		if(intLongValue != chanCfg.compressionThreshold)
+		{
+			_lastErrorText = "CompressionThreshold mismatch in '";
+			_lastErrorText += channelName;
+			_lastErrorText += "' FileConfig compressionThreshold ='";
+			_lastErrorText += Integer.toString(intValue);
+			_lastErrorText += "' Internal Active ChannelSet[";
+			_lastErrorText += position;
+			_lastErrorText += "] compressionThreshold ='";
+			_lastErrorText += Integer.toString(chanCfg.compressionThreshold);
+			_lastErrorText += "' for ";
+			return 14;
+		}
+
+		intLongValue = JUnitTestConnect.configGetIntLongValue(niProvConfig, channelName, JUnitTestConnect.ConfigGroupTypeChannel, JUnitTestConnect.ConnectionPingTimeout);
+		if(intLongValue != chanCfg.connectionPingTimeout)
+		{
+			_lastErrorText = "ConnectionPingTimeout mismatch in '";
+			_lastErrorText += channelName;
+			_lastErrorText += "' FileConfig connectionPingTimeout ='";
+			_lastErrorText += Integer.toString(intValue);
+			_lastErrorText += "' Internal Active ChannelSet[";
+			_lastErrorText += position;
+			_lastErrorText += "] connectionPingTimeout ='";
+			_lastErrorText += Integer.toString(chanCfg.connectionPingTimeout);
+			_lastErrorText += "' for ";
+			return 15;
+		}
+
+	
+		return result;
+	}
+	
+	// used only for JUNIT tests
+	public static int configVerifyNiProvChannelSetAttribs(OmmProvider provider, OmmNiProviderConfig niProvConfig, String niProviderName )
+	{
+		_lastErrorText = "";
+		int result = 0;
+		OmmConsumerImpl consImpl = ( OmmConsumerImpl ) provider;
+		
+		String channelName = configGetChannelName(niProvConfig, niProviderName);
+		if(channelName == null)
+		{
+			_lastErrorText = "Channel is null for ";
+			_lastErrorText += consImpl.consumerName();
+			result = 1;
+			return 1;
+		}
+		
+		String [] channels  = channelName.split(",");
+		if(channels.length != consImpl.activeConfig().channelConfigSet.size())
+		{
+			_lastErrorText = "Channel set size is != number of channels in the file config channelSet for ";
+			_lastErrorText += consImpl.consumerName();
+			return 2;
+		}
+		String channName = null;
+		String position = null;
+		ChannelConfig lastChanCfg = consImpl.activeConfig().channelConfigSet.get( channels.length - 1);
+		for (int i = 0; i < channels.length; i++)
+		{
+			ChannelConfig chanCfg = consImpl.activeConfig().channelConfigSet.get(i);
+			channName = channels[i];
+			position = Integer.toString(i);
+			int channelConnType = configGetChannelType(niProvConfig, channName);
+			if( channName.equals(chanCfg.name) == false )
+			{
+				_lastErrorText = "ChannelName mismatch: FileConfig name='";
+				_lastErrorText += channName;
+				_lastErrorText += "' Internal Active ChannelSet[";
+				_lastErrorText += position;
+				_lastErrorText += "] name='";
+				_lastErrorText += chanCfg.name;
+				_lastErrorText += "' for ";
+				_lastErrorText += consImpl.consumerName();
+				return 3;
+			}
+			if( channelConnType != chanCfg.rsslConnectionType )
+			{
+				_lastErrorText = "ConnectionType mismatch in '";
+				_lastErrorText += channName;
+				_lastErrorText += "' FileConfig ConnectionType='";
+				_lastErrorText += Integer.toString(channelConnType);
+				_lastErrorText += "' Internal Active ChannelSet[";
+				_lastErrorText += position;
+				_lastErrorText += "] ConnectionType='";
+				_lastErrorText += Integer.toString(chanCfg.rsslConnectionType);
+				_lastErrorText += "' for ";
+				_lastErrorText += consImpl.consumerName();
+				return 4;
+			}
+			switch( channelConnType )
+			{
+			case com.refinitiv.eta.transport.ConnectionTypes.SOCKET:
+				{
+					result = configVerifyChannelSocketTypeAttribs(chanCfg, position, niProvConfig, channName);
+					break;
+				}
+			case com.refinitiv.eta.transport.ConnectionTypes.ENCRYPTED:
+				{
+					result = configVerifyChannelEncrypTypeAttribs(chanCfg, position, niProvConfig, channName);
+					break;
+				}			
+			default:
+				break;
+			}
+			if(result != 0)
+			{
+				_lastErrorText += consImpl.consumerName();
+				break;
+			}
+			else
+			{
+				result = configVerifyChannelCommonAttribs(chanCfg, position, niProvConfig, channName, lastChanCfg);
+				if(result != 0)
+				{
+					_lastErrorText += consImpl.consumerName();
+					break;
+				}
+			}
+		}		
+
+		return result;
+	}
+	
+	public static int configVerifyNiProvSessionChannelAttribs(OmmProvider provider, OmmNiProviderConfig niProvConfig, String niProviderName, List<NiProviderSessionChannelConfig> sessionConfigSet)
+	{
+		int result = 0;
+		_lastErrorText = "";
+		OmmNiProviderImpl provImpl = ( OmmNiProviderImpl )provider;
+		
+		String sessionChannelSet = configGetSessionChannel(niProvConfig, niProviderName);
+		if(sessionChannelSet == null)
+		{
+			_lastErrorText = "SessionChannelSet is null for ";
+			_lastErrorText += provImpl.providerName();
+			result = 1;
+			return 1;
+		}
+		
+		String [] connections  = sessionChannelSet.split(",");
+		if(connections.length != provImpl.activeConfig().niProvConfigSessionChannelSet.size())
+		{
+			_lastErrorText = "SessionChannelSet size is != number of session channels in the file config SessionChannel for ";
+			_lastErrorText += provImpl.providerName();
+			return 2;
+		}
+		
+		String connectionName = null;
+		String position = null;
+
+		for (int i = 0; i < connections.length; i++)
+		{
+			NiProviderSessionChannelConfig sessionCfg = provImpl.activeConfig().niProvConfigSessionChannelSet.get(i);
+			connectionName = connections[i].trim();
+			position = Integer.toString(i);
+			if( connectionName.equals(sessionCfg.name) == false )
+			{
+				_lastErrorText = "ConnectionName mismatch: FileConfig name='";
+				_lastErrorText += connectionName;
+				_lastErrorText += "' Internal Active SessionChannelSet[";
+				_lastErrorText += position;
+				_lastErrorText += "] name='";
+				_lastErrorText += sessionCfg.name;
+				_lastErrorText += "' for ";
+				_lastErrorText += provImpl.providerName();
+				return 3;
+			}
+		}
+		
+		List<NiProviderSessionChannelConfig> activeSessionConfigSet = provImpl.activeConfig().niProvConfigSessionChannelSet;
+		
+		NiProviderSessionChannelConfig expectedCfg, activeCfg;
+		for(int i = 0; i < activeSessionConfigSet.size(); i++)
+		{
+			expectedCfg = sessionConfigSet.get(i);
+			activeCfg = activeSessionConfigSet.get(i);
+			
+			if(expectedCfg.name.equals(activeCfg.name) == false)
+				return 4;
+			
+			if(expectedCfg.reconnectAttemptLimit != activeCfg.reconnectAttemptLimit)
+				return 4;
+			
+			if(expectedCfg.reconnectMaxDelay != activeCfg.reconnectMaxDelay)
+				return 4;
+			
+			if(expectedCfg.reconnectMinDelay != activeCfg.reconnectMinDelay)
+				return 4;
+			
+			if(expectedCfg.configChannelSet.size() != activeCfg.configChannelSet.size())
+				return 4;
+			
+			for(int j = 0; j < expectedCfg.configChannelSet.size(); j++)
+			{
+				ChannelConfig expectedChannelConfig = expectedCfg.configChannelSet.get(j);
+				ChannelConfig activeChannelConfig = activeCfg.configChannelSet.get(j);
+				
+				if (expectedChannelConfig.name.equals(activeChannelConfig.name) == false)
+					return 5;
+				
+				if (expectedChannelConfig.rsslConnectionType != activeChannelConfig.rsslConnectionType)
+					return 5;
+			}
+		}
+		
+		return result;
+	}
+	
+	// used only for JUNIT tests
+	public static String configGetChannelName(OmmNiProviderConfig niProvConfig, String niProviderName)
+	{
+		return ((OmmNiProviderConfigImpl) niProvConfig).channelName(niProviderName);
+	}
+	
+	// used only for JUNIT tests
+	public static String configGetSessionChannel(OmmNiProviderConfig niProvConfig, String niProviderName)
+	{
+		return ((OmmNiProviderConfigImpl) niProvConfig).sessionChannel(niProviderName);
+	}
+	
+	// used only for JUNIT tests
+	public static String configGetDirectoryName(OmmNiProviderConfig niProvConfig, String niProviderName)
+	{
+		return ((OmmNiProviderConfigImpl) niProvConfig).directoryName(niProviderName);
+	}
+	
+	// used only for JUNIT tests
+	public static int configGetChannelType(OmmNiProviderConfig consConfig, String channelName)
+	{
+		OmmNiProviderConfigImpl configImpl = ( (OmmNiProviderConfigImpl ) consConfig);
+		ConfigAttributes attributes = configImpl.xmlConfig().getChannelAttributes(channelName);
+		ConfigElement ce = null;
+		int connectionType = ConnectionTypes.SOCKET;
+	
+		if (configImpl.getUserSpecifiedHostname() != null)
+			connectionType = ConnectionTypes.SOCKET;
+		else
+		{
+			if (attributes != null) 
+			{
+				ce = attributes.getPrimitiveValue(ConfigManager.ChannelType);
+				if (ce != null)
+					connectionType = ce.intValue();
+			}
+		}
+		return connectionType;
+	}
+	
+	// used only for JUNIT tests
+	public static String configGetChanHost(OmmNiProviderConfig niProvConfig, String channelName)
+	{
+		OmmNiProviderConfigImpl configImpl = ( (OmmNiProviderConfigImpl ) niProvConfig);
+		ConfigAttributes attributes = configImpl.xmlConfig().getChannelAttributes(channelName);
+		ConfigElement ce = null;
+		String host =  configImpl.getUserSpecifiedHostname();
+		if (host == null)
+		{
+			if (attributes != null && (ce = attributes.getPrimitiveValue(ConfigManager.ChannelHost)) != null)
+				host = ce.asciiValue();
+		}
+	
+		return host;
 	}	
+	
+	// used only for JUNIT tests
+	public static String configGetChanPort(OmmNiProviderConfig niProvConfig, String channelName)
+	{
+		OmmNiProviderConfigImpl configImpl = ( (OmmNiProviderConfigImpl ) niProvConfig);
+		ConfigAttributes attributes = configImpl.xmlConfig().getChannelAttributes(channelName);
+		ConfigElement ce = null;
+		String port =  configImpl.getUserSpecifiedPort();
+		if (port == null)
+		{
+			if (attributes != null && (ce = attributes.getPrimitiveValue(ConfigManager.ChannelPort)) != null)
+				port = ce.asciiValue();
+		}
+
+		return port;
+	}	
+	
+	// used only for JUNIT tests
+	public static int configGetIntLongValue(OmmNiProviderConfig niProvConfig, String name, int type, int configParam)
+	{
+		ConfigElement ce = getConfigElement((OmmNiProviderConfigImpl) niProvConfig, name, type, configParam);
+		return ce != null ? ce.intLongValue() : 0;
+		}
+
+	// used only for JUNIT tests
+	public static int configGetIntValue(OmmNiProviderConfig niProvConfig, String name, int type, int configParam)
+	{
+		ConfigElement ce = getConfigElement((OmmNiProviderConfigImpl) niProvConfig, name, type, configParam);
+		return ce != null ? ce.intValue() : 0;
+		}
+	
+	public static double configDoubleIntValue(OmmNiProviderConfig niProvConfig, String name, int type, int configParam)
+	{
+		ConfigElement ce = getConfigElement((OmmNiProviderConfigImpl) niProvConfig, name, type, configParam);
+		return ce != null ? ce.doubleValue() : 0;
+		}
+
+	// used only for JUNIT tests
+	public static String configGetStringValue(OmmNiProviderConfig niProvConfig, String name, int type, int configParam)
+	{
+		ConfigElement ce = getConfigElement((OmmNiProviderConfigImpl) niProvConfig, name, type, configParam);
+		return ce != null ? ce.asciiValue() : null;
+	}	
+
+	// used only for JUNIT tests
+	public static Boolean configGetBooleanValue(OmmNiProviderConfig niProvConfig, String name, int type, int configParam)
+	{
+		ConfigElement ce = getConfigElement((OmmNiProviderConfigImpl) niProvConfig, name, type, configParam);
+		return  (ce != null) ? ce.booleanValue() : false;
+	}
+	
+	private static ConfigElement getConfigElement(OmmNiProviderConfigImpl niProvConfig, String name, int type, int configParam) {
+		ConfigAttributes attributes = null;
+		if (type == ConfigGroupTypeConsumer)
+			attributes = niProvConfig.xmlConfig().getConsumerAttributes(name);
+		else if (type == ConfigGroupTypeChannel)
+			attributes = niProvConfig.xmlConfig().getChannelAttributes(name);
+		else if (type == ConfigGroupTypeDictionary)
+			attributes = niProvConfig.xmlConfig().getDictionaryAttributes(name);
+		else if (type == ConfigGroupTypeProvider)
+			attributes = niProvConfig.xmlConfig().getIProviderAttributes(name);
+		else if (type == ConfigGroupTypeNiProvider)
+			attributes = niProvConfig.xmlConfig().getNiProviderAttributes(name);
+		else if (type == ConfigGroupTypeServer)
+			attributes = niProvConfig.xmlConfig().getServerAttributes(name);
+		else if (type == ConfigGroupTypeWarmStandbyGroup)
+			attributes = niProvConfig.xmlConfig().getWSBGroupAttributes(name);
+		else if (type == ConfigGroupTypeWarmStandbyStartingServerInfo)
+			attributes = niProvConfig.xmlConfig().getWSBServerInfoAttributes(name);
+		else if (type == ConfigGroupTypeWarmStandbyStandbyServerInfo)
+			attributes = niProvConfig.xmlConfig().getWSBServerInfoAttributes(name);
+		else if (type == ConfigGroupTypeSessionChannel)
+			attributes = niProvConfig.xmlConfig().getSessionChannelGroupAttributes(name);
+		if (attributes != null) {
+			return attributes.getPrimitiveValue(configParam);
+		}
+		return null;
+	}
 	
 	// used only for JUNIT tests
 	public static int configGetIntLongValue(OmmConsumerConfig consConfig, String name, int type, int configParam)
@@ -992,6 +1536,8 @@ public class JUnitTestConnect
 			attributes = consConfig.xmlConfig().getDictionaryAttributes(name);
 		else if (type == ConfigGroupTypeProvider)
 			attributes = consConfig.xmlConfig().getIProviderAttributes(name);
+		else if (type == ConfigGroupTypeNiProvider)
+			attributes = consConfig.xmlConfig().getNiProviderAttributes(name);
 		else if (type == ConfigGroupTypeServer)
 			attributes = consConfig.xmlConfig().getServerAttributes(name);
 		else if (type == ConfigGroupTypeWarmStandbyGroup)
@@ -1007,6 +1553,8 @@ public class JUnitTestConnect
 		}
 		return null;
 	}
+	
+	
 	
 	public static OmmConsumer createOmmConsumer(OmmConsumerConfig consConfig)
 	{
@@ -1488,7 +2036,7 @@ public class JUnitTestConnect
 		}
 		ActiveConfig activeConfig = niprovImpl.activeConfig();
 		
-		if (type == ConfigGroupTypeProvider)
+		if (type == ConfigGroupTypeProvider || type == ConfigGroupTypeNiProvider)
 		{
 			if (configParam == XmlTraceToStdout)
 				return activeConfig.xmlTraceEnable;
@@ -1543,7 +2091,7 @@ public class JUnitTestConnect
 		}
 		ActiveConfig activeConfig = niprovImpl.activeConfig();
 		
-		if (type == ConfigGroupTypeProvider)
+		if (type == ConfigGroupTypeProvider || type == ConfigGroupTypeNiProvider)
 		{
 			if (configParam == ItemCountHint)
 				return activeConfig.itemCountHint;
@@ -1605,6 +2153,7 @@ public class JUnitTestConnect
 		throw new IllegalArgumentException("Invalid Input");  
 	}
 	
+	// This is sued for NiProviders
 	public static String activeConfigGetStringValue(OmmProvider provider, int type, int configParam, int channelIndex) 
 	{
 		ChannelConfig chanConfig = null;
@@ -1616,7 +2165,7 @@ public class JUnitTestConnect
 		}
 		ActiveConfig activeConfig = niprovImpl.activeConfig();
 	
-		if (type == ConfigGroupTypeProvider)
+		if (type == ConfigGroupTypeProvider || type == ConfigGroupTypeNiProvider)
 		{
 			if (configParam == NiProviderName)
 				return activeConfig.configuredName;

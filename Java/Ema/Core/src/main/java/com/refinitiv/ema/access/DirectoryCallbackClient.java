@@ -2,7 +2,7 @@
  *|            This source code is provided under the Apache 2.0 license
  *|  and is provided AS IS with no warranty or guarantee of fit for purpose.
  *|                See the project's LICENSE.md for details.
- *|           Copyright (C) 2020,2022,2024 LSEG. All rights reserved.
+ *|           Copyright (C) 2020,2022,2024-2025 LSEG. All rights reserved.
  *|-----------------------------------------------------------------------------
  */
 
@@ -79,14 +79,14 @@ class DirectoryCallbackClient<T> extends CallbackClient<T> implements RDMDirecto
 		if (channelInfo.getParentChannel() != null)
 			channelInfo = channelInfo.getParentChannel();
 		
-		SessionChannelInfo<OmmConsumerClient> sessionChannelInfo = channelInfo.sessionChannelInfo();
-		ConsumerSession<OmmConsumerClient> consumerSession = sessionChannelInfo!= null ? sessionChannelInfo.consumerSession() : null;
+		BaseSessionChannelInfo<OmmConsumerClient> sessionChannelInfo = channelInfo.sessionChannelInfo();
+		ConsumerSession<OmmConsumerClient> consumerSession = sessionChannelInfo!= null ? (ConsumerSession<OmmConsumerClient>)sessionChannelInfo.baseSession() : null;
 		
 		if (directoryMsg == null)
 		{
 			if(consumerSession != null)
 			{
-				_ommBaseImpl.closeSessionChannel((SessionChannelInfo<T>) sessionChannelInfo);
+				_ommBaseImpl.closeSessionChannel((BaseSessionChannelInfo<T>) sessionChannelInfo);
 			}
 			else
 			{
@@ -137,7 +137,7 @@ class DirectoryCallbackClient<T> extends CallbackClient<T> implements RDMDirecto
 					{
 						consumerSession.processDirectoryPayload(((DirectoryRefresh)directoryMsg).serviceList(), channelInfo);
 						
-						_ommBaseImpl.closeSessionChannel((SessionChannelInfo<T>) sessionChannelInfo);
+						_ommBaseImpl.closeSessionChannel((BaseSessionChannelInfo<T>) sessionChannelInfo);
 					}
 					else
 					{
@@ -224,7 +224,7 @@ class DirectoryCallbackClient<T> extends CallbackClient<T> implements RDMDirecto
 					{
 						if(consumerSession != null)
 						{
-							_ommBaseImpl.closeSessionChannel((SessionChannelInfo<T>) sessionChannelInfo);
+							_ommBaseImpl.closeSessionChannel((BaseSessionChannelInfo<T>) sessionChannelInfo);
 						}
 						else
 						{

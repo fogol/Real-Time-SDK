@@ -14007,3 +14007,1359 @@ TEST_F(OmmConsumerTest, PreferredHostFallBackWithInCurrentWSBGroupWhileWhileStar
 	}
 }
 
+//////
+
+/* OmmConsumer constructors overloading variant */
+enum class OmmConsumerConstructorType
+{
+	config,
+	config_client,
+	config_oAuthClient,
+	config_oAuthClient_errorClient,
+	config_errorClient,
+	config_adminClient_oAuthClient,
+	config_adminClient_errorClient,
+	config_adminClient_oAuthClient_errorClient
+};
+
+std::ostream& operator<<(std::ostream& ostream, OmmConsumerConstructorType constructorType)
+{
+	switch (constructorType) {
+	case OmmConsumerConstructorType::config:
+			ostream << "config"; break;
+	case OmmConsumerConstructorType::config_client:
+			ostream << "config_client"; break;
+	case OmmConsumerConstructorType::config_oAuthClient:
+			ostream << "config_oAuthClient"; break;
+	case OmmConsumerConstructorType::config_oAuthClient_errorClient:
+			ostream << "config_oAuthClient_errorClient"; break;
+	case OmmConsumerConstructorType::config_errorClient:
+			ostream << "config_errorClient"; break;
+	case OmmConsumerConstructorType::config_adminClient_oAuthClient:
+			ostream << "config_adminClient_oAuthClient"; break;
+	case OmmConsumerConstructorType::config_adminClient_errorClient:
+			ostream << "config_adminClient_errorClient"; break;
+	case OmmConsumerConstructorType::config_adminClient_oAuthClient_errorClient:
+			ostream << "config_adminClient_oAuthClient_errorClient"; break;
+	default:
+			ostream << "error: unknown constructor type!"; break;
+	}
+	return ostream;
+}
+
+class ConsumerErrorClientTest : public refinitiv::ema::access::OmmConsumerErrorClient
+{
+public:
+
+	ConsumerErrorClientTest() :
+		countOnInvalidHandle(0),
+		countOnInaccessibleLogFile(0),
+		countOnSystemError(0),
+		countOnMemoryExhaustion(0),
+		countOnInvalidUsage(0),
+		countOnJsonConverter(0),
+		countOnDispatchError(0)
+	{ }
+
+	~ConsumerErrorClientTest() = default;
+
+	bool isCalledAnyErrorHandler() const
+	{
+		return countOnInvalidHandle > 0 ||
+			countOnInaccessibleLogFile > 0 ||
+			countOnSystemError > 0 ||
+			countOnMemoryExhaustion > 0 ||
+			countOnInvalidUsage > 0 ||
+			countOnJsonConverter > 0 ||
+			countOnDispatchError > 0;
+	}
+
+	unsigned getCountCalledHandlers() const {
+		return (countOnInvalidHandle + countOnInaccessibleLogFile + countOnSystemError
+			+ countOnMemoryExhaustion + countOnInvalidUsage + countOnJsonConverter
+			+ countOnDispatchError
+			);
+	}
+
+	unsigned getCountOnInvalidHandle() const { return countOnInvalidHandle; }
+	unsigned getCountOnInaccessibleLogFile() const { return countOnInaccessibleLogFile; }
+	unsigned getCountOnSystemError() const { return countOnSystemError; }
+	unsigned getCountOnMemoryExhaustion() const { return countOnMemoryExhaustion; }
+	unsigned getCountOnInvalidUsage() const { return countOnInvalidUsage; }
+	unsigned getCountOnJsonConverter() const { return countOnJsonConverter; }
+	unsigned getCountOnDispatchError() const { return countOnDispatchError; }
+
+
+	/* Overide OmmConsumerErrorClient methods */
+
+	void onInvalidHandle( UInt64 handle, const EmaString& text ) override
+	{
+		++countOnInvalidHandle;
+		//cout << endl << "onInvalidHandle callback function" << endl;
+		//cout << "Invalid handle: " << handle << endl;
+		//cout << "Error text: " << text << endl;
+	}
+
+	void onInaccessibleLogFile( const EmaString& fileName, const EmaString& text ) override
+	{
+		++countOnInaccessibleLogFile;
+		//cout << endl << "onInaccessibleLogFile callback function" << endl;
+		//cout << "Inaccessible file name: " << fileName << endl;
+		//cout << "Error text: " << text << endl;
+	}
+
+	void onSystemError( Int64 code, void* address, const EmaString& text ) override
+	{
+		++countOnSystemError;
+		//cout << endl << "onSystemError callback function" << endl;
+		//cout << "System Error code: " << code << endl;
+		//cout << "System Error Address: " << address << endl;
+		//cout << "Error text: " << text << endl;
+	}
+
+	void onMemoryExhaustion( const EmaString& text ) override
+	{
+		++countOnMemoryExhaustion;
+		//cout << endl << "onMemoryExhaustion callback function" << endl;
+		//cout << "Error text: " << text << endl;
+	}
+
+	void onInvalidUsage( const EmaString& text, Int32 errorCode ) override
+	{
+		++countOnInvalidUsage;
+		//cout << "onInvalidUsage callback function" << endl;
+		//cout << "Error text: " << text << endl;
+		//cout << "Error code: " << errorCode << endl;
+	}
+
+	void onJsonConverter( const EmaString& text, Int32 errorCode, const ConsumerSessionInfo& sessionInfo ) override
+	{
+		++countOnJsonConverter;
+		//cout << "onJsonConverter callback function" << endl;
+		//cout << "Error text: " << text << endl;
+		//cout << "Error code: " << errorCode << endl;
+	}
+
+	void onDispatchError( const EmaString& text, Int32 errorCode ) override
+	{
+		++countOnDispatchError;
+		//cout << "onDispatchError callback function" << endl;
+		//cout << "Error text: " << text << endl;
+		//cout << "Error code: " << errorCode << endl;
+	}
+ 
+protected:
+	unsigned countOnInvalidHandle;
+	unsigned countOnInaccessibleLogFile;
+	unsigned countOnSystemError;
+	unsigned countOnMemoryExhaustion;
+	unsigned countOnInvalidUsage;
+	unsigned countOnJsonConverter;
+	unsigned countOnDispatchError;
+};
+
+class OmmConsumerCreateTest : public ::testing::Test
+{
+protected:
+	void SetUp() override
+	{
+		pConsumerConfig = nullptr;
+		pConsumerTestClient = nullptr;
+		pOmmConsumerTest = nullptr;
+	}
+
+	void TearDown() override
+	{
+		if (pOmmConsumerTest) {
+			delete pOmmConsumerTest;
+			pOmmConsumerTest = nullptr;
+		}
+		if (pConsumerTestClient) {
+			delete pConsumerTestClient;
+			pConsumerTestClient = nullptr;
+		}
+		if (pConsumerConfig) {
+			delete pConsumerConfig;
+			pConsumerConfig = nullptr;
+		}
+	}
+
+public:
+
+	OmmConsumerConfig* pConsumerConfig;
+	Map configMap;
+
+	ConsumerTestOptions consTestOptions;
+	ConsumerTestClientBase* pConsumerTestClient;
+	
+	OAuthClientTest oAuthClient;
+	ConsumerErrorClientTest errorClient;
+
+	OmmConsumer* pOmmConsumerTest;
+
+	/* Create OmmConsumer instance using different constructor options */
+	/**/
+	/* constructorType OmmConsumer constructors overloading variant */
+	OmmConsumer* createOmmConsumer( OmmConsumerConstructorType constructorType, ConsumerProgrammaticTestConfig& consProgConfig )
+	{
+		/* Create OmmConsumer's programmatic configuration */
+		consProgConfig.createProgrammaticConfig(configMap);
+
+		pConsumerConfig = new OmmConsumerConfig();
+		pConsumerConfig->config(configMap);
+
+		/* Consumer client */
+		pConsumerTestClient = new ConsumerTestClientBase(consTestOptions);
+
+		/* Create OmmConsumer instance using different constructor */
+		switch (constructorType) {
+		case OmmConsumerConstructorType::config:
+		{
+			// OmmConsumer( const OmmConsumerConfig& config );
+			pOmmConsumerTest = new OmmConsumer(*pConsumerConfig);
+			break;
+		}
+
+		case OmmConsumerConstructorType::config_client:		
+		{
+			// OmmConsumer( const OmmConsumerConfig& config, OmmConsumerClient& client, void* closure = 0 );
+			pOmmConsumerTest = new OmmConsumer(*pConsumerConfig, *pConsumerTestClient,
+				(void*)static_cast<int>(OmmConsumerConstructorType::config_client));
+			break;
+		}
+
+		case OmmConsumerConstructorType::config_oAuthClient:
+		{
+			// OmmConsumer( const OmmConsumerConfig& config, OmmOAuth2ConsumerClient& oAuthClient, void* closure = 0 );
+			pOmmConsumerTest = new OmmConsumer(*pConsumerConfig, oAuthClient,
+				(void*)static_cast<int>(OmmConsumerConstructorType::config_oAuthClient));
+			break;
+		}
+
+		case OmmConsumerConstructorType::config_oAuthClient_errorClient:
+		{
+			// OmmConsumer( const OmmConsumerConfig& config, OmmOAuth2ConsumerClient& oAuthClient, OmmConsumerErrorClient& errorClient, void* closure = 0 );
+			pOmmConsumerTest = new OmmConsumer(*pConsumerConfig, oAuthClient, errorClient,
+				(void*)static_cast<int>(OmmConsumerConstructorType::config_oAuthClient_errorClient));
+			break;
+		}
+
+		case OmmConsumerConstructorType::config_errorClient:
+		{
+			// OmmConsumer( const OmmConsumerConfig& config, OmmConsumerErrorClient& client );
+			pOmmConsumerTest = new OmmConsumer(*pConsumerConfig, errorClient);
+			break;
+		}
+
+		case OmmConsumerConstructorType::config_adminClient_oAuthClient:
+		{
+			// OmmConsumer( const OmmConsumerConfig& config, OmmConsumerClient& adminClient, OmmOAuth2ConsumerClient& oAuthClient, void* closure = 0 );
+			pOmmConsumerTest = new OmmConsumer(*pConsumerConfig, *pConsumerTestClient, oAuthClient,
+				(void*)static_cast<int>(OmmConsumerConstructorType::config_adminClient_oAuthClient));
+			break;
+		}
+
+		case OmmConsumerConstructorType::config_adminClient_errorClient:
+		{
+			// OmmConsumer( const OmmConsumerConfig& config, OmmConsumerClient& adminClient, OmmConsumerErrorClient& errorClient, void* closure = 0 );
+			pOmmConsumerTest = new OmmConsumer(*pConsumerConfig, *pConsumerTestClient, errorClient,
+				(void*)static_cast<int>(OmmConsumerConstructorType::config_adminClient_errorClient));
+			break;
+		}
+
+		case OmmConsumerConstructorType::config_adminClient_oAuthClient_errorClient:
+		{
+			// OmmConsumer( const OmmConsumerConfig& config, OmmConsumerClient& adminClient, OmmOAuth2ConsumerClient& oAuthClient, OmmConsumerErrorClient& errorClient, void* closure = 0 );
+			pOmmConsumerTest = new OmmConsumer(*pConsumerConfig, *pConsumerTestClient, oAuthClient, errorClient,
+				(void*)static_cast<int>(OmmConsumerConstructorType::config_adminClient_oAuthClient_errorClient));
+		}
+
+		default:  // error case: unknown constructor option
+			break;
+		}
+
+		return pOmmConsumerTest;
+	}
+
+	/* Is the error client configured for OmmConsumer? */
+	/* When an error client is configured, the consumer will notify it of any errors. */
+	/* Otherwise, the consumer will throw an exception. */
+	/**/
+	/* constructorType OmmConsumer constructors overloading variant */
+	bool hasErrorClient( OmmConsumerConstructorType constructorType ) const
+	{
+		bool bRes = false;
+
+		switch (constructorType) {
+		case OmmConsumerConstructorType::config_oAuthClient_errorClient:
+		case OmmConsumerConstructorType::config_errorClient:
+		case OmmConsumerConstructorType::config_adminClient_errorClient:
+		case OmmConsumerConstructorType::config_adminClient_oAuthClient_errorClient:
+			bRes = true;
+			break;
+		};
+		return bRes;
+	}
+
+	/* Is the test client assigned for the OmmConsumer? */
+	bool hasTestClient( OmmConsumerConstructorType constructorType ) const
+	{
+		bool bRes = false;
+
+		switch (constructorType) {
+		case OmmConsumerConstructorType::config_client:
+		case OmmConsumerConstructorType::config_adminClient_oAuthClient:
+		case OmmConsumerConstructorType::config_adminClient_errorClient:
+		case OmmConsumerConstructorType::config_adminClient_oAuthClient_errorClient:
+			bRes = true;
+			break;
+		};
+		return bRes;
+	}
+};
+
+class OmmConsumerCreateTestParams {
+public:
+	OmmConsumerConstructorType		constructorType;		// What constructor variant to use
+
+	OmmConsumerCreateTestParams( OmmConsumerConstructorType consumerConstructorType ) :
+		constructorType(consumerConstructorType)
+	{
+	}
+
+	/* Overload the << operator -- when tests fail, this will cause the parameters to printed in a readable fashion. */
+	friend std::ostream& operator<<(std::ostream& out, const OmmConsumerCreateTestParams& params)
+	{
+		out << "["
+			<< "createType:" << params.constructorType // << ","
+			<< "]";
+		return out;
+	}
+};
+
+class OmmConsumerCreateTestFixture
+	: public OmmConsumerCreateTest, public ::testing::WithParamInterface<OmmConsumerCreateTestParams>
+{
+};
+
+/*  Negative test case: expect an error. */
+/*  When a consumer attempts to connect to a non-existent provider, */
+/*  it must handle the exception or error properly. */
+/*  This test does the following:
+ *  1. Starts up an omm-consumer with a login client with no providers
+ *  2. Checks to see that the consumer does not initialize
+ *  3. Checks to see that the consumer did not get anyhting
+ */
+TEST_P(OmmConsumerCreateTestFixture, CreateConsumerWithNoProviderShouldThrowException)
+{
+	const OmmConsumerCreateTestParams& testParams = GetParam();
+
+	try
+	{
+		ConsumerProgrammaticTestConfig consProgConfig;
+		// Set loginRequestTimeOut and channelInitializationTimeout to low values to speed up the test
+		consProgConfig.loginRequestTimeOut = 1000; // 1 second - timeout for login request
+		consProgConfig.channelInitializationTimeout = 1; // 1 second - timeout for channel initialization
+
+		/* While OmmConsumer creating we expect an error/exception because connection fails. */
+		OmmConsumer* pOmmConsumer = createOmmConsumer( testParams.constructorType, consProgConfig);
+
+		/* If an error handling client is configured, it should handle the error rather than throwing an exception. */
+		if ( hasErrorClient( testParams.constructorType ) )
+		{			
+			ASSERT_TRUE(errorClient.isCalledAnyErrorHandler()) << "Expected that the errorClient handled the error.";
+
+			ASSERT_EQ(1, errorClient.getCountOnInvalidUsage());
+			ASSERT_EQ(1, errorClient.getCountCalledHandlers());
+		}
+		else
+		{
+			ASSERT_FALSE(true) << "Error: Expected exception";
+		}
+
+	}
+	catch ( const OmmException& exception )
+	{
+		//cout << exception.toString() << endl;
+		/* Test expected exception */
+		ASSERT_TRUE(true) << "Expected exception: " << exception.getText();
+	}
+	catch (...)
+	{
+		/* Test expected exception */
+		ASSERT_TRUE(true);
+	}
+
+	/* Check that ConsumerTestClient did not receive any messages */
+	ASSERT_EQ(0, pConsumerTestClient->getMessageQueueSize()) << "Expected no messages in the ConsumerTestClient message queue: " << pConsumerTestClient->getMessageQueueSize();	
+}
+
+/*  Consumer connects to Provider correctly. */
+/*  This test does the following:
+ *  1. Starts up an omm-consumer with a login client with one provider
+ *  2. Checks to see that the consumer does intitialize
+ *  3. Checks to see that the consumer has only one active channel and that it got a OPEN/OK login refresh message.
+ */
+TEST_P(OmmConsumerCreateTestFixture, CreateConsumerWithOneProvider)
+{
+	const OmmConsumerCreateTestParams& testParams = GetParam();
+
+	try
+	{
+		ProviderTestOptions provTestOptions;
+		IProviderTestClientBase provClient(provTestOptions);
+
+		Map configIProvMap;
+		IProviderProgrammaticTestConfig iprovProgConfig;
+		iprovProgConfig.createProgrammaticConfig(configIProvMap);
+
+		OmmIProviderConfig provConfig("EmaConfigTest.xml");
+		provConfig.config(configIProvMap);
+		provConfig.providerName("ProviderProgrammaticTest_1");
+
+		/* Create IProvider instance */
+		OmmProvider prov( provConfig, provClient );
+		//cout << "OmmProvider created." << endl;
+
+		/* Create OmmConsumer instance */
+		ConsumerProgrammaticTestConfig consProgConfig;
+		OmmConsumer* pOmmConsumer = createOmmConsumer( testParams.constructorType, consProgConfig );
+
+		/* Check that OmmConsumer is created */
+		ASSERT_NE( pOmmConsumer, nullptr ) << "Expected OmmConsumer to be initialized.";
+		//cout << "OmmConsumer created with constructor type: " << testParams.constructorType << endl;
+
+		/* Check the active channel */
+		ChannelInformation channelInfo;
+		pOmmConsumer->getChannelInformation(channelInfo);
+		//cout << "Channel Info: " << channelInfo.toString() << endl;
+		ASSERT_EQ(channelInfo.getChannelState(), ChannelInformation::ChannelState::ActiveEnum);
+
+		/* When the test client assigned for the consumer we can check the message queue */
+		if ( hasTestClient(testParams.constructorType) )
+		{
+			ASSERT_NE(0, pConsumerTestClient->getMessageQueueSize());
+			//cout << "Message queue size: " << pConsumerTestClient->getMessageQueueSize() << endl;
+
+			/* Checks to see that the consumer got a OPEN/OK login refresh message */
+			while (Msg* msg = pConsumerTestClient->popMsg())
+			{
+				if (msg->getDataType() == DataType::StatusMsgEnum)
+					continue;
+
+				ASSERT_EQ(msg->getDomainType(), RsslDomainTypes::RSSL_DMT_LOGIN);
+				ASSERT_EQ(msg->getDataType(), DataType::RefreshMsgEnum);
+				RefreshMsg* refreshMsg = static_cast<RefreshMsg*>(msg);
+				ASSERT_EQ(refreshMsg->getState().getStreamState(), OmmState::StreamState::OpenEnum);
+				ASSERT_EQ(refreshMsg->getState().getDataState(), OmmState::DataState::OkEnum);
+			}
+		}
+
+		if ( hasErrorClient(testParams.constructorType) )
+		{
+			ASSERT_FALSE(errorClient.isCalledAnyErrorHandler()) << "Did not expect that the errorClient handled any error.";
+		}
+	}
+	catch (const OmmException& exception)
+	{
+		ASSERT_TRUE(false) << "uncaught exception in test: " << exception.getText();
+	}
+	catch (...)
+	{
+		ASSERT_TRUE(false) << "Unexpected exception caught.";
+	}	
+}
+
+/*  Consumer connects to Providers using a round robin algorithm. */
+/*  The test configures the consumer to connect to a set of providers. */
+/*  This test does the following:
+ *  1. Starts up the set of providers
+ *  2. Starts up an omm-consumer with a lot of providers, configured via ChannelSet
+ *  3. Checks to see that the consumer does intitialize
+ *  4. Checks to see that the consumer has only one active channel and that it got a OPEN/OK login refresh message
+ *  5. Shut down the 1-st provider fully
+ *  6. Check that the consumer switches to the next provider and that it got a OPEN/OK login refresh message
+ *  7. Restore/Up the 1-st provider (previous)
+ *  8. Shut down the 2-nd provider fully
+ *  Repeats steps 6-8 for all the providers, checking that the consumer switches to the next provider (round robin algorithm)
+ */
+TEST_P(OmmConsumerCreateTestFixture, ConsumerRoundRobinProvidersBreakConnection)
+{
+	const OmmConsumerCreateTestParams& testParams = GetParam();
+	unsigned i, j, k;
+
+	const unsigned NUMConnections = 3;  // The number of providers and channels available to the consumer
+	const unsigned startPortNum = 14220;
+
+	Map configIProvMap;
+	IProviderProgrammaticTestConfig iprovProgConfig;
+
+	vector< shared_ptr<ProviderTestComponents> > providers;
+	
+	Msg* msg;
+	RefreshMsg* refreshMsg;
+
+	try
+	{
+		/* Create a programmatic configuration. It is used for all the Providers */
+		iprovProgConfig.numProviders = NUMConnections;
+		iprovProgConfig.startPortNum = startPortNum;
+
+		iprovProgConfig.createProgrammaticConfig(configIProvMap);
+		//std::cout << "IProvider programmatic configuration created." << std::endl;
+
+		/* Create the set of test Providers */
+		for (i = 0; i < NUMConnections; i++)
+		{
+			/* Create Provider and its components: IProviderTestClientBase, OmmIProviderConfig */
+			std::string providerProgTestName = "ProviderProgrammaticTest_" + std::to_string(i + 1);
+			ProviderTestComponents* providerTestComponent = new ProviderTestComponents();
+			providerTestComponent->createProvider(configIProvMap, providerProgTestName.c_str());
+			providers.emplace_back(providerTestComponent);
+			//std::cout << "OmmProvider_" << (i + 1) << ": created ProviderTestComponents and added it to vector providers." << std::endl;
+		}
+
+		/* Create OmmConsumer test instance */
+		ConsumerProgrammaticTestConfig consProgConfig;
+		//consProgConfig.channelInitializationTimeout = 3;
+		consProgConfig.numChannels = NUMConnections;
+		consProgConfig.startPortNum = startPortNum;
+		//consProgConfig.loggerSeverity = OmmLoggerClient::VerboseEnum;
+	
+		OmmConsumer* pOmmConsumer = nullptr;
+		pOmmConsumer = createOmmConsumer(testParams.constructorType, consProgConfig);
+
+		/* Check that OmmConsumer is created */
+		ASSERT_NE(pOmmConsumer, nullptr) << "Expected OmmConsumer to be initialized.";
+		//std::cout << "OmmConsumer created with constructor type: " << testParams.constructorType << std::endl;
+
+		ChannelInformation channelInfo;
+		EmaVector<ChannelInformation> channelInfoList;
+
+		/* Loop to break connection with each provider in round robin manner */
+		for (i = 0; i < (NUMConnections + 1); i++)
+		{
+			j = (i % NUMConnections);  // current provider index: 0, 1, 2, 0
+			//std::cout << "OmmProvider_" << (j + 1) << ": checking connection with OmmConsumer." << std::endl;
+
+			/* Provider side */
+			/* Check that consumer connected to the j-th provider */
+			OmmProvider* pProvider = providers[j]->pProvider;
+			ASSERT_NE(pProvider, nullptr) << "Expected OmmProvider to be initialized. j: " << j;
+		
+			pProvider->getConnectedClientChannelInfo(channelInfoList);
+			ASSERT_EQ(channelInfoList.size(), 1) << "Expected that the provider is connected to the consumer.";
+			ASSERT_EQ(channelInfoList[0].getChannelState(), ChannelInformation::ChannelState::ActiveEnum);
+
+			/* Consumer side */
+			/* Check the active channel */
+			pOmmConsumer->getChannelInformation(channelInfo);
+			//std::cout << "Channel Info.port: " << channelInfo.port() << " " << channelInfo.getName() << std::endl;
+			ASSERT_EQ(channelInfo.getChannelState(), ChannelInformation::ChannelState::ActiveEnum);
+
+			/* When the test client assigned for the consumer we can check the message queue */
+			if ( hasTestClient(testParams.constructorType) )
+			{
+				ASSERT_NE(0, pConsumerTestClient->getMessageQueueSize());
+				//std::cout << "Message queue size: " << pConsumerTestClient->getMessageQueueSize() << std::endl;
+
+				/* Checks to see that the consumer got a OPEN/OK login refresh message */
+				while (msg = pConsumerTestClient->popMsg())
+				{
+					if (msg->getDataType() == DataType::StatusMsgEnum)
+						continue;
+
+					ASSERT_EQ(msg->getDomainType(), RsslDomainTypes::RSSL_DMT_LOGIN);
+					ASSERT_EQ(msg->getDataType(), DataType::RefreshMsgEnum);
+					refreshMsg = static_cast<RefreshMsg*>(msg);
+					ASSERT_EQ(refreshMsg->getState().getStreamState(), OmmState::StreamState::OpenEnum);
+					ASSERT_EQ(refreshMsg->getState().getDataState(), OmmState::DataState::OkEnum);
+				}
+			}
+
+			/* Stop the connection with the j-th provider */
+			providers[j].reset();
+			//std::cout << "OmmProvider_" << (j + 1) << ": has been deleted, waiting for consumer switch." << std::endl;
+
+			/* Check that consumer lost connection */
+			pOmmConsumer->getChannelInformation(channelInfo);
+			//std::cout << "Channel Info. channelState: " << channelInfo.getChannelState() << std::endl;
+			ASSERT_NE(channelInfo.getChannelState(), ChannelInformation::ChannelState::ActiveEnum);
+
+			/* Wait for the consumer to switch to the next provider */
+			k = 0;
+			do {
+				testSleep(250);
+				pOmmConsumer->getChannelInformation(channelInfo);
+				k++;
+			} while (channelInfo.getChannelState() != ChannelInformation::ChannelState::ActiveEnum  &&  k < 20);
+			ASSERT_EQ(channelInfo.getChannelState(), ChannelInformation::ChannelState::ActiveEnum) << "Expected that consumer connects to the next provider. i: " << i << "; k: " << k;
+			//std::cout << "Channel Info.port: " << channelInfo.port() << " " << channelInfo.getName() << "; k: " << k << std::endl;
+
+			/* Up the deleted provider: re-create the j-th Provider with components */
+			std::string providerProgTestName = "ProviderProgrammaticTest_" + std::to_string(j + 1);
+			ProviderTestComponents* providerTestComponent = new ProviderTestComponents();
+			providerTestComponent->createProvider(configIProvMap, providerProgTestName.c_str());
+			providers[j] = make_shared<ProviderTestComponents>(providerTestComponent);
+		}
+	}
+	catch (const OmmException& exception)
+	{
+		ASSERT_TRUE(false) << "uncaught exception in test: " << exception.getText();
+	}
+	catch (...)
+	{
+		ASSERT_TRUE(false) << "Unexpected exception caught.";
+	}
+}
+
+class OmmConsumerWithConfigIndexTestParams {
+public:
+	unsigned						configIndex;			// configuration index
+
+	OmmConsumerWithConfigIndexTestParams(unsigned configIdx) :
+		configIndex(configIdx)
+	{
+	}
+
+	/* Overload the << operator -- when tests fail, this will cause the parameters to printed in a readable fashion. */
+	friend std::ostream& operator<<(std::ostream& out, const OmmConsumerWithConfigIndexTestParams& params)
+	{
+		out << "["
+			<< "configIndex:" << params.configIndex  // << ","
+			<< "]";
+		return out;
+	}
+};
+
+class OmmConsumerCreateIndexTestFixture
+	: public OmmConsumerCreateTest, public ::testing::WithParamInterface<OmmConsumerWithConfigIndexTestParams>
+{
+};
+
+
+/*  Consumer connects to Providers using a round robin algorithm. */
+/*  The test configures the consumer to connect to a set of providers. */
+/*  The test configures providers to send a LoginRefresh or not. */
+/*  This test does the following:
+ *  1. Starts up the set of providers
+ *  2. Starts up an omm-consumer with a lot of providers, configured via ChannelSet
+ *  3. Checks to see that the consumer does intitialize
+ *  4. Checks to see that the consumer has only one active channel and that it got a OPEN/OK login refresh message
+ *  5. Shut down the active provider fully
+ *  6. Check that the consumer switches to the next provider and that it got a OPEN/OK login refresh message
+ */
+TEST_P(OmmConsumerCreateIndexTestFixture, ConsumerRoundRobinProvidersNotSendLoginRefresh)
+{
+	const OmmConsumerWithConfigIndexTestParams& testParams = GetParam();
+	unsigned i, j, k, s;
+
+	const unsigned NUMConnections = 3;  // The number of providers and channels available to the consumer
+	const unsigned startPortNum = 14220;
+
+	Map configIProvMap;
+	IProviderProgrammaticTestConfig iprovProgConfig;
+
+	std::string providerProgTestName;
+	ProviderTestComponents* providerTestComponent;
+
+	vector< shared_ptr<ProviderTestComponents> > providers;
+
+	ConsumerProgrammaticTestConfig consProgConfig;
+	OmmConsumer* pOmmConsumer;
+	OmmProvider* pProvider;
+
+	ChannelInformation channelInfo;
+	EmaVector<ChannelInformation> channelInfoList;
+
+	Msg* msg;
+	RefreshMsg* refreshMsg;
+
+	ASSERT_TRUE(0 <= testParams.configIndex && testParams.configIndex < 3);
+
+	try
+	{
+		/* P1(false), P2(false), P3(true) */
+		/* P1(false), P2(true), P3(false) */
+		/* P1(true), P2(false), P3(false) */
+		bool sendLoginRefreshPattern[NUMConnections][NUMConnections] =
+		{
+			{ false, false, true },
+			{ false, true, false },
+			{ true, false, false }
+		};
+
+		/* Create a programmatic configuration. It is used for all the Providers */
+		iprovProgConfig.numProviders = NUMConnections;
+		iprovProgConfig.startPortNum = startPortNum;
+		iprovProgConfig.createProgrammaticConfig(configIProvMap);
+		//std::cout << "IProvider programmatic configuration created." << std::endl;
+
+		/* Loop to break connection with each provider in round robin manner */
+		/* 3 Steps. */
+		i = testParams.configIndex;
+
+		{
+			/* Create the set of test Providers */
+			providerProgTestName = "ProviderProgrammaticTest_1";
+			providerTestComponent = new ProviderTestComponents();
+			providerTestComponent->provTestOptions.sendLoginRefresh = sendLoginRefreshPattern[i][0];
+			providerTestComponent->createProvider(configIProvMap, providerProgTestName.c_str());
+			providers.emplace_back(providerTestComponent);
+
+			providerProgTestName = "ProviderProgrammaticTest_2";
+			providerTestComponent = new ProviderTestComponents();
+			providerTestComponent->provTestOptions.sendLoginRefresh = sendLoginRefreshPattern[i][1];
+			providerTestComponent->createProvider(configIProvMap, providerProgTestName.c_str());
+			providers.emplace_back(providerTestComponent);
+
+			providerProgTestName = "ProviderProgrammaticTest_3";
+			providerTestComponent = new ProviderTestComponents();
+			providerTestComponent->provTestOptions.sendLoginRefresh = sendLoginRefreshPattern[i][2];
+			providerTestComponent->createProvider(configIProvMap, providerProgTestName.c_str());
+			providers.emplace_back(providerTestComponent);
+
+			/* Create OmmConsumer test instance */
+			//consProgConfig.loginRequestTimeOut = 3000; // 3 seconds - timeout for login request
+			consProgConfig.channelInitializationTimeout = 1;
+			consProgConfig.numChannels = NUMConnections;
+			consProgConfig.startPortNum = startPortNum;
+			consProgConfig.loggerSeverity = OmmLoggerClient::VerboseEnum;
+
+			pOmmConsumer = createOmmConsumer(OmmConsumerConstructorType::config_adminClient_errorClient, consProgConfig);
+
+			/* Check that OmmConsumer is created */
+			ASSERT_NE(pOmmConsumer, nullptr) << "Expected OmmConsumer to be initialized.";
+			//std::cout << "OmmConsumer created with constructor type: config_adminClient_errorClient" << std::endl;
+
+			/* Wait for the consumer to switch to the next provider */
+			k = 0;
+			do {
+				testSleep(250);
+				pOmmConsumer->getChannelInformation(channelInfo);
+				k++;
+			} while (channelInfo.getChannelState() != ChannelInformation::ChannelState::ActiveEnum && k < 20);
+			ASSERT_EQ(channelInfo.getChannelState(), ChannelInformation::ChannelState::ActiveEnum) << "Expected that consumer connects to the start provider. k: " << k;
+			//std::cout << "Channel Info.port: " << channelInfo.port() << " " << channelInfo.getName() << "; k: " << k << std::endl;
+
+			// current active provider index: 2, 1, 0
+
+			/* When the test client assigned for the consumer we can check the message queue */
+			//if ( hasTestClient(testParams.constructorType) )
+			{
+				ASSERT_NE(0, pConsumerTestClient->getMessageQueueSize());
+				//std::cout << "Message queue size: " << pConsumerTestClient->getMessageQueueSize() << std::endl;
+
+				/* Checks to see that the consumer got a OPEN/OK login refresh message */
+				while (msg = pConsumerTestClient->popMsg())
+				{
+					if (msg->getDataType() == DataType::StatusMsgEnum)
+						continue;
+
+					ASSERT_EQ(msg->getDomainType(), RsslDomainTypes::RSSL_DMT_LOGIN);
+					ASSERT_EQ(msg->getDataType(), DataType::RefreshMsgEnum);
+					refreshMsg = static_cast<RefreshMsg*>(msg);
+					ASSERT_EQ(refreshMsg->getState().getStreamState(), OmmState::StreamState::OpenEnum);
+					ASSERT_EQ(refreshMsg->getState().getDataState(), OmmState::DataState::OkEnum);
+				}
+			}
+
+			/* Provider side */
+			/* Look for a provider that is configured as active */
+			for (j = 0; j < NUMConnections; j++)
+			{
+				pProvider = providers[j]->pProvider;
+				ASSERT_NE(pProvider, nullptr) << "Expected OmmProvider to be initialized. j: " << j;
+
+				if ( providers[j]->provTestOptions.sendLoginRefresh )
+					break;
+			}
+			ASSERT_TRUE(j < NUMConnections) << "Error: active provider is absent.";
+			//std::cout << "Active OmmProvider_" << (j + 1) << ": checking connection with OmmConsumer." << std::endl;
+
+			switch (i) {
+			case 0: ASSERT_EQ(j, 2); break; // Provider3 is active
+			case 1: ASSERT_EQ(j, 1); break; // Provider2 is active
+			case 2: ASSERT_EQ(j, 0); break; // Provider1 is active
+			}
+			
+			channelInfoList.clear();
+			pProvider->getConnectedClientChannelInfo(channelInfoList);
+			ASSERT_EQ(channelInfoList.size(), 1) << "Expected that the provider is connected to the consumer.";
+			ASSERT_EQ(channelInfoList[0].getChannelState(), ChannelInformation::ChannelState::ActiveEnum);
+
+			/* Prepare the next step */
+			/* Restart one of the providers that is not configured to send a Login refresh */
+			s = (j + 1) % NUMConnections; // index of the provider to restart
+
+			providers[s].reset();
+			//std::cout << "OmmProvider_" << (s + 1) << ": has been deleted." << std::endl;
+			/* Up the deleted provider: re-create the s-th Provider with components */
+			providerProgTestName = "ProviderProgrammaticTest_" + std::to_string(s + 1);
+			providerTestComponent = new ProviderTestComponents();
+			providerTestComponent->provTestOptions.sendLoginRefresh = true;
+			providerTestComponent->createProvider(configIProvMap, providerProgTestName.c_str());
+			providers[s] = make_shared<ProviderTestComponents>(providerTestComponent);
+			//std::cout << "OmmProvider_" << (s + 1) << ": is re-created. It is configured as active." << std::endl;
+
+			testSleep(100);
+
+			/* Stop the current connection with the j-th provider */
+			providers[j].reset();
+			//std::cout << "OmmProvider_" << (j + 1) << ": has been deleted, waiting for consumer switch." << std::endl;
+
+			/* Check that consumer lost connection */
+			pOmmConsumer->getChannelInformation(channelInfo);
+			//std::cout << "Channel Info. channelState: " << channelInfo.getChannelState() << std::endl;
+			ASSERT_NE(channelInfo.getChannelState(), ChannelInformation::ChannelState::ActiveEnum);
+
+			/* Wait for the consumer to switch to the next provider */
+			k = 0;
+			do {
+				testSleep(250);
+				pOmmConsumer->getChannelInformation(channelInfo);
+				k++;
+			} while (channelInfo.getChannelState() != ChannelInformation::ChannelState::ActiveEnum && k < 20);
+			ASSERT_EQ(channelInfo.getChannelState(), ChannelInformation::ChannelState::ActiveEnum) << "Expected that consumer connects to the next provider. i: " << i << "; k: " << k;
+			//std::cout << "Channel Info.port: " << channelInfo.port() << " " << channelInfo.getName() << "; k: " << k << std::endl;
+		}
+	}
+	catch (const OmmException& exception)
+	{
+		ASSERT_TRUE(false) << "uncaught exception in test: " << exception.getText();
+	}
+	catch (...)
+	{
+		ASSERT_TRUE(false) << "Unexpected exception caught.";
+	}
+}
+
+/*  Consumer and Provider exchange Generic messages. */
+/*  This test does the following:
+ *  1. Starts up an omm-consumer with a login client with one provider
+ *  2. Checks to see that the consumer does intitialize
+ *  3. Checks to see that the consumer has only one active channel
+ *  3. Consumer opens an item stream for sending a Generic message
+ *   a. Provider receives the request and sends a refresh
+ *   b. Consumer receives the refresh message
+ *  4. Consumer sends a Generic message
+ *  5. Check that provider receives the Generic message
+ *  6. Provider sends a Generic message
+ *  7. Check that consumer receives the Generic message
+ */
+TEST_F(OmmConsumerCreateTest, ConsumerProviderGenericMsg)
+{
+	try
+	{
+		ReqMsg consRequest;
+		GenericMsg encodeGenericMsg;
+
+		Msg* msg;
+		RefreshMsg* refreshMsg;
+		GenericMsg* genericMsg;
+		ReqMsg* reqMsg;
+
+		ProviderTestOptions provTestOptions;
+		IProviderTestClientForGeneric provClient(provTestOptions);
+
+		Map configIProvMap;
+		IProviderProgrammaticTestConfig iprovProgConfig;
+		iprovProgConfig.createProgrammaticConfig(configIProvMap);
+
+		OmmIProviderConfig provConfig("EmaConfigTest.xml");
+		provConfig.config(configIProvMap);
+		provConfig.providerName("ProviderProgrammaticTest_1");
+
+		/* Create IProvider instance */
+		OmmProvider prov(provConfig, provClient);
+		//cout << "OmmProvider created." << endl;
+
+		/* Create OmmConsumer instance */
+		ConsumerProgrammaticTestConfig consProgConfig;
+		OmmConsumer* pOmmConsumer = createOmmConsumer(OmmConsumerConstructorType::config_errorClient, consProgConfig);
+
+		/* Check that OmmConsumer is created */
+		ASSERT_NE(pOmmConsumer, nullptr) << "Expected OmmConsumer to be initialized.";
+		//cout << "OmmConsumer created." << endl;
+
+		/* Check the active channel */
+		ChannelInformation channelInfo;
+		pOmmConsumer->getChannelInformation(channelInfo);
+		//cout << "Channel Info: " << channelInfo.toString() << endl;
+		ASSERT_EQ(channelInfo.getChannelState(), ChannelInformation::ChannelState::ActiveEnum);
+
+		/* Clear message queues */
+		provClient.clear();
+		pConsumerTestClient->clear();
+
+		/* Consumer opens an item stream for sending a Generic message */
+		consRequest.name("GenericItem1").domainType(MMT_MARKET_PRICE).serviceName("DIRECT_FEED");
+
+		UInt64 itemHandle = pOmmConsumer->registerClient(consRequest, *pConsumerTestClient);
+		//cout << "Item handle: " << itemHandle << " (0x" << std::hex << itemHandle << ")" << std::dec << endl;
+		ASSERT_NE(itemHandle, 0);
+
+		/* Provider receives the request and sends a refresh */
+		do {
+			testSleep(200);
+		} while (provClient.getMessageQueueSize() == 0);
+
+		ASSERT_EQ(provClient.getMessageQueueSize(), 1);
+
+		msg = provClient.popMsg();
+
+		ASSERT_EQ(msg->getDataType(), DataType::ReqMsgEnum);
+		reqMsg = static_cast<ReqMsg*>(msg);
+		ASSERT_EQ(reqMsg->getName(), "GenericItem1");
+		ASSERT_EQ(reqMsg->getDomainType(), MMT_MARKET_PRICE);
+		ASSERT_EQ(reqMsg->getServiceName(), "DIRECT_FEED");
+		ASSERT_EQ(reqMsg->getServiceId(), 1);
+
+		/* Consumer receives the refresh msg */
+		while (pConsumerTestClient->getMessageQueueSize() == 0)
+		{
+			testSleep(200);
+		}
+
+		ASSERT_EQ(pConsumerTestClient->getMessageQueueSize(), 1);
+
+		msg = pConsumerTestClient->popMsg();
+
+		ASSERT_EQ(msg->getDataType(), DataType::RefreshMsgEnum);
+		refreshMsg = static_cast<RefreshMsg*>(msg);
+		ASSERT_EQ(refreshMsg->getName(), "GenericItem1");
+		ASSERT_EQ(refreshMsg->getDomainType(), MMT_MARKET_PRICE);
+		ASSERT_EQ(refreshMsg->getServiceName(), "DIRECT_FEED");
+		ASSERT_EQ(refreshMsg->getServiceId(), (UInt32)1);
+		ASSERT_TRUE(refreshMsg->getComplete());
+
+		/* Consumer sends a Generic message */
+		encodeGenericMsg.clear().name("TestConsumerGenericItem").complete();
+
+		pOmmConsumer->submit(encodeGenericMsg, itemHandle);
+
+		/* Check that provider receives the Generic message */
+		do {
+			testSleep(200);
+		} while (provClient.getMessageQueueSize() == 0);
+		ASSERT_EQ(provClient.getMessageQueueSize(), 1);
+
+		ASSERT_EQ(pConsumerTestClient->getMessageQueueSize(), 0);
+
+		msg = provClient.popMsg();
+
+		ASSERT_EQ(msg->getDataType(), DataType::GenericMsgEnum);
+		genericMsg = static_cast<GenericMsg*>(msg);
+		ASSERT_EQ(genericMsg->getName(), "TestConsumerGenericItem");
+		ASSERT_FALSE(genericMsg->hasServiceId());
+		ASSERT_TRUE(genericMsg->getComplete());
+		ASSERT_EQ(genericMsg->getPayload().getDataType(), DataType::NoDataEnum);
+
+		/* Provider sends a Generic message */
+		encodeGenericMsg.clear().name("TestProviderGenericItem").complete();
+
+		UInt64 provGenericItemHandle = provClient.getGenericItemHandle();
+		//cout << "Provider client genericItemHandle: " << provGenericItemHandle << " (0x" << std::hex << provGenericItemHandle << ")" << std::dec << endl;
+		ASSERT_NE(provGenericItemHandle, 0);
+
+		prov.submit(encodeGenericMsg, provGenericItemHandle);
+		
+		/* Check that consumer receives the Generic message */
+		do {
+			testSleep(200);
+		} while (pConsumerTestClient->getMessageQueueSize() == 0);
+		ASSERT_EQ(pConsumerTestClient->getMessageQueueSize(), 1);
+
+		msg = pConsumerTestClient->popMsg();
+
+		ASSERT_EQ(msg->getDataType(), DataType::GenericMsgEnum);
+		genericMsg = static_cast<GenericMsg*>(msg);
+		ASSERT_EQ(genericMsg->getName(), "TestProviderGenericItem");
+		ASSERT_FALSE(genericMsg->hasServiceId());
+		ASSERT_TRUE(genericMsg->getComplete());
+		ASSERT_EQ(genericMsg->getPayload().getDataType(), DataType::NoDataEnum);
+
+
+		ASSERT_FALSE(errorClient.isCalledAnyErrorHandler()) << "Did not expect that the errorClient handled any error.";
+	}
+	catch (const OmmException& exception)
+	{
+		ASSERT_TRUE(false) << "uncaught exception in test: " << exception.getText();
+	}
+	catch (...)
+	{
+		ASSERT_TRUE(false) << "Unexpected exception caught.";
+	}
+}
+
+/*  Consumer and Provider exchange on-Stream Post messages. */
+/*  This test does the following:
+ *  1. Starts up an omm-consumer with a login client with one provider
+ *  2. Checks to see that the consumer does intitialize
+ *  3. Checks to see that the consumer has only one active channel
+ *  3. Consumer opens an item stream for sending a Post message (On-Stream Post)
+ *   a. Provider receives the request and sends a refresh
+ *   b. Consumer receives the refresh message
+ *  4. Consumer sends a Post message
+ *  5. Check that provider receives the Post message
+ *  6. Consumer sends a post message and wants an acknowledge answer msg
+ *  7. Check that consumer receives only one Ack message
+ */
+TEST_F(OmmConsumerCreateTest, ConsumerProviderPostOnStream)
+{
+	try
+	{
+		ReqMsg consRequest;
+		PostMsg encodePostMsg;
+
+		Msg* msg;
+		RefreshMsg* refreshMsg;
+		PostMsg* postMsg;
+		ReqMsg* reqMsg;
+		AckMsg* ackMsg;
+
+		UpdateMsg encodeInnerUpdate;
+		FieldList encodeFieldList;
+
+		encodeInnerUpdate.payload(
+			FieldList().addReal(22, 3990, OmmReal::ExponentNeg2Enum).
+			addReal(25, 3994, OmmReal::ExponentNeg2Enum).
+			addReal(30, 9, OmmReal::Exponent0Enum).
+			addReal(31, 19, OmmReal::Exponent0Enum).
+			complete());
+
+		ProviderTestOptions provTestOptions;
+		IProviderTestClientForGeneric provClient(provTestOptions);
+
+		Map configIProvMap;
+		IProviderProgrammaticTestConfig iprovProgConfig;
+		iprovProgConfig.createProgrammaticConfig(configIProvMap);
+
+		OmmIProviderConfig provConfig("EmaConfigTest.xml");
+		provConfig.config(configIProvMap);
+		provConfig.providerName("ProviderProgrammaticTest_1");
+
+		/* Create IProvider instance */
+		OmmProvider prov(provConfig, provClient);
+		//cout << "OmmProvider created." << endl;
+
+		/* Create OmmConsumer instance */
+		ConsumerProgrammaticTestConfig consProgConfig;
+		OmmConsumer* pOmmConsumer = createOmmConsumer(OmmConsumerConstructorType::config_errorClient, consProgConfig);
+
+		/* Check that OmmConsumer is created */
+		ASSERT_NE(pOmmConsumer, nullptr) << "Expected OmmConsumer to be initialized.";
+		//cout << "OmmConsumer created." << endl;
+
+		/* Check the active channel */
+		ChannelInformation channelInfo;
+		pOmmConsumer->getChannelInformation(channelInfo);
+		//cout << "Channel Info: " << channelInfo.toString() << endl;
+		ASSERT_EQ(channelInfo.getChannelState(), ChannelInformation::ChannelState::ActiveEnum);
+
+		/* Clear message queues */
+		provClient.clear();
+		pConsumerTestClient->clear();
+
+		/* Consumer opens an item stream for sending a Post message (On-Stream Post) */
+		consRequest.name("PostItem1").domainType(MMT_MARKET_PRICE).serviceName("DIRECT_FEED");
+
+		UInt64 itemHandle = pOmmConsumer->registerClient(consRequest, *pConsumerTestClient);
+		//cout << "Item handle: " << itemHandle << " (0x" << std::hex << itemHandle << ")" << std::dec << endl;
+		ASSERT_NE(itemHandle, 0);
+
+		/* Provider receives the request and sends a refresh */
+		do {
+			testSleep(200);
+		} while (provClient.getMessageQueueSize() == 0);
+
+		ASSERT_EQ(provClient.getMessageQueueSize(), 1);
+
+		msg = provClient.popMsg();
+
+		ASSERT_EQ(msg->getDataType(), DataType::ReqMsgEnum);
+		reqMsg = static_cast<ReqMsg*>(msg);
+		ASSERT_EQ(reqMsg->getName(), "PostItem1");
+		ASSERT_EQ(reqMsg->getDomainType(), MMT_MARKET_PRICE);
+		ASSERT_EQ(reqMsg->getServiceName(), "DIRECT_FEED");
+		ASSERT_EQ(reqMsg->getServiceId(), 1);
+
+		/* Consumer receives the refresh msg */
+		while (pConsumerTestClient->getMessageQueueSize() == 0)
+		{
+			testSleep(200);
+		}
+
+		ASSERT_EQ(pConsumerTestClient->getMessageQueueSize(), 1);
+
+		msg = pConsumerTestClient->popMsg();
+
+		ASSERT_EQ(msg->getDataType(), DataType::RefreshMsgEnum);
+		refreshMsg = static_cast<RefreshMsg*>(msg);
+		ASSERT_EQ(refreshMsg->getName(), "PostItem1");
+		ASSERT_EQ(refreshMsg->getDomainType(), MMT_MARKET_PRICE);
+		ASSERT_EQ(refreshMsg->getServiceName(), "DIRECT_FEED");
+		ASSERT_EQ(refreshMsg->getServiceId(), (UInt32)1);
+		ASSERT_TRUE(refreshMsg->getComplete());
+
+		/* Consumer sends a post message */
+		encodePostMsg.postId(1).serviceName("DIRECT_FEED").name("TestConsumerPostItem").solicitAck(false).payload(encodeInnerUpdate).complete();
+
+		pOmmConsumer->submit(encodePostMsg, itemHandle);
+		//cout << "OmmConsumer sent Post msg." << endl;
+
+		/* Check that provider receives the Post message */
+		do {
+			testSleep(200);
+		} while (provClient.getMessageQueueSize() == 0);
+		ASSERT_EQ(provClient.getMessageQueueSize(), 1);
+
+		ASSERT_EQ(pConsumerTestClient->getMessageQueueSize(), 0);
+
+		msg = provClient.popMsg();
+
+		ASSERT_EQ(msg->getDataType(), DataType::PostMsgEnum);
+		postMsg = static_cast<PostMsg*>(msg);
+		ASSERT_EQ(postMsg->getName(), "TestConsumerPostItem");
+		ASSERT_EQ(postMsg->getServiceName(), "DIRECT_FEED");
+		ASSERT_EQ(postMsg->getServiceId(), (UInt32)1);
+		ASSERT_TRUE(postMsg->getComplete());
+		ASSERT_EQ(postMsg->getPayload().getDataType(), DataType::UpdateMsgEnum);
+		ASSERT_EQ(postMsg->getPayload().getUpdateMsg().getPayload().getDataType(), DataType::FieldListEnum);
+
+		/* Extra check that Consumer do not receive any messages */
+		testSleep(300);
+		ASSERT_EQ(pConsumerTestClient->getMessageQueueSize(), 0) << "Do not expect that Consumer received any messages from provider side.";
+		ASSERT_EQ(provClient.getMessageQueueSize(), 0);
+
+		/* Consumer sends a post message and wants an acknowledge answer msg */
+		encodePostMsg.clear().postId(2).serviceName("DIRECT_FEED").name("TestConsumerPostItem1").solicitAck(true).payload(encodeInnerUpdate).complete();
+
+		pOmmConsumer->submit(encodePostMsg, itemHandle);
+		//cout << "OmmConsumer sent Post msg 2." << endl;
+
+		/* Check that provider receives the Post message */
+		do {
+			testSleep(200);
+		} while (provClient.getMessageQueueSize() == 0);
+		ASSERT_EQ(provClient.getMessageQueueSize(), 1);
+
+		//cout << "OmmConsumer is waiting for Ack msg." << endl;
+		/* Check that consumer receives only one Ack message */
+		while (pConsumerTestClient->getMessageQueueSize() == 0)
+		{
+			testSleep(200);
+		}
+		ASSERT_EQ(pConsumerTestClient->getMessageQueueSize(), 1);
+
+		//cout << "OmmConsumer received msg." << endl;
+		msg = pConsumerTestClient->popMsg();
+
+		ASSERT_EQ(msg->getDataType(), DataType::AckMsgEnum);
+		ackMsg = static_cast<AckMsg*>(msg);
+		ASSERT_EQ(ackMsg->getName(), "TestConsumerPostItem1");
+		ASSERT_EQ(ackMsg->getServiceName(), "DIRECT_FEED");
+		ASSERT_EQ(ackMsg->getServiceId(), (UInt32)1);
+		ASSERT_EQ(ackMsg->getAckId(), 2);
+		
+
+		ASSERT_FALSE(errorClient.isCalledAnyErrorHandler()) << "Did not expect that the errorClient handled any error.";
+	}
+	catch (const OmmException& exception)
+	{
+		ASSERT_TRUE(false) << "uncaught exception in test: " << exception.getText();
+	}
+	catch (...)
+	{
+		ASSERT_TRUE(false) << "Unexpected exception caught.";
+	}
+}
+
+/*  Consumer and Provider exchange off-Stream Post messages. */
+/*  This test does the following:
+ *  1. Starts up an omm-consumer with a login client with one provider
+ *  2. Checks to see that the consumer does intitialize
+ *  3. Checks to see that the consumer has only one active channel
+ *  3. Consumer opens a stream on Login domain for sending a Post message (Off-Stream Post)
+ *  4. Consumer sends a Post message
+ *  5. Check that provider receives the Post message
+ *  6. Consumer sends a post message and wants an acknowledge answer msg
+ *  7. Check that consumer receives only one Ack message
+ */
+TEST_F(OmmConsumerCreateTest, ConsumerProviderPostOffStream)
+{
+	try
+	{
+		ReqMsg consRequest;
+		PostMsg encodePostMsg;
+
+		Msg* msg;
+		RefreshMsg* refreshMsg;
+		PostMsg* postMsg;
+		//ReqMsg* reqMsg;
+		AckMsg* ackMsg;
+
+		UpdateMsg encodeInnerUpdate;
+		FieldList encodeFieldList;
+
+		encodeInnerUpdate.payload(
+			FieldList().addReal(22, 3990, OmmReal::ExponentNeg2Enum).
+			addReal(25, 3994, OmmReal::ExponentNeg2Enum).
+			addReal(30, 9, OmmReal::Exponent0Enum).
+			addReal(31, 19, OmmReal::Exponent0Enum).
+			complete());
+
+		ProviderTestOptions provTestOptions;
+		IProviderTestClientForGeneric provClient(provTestOptions);
+
+		Map configIProvMap;
+		IProviderProgrammaticTestConfig iprovProgConfig;
+		iprovProgConfig.createProgrammaticConfig(configIProvMap);
+
+		OmmIProviderConfig provConfig("EmaConfigTest.xml");
+		provConfig.config(configIProvMap);
+		provConfig.providerName("ProviderProgrammaticTest_1");
+
+		/* Create IProvider instance */
+		OmmProvider prov(provConfig, provClient);
+		//cout << "OmmProvider created." << endl;
+
+		/* Create OmmConsumer instance */
+		ConsumerProgrammaticTestConfig consProgConfig;
+		OmmConsumer* pOmmConsumer = createOmmConsumer(OmmConsumerConstructorType::config_errorClient, consProgConfig);
+
+		/* Check that OmmConsumer is created */
+		ASSERT_NE(pOmmConsumer, nullptr) << "Expected OmmConsumer to be initialized.";
+		//cout << "OmmConsumer created." << endl;
+
+		/* Check the active channel */
+		ChannelInformation channelInfo;
+		pOmmConsumer->getChannelInformation(channelInfo);
+		//cout << "Channel Info: " << channelInfo.toString() << endl;
+		ASSERT_EQ(channelInfo.getChannelState(), ChannelInformation::ChannelState::ActiveEnum);
+
+		/* Clear message queues */
+		provClient.clear();
+		pConsumerTestClient->clear();
+
+		/* Consumer opens a stream on Login domain for sending a Post message (Off-Stream Post) */
+		consRequest.domainType(MMT_LOGIN);
+
+		UInt64 loginHandle = pOmmConsumer->registerClient(consRequest, *pConsumerTestClient);
+		//cout << "Login handle: " << loginHandle << " (0x" << std::hex << loginHandle << ")" << std::dec << endl;
+		ASSERT_NE(loginHandle, 0);
+
+		/* Provider receives the request and sends a refresh */
+		/* Consumer receives the refresh msg */
+		while (pConsumerTestClient->getMessageQueueSize() == 0)
+		{
+			testSleep(200);
+		}
+
+		ASSERT_EQ(pConsumerTestClient->getMessageQueueSize(), 1);
+
+		msg = pConsumerTestClient->popMsg();
+
+		ASSERT_EQ(msg->getDataType(), DataType::RefreshMsgEnum);
+		refreshMsg = static_cast<RefreshMsg*>(msg);
+		ASSERT_EQ(refreshMsg->getDomainType(), MMT_LOGIN);
+		ASSERT_FALSE(refreshMsg->hasServiceId());
+		ASSERT_FALSE(refreshMsg->hasServiceName());
+		ASSERT_TRUE(refreshMsg->getComplete());
+
+		/* Consumer sends a post message */
+		encodePostMsg.postId(1).serviceName("DIRECT_FEED").name("TestConsumerPostItem").solicitAck(false).payload(encodeInnerUpdate).complete();
+
+		pOmmConsumer->submit(encodePostMsg, loginHandle);
+		//cout << "OmmConsumer sent Post msg." << endl;
+
+		/* Check that provider receives the Post message */
+		do {
+			testSleep(200);
+		} while (provClient.getMessageQueueSize() == 0);
+		ASSERT_EQ(provClient.getMessageQueueSize(), 1);
+
+		ASSERT_EQ(pConsumerTestClient->getMessageQueueSize(), 0);
+
+		msg = provClient.popMsg();
+
+		ASSERT_EQ(msg->getDataType(), DataType::PostMsgEnum);
+		postMsg = static_cast<PostMsg*>(msg);
+		ASSERT_EQ(postMsg->getName(), "TestConsumerPostItem");
+		ASSERT_EQ(postMsg->getServiceName(), "DIRECT_FEED");
+		ASSERT_EQ(postMsg->getServiceId(), (UInt32)1);
+		ASSERT_TRUE(postMsg->getComplete());
+		ASSERT_EQ(postMsg->getPayload().getDataType(), DataType::UpdateMsgEnum);
+		ASSERT_EQ(postMsg->getPayload().getUpdateMsg().getPayload().getDataType(), DataType::FieldListEnum);
+
+		/* Extra check that Consumer do not receive any messages */
+		testSleep(300);
+		ASSERT_EQ(pConsumerTestClient->getMessageQueueSize(), 0) << "Do not expect that Consumer received any messages from provider side.";
+		ASSERT_EQ(provClient.getMessageQueueSize(), 0);
+
+		/* Consumer sends a post message and wants an acknowledge answer msg (ACK) */
+		encodePostMsg.clear().postId(2).serviceName("DIRECT_FEED").name("TestConsumerPostItem1").solicitAck(true).payload(encodeInnerUpdate).complete();
+
+		pOmmConsumer->submit(encodePostMsg, loginHandle);
+		//cout << "OmmConsumer sent Post msg 2." << endl;
+
+		/* Check that provider receives the Post message */
+		do {
+			testSleep(200);
+		} while (provClient.getMessageQueueSize() == 0);
+		ASSERT_EQ(provClient.getMessageQueueSize(), 1);
+
+		//cout << "OmmConsumer is waiting for Ack msg." << endl;
+		/* Check that consumer receives only one Ack message */
+		while (pConsumerTestClient->getMessageQueueSize() == 0)
+		{
+			testSleep(200);
+		}
+		ASSERT_EQ(pConsumerTestClient->getMessageQueueSize(), 1);
+
+		msg = pConsumerTestClient->popMsg();
+
+		ASSERT_EQ(msg->getDataType(), DataType::AckMsgEnum);
+		ackMsg = static_cast<AckMsg*>(msg);
+		ASSERT_EQ(ackMsg->getName(), "TestConsumerPostItem1");
+		ASSERT_EQ(ackMsg->getServiceName(), "DIRECT_FEED");
+		ASSERT_EQ(ackMsg->getServiceId(), (UInt32)1);
+		ASSERT_EQ(ackMsg->getAckId(), 2);
+
+
+		ASSERT_FALSE(errorClient.isCalledAnyErrorHandler()) << "Did not expect that the errorClient handled any error.";
+	}
+	catch (const OmmException& exception)
+	{
+		ASSERT_TRUE(false) << "uncaught exception in test: " << exception.getText();
+	}
+	catch (...)
+	{
+		ASSERT_TRUE(false) << "Unexpected exception caught.";
+	}
+}
+
+INSTANTIATE_TEST_SUITE_P(
+	OmmConsumer,
+	OmmConsumerCreateTestFixture,
+	::testing::Values(
+		OmmConsumerCreateTestParams( OmmConsumerConstructorType::config ),
+		OmmConsumerCreateTestParams( OmmConsumerConstructorType::config_client ),
+		OmmConsumerCreateTestParams( OmmConsumerConstructorType::config_oAuthClient ),
+		OmmConsumerCreateTestParams( OmmConsumerConstructorType::config_oAuthClient_errorClient ),
+		OmmConsumerCreateTestParams( OmmConsumerConstructorType::config_errorClient ),
+		OmmConsumerCreateTestParams( OmmConsumerConstructorType::config_adminClient_oAuthClient ),
+		OmmConsumerCreateTestParams( OmmConsumerConstructorType::config_adminClient_errorClient ),
+		OmmConsumerCreateTestParams( OmmConsumerConstructorType::config_adminClient_oAuthClient_errorClient )
+	)
+);
+
+INSTANTIATE_TEST_SUITE_P(
+	OmmConsumer,
+	OmmConsumerCreateIndexTestFixture,
+	::testing::Values(
+		OmmConsumerWithConfigIndexTestParams( 0 ),
+		OmmConsumerWithConfigIndexTestParams( 1 ),
+		OmmConsumerWithConfigIndexTestParams( 2 )
+	)
+);

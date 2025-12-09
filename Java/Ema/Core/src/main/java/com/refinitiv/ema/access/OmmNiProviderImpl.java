@@ -30,9 +30,11 @@ import com.refinitiv.eta.codec.CodecFactory;
 import com.refinitiv.eta.codec.CodecReturnCodes;
 import com.refinitiv.eta.codec.DecodeIterator;
 import com.refinitiv.eta.codec.EncodeIterator;
+import com.refinitiv.eta.codec.Msg;
+import com.refinitiv.eta.codec.MsgKey;
 import com.refinitiv.eta.codec.RefreshMsgFlags;
-import com.refinitiv.eta.transport.TransportFactory;
-import com.refinitiv.eta.transport.WriteArgs;
+import com.refinitiv.eta.transport.TransportBuffer;
+import com.refinitiv.eta.transport.TransportReturnCodes;
 import com.refinitiv.eta.transport.WritePriorities;
 import com.refinitiv.eta.valueadd.common.VaNode;
 import com.refinitiv.eta.valueadd.domainrep.rdm.directory.DirectoryRefresh;
@@ -43,6 +45,7 @@ import com.refinitiv.eta.valueadd.reactor.ReactorChannel;
 import com.refinitiv.eta.valueadd.reactor.ReactorChannelEvent;
 import com.refinitiv.eta.valueadd.reactor.ReactorChannelEventTypes;
 import com.refinitiv.eta.valueadd.reactor.ReactorReturnCodes;
+import com.refinitiv.eta.valueadd.reactor.ReactorChannel.State;
 
 class OmmNiProviderImpl extends OmmBaseImpl<OmmProviderClient> implements OmmProvider, DirectoryServiceStoreClient {
 	
@@ -59,6 +62,9 @@ class OmmNiProviderImpl extends OmmBaseImpl<OmmProviderClient> implements OmmPro
 	private OmmProviderClient _adminClient;
 	private Object _adminClosure;
 	private ChannelInfo _activeChannelInfo;
+	
+	private Buffer _encodeBuffer = CodecFactory.createBuffer();
+	private EncodeIterator _encodeIter = CodecFactory.createEncodeIterator();
 
 	private static final long MIN_LONG_VALUE = 1;
     private static final long MAX_LONG_VALUE = Long.MAX_VALUE;
@@ -93,6 +99,7 @@ class OmmNiProviderImpl extends OmmBaseImpl<OmmProviderClient> implements OmmPro
 		
 		_nextProviderStreamId = 0;	
 		_reusedProviderStreamIds = new ArrayList<IntObject>();
+		_encodeBuffer.clear();
 	}
 	
 	OmmNiProviderImpl(OmmProviderConfig config, OmmProviderClient client)
@@ -123,6 +130,7 @@ class OmmNiProviderImpl extends OmmBaseImpl<OmmProviderClient> implements OmmPro
 		
 		_nextProviderStreamId = 0;	
 		_reusedProviderStreamIds = new ArrayList<IntObject>();
+		_encodeBuffer.clear();
 	}
 	
 	OmmNiProviderImpl(OmmProviderConfig config, OmmProviderClient client, Object closure)
@@ -153,6 +161,7 @@ class OmmNiProviderImpl extends OmmBaseImpl<OmmProviderClient> implements OmmPro
 		
 		_nextProviderStreamId = 0;	
 		_reusedProviderStreamIds = new ArrayList<IntObject>();
+		_encodeBuffer.clear();
 	}
 
 	OmmNiProviderImpl(OmmProviderConfig config, OmmProviderErrorClient client)
@@ -184,6 +193,7 @@ class OmmNiProviderImpl extends OmmBaseImpl<OmmProviderClient> implements OmmPro
 		
 		_nextProviderStreamId = 0;	
 		_reusedProviderStreamIds = new ArrayList<IntObject>();
+		_encodeBuffer.clear();
 	}
 	
 	OmmNiProviderImpl(OmmProviderConfig config, OmmProviderClient adminClient, OmmProviderErrorClient errorClient)
@@ -216,6 +226,7 @@ class OmmNiProviderImpl extends OmmBaseImpl<OmmProviderClient> implements OmmPro
 		
 		_nextProviderStreamId = 0;	
 		_reusedProviderStreamIds = new ArrayList<IntObject>();
+		_encodeBuffer.clear();
 	}
 	
 	OmmNiProviderImpl(OmmProviderConfig config, OmmProviderClient adminClient, OmmProviderErrorClient errorClient, Object closure)
@@ -248,6 +259,7 @@ class OmmNiProviderImpl extends OmmBaseImpl<OmmProviderClient> implements OmmPro
 		
 		_nextProviderStreamId = 0;	
 		_reusedProviderStreamIds = new ArrayList<IntObject>();
+		_encodeBuffer.clear();
 	}
 	
 	//only for unit test, internal use
@@ -283,6 +295,7 @@ class OmmNiProviderImpl extends OmmBaseImpl<OmmProviderClient> implements OmmPro
 		
 		_nextProviderStreamId = 0;	
 		_reusedProviderStreamIds = new ArrayList<IntObject>();
+		_encodeBuffer.clear();
 	}
 	
 	@Override
@@ -411,6 +424,12 @@ class OmmNiProviderImpl extends OmmBaseImpl<OmmProviderClient> implements OmmPro
 		
 		streamInfo = _handleToStreamInfo.get(_longObject.value(handle));
 		
+		List<BaseSessionChannelInfo<OmmProviderClient>> activeSessionChannelList = null;
+		
+		if(_niProviderSession != null)
+			activeSessionChannelList = _niProviderSession.activeSessionChannelList();
+
+		
 		if(streamInfo != null && streamInfo.streamType() == StreamType.CONSUMING)
 		{
 			userLock().unlock();
@@ -418,7 +437,7 @@ class OmmNiProviderImpl extends OmmBaseImpl<OmmProviderClient> implements OmmPro
 			return;
 		}
 		
-		if(_activeChannelInfo == null)
+		if(_activeChannelInfo == null && (activeSessionChannelList != null && activeSessionChannelList.size() == 0) )
 		{
 			userLock().unlock();
 			handleInvalidUsage(strBuilder().append("No active channel to send message.").toString(), OmmInvalidUsageException.ErrorCode.NO_ACTIVE_CHANNEL);
@@ -606,40 +625,240 @@ class OmmNiProviderImpl extends OmmBaseImpl<OmmProviderClient> implements OmmPro
 		
 		_rsslErrorInfo.clear();
 		int ret;
-		if (ReactorReturnCodes.SUCCESS > (ret = _activeChannelInfo.rsslReactorChannel().submit(refreshMsgImpl._rsslMsg, _rsslSubmitOptions, _rsslErrorInfo)))
-	    {
-			if (bHandleAdded)
+		if(_niProviderSession == null)
+		{
+			if (ReactorReturnCodes.SUCCESS > (ret = _activeChannelInfo.rsslReactorChannel().submit(refreshMsgImpl._rsslMsg, _rsslSubmitOptions, _rsslErrorInfo)))
+		    {
+				if (bHandleAdded)
+				{
+					_handleToStreamInfo.remove(_longObject.value(handle));
+					streamInfo.returnToPool();
+					returnProviderStreamId(refreshMsgImpl._rsslMsg.streamId());
+				}
+				
+				if (loggerClient().isErrorEnabled())
+	        	{
+					com.refinitiv.eta.transport.Error error = _rsslErrorInfo.error();
+					
+		        	strBuilder().append("Internal error: rsslChannel.submit() failed in OmmNiProviderImpl.submit(RefreshMsg)")
+		        		.append("RsslChannel ").append(Integer.toHexString(error.channel() != null ? error.channel().hashCode() : 0)) 
+		    			.append(OmmLoggerClient.CR)
+		    			.append("Error Id ").append(error.errorId()).append(OmmLoggerClient.CR)
+		    			.append("Internal sysError ").append(error.sysError()).append(OmmLoggerClient.CR)
+		    			.append("Error Location ").append(_rsslErrorInfo.location()).append(OmmLoggerClient.CR)
+		    			.append("Error Text ").append(error.text());
+		        	
+		        	loggerClient().error(formatLogMessage(instanceName() , _strBuilder.toString(), Severity.ERROR));
+	        	}
+				
+				userLock().unlock();
+				strBuilder().append("Failed to submit RefreshMsg. Reason: ")
+					.append(ReactorReturnCodes.toString(ret))
+					.append(". Error text: ")
+					.append(_rsslErrorInfo.error().text());
+				
+				handleInvalidUsage(_strBuilder.toString(), ret);
+				return;
+		    }
+		}
+		else
+		{
+			if(_encodeBuffer == null)
+			{
+				_encodeBuffer = CodecFactory.createBuffer();
+			}
+			
+			int encodedMsgSize = encodedMsgSize(refreshMsgImpl._rsslMsg);
+			
+			if(_encodeBuffer.capacity() < encodedMsgSize)
+			{
+				ByteBuffer buf = ByteBuffer.allocate(encodedMsgSize);
+				
+				_encodeBuffer.data(buf);
+			}
+			
+			_encodeBuffer.data().clear();
+			
+			int sentMessageCount = 0;
+			boolean msgEncoded = false;
+			NiProviderSessionChannelInfo<OmmProviderClient> sessionChannel;
+			
+			// Get the buffers, encode the message if it hasn't on the loop.
+			for(int index = 0; index < activeSessionChannelList.size(); index++)
+			{
+				sessionChannel = (NiProviderSessionChannelInfo<OmmProviderClient>)activeSessionChannelList.get(index);
+
+				if(!msgEncoded)
+				{
+					while(true)
+					{
+						_encodeIter.clear();
+						_encodeIter.setBufferAndRWFVersion(_encodeBuffer, sessionChannel.reactorChannel().channel().majorVersion(),
+								sessionChannel.reactorChannel().channel().minorVersion());
+						ret = refreshMsgImpl._rsslMsg.encode(_encodeIter);
+						
+						// Break out of loop if success.
+						if(CodecReturnCodes.SUCCESS == ret)
+						{
+							break;
+						}
+						else if(CodecReturnCodes.BUFFER_TOO_SMALL == ret)
+						{
+							// Double the allocated amount and return
+							_encodeBuffer.data(ByteBuffer.allocate(_encodeBuffer.capacity()*2));
+							
+							_encodeBuffer.data().clear();
+						}
+						else if(CodecReturnCodes.SUCCESS > ret)
+						{
+							if (loggerClient().isErrorEnabled())
+				        	{
+								com.refinitiv.eta.transport.Error error = _rsslErrorInfo.error();
+								
+					        	strBuilder().append("Internal error: refreshMsg.encode() failed in OmmNiProviderImpl.submit(RefreshMsg)")
+					        		.append("RsslChannel ").append(Integer.toHexString(error.channel() != null ? error.channel().hashCode() : 0)) 
+					    			.append(OmmLoggerClient.CR)
+					    			.append("Error Id ").append(error.errorId()).append(OmmLoggerClient.CR)
+					    			.append("Internal sysError ").append(error.sysError()).append(OmmLoggerClient.CR)
+					    			.append("Error Location ").append(_rsslErrorInfo.location()).append(OmmLoggerClient.CR)
+					    			.append("Error Text ").append(error.text());
+					        	
+					        	loggerClient().error(formatLogMessage(instanceName() , _strBuilder.toString(), Severity.ERROR));
+				        	}
+							
+							userLock().unlock();
+							strBuilder().append("Failed to encode Refresh Msg. Reason: ")
+								.append(ReactorReturnCodes.toString(_rsslErrorInfo.code()))
+								.append(". Error text: ")
+								.append(_rsslErrorInfo.error().text());
+							
+							handleInvalidUsage(_strBuilder.toString(), _rsslErrorInfo.code());
+							return;
+						}
+					}
+					
+					msgEncoded = true;
+				}
+
+				NiProvSessionTransportBuffer sessionTransportBuffer = _niProviderSession.sessionTransportBufferList().get(index);
+				TransportBuffer sendBuf = sessionChannel.reactorChannel().getBuffer(_encodeBuffer.length(), false, _rsslErrorInfo);
+				
+				if(sendBuf == null)
+				{
+					// Release all of the already allocated transport buffers.
+					for(int i = 0; i < index; ++i)
+					{
+						NiProvSessionTransportBuffer tmpBuffer = _niProviderSession.sessionTransportBufferList().get(i);
+						
+						tmpBuffer.releaseBuffer(_rsslErrorInfo);
+						tmpBuffer.clear();
+					}
+					
+					com.refinitiv.eta.transport.Error error = _rsslErrorInfo.error();
+					
+					// TransportReturnCodes.NO_BUFFERS is different from the ETA Reactor and EMA value. 
+					if(_rsslErrorInfo.error().errorId() == TransportReturnCodes.NO_BUFFERS)
+					{
+						_rsslErrorInfo.error().errorId(OmmInvalidUsageException.ErrorCode.NO_BUFFERS);
+					}
+					
+					if (loggerClient().isErrorEnabled())
+		        	{
+			        	strBuilder().append("Internal error: reactorChannel().getBuffer() failed in OmmNiProviderImpl.submit(RefreshMsg)")
+			        		.append("RsslChannel ").append(Integer.toHexString(error.channel() != null ? error.channel().hashCode() : 0)) 
+			    			.append(OmmLoggerClient.CR)
+			    			.append("Error Id ").append(error.errorId()).append(OmmLoggerClient.CR)
+			    			.append("Internal sysError ").append(error.sysError()).append(OmmLoggerClient.CR)
+			    			.append("Error Location ").append(_rsslErrorInfo.location()).append(OmmLoggerClient.CR)
+			    			.append("Error Text ").append(error.text());
+			        	
+			        	loggerClient().error(formatLogMessage(instanceName() , _strBuilder.toString(), Severity.ERROR));
+		        	}
+					
+					userLock().unlock();
+					strBuilder().append("Failed to submit RefreshMsg. Reason: ")
+						.append(ReactorReturnCodes.toString(_rsslErrorInfo.error().errorId()))
+						.append(". Error text: ")
+						.append(_rsslErrorInfo.error().text());
+					
+					handleInvalidUsage(_strBuilder.toString(), _rsslErrorInfo.error().errorId());
+					return;
+				}
+				
+				sessionTransportBuffer.niProvSessionChannel = sessionChannel;
+				sessionTransportBuffer.rsslChannel = sessionChannel.reactorChannel().channel();
+				sessionTransportBuffer.transportBuffer = sendBuf;
+			}
+			
+			for(int index = 0; index < activeSessionChannelList.size(); index++)
+			{
+				sessionChannel = (NiProviderSessionChannelInfo<OmmProviderClient>)activeSessionChannelList.get(index);
+				NiProvSessionTransportBuffer sessionTransportBuffer = _niProviderSession.sessionTransportBufferList().get(index);
+			
+				// Send the message if the reactor channel's state is READY.
+				if(sessionChannel.reactorChannel().state() == State.READY)
+				{
+					_encodeBuffer.data().flip();
+					
+					sessionTransportBuffer.transportBuffer.data().put(_encodeBuffer.data());
+					
+					ret = sessionChannel.reactorChannel().submit(sessionTransportBuffer.transportBuffer, _rsslSubmitOptions, _rsslErrorInfo);
+					
+					if(ReactorReturnCodes.SUCCESS > ret)
+					{
+						// The submit failed.  Since we are directly sending a buffer, this is most likely a channel down, so just log the error and continue attempting to send.
+						if (loggerClient().isErrorEnabled())
+			        	{
+							com.refinitiv.eta.transport.Error error = _rsslErrorInfo.error();
+							
+				        	strBuilder().append("Internal error: reactorChannel().submit() failed in OmmNiProviderImpl.submit(RefreshMsg)")
+				        		.append("RsslChannel ").append(Integer.toHexString(error.channel() != null ? error.channel().hashCode() : 0)) 
+				    			.append(OmmLoggerClient.CR)
+				    			.append("Error Id ").append(error.errorId()).append(OmmLoggerClient.CR)
+				    			.append("Internal sysError ").append(error.sysError()).append(OmmLoggerClient.CR)
+				    			.append("Error Location ").append(_rsslErrorInfo.location()).append(OmmLoggerClient.CR)
+				    			.append("Error Text ").append(error.text());
+				        	
+				        	loggerClient().error(formatLogMessage(instanceName() , _strBuilder.toString(), Severity.ERROR));
+			        	}
+						
+						sessionTransportBuffer.releaseBuffer(_rsslErrorInfo);
+						sessionTransportBuffer.clear();
+					}
+					else
+					{
+						sentMessageCount++;
+						if(refreshMsgImpl.domainType() == EmaRdm.MMT_DIRECTORY)
+							sessionChannel.sentDirectory(true);
+
+						sessionTransportBuffer.clear();
+					}						
+				}
+				else
+				{
+					sessionTransportBuffer.releaseBuffer(_rsslErrorInfo);
+					sessionTransportBuffer.clear();
+				}
+			}
+			
+			// We were complete unable to send this message, so re-pool the stream and throw an exception
+			if (bHandleAdded && sentMessageCount == 0)
 			{
 				_handleToStreamInfo.remove(_longObject.value(handle));
 				streamInfo.returnToPool();
 				returnProviderStreamId(refreshMsgImpl._rsslMsg.streamId());
-			}
-			
-			if (loggerClient().isErrorEnabled())
-        	{
-				com.refinitiv.eta.transport.Error error = _rsslErrorInfo.error();
 				
-	        	strBuilder().append("Internal error: rsslChannel.submit() failed in OmmNiProviderImpl.submit(RefreshMsg)")
-	        		.append("RsslChannel ").append(Integer.toHexString(error.channel() != null ? error.channel().hashCode() : 0)) 
-	    			.append(OmmLoggerClient.CR)
-	    			.append("Error Id ").append(error.errorId()).append(OmmLoggerClient.CR)
-	    			.append("Internal sysError ").append(error.sysError()).append(OmmLoggerClient.CR)
-	    			.append("Error Location ").append(_rsslErrorInfo.location()).append(OmmLoggerClient.CR)
-	    			.append("Error Text ").append(error.text());
-	        	
-	        	loggerClient().error(formatLogMessage(instanceName() , _strBuilder.toString(), Severity.ERROR));
-        	}
+				userLock().unlock();
+				strBuilder().append("Failed to submit RefreshMsg. Reason: ")
+					.append(ReactorReturnCodes.toString(_rsslErrorInfo.code()))
+					.append(". Error text: ")
+					.append(_rsslErrorInfo.error().text());
+				
+				handleInvalidUsage(_strBuilder.toString(),_rsslErrorInfo.code());
+				return;
+			}
+		}
 			
-			userLock().unlock();
-			strBuilder().append("Failed to submit RefreshMsg. Reason: ")
-				.append(ReactorReturnCodes.toString(ret))
-				.append(". Error text: ")
-				.append(_rsslErrorInfo.error().text());
-			
-			handleInvalidUsage(_strBuilder.toString(), ret);
-			return;
-	    }
-		
 		if (refreshMsgImpl.state().streamState() == OmmState.StreamState.CLOSED || 
 				refreshMsgImpl.state().streamState() == OmmState.StreamState.CLOSED_RECOVER || 
 				refreshMsgImpl.state().streamState() == OmmState.StreamState.CLOSED_REDIRECTED ||
@@ -674,6 +893,12 @@ class OmmNiProviderImpl extends OmmBaseImpl<OmmProviderClient> implements OmmPro
 		
 		streamInfo = _handleToStreamInfo.get(_longObject.value(handle));
 		
+		List<BaseSessionChannelInfo<OmmProviderClient>> activeSessionChannelList = null;
+		
+		if(_niProviderSession != null)
+			activeSessionChannelList = _niProviderSession.activeSessionChannelList();
+
+		
 		if(streamInfo != null && streamInfo.streamType() == StreamType.CONSUMING)
 		{
 			userLock().unlock();
@@ -681,7 +906,7 @@ class OmmNiProviderImpl extends OmmBaseImpl<OmmProviderClient> implements OmmPro
 			return;
 		}
 		
-		if(_activeChannelInfo == null)
+		if(_activeChannelInfo == null && (activeSessionChannelList != null && activeSessionChannelList.size() == 0) )
 		{
 			userLock().unlock();
 			handleInvalidUsage(strBuilder().append("No active channel to send message.").toString(), OmmInvalidUsageException.ErrorCode.NO_ACTIVE_CHANNEL);
@@ -867,39 +1092,253 @@ class OmmNiProviderImpl extends OmmBaseImpl<OmmProviderClient> implements OmmPro
 		
 		_rsslErrorInfo.clear();
 		int ret;
-		if (ReactorReturnCodes.SUCCESS > (ret = _activeChannelInfo.rsslReactorChannel().submit(updateMsgImpl._rsslMsg, _rsslSubmitOptions, _rsslErrorInfo)))
-	    {
-			if (bHandleAdded)
+		if(_niProviderSession == null)
+		{
+			if (ReactorReturnCodes.SUCCESS > (ret = _activeChannelInfo.rsslReactorChannel().submit(updateMsgImpl._rsslMsg, _rsslSubmitOptions, _rsslErrorInfo)))
+		    {
+				if (bHandleAdded)
+				{
+					_handleToStreamInfo.remove(_longObject.value(handle));
+					streamInfo.returnToPool();
+					returnProviderStreamId(updateMsgImpl._rsslMsg.streamId());
+				}
+				
+				if (loggerClient().isErrorEnabled())
+	        	{
+					com.refinitiv.eta.transport.Error error = _rsslErrorInfo.error();
+					
+		        	strBuilder().append("Internal error: rsslChannel.submit() failed in OmmNiProviderImpl.submit(UpdateMsg)")
+		        		.append("RsslChannel ").append(Integer.toHexString(error.channel() != null ? error.channel().hashCode() : 0)) 
+		    			.append(OmmLoggerClient.CR)
+		    			.append("Error Id ").append(error.errorId()).append(OmmLoggerClient.CR)
+		    			.append("Internal sysError ").append(error.sysError()).append(OmmLoggerClient.CR)
+		    			.append("Error Location ").append(_rsslErrorInfo.location()).append(OmmLoggerClient.CR)
+		    			.append("Error Text ").append(error.text());
+		        	
+		        	loggerClient().error(formatLogMessage(instanceName() , _strBuilder.toString(), Severity.ERROR));
+	        	}
+				
+				userLock().unlock();
+				strBuilder().append("Failed to submit UpdateMsg. Reason: ")
+					.append(ReactorReturnCodes.toString(ret))
+					.append(". Error text: ")
+					.append(_rsslErrorInfo.error().text());
+				
+				handleInvalidUsage(_strBuilder.toString(), ret);
+				return;
+		    }
+		}		
+		else
+		{
+			if(_encodeBuffer == null)
 			{
-				_handleToStreamInfo.remove(_longObject.value(handle));
-				streamInfo.returnToPool();
-				returnProviderStreamId(updateMsgImpl._rsslMsg.streamId());
+				_encodeBuffer = CodecFactory.createBuffer();
 			}
 			
-			if (loggerClient().isErrorEnabled())
-        	{
-				com.refinitiv.eta.transport.Error error = _rsslErrorInfo.error();
+			int encodedMsgSize = encodedMsgSize(updateMsgImpl._rsslMsg);
+			
+			if(_encodeBuffer.capacity() < encodedMsgSize)
+			{
+				ByteBuffer buf = ByteBuffer.allocate(encodedMsgSize);
 				
-	        	strBuilder().append("Internal error: rsslChannel.submit() failed in OmmNiProviderImpl.submit(UpdateMsg)")
-	        		.append("RsslChannel ").append(Integer.toHexString(error.channel() != null ? error.channel().hashCode() : 0)) 
-	    			.append(OmmLoggerClient.CR)
-	    			.append("Error Id ").append(error.errorId()).append(OmmLoggerClient.CR)
-	    			.append("Internal sysError ").append(error.sysError()).append(OmmLoggerClient.CR)
-	    			.append("Error Location ").append(_rsslErrorInfo.location()).append(OmmLoggerClient.CR)
-	    			.append("Error Text ").append(error.text());
-	        	
-	        	loggerClient().error(formatLogMessage(instanceName() , _strBuilder.toString(), Severity.ERROR));
-        	}
+				_encodeBuffer.data(buf);
+			}
 			
-			userLock().unlock();
-			strBuilder().append("Failed to submit UpdateMsg. Reason: ")
-				.append(ReactorReturnCodes.toString(ret))
-				.append(". Error text: ")
-				.append(_rsslErrorInfo.error().text());
+			_encodeBuffer.data().clear();
 			
-			handleInvalidUsage(_strBuilder.toString(), ret);
-			return;
-	    }
+			int sentMessageCount = 0;
+			boolean msgEncoded = false;
+			NiProviderSessionChannelInfo<OmmProviderClient> sessionChannel;
+			
+			// Get the buffers, encode the message if it hasn't on the loop.
+			for(int index = 0; index < activeSessionChannelList.size(); index++)
+			{
+				sessionChannel = (NiProviderSessionChannelInfo<OmmProviderClient>)activeSessionChannelList.get(index);
+
+				if(!msgEncoded)
+				{
+					while(true)
+					{
+						_encodeIter.clear();
+						_encodeIter.setBufferAndRWFVersion(_encodeBuffer, sessionChannel.reactorChannel().channel().majorVersion(),
+								sessionChannel.reactorChannel().channel().minorVersion());
+						ret = updateMsgImpl._rsslMsg.encode(_encodeIter);
+						
+						// Break out of loop if success.
+						if(CodecReturnCodes.SUCCESS == ret)
+						{
+							break;
+						}
+						else if(CodecReturnCodes.BUFFER_TOO_SMALL == ret)
+						{
+							// Double the allocated amount and return
+							_encodeBuffer.data(ByteBuffer.allocate(_encodeBuffer.capacity()*2));
+							
+							_encodeBuffer.data().clear();
+						}
+						else if(CodecReturnCodes.SUCCESS > ret)
+						{
+							if (loggerClient().isErrorEnabled())
+				        	{
+								com.refinitiv.eta.transport.Error error = _rsslErrorInfo.error();
+								
+					        	strBuilder().append("Internal error: refreshMsg.encode() failed in OmmNiProviderImpl.submit(UpdateMsg)")
+					        		.append("RsslChannel ").append(Integer.toHexString(error.channel() != null ? error.channel().hashCode() : 0)) 
+					    			.append(OmmLoggerClient.CR)
+					    			.append("Error Id ").append(error.errorId()).append(OmmLoggerClient.CR)
+					    			.append("Internal sysError ").append(error.sysError()).append(OmmLoggerClient.CR)
+					    			.append("Error Location ").append(_rsslErrorInfo.location()).append(OmmLoggerClient.CR)
+					    			.append("Error Text ").append(error.text());
+					        	
+					        	loggerClient().error(formatLogMessage(instanceName() , _strBuilder.toString(), Severity.ERROR));
+				        	}
+							
+							userLock().unlock();
+							strBuilder().append("Failed to encode UpdateMsg. Reason: ")
+								.append(ReactorReturnCodes.toString(_rsslErrorInfo.code()))
+								.append(". Error text: ")
+								.append(_rsslErrorInfo.error().text());
+							
+							handleInvalidUsage(_strBuilder.toString(), _rsslErrorInfo.code());
+							return;
+						}
+					}
+					
+					msgEncoded = true;
+				}
+
+				NiProvSessionTransportBuffer sessionTransportBuffer = _niProviderSession.sessionTransportBufferList().get(index);
+				TransportBuffer sendBuf = sessionChannel.reactorChannel().getBuffer(_encodeBuffer.length(), false, _rsslErrorInfo);
+				
+				if(sendBuf == null)
+				{
+					// Release all of the already allocated transport buffers.
+					for(int i = 0; i < index; ++i)
+					{
+						NiProvSessionTransportBuffer tmpBuffer = _niProviderSession.sessionTransportBufferList().get(i);
+						
+						tmpBuffer.releaseBuffer(_rsslErrorInfo);
+						tmpBuffer.clear();
+					}
+					
+					com.refinitiv.eta.transport.Error error = _rsslErrorInfo.error();
+					
+					// TransportReturnCodes.NO_BUFFERS is different from the ETA Reactor and EMA value. 
+					if(_rsslErrorInfo.error().errorId() == TransportReturnCodes.NO_BUFFERS)
+					{
+						_rsslErrorInfo.error().errorId(OmmInvalidUsageException.ErrorCode.NO_BUFFERS);
+					}
+					
+					if (loggerClient().isErrorEnabled())
+		        	{
+			        	strBuilder().append("Internal error: reactorChannel().getBuffer() failed in OmmNiProviderImpl.submit(UpdateMsg)")
+			        		.append("RsslChannel ").append(Integer.toHexString(error.channel() != null ? error.channel().hashCode() : 0)) 
+			    			.append(OmmLoggerClient.CR)
+			    			.append("Error Id ").append(error.errorId()).append(OmmLoggerClient.CR)
+			    			.append("Internal sysError ").append(error.sysError()).append(OmmLoggerClient.CR)
+			    			.append("Error Location ").append(_rsslErrorInfo.location()).append(OmmLoggerClient.CR)
+			    			.append("Error Text ").append(error.text());
+			        	
+			        	loggerClient().error(formatLogMessage(instanceName() , _strBuilder.toString(), Severity.ERROR));
+		        	}
+					
+					userLock().unlock();
+					strBuilder().append("Failed to submit UpdateMsg. Reason: ")
+						.append(ReactorReturnCodes.toString(_rsslErrorInfo.error().errorId()))
+						.append(". Error text: ")
+						.append(_rsslErrorInfo.error().text());
+					
+					handleInvalidUsage(_strBuilder.toString(), _rsslErrorInfo.error().errorId());
+					return;
+				}
+				
+				sessionTransportBuffer.niProvSessionChannel = sessionChannel;
+				sessionTransportBuffer.rsslChannel = sessionChannel.reactorChannel().channel();
+				sessionTransportBuffer.transportBuffer = sendBuf;
+			}
+			
+			// Second loop to send.
+			for(int index = 0; index < activeSessionChannelList.size(); index++)
+			{
+				sessionChannel = (NiProviderSessionChannelInfo<OmmProviderClient>)activeSessionChannelList.get(index);
+				NiProvSessionTransportBuffer sessionTransportBuffer = _niProviderSession.sessionTransportBufferList().get(index);
+			
+				// Send the message if the reactor channel's state is READY.
+				if(sessionChannel.reactorChannel().state() == State.READY)
+				{
+					_encodeBuffer.data().flip();
+					
+					sessionTransportBuffer.transportBuffer.data().put(_encodeBuffer.data());
+					
+					ret = sessionChannel.reactorChannel().submit(sessionTransportBuffer.transportBuffer, _rsslSubmitOptions, _rsslErrorInfo);
+					
+					if(ReactorReturnCodes.SUCCESS > ret)
+					{
+						// The submit failed.  Since we are directly sending a buffer, this is most likely a channel down, so just log the error and continue attempting to send.
+						if (loggerClient().isErrorEnabled())
+			        	{
+							com.refinitiv.eta.transport.Error error = _rsslErrorInfo.error();
+							
+				        	strBuilder().append("Internal error: reactorChannel().submit() failed in OmmNiProviderImpl.submit(UpdateMsg)")
+				        		.append("RsslChannel ").append(Integer.toHexString(error.channel() != null ? error.channel().hashCode() : 0)) 
+				    			.append(OmmLoggerClient.CR)
+				    			.append("Error Id ").append(error.errorId()).append(OmmLoggerClient.CR)
+				    			.append("Internal sysError ").append(error.sysError()).append(OmmLoggerClient.CR)
+				    			.append("Error Location ").append(_rsslErrorInfo.location()).append(OmmLoggerClient.CR)
+				    			.append("Error Text ").append(error.text());
+				        	
+				        	loggerClient().error(formatLogMessage(instanceName() , _strBuilder.toString(), Severity.ERROR));
+			        	}
+						
+						sessionTransportBuffer.releaseBuffer(_rsslErrorInfo);
+						sessionTransportBuffer.clear();
+					}
+					else
+					{
+						sentMessageCount++;
+						sessionTransportBuffer.clear();
+					}						
+				}
+				else
+				{
+					sessionTransportBuffer.releaseBuffer(_rsslErrorInfo);
+					sessionTransportBuffer.clear();
+				}
+			}
+			
+			// We were complete unable to send this message, so re-pool the stream and throw an exception
+			if (sentMessageCount == 0)
+			{
+				if (bHandleAdded)
+				{
+					_handleToStreamInfo.remove(_longObject.value(handle));
+					streamInfo.returnToPool();
+					returnProviderStreamId(updateMsgImpl._rsslMsg.streamId());
+				}
+				
+				ret = _rsslErrorInfo.code();
+				
+				// Release all of the already allocated transport buffers.
+				for(int i = 0; i < activeSessionChannelList.size(); ++i)
+				{
+					NiProvSessionTransportBuffer tmpBuffer = _niProviderSession.sessionTransportBufferList().get(i);
+					if(tmpBuffer.transportBuffer != null)
+					{
+						tmpBuffer.releaseBuffer(_rsslErrorInfo);
+						tmpBuffer.clear();
+					}
+				}
+				
+				userLock().unlock();
+				strBuilder().append("Failed to submit UpdateMsg. Reason: ")
+					.append(ReactorReturnCodes.toString(ret))
+					.append(". Error text: ")
+					.append(_rsslErrorInfo.error().text());
+				
+				handleInvalidUsage(_strBuilder.toString(),ret);
+				return;
+			}
+		}
 		
 		userLock().unlock();
 	}
@@ -920,6 +1359,11 @@ class OmmNiProviderImpl extends OmmBaseImpl<OmmProviderClient> implements OmmPro
 		
 		streamInfo = _handleToStreamInfo.get(_longObject.value(handle));
 		
+		List<BaseSessionChannelInfo<OmmProviderClient>> activeSessionChannelList = null;
+		
+		if(_niProviderSession != null)
+			activeSessionChannelList = _niProviderSession.activeSessionChannelList();
+	
 		if(streamInfo != null && streamInfo.streamType() == StreamType.CONSUMING)
 		{
 			userLock().unlock();
@@ -927,7 +1371,7 @@ class OmmNiProviderImpl extends OmmBaseImpl<OmmProviderClient> implements OmmPro
 			return;
 		}
 		
-		if(_activeChannelInfo == null)
+		if(_activeChannelInfo == null && (activeSessionChannelList != null && activeSessionChannelList.size() == 0) )
 		{
 			userLock().unlock();
 			handleInvalidUsage(strBuilder().append("No active channel to send message.").toString(), OmmInvalidUsageException.ErrorCode.NO_ACTIVE_CHANNEL);
@@ -1100,39 +1544,255 @@ class OmmNiProviderImpl extends OmmBaseImpl<OmmProviderClient> implements OmmPro
 		
 		_rsslErrorInfo.clear();
 		int ret;
-		if (ReactorReturnCodes.SUCCESS > (ret = _activeChannelInfo.rsslReactorChannel().submit(statusMsgImpl._rsslMsg, _rsslSubmitOptions, _rsslErrorInfo)))
-	    {
-			if (bHandleAdded)
+		if(_niProviderSession == null)
+		{
+			if (ReactorReturnCodes.SUCCESS > (ret = _activeChannelInfo.rsslReactorChannel().submit(statusMsgImpl._rsslMsg, _rsslSubmitOptions, _rsslErrorInfo)))
+		    {
+				if (bHandleAdded)
+				{
+					_handleToStreamInfo.remove(_longObject.value(handle));
+					streamInfo.returnToPool();
+					returnProviderStreamId(statusMsgImpl._rsslMsg.streamId());
+				}
+				
+				if (loggerClient().isErrorEnabled())
+	        	{
+					com.refinitiv.eta.transport.Error error = _rsslErrorInfo.error();
+					
+		        	strBuilder().append("Internal error: rsslChannel.submit() failed in OmmNiProviderImpl.submit(StatusMsg)")
+		        		.append("RsslChannel ").append(Integer.toHexString(error.channel() != null ? error.channel().hashCode() : 0)) 
+		    			.append(OmmLoggerClient.CR)
+		    			.append("Error Id ").append(error.errorId()).append(OmmLoggerClient.CR)
+		    			.append("Internal sysError ").append(error.sysError()).append(OmmLoggerClient.CR)
+		    			.append("Error Location ").append(_rsslErrorInfo.location()).append(OmmLoggerClient.CR)
+		    			.append("Error Text ").append(error.text());
+		        	
+		        	loggerClient().error(formatLogMessage(instanceName() , _strBuilder.toString(), Severity.ERROR));
+	        	}
+				
+				userLock().unlock();
+				strBuilder().append("Failed to submit StatusMsg. Reason: ")
+					.append(ReactorReturnCodes.toString(ret))
+					.append(". Error text: ")
+					.append(_rsslErrorInfo.error().text());
+				
+				handleInvalidUsage(_strBuilder.toString(), ret);
+				return;
+		    }
+		}		
+		else
+		{
+			if(_encodeBuffer == null)
 			{
-				_handleToStreamInfo.remove(_longObject.value(handle));
-				streamInfo.returnToPool();
-				returnProviderStreamId(statusMsgImpl._rsslMsg.streamId());
+				_encodeBuffer = CodecFactory.createBuffer();
 			}
 			
-			if (loggerClient().isErrorEnabled())
-        	{
-				com.refinitiv.eta.transport.Error error = _rsslErrorInfo.error();
+			int encodedMsgSize = encodedMsgSize(statusMsgImpl._rsslMsg);
+			
+			if(_encodeBuffer.capacity() < encodedMsgSize)
+			{
+				ByteBuffer buf = ByteBuffer.allocate(encodedMsgSize);
 				
-	        	strBuilder().append("Internal error: rsslChannel.submit() failed in OmmNiProviderImpl.submit(StatusMsg)")
-	        		.append("RsslChannel ").append(Integer.toHexString(error.channel() != null ? error.channel().hashCode() : 0)) 
-	    			.append(OmmLoggerClient.CR)
-	    			.append("Error Id ").append(error.errorId()).append(OmmLoggerClient.CR)
-	    			.append("Internal sysError ").append(error.sysError()).append(OmmLoggerClient.CR)
-	    			.append("Error Location ").append(_rsslErrorInfo.location()).append(OmmLoggerClient.CR)
-	    			.append("Error Text ").append(error.text());
-	        	
-	        	loggerClient().error(formatLogMessage(instanceName() , _strBuilder.toString(), Severity.ERROR));
-        	}
+				_encodeBuffer.data(buf);
+			}
 			
-			userLock().unlock();
-			strBuilder().append("Failed to submit StatusMsg. Reason: ")
-				.append(ReactorReturnCodes.toString(ret))
-				.append(". Error text: ")
-				.append(_rsslErrorInfo.error().text());
+			_encodeBuffer.data().clear();
 			
-			handleInvalidUsage(_strBuilder.toString(), ret);
-			return;
-	    }
+			int sentMessageCount = 0;
+			
+			boolean msgEncoded = false;
+			NiProviderSessionChannelInfo<OmmProviderClient> sessionChannel;
+			
+			// Get the buffers, encode the message if it hasn't on the loop.
+			for(int index = 0; index < activeSessionChannelList.size(); index++)
+			{
+				sessionChannel = (NiProviderSessionChannelInfo<OmmProviderClient>)activeSessionChannelList.get(index);
+
+				if(!msgEncoded)
+				{
+					while(true)
+					{
+						_encodeIter.clear();
+						_encodeIter.setBufferAndRWFVersion(_encodeBuffer, sessionChannel.reactorChannel().channel().majorVersion(),
+								sessionChannel.reactorChannel().channel().minorVersion());
+						ret = statusMsgImpl._rsslMsg.encode(_encodeIter);
+						
+						// Break out of loop if success.
+						if(CodecReturnCodes.SUCCESS == ret)
+						{
+							break;
+						}
+						else if(CodecReturnCodes.BUFFER_TOO_SMALL == ret)
+						{
+							// Double the allocated amount and return
+							_encodeBuffer.data(ByteBuffer.allocate(_encodeBuffer.capacity()*2));
+							
+							_encodeBuffer.data().clear();
+						}
+						else if(CodecReturnCodes.SUCCESS > ret)
+						{
+							if (loggerClient().isErrorEnabled())
+				        	{
+								com.refinitiv.eta.transport.Error error = _rsslErrorInfo.error();
+								
+					        	strBuilder().append("Internal error: refreshMsg.encode() failed in OmmNiProviderImpl.submit(StatusMsg)")
+					        		.append("RsslChannel ").append(Integer.toHexString(error.channel() != null ? error.channel().hashCode() : 0)) 
+					    			.append(OmmLoggerClient.CR)
+					    			.append("Error Id ").append(error.errorId()).append(OmmLoggerClient.CR)
+					    			.append("Internal sysError ").append(error.sysError()).append(OmmLoggerClient.CR)
+					    			.append("Error Location ").append(_rsslErrorInfo.location()).append(OmmLoggerClient.CR)
+					    			.append("Error Text ").append(error.text());
+					        	
+					        	loggerClient().error(formatLogMessage(instanceName() , _strBuilder.toString(), Severity.ERROR));
+				        	}
+							
+							userLock().unlock();
+							strBuilder().append("Failed to encode StatusMsg. Reason: ")
+								.append(ReactorReturnCodes.toString(_rsslErrorInfo.code()))
+								.append(". Error text: ")
+								.append(_rsslErrorInfo.error().text());
+							
+							handleInvalidUsage(_strBuilder.toString(), _rsslErrorInfo.code());
+							return;
+						}
+					}
+					
+					msgEncoded = true;
+				}
+
+				NiProvSessionTransportBuffer sessionTransportBuffer = _niProviderSession.sessionTransportBufferList().get(index);
+				TransportBuffer sendBuf = sessionChannel.reactorChannel().getBuffer(_encodeBuffer.length(), false, _rsslErrorInfo);
+				
+				if(sendBuf == null)
+				{
+					// Release all of the already allocated transport buffers.
+					for(int i = 0; i < index; ++i)
+					{
+						NiProvSessionTransportBuffer tmpBuffer = _niProviderSession.sessionTransportBufferList().get(i);
+						
+						tmpBuffer.releaseBuffer(_rsslErrorInfo);
+						tmpBuffer.clear();
+					}
+					
+					com.refinitiv.eta.transport.Error error = _rsslErrorInfo.error();
+					
+					// TransportReturnCodes.NO_BUFFERS is different from the ETA Reactor and EMA value. 
+					if(_rsslErrorInfo.error().errorId() == TransportReturnCodes.NO_BUFFERS)
+					{
+						_rsslErrorInfo.error().errorId(OmmInvalidUsageException.ErrorCode.NO_BUFFERS);
+					}
+					
+					if (loggerClient().isErrorEnabled())
+		        	{
+			        	strBuilder().append("Internal error: reactorChannel().getBuffer() failed in OmmNiProviderImpl.submit(StatusMsg)")
+			        		.append("RsslChannel ").append(Integer.toHexString(error.channel() != null ? error.channel().hashCode() : 0)) 
+			    			.append(OmmLoggerClient.CR)
+			    			.append("Error Id ").append(error.errorId()).append(OmmLoggerClient.CR)
+			    			.append("Internal sysError ").append(error.sysError()).append(OmmLoggerClient.CR)
+			    			.append("Error Location ").append(_rsslErrorInfo.location()).append(OmmLoggerClient.CR)
+			    			.append("Error Text ").append(error.text());
+			        	
+			        	loggerClient().error(formatLogMessage(instanceName() , _strBuilder.toString(), Severity.ERROR));
+		        	}
+					
+					userLock().unlock();
+					strBuilder().append("Failed to submit StatusMsg. Reason: ")
+						.append(ReactorReturnCodes.toString(_rsslErrorInfo.error().errorId()))
+						.append(". Error text: ")
+						.append(_rsslErrorInfo.error().text());
+					
+					handleInvalidUsage(_strBuilder.toString(), _rsslErrorInfo.error().errorId());
+					return;
+				}
+				
+				sessionTransportBuffer.niProvSessionChannel = sessionChannel;
+				sessionTransportBuffer.rsslChannel = sessionChannel.reactorChannel().channel();
+				sessionTransportBuffer.transportBuffer = sendBuf;
+			}
+			
+			for(int index = 0; index < activeSessionChannelList.size(); index++)
+			{
+				sessionChannel = (NiProviderSessionChannelInfo<OmmProviderClient>)activeSessionChannelList.get(index);
+				NiProvSessionTransportBuffer sessionTransportBuffer = _niProviderSession.sessionTransportBufferList().get(index);
+			
+				// Send the message if the reactor channel's state is READY.
+				if(sessionChannel.reactorChannel().state() == State.READY)
+				{
+					_encodeBuffer.data().flip();
+					
+					sessionTransportBuffer.transportBuffer.data().put(_encodeBuffer.data());
+					
+					ret = sessionChannel.reactorChannel().submit(sessionTransportBuffer.transportBuffer, _rsslSubmitOptions, _rsslErrorInfo);
+					
+					if(ReactorReturnCodes.SUCCESS > ret)
+					{
+						// The submit failed.  Since we are directly sending a buffer, this is most likely a channel down, so just log the error and continue attempting to send.
+						if (loggerClient().isErrorEnabled())
+			        	{
+							com.refinitiv.eta.transport.Error error = _rsslErrorInfo.error();
+							
+				        	strBuilder().append("Internal error: reactorChannel().submit() failed in OmmNiProviderImpl.submit(StatusMsg)")
+				        		.append("RsslChannel ").append(Integer.toHexString(error.channel() != null ? error.channel().hashCode() : 0)) 
+				    			.append(OmmLoggerClient.CR)
+				    			.append("Error Id ").append(error.errorId()).append(OmmLoggerClient.CR)
+				    			.append("Internal sysError ").append(error.sysError()).append(OmmLoggerClient.CR)
+				    			.append("Error Location ").append(_rsslErrorInfo.location()).append(OmmLoggerClient.CR)
+				    			.append("Error Text ").append(error.text());
+				        	
+				        	loggerClient().error(formatLogMessage(instanceName() , _strBuilder.toString(), Severity.ERROR));
+			        	}
+						
+						sessionTransportBuffer.releaseBuffer(_rsslErrorInfo);
+						sessionTransportBuffer.clear();
+					}
+					else
+					{
+						sentMessageCount++;
+
+						sessionTransportBuffer.clear();
+					}						
+				}
+				else
+				{
+					sessionTransportBuffer.releaseBuffer(_rsslErrorInfo);
+					sessionTransportBuffer.clear();
+				}
+			}
+
+			
+			// We were complete unable to send this message, so re-pool the stream and throw an exception
+			if (sentMessageCount == 0)
+			{
+				if (bHandleAdded)
+				{
+					_handleToStreamInfo.remove(_longObject.value(handle));
+					streamInfo.returnToPool();
+					returnProviderStreamId(statusMsgImpl._rsslMsg.streamId());
+				}
+				
+				ret = _rsslErrorInfo.code();
+				
+				// Release all of the already allocated transport buffers.
+				for(int i = 0; i < activeSessionChannelList.size(); ++i)
+				{
+					NiProvSessionTransportBuffer tmpBuffer = _niProviderSession.sessionTransportBufferList().get(i);
+					if(tmpBuffer.transportBuffer != null)
+					{
+						tmpBuffer.releaseBuffer(_rsslErrorInfo);
+						tmpBuffer.clear();
+					}
+				}
+				
+				userLock().unlock();
+				strBuilder().append("Failed to submit StatusMsg. Reason: ")
+					.append(ReactorReturnCodes.toString(ret))
+					.append(". Error text: ")
+					.append(_rsslErrorInfo.error().text());
+				
+				handleInvalidUsage(_strBuilder.toString(), ret);
+				return;
+			}
+		}
 		
 		if (statusMsgImpl.state().streamState() == OmmState.StreamState.CLOSED || 
 				statusMsgImpl.state().streamState() == OmmState.StreamState.CLOSED_RECOVER || 
@@ -1157,7 +1817,12 @@ class OmmNiProviderImpl extends OmmBaseImpl<OmmProviderClient> implements OmmPro
 			return;
 		}
 		
-		if(_activeChannelInfo == null)
+		List<BaseSessionChannelInfo<OmmProviderClient>> activeSessionChannelList = null;
+		
+		if(_niProviderSession != null)
+			activeSessionChannelList = _niProviderSession.activeSessionChannelList();
+		
+		if(_activeChannelInfo == null && (activeSessionChannelList != null && activeSessionChannelList.size() == 0) )
 		{
 			userLock().unlock();
 			handleInvalidUsage(strBuilder().append("No active channel to send message.").toString(), OmmInvalidUsageException.ErrorCode.NO_ACTIVE_CHANNEL);
@@ -1170,6 +1835,8 @@ class OmmNiProviderImpl extends OmmBaseImpl<OmmProviderClient> implements OmmPro
 					.append(handle).append(", user assigned streamId = ").append(genericMsg.streamId()).append(".").toString(), Severity.TRACE));
 		}
 		
+		GenericMsgImpl genericMsgImpl = (GenericMsgImpl)genericMsg;
+		
 		StreamInfo streamInfo = _handleToStreamInfo.get(_longObject.value(handle));
 		
 		if ( streamInfo != null )
@@ -1181,9 +1848,9 @@ class OmmNiProviderImpl extends OmmBaseImpl<OmmProviderClient> implements OmmPro
 				return;
 			}
 			
-			((GenericMsgImpl)genericMsg).streamId(streamInfo.streamId());
-			if (((GenericMsgImpl) genericMsg)._rsslMsg.domainType() == 0)
-				((GenericMsgImpl) genericMsg)._rsslMsg.domainType(streamInfo.domainType());
+			genericMsgImpl.streamId(streamInfo.streamId());
+			if (genericMsgImpl._rsslMsg.domainType() == 0)
+				genericMsgImpl._rsslMsg.domainType(streamInfo.domainType());
 		}
 		else
 		{
@@ -1196,32 +1863,239 @@ class OmmNiProviderImpl extends OmmBaseImpl<OmmProviderClient> implements OmmPro
 		
 		_rsslErrorInfo.clear();
 		int ret;
-		if (ReactorReturnCodes.SUCCESS > (ret = _activeChannelInfo.rsslReactorChannel().submit(((GenericMsgImpl)genericMsg)._rsslMsg, _rsslSubmitOptions, _rsslErrorInfo)))
-	    {
-			if (loggerClient().isErrorEnabled())
-        	{
-				com.refinitiv.eta.transport.Error error = _rsslErrorInfo.error();
+		if(_niProviderSession == null)
+		{
+			if (ReactorReturnCodes.SUCCESS > (ret = _activeChannelInfo.rsslReactorChannel().submit(genericMsgImpl._rsslMsg, _rsslSubmitOptions, _rsslErrorInfo)))
+		    {
+				if (loggerClient().isErrorEnabled())
+	        	{
+					com.refinitiv.eta.transport.Error error = _rsslErrorInfo.error();
+					
+		        	strBuilder().append("Internal error: rsslChannel.submit() failed in OmmNiProviderImpl.submit(GenericMsg)")
+		        		.append("RsslChannel ").append(Integer.toHexString(error.channel() != null ? error.channel().hashCode() : 0)) 
+		    			.append(OmmLoggerClient.CR)
+		    			.append("Error Id ").append(error.errorId()).append(OmmLoggerClient.CR)
+		    			.append("Internal sysError ").append(error.sysError()).append(OmmLoggerClient.CR)
+		    			.append("Error Location ").append(_rsslErrorInfo.location()).append(OmmLoggerClient.CR)
+		    			.append("Error Text ").append(error.text());
+		        	
+		        	loggerClient().error(formatLogMessage(instanceName() , _strBuilder.toString(), Severity.ERROR));
+	        	}
 				
-	        	strBuilder().append("Internal error: rsslChannel.submit() failed in OmmNiProviderImpl.submit(GenericMsg)")
-	        		.append("RsslChannel ").append(Integer.toHexString(error.channel() != null ? error.channel().hashCode() : 0)) 
-	    			.append(OmmLoggerClient.CR)
-	    			.append("Error Id ").append(error.errorId()).append(OmmLoggerClient.CR)
-	    			.append("Internal sysError ").append(error.sysError()).append(OmmLoggerClient.CR)
-	    			.append("Error Location ").append(_rsslErrorInfo.location()).append(OmmLoggerClient.CR)
-	    			.append("Error Text ").append(error.text());
-	        	
-	        	loggerClient().error(formatLogMessage(instanceName() , _strBuilder.toString(), Severity.ERROR));
-        	}
+				userLock().unlock();
+				strBuilder().append("Failed to submit GenericMsg. Reason: ")
+					.append(ReactorReturnCodes.toString(ret))
+					.append(". Error text: ")
+					.append(_rsslErrorInfo.error().text());
+					
+				handleInvalidUsage(_strBuilder.toString(), ret);
+				return;
+		    }
+		}		
+		else
+		{
+			if(_encodeBuffer == null)
+			{
+				_encodeBuffer = CodecFactory.createBuffer();
+			}
 			
-			userLock().unlock();
-			strBuilder().append("Failed to submit GenericMsg. Reason: ")
-				.append(ReactorReturnCodes.toString(ret))
-				.append(". Error text: ")
-				.append(_rsslErrorInfo.error().text());
+			int encodedMsgSize = encodedMsgSize(genericMsgImpl._rsslMsg);
+			
+			if(_encodeBuffer.capacity() < encodedMsgSize)
+			{
+				ByteBuffer buf = ByteBuffer.allocate(encodedMsgSize);
 				
-			handleInvalidUsage(_strBuilder.toString(), ret);
-			return;
-	    }
+				_encodeBuffer.data(buf);
+			}
+			
+			_encodeBuffer.data().clear();
+			
+			int sentMessageCount = 0;
+			boolean msgEncoded = false;
+			NiProviderSessionChannelInfo<OmmProviderClient> sessionChannel;
+			
+			// Get the buffers, encode the message if it hasn't on the loop.
+			for(int index = 0; index < activeSessionChannelList.size(); index++)
+			{
+				sessionChannel = (NiProviderSessionChannelInfo<OmmProviderClient>)activeSessionChannelList.get(index);
+
+				if(!msgEncoded)
+				{
+					while(true)
+					{
+						_encodeIter.clear();
+						_encodeIter.setBufferAndRWFVersion(_encodeBuffer, sessionChannel.reactorChannel().channel().majorVersion(),
+								sessionChannel.reactorChannel().channel().minorVersion());
+						ret = genericMsgImpl._rsslMsg.encode(_encodeIter);
+						
+						// Break out of loop if success.
+						if(CodecReturnCodes.SUCCESS == ret)
+						{
+							break;
+						}
+						else if(CodecReturnCodes.BUFFER_TOO_SMALL == ret)
+						{
+							// Double the allocated amount and return
+							_encodeBuffer.data(ByteBuffer.allocate(_encodeBuffer.capacity()*2));
+							
+							_encodeBuffer.data().clear();
+						}
+						else if(CodecReturnCodes.SUCCESS > ret)
+						{
+							if (loggerClient().isErrorEnabled())
+				        	{
+								com.refinitiv.eta.transport.Error error = _rsslErrorInfo.error();
+								
+					        	strBuilder().append("Internal error: refreshMsg.encode() failed in OmmNiProviderImpl.submit(GenericMsg)")
+					        		.append("RsslChannel ").append(Integer.toHexString(error.channel() != null ? error.channel().hashCode() : 0)) 
+					    			.append(OmmLoggerClient.CR)
+					    			.append("Error Id ").append(error.errorId()).append(OmmLoggerClient.CR)
+					    			.append("Internal sysError ").append(error.sysError()).append(OmmLoggerClient.CR)
+					    			.append("Error Location ").append(_rsslErrorInfo.location()).append(OmmLoggerClient.CR)
+					    			.append("Error Text ").append(error.text());
+					        	
+					        	loggerClient().error(formatLogMessage(instanceName() , _strBuilder.toString(), Severity.ERROR));
+				        	}
+							
+							userLock().unlock();
+							strBuilder().append("Failed to encode GenericMsg. Reason: ")
+								.append(ReactorReturnCodes.toString(_rsslErrorInfo.code()))
+								.append(". Error text: ")
+								.append(_rsslErrorInfo.error().text());
+							
+							handleInvalidUsage(_strBuilder.toString(), _rsslErrorInfo.code());
+							return;
+						}
+					}
+					
+					msgEncoded = true;
+				}
+
+				NiProvSessionTransportBuffer sessionTransportBuffer = _niProviderSession.sessionTransportBufferList().get(index);
+				TransportBuffer sendBuf = sessionChannel.reactorChannel().getBuffer(_encodeBuffer.length(), false, _rsslErrorInfo);
+				
+				if(sendBuf == null)
+				{
+					// Release all of the already allocated transport buffers.
+					for(int i = 0; i < index; ++i)
+					{
+						NiProvSessionTransportBuffer tmpBuffer = _niProviderSession.sessionTransportBufferList().get(i);
+						
+						tmpBuffer.releaseBuffer(_rsslErrorInfo);
+						tmpBuffer.clear();
+					}
+					
+					com.refinitiv.eta.transport.Error error = _rsslErrorInfo.error();
+					
+					// TransportReturnCodes.NO_BUFFERS is different from the ETA Reactor and EMA value. 
+					if(_rsslErrorInfo.error().errorId() == TransportReturnCodes.NO_BUFFERS)
+					{
+						_rsslErrorInfo.error().errorId(OmmInvalidUsageException.ErrorCode.NO_BUFFERS);
+					}
+					
+					if (loggerClient().isErrorEnabled())
+		        	{
+			        	strBuilder().append("Internal error: reactorChannel().getBuffer() failed in OmmNiProviderImpl.submit(RefreshMsg)")
+			        		.append("RsslChannel ").append(Integer.toHexString(error.channel() != null ? error.channel().hashCode() : 0)) 
+			    			.append(OmmLoggerClient.CR)
+			    			.append("Error Id ").append(error.errorId()).append(OmmLoggerClient.CR)
+			    			.append("Internal sysError ").append(error.sysError()).append(OmmLoggerClient.CR)
+			    			.append("Error Location ").append(_rsslErrorInfo.location()).append(OmmLoggerClient.CR)
+			    			.append("Error Text ").append(error.text());
+			        	
+			        	loggerClient().error(formatLogMessage(instanceName() , _strBuilder.toString(), Severity.ERROR));
+		        	}
+					
+					userLock().unlock();
+					strBuilder().append("Failed to submit GenericMsg. Reason: ")
+						.append(ReactorReturnCodes.toString(_rsslErrorInfo.error().errorId()))
+						.append(". Error text: ")
+						.append(_rsslErrorInfo.error().text());
+					
+					handleInvalidUsage(_strBuilder.toString(), _rsslErrorInfo.error().errorId());
+					return;
+				}
+				
+				sessionTransportBuffer.niProvSessionChannel = sessionChannel;
+				sessionTransportBuffer.rsslChannel = sessionChannel.reactorChannel().channel();
+				sessionTransportBuffer.transportBuffer = sendBuf;
+			}
+			
+			for(int index = 0; index < activeSessionChannelList.size(); index++)
+			{
+				sessionChannel = (NiProviderSessionChannelInfo<OmmProviderClient>)activeSessionChannelList.get(index);
+				NiProvSessionTransportBuffer sessionTransportBuffer = _niProviderSession.sessionTransportBufferList().get(index);
+			
+				// Send the message if the reactor channel's state is READY.
+				if(sessionChannel.reactorChannel().state() == State.READY)
+				{
+					_encodeBuffer.data().flip();
+					
+					sessionTransportBuffer.transportBuffer.data().put(_encodeBuffer.data());
+					
+					ret = sessionChannel.reactorChannel().submit(sessionTransportBuffer.transportBuffer, _rsslSubmitOptions, _rsslErrorInfo);
+					
+					if(ReactorReturnCodes.SUCCESS > ret)
+					{
+						// The submit failed.  Since we are directly sending a buffer, this is most likely a channel down, so just log the error and continue attempting to send.
+						if (loggerClient().isErrorEnabled())
+			        	{
+							com.refinitiv.eta.transport.Error error = _rsslErrorInfo.error();
+							
+				        	strBuilder().append("Internal error: reactorChannel().submit() failed in OmmNiProviderImpl.submit(GenericMsg)")
+				        		.append("RsslChannel ").append(Integer.toHexString(error.channel() != null ? error.channel().hashCode() : 0)) 
+				    			.append(OmmLoggerClient.CR)
+				    			.append("Error Id ").append(error.errorId()).append(OmmLoggerClient.CR)
+				    			.append("Internal sysError ").append(error.sysError()).append(OmmLoggerClient.CR)
+				    			.append("Error Location ").append(_rsslErrorInfo.location()).append(OmmLoggerClient.CR)
+				    			.append("Error Text ").append(error.text());
+				        	
+				        	loggerClient().error(formatLogMessage(instanceName() , _strBuilder.toString(), Severity.ERROR));
+			        	}
+						
+						sessionTransportBuffer.releaseBuffer(_rsslErrorInfo);
+						sessionTransportBuffer.clear();
+					}
+					else
+					{
+						sentMessageCount++;
+
+						sessionTransportBuffer.clear();
+					}						
+				}
+				else
+				{
+					sessionTransportBuffer.releaseBuffer(_rsslErrorInfo);
+					sessionTransportBuffer.clear();
+				}
+			}
+			
+			// We were complete unable to send this message, so re-pool the stream and throw an exception
+			if (sentMessageCount == 0)
+			{
+				ret = _rsslErrorInfo.code();
+				
+				// Release all of the already allocated transport buffers.
+				for(int i = 0; i < activeSessionChannelList.size(); ++i)
+				{
+					NiProvSessionTransportBuffer tmpBuffer = _niProviderSession.sessionTransportBufferList().get(i);
+					if(tmpBuffer.transportBuffer != null)
+					{
+						tmpBuffer.releaseBuffer(_rsslErrorInfo);
+						tmpBuffer.clear();
+					}
+				}
+				
+				userLock().unlock();
+				strBuilder().append("Failed to submit GenericMsg. Reason: ")
+					.append(ReactorReturnCodes.toString(ret))
+					.append(". Error text: ")
+					.append(_rsslErrorInfo.error().text());
+				
+				handleInvalidUsage(_strBuilder.toString(), ret);
+				return;
+			}
+		}
 		
 		userLock().unlock();
 	}
@@ -1314,6 +2188,10 @@ class OmmNiProviderImpl extends OmmBaseImpl<OmmProviderClient> implements OmmPro
 		ProgrammaticConfigure pc = config.programmaticConfigure();
 		if ( pc != null )
 			pc.retrieveCustomConfig(_activeConfig.configuredName, _activeConfig);
+		
+		// If any niprov session configuration exists, set recoverUserSubmitSourceDirectory to true;
+		if(_activeConfig.niProvConfigSessionChannelSet.size() != 0)
+			_activeConfig.recoverUserSubmitSourceDirectory = true;
 	}
 
 	@Override
@@ -1325,10 +2203,23 @@ class OmmNiProviderImpl extends OmmBaseImpl<OmmProviderClient> implements OmmPro
 			userLock().lock();
 			
 			if ( _itemWatchList != null )
-				_itemWatchList.processChannelEvent(reactorChannelEvent);
+				_itemWatchList.processNiProvChannelEvent(reactorChannelEvent);
 			
-			if ( _activeConfig.removeItemsOnDisconnect )
+			// This covers both the NiProvider session and the single connection case.
+			if ( _activeConfig.removeItemsOnDisconnect && ommImplState() == OmmImplState.RSSLCHANNEL_DOWN)
+			{
 				removeItems();
+				
+				if(_niProviderSession != null)
+				{
+					_niProviderSession.clearedItemList(true);
+				}
+			}
+			
+			if(_niProviderSession != null)
+			{
+				((ChannelInfo)reactorChannelEvent.reactorChannel().userSpecObj()).niProviderSessionChannelInfo().sentDirectory(false);
+			}
 			
 			_activeChannelInfo = null;
 			userLock().unlock();
@@ -1383,6 +2274,12 @@ class OmmNiProviderImpl extends OmmBaseImpl<OmmProviderClient> implements OmmPro
 
 		_channelCallbackClient = new ChannelCallbackClient<>(this,_rsslReactor);
 		
+		/* Checks whether the session channel is enabled */
+		if (!activeConfig().niProvConfigSessionChannelSet.isEmpty())
+		{
+			_niProviderSession = new NiProviderSession<>(this);
+		}
+		
 		if(_adminClient != null)
 		{
 			/* RegisterClient does not require a fully encoded login message to set the callbacks */
@@ -1405,8 +2302,15 @@ class OmmNiProviderImpl extends OmmBaseImpl<OmmProviderClient> implements OmmPro
 			
 			_channelCallbackClient.initializeNiProviderRole(_loginCallbackClient.rsslLoginRequest(), null);
 		}
-
-		handleLoginReqTimeout();
+		
+		if(_niProviderSession != null)
+		{
+			_niProviderSession.handleLoginReqTimeout();
+		}
+		else 
+		{
+			handleLoginReqTimeout();
+		}
 	}
 
 	@Override
@@ -1447,7 +2351,8 @@ class OmmNiProviderImpl extends OmmBaseImpl<OmmProviderClient> implements OmmPro
 		}	
 	}
 	
-	int submitDirectoryRefresh(DirectoryRefresh directoryRefresh)
+	// This is only used after login, it is not used with the normal submit path.
+	int submitDirectoryRefresh(DirectoryRefresh directoryRefresh, BaseSessionChannelInfo<OmmProviderClient> sessionChannelInfo)
 	{
 		int retCode = CodecReturnCodes.SUCCESS;
 		
@@ -1500,20 +2405,37 @@ class OmmNiProviderImpl extends OmmBaseImpl<OmmProviderClient> implements OmmPro
 		flags &= ~RefreshMsgFlags.SOLICITED;
 		rsslRefreshMsg.flags(flags);
 		
-		if( _activeConfig.removeItemsOnDisconnect )
+		// The remap should always be run in the non-niProv session, and only once for when a niprovider session is enabled.
+		if( _activeConfig.removeItemsOnDisconnect && (_niProviderSession == null || (_niProviderSession != null && _niProviderSession.clearedItemList())))
 		{
 			remapServiceIdAndServcieName(directoryRefresh);
+			
+			if(_niProviderSession != null)
+				_niProviderSession.clearedItemList(false);
 		}
 		
-		if(_activeChannelInfo == null)
+		// If there is a session channel info and the reactor channel state is not UP or READY, or there is no active channel info, error out.
+		if((sessionChannelInfo != null && !(sessionChannelInfo._reactorChannel.state() == ReactorChannel.State.UP || sessionChannelInfo._reactorChannel.state() == ReactorChannel.State.READY)) 
+				|| (sessionChannelInfo == null && _activeChannelInfo == null ))
 		{
 			errorText.append("No active channel to send message.");
 			handleInvalidUsage(errorText.toString(), OmmInvalidUsageException.ErrorCode.NO_ACTIVE_CHANNEL);
 			return CodecReturnCodes.FAILURE;
 		}
-		
+
 		_rsslErrorInfo.clear();
-		if (ReactorReturnCodes.SUCCESS > (retCode = _activeChannelInfo.rsslReactorChannel().submit(rsslRefreshMsg, _rsslSubmitOptions, _rsslErrorInfo)))
+		ReactorChannel reactorChannel;
+		
+		if(sessionChannelInfo != null)
+		{
+			reactorChannel = sessionChannelInfo._reactorChannel;
+		}
+		else
+		{
+			reactorChannel = _activeChannelInfo.rsslReactorChannel();
+		}
+		
+		if (ReactorReturnCodes.SUCCESS > (retCode = reactorChannel.submit(rsslRefreshMsg, _rsslSubmitOptions, _rsslErrorInfo)))
 	    {			
 			StringBuilder temp = strBuilder();
 			if (loggerClient().isErrorEnabled())
@@ -1559,9 +2481,16 @@ class OmmNiProviderImpl extends OmmBaseImpl<OmmProviderClient> implements OmmPro
 			loggerClient().trace( formatLogMessage(_activeConfig.instanceName, "Reload of configured source directories.", Severity.TRACE) );
 		}
 		
-		if( _activeConfig.removeItemsOnDisconnect )
+		if( _activeConfig.removeItemsOnDisconnect)
 		{
-			remapServiceIdAndServcieName(directoryRefresh);
+			// The remap should always be run in the non-niProv session, and only once for when a niprovider session is enabled.
+			if(_niProviderSession == null || (_niProviderSession != null && _niProviderSession.clearedItemList()))
+			{
+				remapServiceIdAndServcieName(directoryRefresh);
+				
+				if(_niProviderSession != null)
+					_niProviderSession.clearedItemList(false);
+			}
 		}
 		
 		_bIsStreamIdZeroRefreshSubmitted = true;
@@ -1572,7 +2501,7 @@ class OmmNiProviderImpl extends OmmBaseImpl<OmmProviderClient> implements OmmPro
 		}
 	}
 	
-	void reLoadUserSubmitSourceDirectory()
+	void reLoadUserSubmitSourceDirectory(BaseSessionChannelInfo<OmmProviderClient> sessionChannelInfo)
 	{
 		if ( !_activeConfig.recoverUserSubmitSourceDirectory )
 			return;
@@ -1587,7 +2516,7 @@ class OmmNiProviderImpl extends OmmBaseImpl<OmmProviderClient> implements OmmPro
 			loggerClient().trace( formatLogMessage(_activeConfig.instanceName, "Reload of user submitted source directories.", Severity.TRACE) );
 		}
 		
-		if ( submitDirectoryRefresh(directoryRefresh) == ReactorReturnCodes.SUCCESS )
+		if ( submitDirectoryRefresh(directoryRefresh, sessionChannelInfo) == ReactorReturnCodes.SUCCESS )
 		{
 			_bIsStreamIdZeroRefreshSubmitted = true;
 			
@@ -1595,14 +2524,20 @@ class OmmNiProviderImpl extends OmmBaseImpl<OmmProviderClient> implements OmmPro
 			{
 				loggerClient().trace( formatLogMessage(_activeConfig.instanceName, "User submitted source directoies were sent out on the wire after reconnect.", Severity.TRACE) );
 			}
+			
+			if(sessionChannelInfo != null)
+			{
+				NiProviderSessionChannelInfo<OmmProviderClient> niProvSessionChannelInfo = (NiProviderSessionChannelInfo<OmmProviderClient>)sessionChannelInfo;
+				niProvSessionChannelInfo.sentDirectory(true);
+			}
 		}
 	}
 	
 	@Override
-	void reLoadDirectory()
+	void reLoadDirectory(BaseSessionChannelInfo<OmmProviderClient> sessionChannelInfo)
 	{
 		reLoadConfigSourceDirectory();
-		reLoadUserSubmitSourceDirectory();
+		reLoadUserSubmitSourceDirectory(sessionChannelInfo);
 	}
 	
 	@Override
@@ -1634,54 +2569,119 @@ class OmmNiProviderImpl extends OmmBaseImpl<OmmProviderClient> implements OmmPro
 		
 		userLock().lock();
 
-		if(_activeChannelInfo == null)
+		List<BaseSessionChannelInfo<OmmProviderClient>> activeSessionChannelList = null;
+		
+		if(_niProviderSession != null)
+			activeSessionChannelList = _niProviderSession.activeSessionChannelList();
+		
+		if(_activeChannelInfo == null && (activeSessionChannelList != null && activeSessionChannelList.size() == 0) )
 		{
 			userLock().unlock();
 			handleInvalidUsage(strBuilder().append("No active channel to send message.").toString(), OmmInvalidUsageException.ErrorCode.NO_ACTIVE_CHANNEL);
 			return;
 		}
 		
-		if (packedMsgImpl.getTransportBuffer() == null)
-		{
-			userLock().unlock();
-			StringBuilder temp = strBuilder();
-			temp.append("Attempt to fanout PackedMsg with an uninitialized buffer.");
-			handleInvalidUsage(temp.toString(), OmmInvalidUsageException.ErrorCode.INVALID_ARGUMENT);
-			return;
-		}
-		
-		_rsslErrorInfo.clear();
 		int ret;
-		if (ReactorReturnCodes.SUCCESS > (ret = _activeChannelInfo.rsslReactorChannel().submit(packedMsgImpl.getTransportBuffer(), _rsslSubmitOptions, _rsslErrorInfo)))
+		
+		if(_niProviderSession == null)
 		{
-			if (loggerClient().isErrorEnabled())
-        	{
-				com.refinitiv.eta.transport.Error error = _rsslErrorInfo.error();
+		
+			if (packedMsgImpl.getTransportBuffer() == null)
+			{
+				userLock().unlock();
+				StringBuilder temp = strBuilder();
+				temp.append("Attempt to fanout PackedMsg with an uninitialized buffer.");
+				handleInvalidUsage(temp.toString(), OmmInvalidUsageException.ErrorCode.INVALID_ARGUMENT);
+				return;
+			}
+			
+			_rsslErrorInfo.clear();
+
+			if (ReactorReturnCodes.SUCCESS > (ret = _activeChannelInfo.rsslReactorChannel().submit(packedMsgImpl.getTransportBuffer(), _rsslSubmitOptions, _rsslErrorInfo)))
+			{
+				if (loggerClient().isErrorEnabled())
+	        	{
+					com.refinitiv.eta.transport.Error error = _rsslErrorInfo.error();
+					
+		        	strBuilder().append("Internal error: rsslChannel.submit() failed in OmmNiProviderImpl.submit(PackedMsg)")
+	        		.append("RsslChannel ").append(Integer.toHexString(error.channel() != null ? error.channel().hashCode() : 0)) 
+	    			.append(OmmLoggerClient.CR)
+	    			.append("Error Id ").append(error.errorId()).append(OmmLoggerClient.CR)
+	    			.append("Internal sysError ").append(error.sysError()).append(OmmLoggerClient.CR)
+	    			.append("Error Location ").append(_rsslErrorInfo.location()).append(OmmLoggerClient.CR)
+	    			.append("Error Text ").append(error.text());
+	        	
+	        	loggerClient().error(formatLogMessage(instanceName() , _strBuilder.toString(), Severity.ERROR));
+	        	}
 				
-	        	strBuilder().append("Internal error: rsslChannel.submit() failed in OmmNiProviderImpl.submit(PackedMsg)")
-        		.append("RsslChannel ").append(Integer.toHexString(error.channel() != null ? error.channel().hashCode() : 0)) 
-    			.append(OmmLoggerClient.CR)
-    			.append("Error Id ").append(error.errorId()).append(OmmLoggerClient.CR)
-    			.append("Internal sysError ").append(error.sysError()).append(OmmLoggerClient.CR)
-    			.append("Error Location ").append(_rsslErrorInfo.location()).append(OmmLoggerClient.CR)
-    			.append("Error Text ").append(error.text());
-        	
-        	loggerClient().error(formatLogMessage(instanceName() , _strBuilder.toString(), Severity.ERROR));
-        	}
-			
-			packedMsgImpl.releaseBuffer();
-			
-			userLock().unlock();
-			strBuilder().append("Failed to submit ")
-				.append(ReactorReturnCodes.toString(ret))
-				.append(". Error text: ")
-				.append(_rsslErrorInfo.error().text());
-			
-			handleInvalidUsage(_strBuilder.toString(), ret);
-	    }
+				packedMsgImpl.releaseBuffer();
+				
+				userLock().unlock();
+				strBuilder().append("Failed to submit ")
+					.append(ReactorReturnCodes.toString(ret))
+					.append(". Error text: ")
+					.append(_rsslErrorInfo.error().text());
+				
+				handleInvalidUsage(_strBuilder.toString(), ret);
+		    }
+			else
+			{
+				packedMsgImpl.setTransportBuffer(null);
+				packedMsgImpl.setCalledInitbuffer(false);
+			}
+		}
 		else
 		{
-			packedMsgImpl.setTransportBuffer(null);
+			int sentBufferCount = 0;
+			// Iterate through the list of packed buffers, and send them on all channels.
+			for(NiProvSessionTransportBuffer packedBuffer : packedMsgImpl.getRwfBufferList())
+			{
+				// If the current reactor channel is different, do not attempt to write, just clear the structure and continue.
+
+				if(packedBuffer.niProvSessionChannel.reactorChannel().channel() != packedBuffer.rsslChannel)
+				{
+					packedBuffer.clear();
+				}
+				else
+				{
+					if (ReactorReturnCodes.SUCCESS > (ret = packedBuffer.niProvSessionChannel.reactorChannel().submit(packedBuffer.transportBuffer, _rsslSubmitOptions, _rsslErrorInfo)))
+					{
+						if (loggerClient().isErrorEnabled())
+			        	{
+							com.refinitiv.eta.transport.Error error = _rsslErrorInfo.error();
+							
+				        	strBuilder().append("Internal error: rsslChannel.submit() failed in OmmNiProviderImpl.submit(PackedMsg)")
+			        		.append("RsslChannel ").append(Integer.toHexString(error.channel() != null ? error.channel().hashCode() : 0)) 
+			    			.append(OmmLoggerClient.CR)
+			    			.append("Error Id ").append(error.errorId()).append(OmmLoggerClient.CR)
+			    			.append("Internal sysError ").append(error.sysError()).append(OmmLoggerClient.CR)
+			    			.append("Error Location ").append(_rsslErrorInfo.location()).append(OmmLoggerClient.CR)
+			    			.append("Error Text ").append(error.text());
+			        	
+			        	loggerClient().error(formatLogMessage(instanceName() , _strBuilder.toString(), Severity.ERROR));
+			        	}
+						
+						packedBuffer.releaseBuffer(_rsslErrorInfo);
+						// Do not raise an exception here;
+				    }
+					else
+					{
+						packedBuffer.clear();
+						sentBufferCount++;
+					}
+				}
+			}
+			
+			packedMsgImpl.setCalledInitbuffer(false);
+			
+			if(sentBufferCount == 0)
+			{
+				userLock().unlock();
+				strBuilder().append("Failed to submit packed buffer on all channels.  Last error text: ")
+					.append(_rsslErrorInfo.error().text());
+				
+				handleInvalidUsage(_strBuilder.toString(), ReactorReturnCodes.FAILURE);
+			}
 		}
 		
 		userLock().unlock();
@@ -1896,6 +2896,14 @@ class OmmNiProviderImpl extends OmmBaseImpl<OmmProviderClient> implements OmmPro
 	@Override
 	public void channelInformation(ChannelInformation channelInformation)
 	{
+		if(niProviderSession() != null)
+		{
+			StringBuilder temp = strBuilder();
+			temp.append("The NiProvider Session feature does not support the channelInformation method. The sessionChannelInfo() must be used instead.");
+			handleInvalidUsage(temp.toString(), OmmInvalidUsageException.ErrorCode.INVALID_OPERATION);
+			return;
+		}
+		
 		if (_loginCallbackClient == null || _loginCallbackClient.loginChannelList().isEmpty())
 		{
 			channelInformation.clear();
@@ -1914,7 +2922,7 @@ class OmmNiProviderImpl extends OmmBaseImpl<OmmProviderClient> implements OmmPro
 			if (reactorChannel == null)
 				reactorChannel = _loginCallbackClient.loginChannelList().get(0).rsslReactorChannel();
 
-			((ChannelInformationImpl)channelInformation).set(reactorChannel, null);
+			((ChannelInformationImpl)channelInformation).set(reactorChannel);
 			channelInformation.ipAddress("not available for OmmNiProvider connections");
 		}
 		finally {
@@ -1963,11 +2971,85 @@ class OmmNiProviderImpl extends OmmBaseImpl<OmmProviderClient> implements OmmPro
 		);
 	}
 	
+	@Override
+	protected void populateChannelInfomation(ChannelInformationImpl channelInfoImpl, ReactorChannel reactorChannel, ChannelInfo channelInfo)
+	{
+		super.populateChannelInfomation(channelInfoImpl, reactorChannel, channelInfo);
+		if (reactorChannel != null) {
+			
+			channelInfoImpl.ipAddress("not available for OmmNiProvider connections");
+		}
+	}
+	
 	public StreamInfo getStreamInfo(long handle)
 	{
 		userLock().lock();
 		StreamInfo returnStreamInfo = _handleToStreamInfo.get(_longObject.value(handle));
 		userLock().unlock();
 		return returnStreamInfo;
+	}
+	
+	private int encodedMsgSize(Msg msg)
+	{
+		int msgSize = 128;
+		MsgKey key = msg.msgKey();
+
+		msgSize += msg.encodedDataBody().length();
+
+		if (key != null)
+		{
+			if (key.checkHasName())
+				msgSize += key.name().length();
+
+			if (key.checkHasAttrib())
+				msgSize += key.encodedAttrib().length();
+		}
+
+		return msgSize;
+	}
+	
+	@Override
+	public void sessionChannelInfo(List<ChannelInformation> sessionChannelInfo) {
+		if(sessionChannelInfo == null)
+			return;
+		
+		userLock().lock();
+		
+		try
+		{
+		
+			sessionChannelInfo.clear();
+			
+			ChannelInfo channelInfo;
+			ChannelInformationImpl channelInfoImpl;
+			
+			if(niProviderSession() != null)
+			{
+				List<BaseSessionChannelInfo<OmmProviderClient>> sessionChannelInfoList = niProviderSession().sessionChannelList();
+				
+				for(BaseSessionChannelInfo<OmmProviderClient> sessionChInfo : sessionChannelInfoList)
+				{
+					ReactorChannel reactorChannel = sessionChInfo.reactorChannel();
+					
+					if(reactorChannel != null)
+					{
+						channelInfo = (ChannelInfo)reactorChannel.userSpecObj();
+						
+						if(channelInfo != null)
+						{
+							channelInfoImpl = new ChannelInformationImpl();
+							
+							populateChannelInfomation(channelInfoImpl, reactorChannel, channelInfo);
+							
+							sessionChannelInfo.add(channelInfoImpl);
+						}
+					}
+				}
+			}
+		}
+		finally
+		{
+			userLock().unlock();
+		}
 	}
 }

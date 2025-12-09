@@ -221,6 +221,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
             m_Output.WriteLine($"OnReqMsg()");
 
             using var _ = EtaGlobalPoolTestUtil.CreateClearableSection();
+            reqMsg.MarkForClear();
 
             switch (reqMsg.DomainType())
             {
@@ -297,7 +298,7 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
                     AccessLock.Enter();
                     try
                     {
-                        RequestMsg requestMsg = new (reqMsg.MarkForClear());
+                        RequestMsg requestMsg = new (reqMsg);
                         m_Output.WriteLine(requestMsg.ToString());
                         m_MessageQueue.Enqueue(requestMsg);
 
@@ -475,7 +476,9 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
         public void OnClose(RequestMsg reqMsg, IOmmProviderEvent providerEvent)
         {
-            RequestMsg cloneMsg = new (reqMsg);
+            using var _ = EtaGlobalPoolTestUtil.CreateClearableSection();
+
+            RequestMsg cloneMsg = new (reqMsg.MarkForClear());
 
             m_Output.WriteLine($"---- Provider {Name} ----");
             m_Output.WriteLine($"OnClose() {cloneMsg}");
@@ -535,7 +538,9 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
         public void OnGenericMsg(GenericMsg genericMsg, IOmmProviderEvent providerEvent)
         {
-            GenericMsg cloneMsg = new(genericMsg);
+            using var _ = EtaGlobalPoolTestUtil.CreateClearableSection();
+
+            GenericMsg cloneMsg = new(genericMsg.MarkForClear());
 
             m_Output.WriteLine($"---- Provider {Name} ----");
             m_Output.WriteLine($"OnGeneric({cloneMsg}");
@@ -572,7 +577,9 @@ namespace LSEG.Ema.Access.Tests.RequestRouting
 
         public void OnReissue(RequestMsg reqMsg, IOmmProviderEvent providerEvent)
         {
-            RequestMsg cloneMsg = new(reqMsg);
+            using var _ = EtaGlobalPoolTestUtil.CreateClearableSection();
+
+            RequestMsg cloneMsg = new(reqMsg.MarkForClear());
 
             m_Output.WriteLine($"---- Provider {Name} ----");
             m_Output.WriteLine($"OnReissue() {cloneMsg}");

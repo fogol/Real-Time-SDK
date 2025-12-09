@@ -559,6 +559,21 @@
 			<ReconnectMinDelay value="1000" />
 			<ReconnectMaxDelay value="2000" />
 		</Consumer>
+		
+		<Consumer>
+			<Name value="Consumer_PackJSON"/>
+			<ChannelSet value="Channel_JSON" />
+			<Dictionary value="Dictionary_3"/>
+			<LoginRequestTimeOut value="30000"/>
+			<DirectoryRequestTimeOut value="30000"/>
+			<RequestTimeout value="30000"/>
+			<XmlTraceToStdout value="0"/>
+			<EnablePreferredHostOptions value="1"/>
+			<PHDetectionTimeInterval value="8"/>
+			<ReconnectAttemptLimit value="1"/>
+			<ReconnectMinDelay value="1000" />
+			<ReconnectMaxDelay value="2000" />
+		</Consumer>
 	</ConsumerList>
 </ConsumerGroup>
 
@@ -876,6 +891,16 @@
 			<GuaranteedOutputBuffers value="5000"/>
 			<Host value="localhost"/>
 			<Port value="19013"/>
+		</Channel>
+		<Channel>
+			<Name value="Channel_JSON"/>
+			<ChannelType value="ChannelType::RSSL_WEBSOCKET"/>
+			<WsMaxMsgSize value="61440"/>
+			<WsProtocols value="rssl.json.v2"/>
+			<CompressionType value="CompressionType::None"/>
+			<GuaranteedOutputBuffers value="5000"/>
+			<Host value="localhost"/>
+			<Port value="19001"/>
 		</Channel>
 	</ChannelList>
 </ChannelGroup>

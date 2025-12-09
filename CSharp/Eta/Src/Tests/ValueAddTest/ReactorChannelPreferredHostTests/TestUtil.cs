@@ -2,13 +2,13 @@
  *|            This source code is provided under the Apache 2.0 license
  *|  and is provided AS IS with no warranty or guarantee of fit for purpose.
  *|                See the project's LICENSE.md for details.
- *|           Copyright (C) 2024-2025 LSEG. All rights reserved.
+ *|           Copyright (C) 2025 LSEG. All rights reserved.
  *|-----------------------------------------------------------------------------
  */
 
 using LSEG.Eta.ValueAdd.Rdm;
 using LSEG.Eta.ValueAdd.Reactor;
-using LSEG.Eta.ValuedAdd.Tests;
+using LSEG.Eta.Tests.ValueAddTest;
 using System;
 
 namespace LSEG.Eta.Tests.ValueAddTest.ReactorChannelPreferredHostTests

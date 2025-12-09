@@ -9,10 +9,10 @@
 !
 !tag Filename    ENUMTYPE.001
 !tag Desc        IDN Marketstream enumerated tables
-!tag RT_Version  4.20.68
-!tag Build_RDMD  4.20.68
-!tag DT_Version  25.61
-!tag Date        4-Aug-2025
+!tag RT_Version  4.20.70
+!tag Build_RDMD  4.20.70
+!tag DT_Version  25.91
+!tag Date        24-Nov-2025
 !tag DictionaryId 1
 !
 ! This file contains all the enumerated types used by the head-end
@@ -671,7 +671,7 @@ SETT_CCY   13620
    2047        "ZIG"   Zimbabwe Gold (deprecated)
    2048        "WPU"   FTSE World Parity Unit
    2049        "XAD"   Arab Accounting Dinar (deprecated  use enum 396)
-   2050        "USG"   USD Dollar Guaranteed
+   2050        "USG"   Argentinian Dollar Guaranteed
 !
 ! ACRONYM    FID
 ! -------    ---
@@ -1839,7 +1839,6 @@ YCHIGH_IND   110
 52W_HIND    3449
 LIFE_HIND   3670
 CONTR_HIND  8945
-CONTR_LIND  8946
 MYRHGH_IND 12763
 52W_HYIND  12899
 YR_HYIND   12931
@@ -1855,6 +1854,7 @@ YR_HYIND   12931
 YCLOW_IND    111
 52W_LIND    3451
 LIFE_LIND   3671
+CONTR_LIND  8946
 MYRLOW_IND 12764
 52W_LYIND  12898
 YR_LYIND   12932
@@ -5260,6 +5260,7 @@ OFF_CD_IN2  1055
      61        "BAS"   Buenos Aires code
      62        "FGI"   Financial Instrument Global Identifier
      63        "BSD"   Basket Id
+     64        "UPI"   Unique Product Identifier (UPI)
 !
 ! ACRONYM    FID
 ! -------    ---
@@ -8952,6 +8953,8 @@ CLS_A_EXID 13625
    1814        "DRG"   Dream Exchange - Nasdaq Global Market
    1815        "DRC"   Dream Exchange - Nasdaq Capital Market
    1816        "NZQ"   NZ ETS Auctions
+   1817        "LPS"   LSE Private Securities Market
+   1818        "CTA"   Cotton Association of India
 !
 ! ACRONYM    FID
 ! -------    ---
@@ -11702,6 +11705,7 @@ PR_FREQ     4236
      14     "TwMtly"   Twice Monthly
      15     "Wkdays"   Daily Weekday Updates
      16     "EOmnth"   Every other month
+     17     "Bidwk "   Bidweek Updates
 !
 ! ACRONYM    FID
 ! -------    ---
@@ -11860,6 +11864,8 @@ RPT_P_METH 13587
      30        "BPS"   Basis points - 'BAPO'
      31        "FLT"   Flat
      32        "DIF"   Differential
+     33        "ORT"   Outright
+     34        "CTL"   Collateral
 !
 ! ACRONYM    FID
 ! -------    ---
@@ -12694,6 +12700,8 @@ IMB_TYPE    6511
       0        "   "   Undefined
       1        "REG"   Regulatory Imbalance
       2        "INF"   Informational Imbalance
+      3        "EXT"   Extreme Imbalance
+      4        "SIG"   Significant Imbalance
 !
 ! ACRONYM    FID
 ! -------    ---
@@ -13208,6 +13216,7 @@ DELIV_TYPE  8930
       3       "E-D "   Event Driven (Physical and/or Cash).
       4       "H-E "   Holder Elected.
       5       "I-E "   Issuer Elected.
+      6       "FINA"   Financial
 !
 ! ACRONYM    FID
 ! -------    ---
@@ -13557,6 +13566,7 @@ REFPRC_TP4 13491
      71   "POS IMB "   Positive Imbalance Price
      72   "NEG IMB "   Negative Imbalance Price
      73   "PJ CLSPR"   Projected Closing Price
+     74   "UTRDPRC "   Last traded price of the underlying asset.
 !
 ! ACRONYM    FID
 ! -------    ---
@@ -16334,19 +16344,9 @@ QTY_IND2   12863
 QTY_IND3   12864
 QTY_IND4   12865
 QTY_IND5   12866
+IRG_QTYIND 12868
 INS_QTYIND 12880
 CAN_QTYIND 12882
-!
-! VALUE      DISPLAY   MEANING
-! -----      -------   -------
-      0        "   "   undefined
-      1        "A  "   Actual Qantity
-      2        "E  "   Estimated Quantity
-!
-! ACRONYM    FID
-! -------    ---
-!
-IRG_QTYIND 12868
 !
 ! VALUE      DISPLAY   MEANING
 ! -----      -------   -------
@@ -17446,6 +17446,10 @@ ROUTE_INDX 12977
     119   "EC57    "   Korea to Singapore
     120   "VG62    "   East Coast South America to West Coast India
     121   "PO45    "   Singapore Straits to North West Europe
+    122   "TD26    "   East Coast Mexico to US Gulf
+    123   "TD27    "   Guyana to ARA(Amsterdam-Rotterdam-Antwerp)
+    124   "TD28    "   West Coast Canada to China
+    125   "TD29    "   West Coast Canada to PAL (Vancouver to Pacific Area Lightering)
 !
 ! ACRONYM    FID
 ! -------    ---
@@ -18305,6 +18309,7 @@ PRCLMT_TP  13071
 PRCLMT_TP2 13072
 PRCLMT_TP3 13073
 PRCLMT_TP4 13077
+OR_LMT_TP  13125
 !
 ! VALUE      DISPLAY   MEANING
 ! -----      -------   -------
@@ -18658,8 +18663,17 @@ ALL_ORD    13124
 ! ACRONYM    FID
 ! -------    ---
 !
-PRE_1ET424 13125
-PRE_1ET425 13126
+REL_PRC_TP 13126
+!
+! VALUE      DISPLAY   MEANING
+! -----      -------   -------
+      0   "        "   undefined
+      1   "BAS     "   Basis
+      2   "CUP     "   Custom Underlying Price
+!
+! ACRONYM    FID
+! -------    ---
+!
 PRE_1ET426 13127
 PRE_1ET427 13128
 PRE_1ET428 13129
@@ -22068,6 +22082,51 @@ ORGN_PORT  13579
     741   "SV AQJ  "   Acajutla
     742   "IN JGD  "   Jaigad
     743   "AU TSV  "   Townsville
+    744   "MU PLU  "   Port Louis
+    745   "NZ AKL  "   Auckland
+    746   "AU DRW  "   Darwin
+    747   "AU FRE  "   Fremantle
+    748   "NZ TRG  "   Tauranga
+    749   "NZ WLG  "   Wellington
+    750   "JM KIN  "   Kingston
+    751   "CN CFD  "   Caofeidian Pt
+    752   "CN CGS  "   Changshu Pt
+    753   "CN DJK  "   Dongjiakou
+    754   "CN HUH  "   Huanghua Pt
+    755   "CN JIA  "   Jiangyin Pt
+    756   "CN JTG  "   Jingtang Pt
+    757   "CN SHK  "   Shekou Pt
+    758   "TW SUO  "   Suao
+    759   "JP WAK  "   Wakayama
+    760   "GR KLL  "   Kalilimenes
+    761   "CY LMS  "   Limassol
+    762   "MT MLA  "   Valletta, Malta
+    763   "ES SCT  "   Santa Cruz de Tenerife
+    764   "AE KLF  "   Khor al Fakkan
+    765   "GB FAL  "   Falmouth
+    766   "PT SET  "   Setubal
+    767   "BR ADR  "   Angra dos Reis
+    768   "BR BEL  "   Belem
+    769   "CL CNL  "   Coronel
+    770   "EC LLD  "   La Libertad
+    771   "CL LQN  "   Lirquen
+    772   "BR MAO  "   Manaus
+    773   "CL TAL  "   Talcahuano
+    774   "US UDE  "   Burnside
+    775   "US DRR  "   Darrow
+    776   "US DNA  "   Donaldsonville
+    777   "BS FPO  "   Freeport, Grand Bahama
+    778   "US GYV  "   Garyville
+    779   "US GRY  "   Gramercy
+    780   "US MXP  "   Meraux
+    781   "US MYG  "   Myrtle Grove
+    782   "US GPT  "   Gulfport
+    783   "NL TNZ  "   Terneuzen
+    784   "GR JSY  "   Syros (Syra)
+    785   "US RSF  "   Reserve
+    786   "TT POS  "   Port of Spain (Trinidad)
+    787   "TR BPS  "   Bosphorus
+    788   "BR SEP  "   Sepetiba
 !
 ! ACRONYM    FID
 ! -------    ---
@@ -22777,6 +22836,7 @@ LMT_TYPE   13583
 LMT_TYPE2  13584
 LMT_TYPE3  13599
 LMT_TYPE4  13600
+OR_LMTTYPE 13640
 !
 ! VALUE      DISPLAY   MEANING
 ! -----      -------   -------
@@ -23391,6 +23451,8 @@ CMD_TYPE   13618
    1901   "BIOFU   "   Biofuels
    1902   "CELLUBIO"   Cellulosic Biofuels
    1903   "ETHANOL "   Ethanol
+   1904   "UCO     "   Used Cooking Oil
+   1905   "UCOME   "   Used Cooking Oil Methyl Ester
    2000   "BAROM   "   Barometric Pressure
    2001   "CLOUD   "   Cloud
    2002   "CLOUDCOV"   Cloud Cover
@@ -23711,6 +23773,16 @@ PRIMACT_TP 13621
      45   "CRUSHCAP"   Crushings (Capacity Utilisation %)
      46   "SUR BLCE"   SURPLUS BALANCE
      47   "AV D DLY"   Average Days Delay
+     48   "EXP VOL "   Export Volume
+     49   "TOT NTPS"   Total Net Position
+     50   "AUC PRC "   Auction Price
+     51   "PRC UP  "   Price Up
+     52   "PRC DOWN"   Price Down
+     53   "IMB PRC "   Imbalance Price
+     54   "WN O/O  "   Wind off + on shore
+     55   "PRO FCST"   Production Forecast
+     56   "WN O/O F"   Wind off + on shore Forecast
+     57   "NET POS "   Net Position
 !
 ! ACRONYM    FID
 ! -------    ---
@@ -24108,8 +24180,20 @@ MET_TYP26  13638
 ! ACRONYM    FID
 ! -------    ---
 !
-PRE_2ET319 13640
-PRE_2ET320 13641
+ASC_RATE   13641
+!
+! VALUE      DISPLAY   MEANING
+! -----      -------   -------
+      0   "        "   undefined
+      1   "SOFR    "   Secured Overnight Financing Rate
+      2   "SONIA   "   Sterling Overnight Index Average
+      3   "ESTR    "   Euro Short-Term Rate
+      4   "SARON   "   Swiss Average Rate Overnight
+      5   "TONAR   "   Tokyo Overnight Average Rate
+!
+! ACRONYM    FID
+! -------    ---
+!
 PRE_2ET321 13642
 PRE_2ET322 13643
 PRE_2ET323 13644

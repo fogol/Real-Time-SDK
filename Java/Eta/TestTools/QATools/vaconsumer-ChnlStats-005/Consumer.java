@@ -1009,6 +1009,10 @@ public class Consumer implements ConsumerCallback, ReactorAuthTokenEventCallback
 		{
 			case ReactorChannelEventTypes.CHANNEL_UP:
 			{
+				// set ReactorChannel on ChannelInfo
+				chnlInfo.reactorChannel = event.reactorChannel();
+
+
 				if (event.reactorChannel().selectableChannel() != null)
 					System.out.println("Channel Up Event: " + event.reactorChannel().selectableChannel());
 				else

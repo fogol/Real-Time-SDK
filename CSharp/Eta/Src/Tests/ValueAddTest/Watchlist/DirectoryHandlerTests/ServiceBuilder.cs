@@ -14,7 +14,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace LSEG.Eta.ValuedAdd.Tests
+namespace LSEG.Eta.Tests.ValueAddTest.Watchlist.DirectoryHandlerTests
 {
     public class ServiceBuilder
     {
@@ -57,7 +57,7 @@ namespace LSEG.Eta.ValuedAdd.Tests
             if (rdmServiceData.HasData)
             {
                 rdmServiceData.Data.Data("data");
-                rdmServiceData.DataType = Codec.DataTypes.ASCII_STRING;
+                rdmServiceData.DataType = DataTypes.ASCII_STRING;
             }
         }
 

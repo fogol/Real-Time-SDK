@@ -453,7 +453,7 @@ namespace LSEG.Ema.Access
         public AckMsg Clone()
         {
             var copy = new AckMsg();
-            CopyTo(copy);
+            CopyMsg(copy);
             return copy;
         }
 
@@ -467,7 +467,7 @@ namespace LSEG.Ema.Access
         /// </summary>
         /// <param name="destAckMsg">object to copy <see cref="AckMsg"/> into.</param>
         public void Copy(AckMsg destAckMsg) =>
-            CopyTo(destAckMsg);
+            CopyMsg(destAckMsg);
 
         /// <inheritdoc />
         protected override void CopyAttributesTo(Msg dest)

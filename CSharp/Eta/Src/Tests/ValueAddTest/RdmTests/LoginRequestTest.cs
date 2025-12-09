@@ -21,7 +21,7 @@ using static LSEG.Eta.Rdm.Login;
 using Buffer = LSEG.Eta.Codec.Buffer;
 using System.Diagnostics;
 
-namespace LSEG.Eta.ValuedAdd.Tests
+namespace LSEG.Eta.Tests.ValueAddTest
 {
 
     /// Unit-tests for LoginRequest class.

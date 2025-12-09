@@ -10,6 +10,9 @@ using LSEG.Eta.Codec;
 using LSEG.Eta.Common;
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Linq;
+using System.Runtime.CompilerServices;
 using Buffer = LSEG.Eta.Codec.Buffer;
 
 namespace LSEG.Ema.Access
@@ -24,12 +27,14 @@ namespace LSEG.Ema.Access
         internal ConcurrentBag<EncodeIterator> m_etaEncodeIteratorPool;
         internal ConcurrentBag<Buffer> m_etaBufferPool;
         internal ConcurrentDictionary<int, ConcurrentBag<ByteBuffer>> m_etaByteBufferBySizePool;  
+        internal ObjectPoolingTracker m_objectPoolTracker;
 
         private EtaObjectGlobalPool()
         {
             m_etaEncodeIteratorPool = new ConcurrentBag<EncodeIterator>();
             m_etaBufferPool = new ConcurrentBag<Buffer>();
             m_etaByteBufferBySizePool = new ConcurrentDictionary<int, ConcurrentBag<ByteBuffer>>();
+            m_objectPoolTracker = new();
 
             InitEtaObjectPool(m_etaEncodeIteratorPool, INITIAL_POOL_SIZE);
             InitEtaObjectPool(m_etaBufferPool, INITIAL_POOL_SIZE);
@@ -47,6 +52,7 @@ namespace LSEG.Ema.Access
             {
                 result = new EncodeIterator();
             }
+            m_objectPoolTracker.OnGetFromPool(result);
             return result;
         }
 
@@ -57,6 +63,7 @@ namespace LSEG.Ema.Access
             {
                 result = new Buffer();
             }
+            m_objectPoolTracker.OnGetFromPool(result);
             return result;
         }
 
@@ -84,6 +91,7 @@ namespace LSEG.Ema.Access
                     GC.SuppressFinalize(result);
                 }
             }
+            m_objectPoolTracker.OnGetFromPool(result);
             return result;
         }
 
@@ -104,6 +112,7 @@ namespace LSEG.Ema.Access
                 var buffer = encodeIterator.Buffer();
                 encodeIterator.Clear();
                 m_etaEncodeIteratorPool.Add(encodeIterator);
+                m_objectPoolTracker.OnReturnToPool(encodeIterator);
                 ReturnBuffer(buffer);
             }
         }
@@ -112,6 +121,7 @@ namespace LSEG.Ema.Access
         {
             buffer.Clear();
             m_etaBufferPool.Add(buffer);
+            m_objectPoolTracker.OnReturnToPool(buffer);
         }
 
         public void ReturnByteBuffer(ByteBuffer? byteBuffer)
@@ -122,7 +132,8 @@ namespace LSEG.Ema.Access
             {
                 byteBuffer.Clear();
                 m_etaByteBufferBySizePool[byteBuffer.Contents.Length].Add(byteBuffer);
-            }         
+                m_objectPoolTracker.OnReturnToPool(byteBuffer);
+            }
         }
 
         #endregion
@@ -169,6 +180,54 @@ namespace LSEG.Ema.Access
         ~EtaObjectGlobalPool()
         {
             Free();
+        }
+
+        public class ObjectPoolingTracker
+        {
+            private readonly ConditionalWeakTable<object, ObjectInfo> m_Info = new();
+
+            public bool Enabled { get; set; } = false;
+
+            public void OnGetFromPool(object obj)
+            {
+                if (!Enabled) return;
+                lock (m_Info)
+                {
+                    var info = m_Info.GetOrCreateValue(obj);
+                    info.ObjectType = obj.GetType();
+                    info.InPool = false;
+                    info.RequestedFrom = Environment.StackTrace;
+                }
+            }
+
+            public void OnReturnToPool(object obj)
+            {
+                if (!Enabled) return;
+                lock (m_Info)
+                {
+                    var info = m_Info.GetOrCreateValue(obj);
+                    info.ObjectType = obj.GetType();
+                    info.InPool = true;
+                    info.RequestedFrom = "";
+                }
+            }
+
+            public IReadOnlyList<ObjectInfo> GetNonReturnedObjectInfos()
+            {
+                lock (m_Info)
+                {
+                    return m_Info.Where(_ => !_.Value.InPool).Select(_ => _.Value).ToList();
+                }
+            }
+
+            public class ObjectInfo
+            {
+                public bool InPool { get; set; }
+
+                public string? RequestedFrom { get; set; }
+
+                public Type? ObjectType { get; set; }
+            }
         }
     }
 }

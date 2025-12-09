@@ -2,7 +2,7 @@
  *|            This source code is provided under the Apache 2.0 license
  *|  and is provided AS IS with no warranty or guarantee of fit for purpose.
  *|                See the project's LICENSE.md for details.
- *|           Copyright (C) 2023-2024 LSEG. All rights reserved.
+ *|           Copyright (C) 2023-2025 LSEG. All rights reserved.
  *|-----------------------------------------------------------------------------
  */
 
@@ -13,7 +13,7 @@ using LSEG.Eta.Common;
 using Xunit;
 using Xunit.Categories;
 
-namespace CodecTestProject
+namespace LSGE.Eta.Tests.Codecs
 {
     [Category("ByteBuffer")]
     public class PrimitiveDataTest
@@ -2661,7 +2661,7 @@ namespace CodecTestProject
             Assert.Equal(CodecReturnCode.INVALID_ARGUMENT, thisState.DataState(-1));
             Assert.Equal(CodecReturnCode.INVALID_ARGUMENT, thisState.StreamState(-1));
             Assert.Equal(CodecReturnCode.INVALID_ARGUMENT, thisState.Text(null));
-            Assert.Equal(CodecReturnCode.INVALID_ARGUMENT, thisState.Code(128));
+            Assert.Equal(CodecReturnCode.INVALID_ARGUMENT, thisState.Code(256));
             Assert.Equal(CodecReturnCode.INVALID_ARGUMENT, thisState.DataState(8));
             Assert.Equal(CodecReturnCode.INVALID_ARGUMENT, thisState.StreamState(32));
             Assert.Equal(CodecReturnCode.SUCCESS, thisState.Code(StateCodes.UNABLE_TO_REQUEST_AS_BATCH));

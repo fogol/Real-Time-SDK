@@ -23,8 +23,9 @@ using System.Threading.Tasks;
 using Xunit;
 using Xunit.Categories;
 using System.Runtime.InteropServices;
+using ProtocolType = LSEG.Eta.Transports.ProtocolType;
 
-namespace LSEG.Eta.Transports.Tests
+namespace LSEG.Eta.Tests.Transports
 {
     public class SocketChannelTests : IDisposable
     {

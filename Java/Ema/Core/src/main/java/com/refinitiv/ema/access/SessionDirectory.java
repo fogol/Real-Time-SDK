@@ -39,7 +39,7 @@ class SessionDirectory<T>
 	private Map<String, HashSet<SingleItem<T>>> _itemNameMap; // This is active item map for requesting the same item name and service name to the same channel.
 	
 	// This is recovery item map to wait for the service to recover for a channel. This map is used for normal channel only.
-	private Map<SessionChannelInfo<T>, LinkedHashMap<String, HashSet<SingleItem<T>>>> _recoveringItemMapBySessionChannel; 
+	private Map<BaseSessionChannelInfo<T>, LinkedHashMap<String, HashSet<SingleItem<T>>>> _recoveringItemMapBySessionChannel; 
 	private ArrayDeque<SingleItem<T>> _pendingItemQueue; // This is used to recover items when the concrete service is available.
 	private ConsumerSession<T> _consumerSession;
 	private WatchlistResult _watchlistResult;
@@ -55,7 +55,7 @@ class SessionDirectory<T>
 		
 		_itemNameMap = new LinkedHashMap<String, HashSet<SingleItem<T>>>();
 		
-		_recoveringItemMapBySessionChannel = new HashMap<SessionChannelInfo<T>,LinkedHashMap<String, HashSet<SingleItem<T>>>>();
+		_recoveringItemMapBySessionChannel = new HashMap<BaseSessionChannelInfo<T>,LinkedHashMap<String, HashSet<SingleItem<T>>>>();
 		
 		_pendingItemQueue = new ArrayDeque<SingleItem<T>>();
 		
@@ -362,7 +362,7 @@ class SessionDirectory<T>
 		
 		if(!itemRemoved)
 		{
-			SessionChannelInfo<T> sessionChannelInfo = (SessionChannelInfo<T>) singleItem.directory().channelInfo().sessionChannelInfo();
+			BaseSessionChannelInfo<T> sessionChannelInfo = (BaseSessionChannelInfo<T>) singleItem.directory().channelInfo().sessionChannelInfo();
 			
 			LinkedHashMap<String, HashSet<SingleItem<T>>> recoveringItemMap = _recoveringItemMapBySessionChannel.get(sessionChannelInfo);
 			
@@ -392,7 +392,7 @@ class SessionDirectory<T>
 		_pendingItemQueue.addLast(singleItem);
 	}
 
-	public void handlePendingRequests(SessionChannelInfo<T> sessionChannelInfo, Service service) {
+	public void handlePendingRequests(BaseSessionChannelInfo<T> sessionChannelInfo, Service service) {
 		
 		int count = _pendingItemQueue.size();
 		SingleItem<T> singleItem = _pendingItemQueue.poll();
@@ -444,7 +444,7 @@ class SessionDirectory<T>
 		
 		if(hashSet != null)
 		{
-			SessionChannelInfo<T> sessionChannelInfo = (SessionChannelInfo<T>) singleItem.directory().channelInfo().sessionChannelInfo();
+			BaseSessionChannelInfo<T> sessionChannelInfo = (BaseSessionChannelInfo<T>) singleItem.directory().channelInfo().sessionChannelInfo();
 			
 			LinkedHashMap<String, HashSet<SingleItem<T>>> recoveringItemMap = _recoveringItemMapBySessionChannel.get(sessionChannelInfo);
 			
@@ -472,7 +472,7 @@ class SessionDirectory<T>
 		}		
 	}
 	
-	public void HandleRecoveringRequests(SessionChannelInfo<T> sessionChannelInfo, boolean sameChannel)
+	public void HandleRecoveringRequests(BaseSessionChannelInfo<T> sessionChannelInfo, boolean sameChannel)
 	{
 		Map<String, HashSet<SingleItem<T>>> recoveringItemMap = _recoveringItemMapBySessionChannel.get(sessionChannelInfo);
 		
@@ -562,7 +562,7 @@ class SessionDirectory<T>
 		}
 	}
 	
-	public void HandleSessionChannelClose(SessionChannelInfo<T> sessionChannelInfo)
+	public void HandleSessionChannelClose(BaseSessionChannelInfo<T> sessionChannelInfo)
 	{
 		Map<String, HashSet<SingleItem<T>>> recoveringItemMap = _recoveringItemMapBySessionChannel.get(sessionChannelInfo);
 		

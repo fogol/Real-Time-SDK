@@ -2,9 +2,11 @@
  *|            This source code is provided under the Apache 2.0 license
  *|  and is provided AS IS with no warranty or guarantee of fit for purpose.
  *|                See the project's LICENSE.md for details.
- *|          Copyright (C) 2025 LSEG. All rights reserved.               --
+ *|          Copyright (C) 2025 LSEG. All rights reserved.
  *|-----------------------------------------------------------------------------
  */
+
+#pragma once
 
 #include "TestUtilities.h"
 #include "ActiveConfig.h"
@@ -21,18 +23,6 @@
 using namespace refinitiv::ema::domain::login;
 using namespace refinitiv::ema::access;
 using namespace refinitiv::ema::domain::login;
-
-static void testSleep(int millisecs)
-{
-#if defined WIN32
-	::Sleep((DWORD)(millisecs));
-#else
-	struct timespec sleeptime;
-	sleeptime.tv_sec = millisecs / 1000;
-	sleeptime.tv_nsec = (millisecs % 1000) * 1000000;
-	nanosleep(&sleeptime, 0);
-#endif
-}
 
 // Test option classes:
 // All bool options: true means it's on, false means it's off
@@ -115,6 +105,7 @@ public:
 private:
 	friend class IProviderTestClientBase;
 	friend class ConsumerTestClientBase;
+	friend class NiProviderTestClientBase;
 
 	EmaVector<Msg*> _messageQueue;					// The Queues are used to pull off data.  The lists are used for cleanup.
 	EmaVector<Msg*> _messageList;
@@ -198,6 +189,190 @@ public:
 
 	void unregisterHandles();
 
+};
+
+class NiProviderTestClientBase : public refinitiv::ema::access::OmmProviderClient, public EmaTestClientBase
+{
+public:
+	OmmProvider* ommProvider;
+	ProviderTestOptions options;
+
+	EmaString loginUserName;
+
+	NiProviderTestClientBase( ProviderTestOptions& );
+
+	~NiProviderTestClientBase() = default;
+
+	void onRefreshMsg(const RefreshMsg& refreshMsg, const OmmProviderEvent& event);
+
+	void onStatusMsg(const StatusMsg& statusMsg, const OmmProviderEvent& event);
+
+	void onGenericMsg(const GenericMsg& genericMsg, const OmmProviderEvent& event);
+
+	void onAllMsg(const Msg& msg, const OmmProviderEvent& event);
+
+	void onClose(const ReqMsg& reqMsg, const OmmProviderEvent& event);
+};
+
+// Test client for OAuth2 credential renewal interface
+class OAuthClientTest : public refinitiv::ema::access::OmmOAuth2ConsumerClient
+{
+protected:
+
+	void onCredentialRenewal( const refinitiv::ema::access::OmmConsumerEvent& consumerEvent ) override;
+};
+
+const unsigned BaseStartPort = 14120U;
+
+class ConsumerProgrammaticTestConfig
+{
+public:
+	UInt64							loginRequestTimeOut;
+	UInt64							channelInitializationTimeout;
+	unsigned						numChannels;
+	unsigned						startPortNum;
+	OmmLoggerClient::Severity		loggerSeverity;
+
+	ConsumerProgrammaticTestConfig() :
+		loginRequestTimeOut(45000),
+		channelInitializationTimeout(5),
+		numChannels(1),
+		startPortNum(BaseStartPort),
+		loggerSeverity(OmmLoggerClient::ErrorEnum)
+	{
+	}
+
+	void createProgrammaticConfig( Map& configMap );
+};  // class ConsumerProgrammaticTestConfig
+
+class IProviderProgrammaticTestConfig
+{
+public:
+	unsigned						numProviders;		// Specify number of providers to configure
+	unsigned						startPortNum;		// Starting port number; each provider will get its own port number
+	OmmLoggerClient::Severity		loggerSeverity;		// Logger severity level
+
+	IProviderProgrammaticTestConfig() :
+		numProviders(1),
+		startPortNum(BaseStartPort),
+		loggerSeverity(OmmLoggerClient::ErrorEnum)
+	{
+	}
+
+	void createProgrammaticConfig( Map& configMap );
+};  // class IProviderProgrammaticTestConfig
+
+class NiProviderProgrammaticTestConfig
+{
+public:
+	UInt64							loginRequestTimeOut;
+	UInt64							channelInitializationTimeout;
+	unsigned						numChannels;
+	unsigned						startPortNum;		// Starting port number: connects to this port number
+	OmmLoggerClient::Severity		loggerSeverity;		// Logger severity level
+	bool							enableCompression;
+
+	NiProviderProgrammaticTestConfig() :
+		loginRequestTimeOut(45000),
+		channelInitializationTimeout(5),
+		numChannels(1),
+		startPortNum(BaseStartPort),
+		loggerSeverity(OmmLoggerClient::ErrorEnum),
+		enableCompression(false)
+	{
+	}
+
+	void createProgrammaticConfig( Map& configMap );
+};  // class NiProviderProgrammaticTestConfig
+
+class ProviderTestComponents {
+public:
+	ProviderTestOptions provTestOptions;
+	IProviderTestClientBase* pProvClient;
+
+	OmmIProviderConfig* pProvConfig;
+
+	OmmProvider* pProvider;
+
+	ProviderTestComponents() :
+		pProvClient(nullptr),
+		pProvConfig(nullptr),
+		pProvider(nullptr)
+	{
+	}
+
+	ProviderTestComponents(ProviderTestComponents* pComponents) :
+		pProvClient(pComponents->pProvClient),
+		pProvConfig(pComponents->pProvConfig),
+		pProvider(pComponents->pProvider)
+	{
+	}
+
+	ProviderTestComponents(ProviderTestComponents& components) :
+		pProvClient(components.pProvClient),
+		pProvConfig(components.pProvConfig),
+		pProvider(components.pProvider)
+	{
+	}
+
+	~ProviderTestComponents() {
+		//cout << "ProviderTestComponents::~ProviderTestComponents()" << endl;
+		if (pProvider != nullptr)
+		{
+			delete pProvider;
+			pProvider = nullptr;
+		}
+		if (pProvConfig != nullptr)
+		{
+			delete pProvConfig;
+			pProvConfig = nullptr;
+		}
+		if (pProvClient != nullptr)
+		{
+			delete pProvClient;
+			pProvClient = nullptr;
+		}
+	}
+
+	OmmProvider* createProvider(const Data& configIProvMap, const char* providerName)
+	{
+		pProvClient = new IProviderTestClientBase(provTestOptions);
+
+		pProvConfig = new OmmIProviderConfig("EmaConfigTest.xml");
+		pProvConfig->config(configIProvMap);
+		pProvConfig->providerName(providerName);
+
+		/* Create IProvider instance */
+		pProvider = new OmmProvider(*pProvConfig, *pProvClient);
+		return pProvider;
+	}
+};  // class ProviderTestComponents
+
+class IProviderTestClientForGeneric : public IProviderTestClientBase
+{
+public:
+	UInt64 genericItemHandle;
+
+	IProviderTestClientForGeneric(ProviderTestOptions& providertTestOpts) :
+		IProviderTestClientBase(providertTestOpts),
+		genericItemHandle(0)
+	{
+	}
+
+	virtual ~IProviderTestClientForGeneric()
+	{
+	}
+
+	void onGenericMsg(const GenericMsg& genericMsg, const OmmProviderEvent& event)
+	{
+		IProviderTestClientBase::onGenericMsg(genericMsg, event);
+		genericItemHandle = event.getHandle();
+	}
+
+	UInt64 getGenericItemHandle()
+	{
+		return genericItemHandle;
+	}
 };
 
 #endif // __EmaTestClients_h_

@@ -8,7 +8,7 @@
 
 using System;
 
-namespace LSEG.Eta.ValuedAdd.Tests
+namespace LSEG.Eta.Tests.ValueAddTest
 {
     public class TypedMessageUtil
     {

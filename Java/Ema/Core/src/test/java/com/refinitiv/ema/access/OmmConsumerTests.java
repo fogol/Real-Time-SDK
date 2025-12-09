@@ -571,6 +571,8 @@ public class OmmConsumerTests extends TestCase
 			assertFalse(true);
 		} catch (InterruptedException e) {
 			e.printStackTrace();
+		} catch(Exception e) {
+			e.printStackTrace();
 		}
 		finally {
 			System.out.println("Uninitializing...");

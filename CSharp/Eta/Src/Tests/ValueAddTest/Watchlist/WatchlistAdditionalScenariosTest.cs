@@ -16,8 +16,9 @@ using LSEG.Eta.Rdm;
 using LSEG.Eta.ValueAdd.Rdm;
 using Buffer = LSEG.Eta.Codec.Buffer;
 using LSEG.Eta.Common;
+using LSEG.Eta.Tests.ValueAddTest.Watchlist.DirectoryHandlerTests;
 
-namespace LSEG.Eta.ValuedAdd.Tests
+namespace LSEG.Eta.Tests.ValueAddTest.Watchlist
 {
     public class WatchlistAdditionalScenariosTest
     {
@@ -164,8 +165,8 @@ namespace LSEG.Eta.ValuedAdd.Tests
 
             Assert.True(consumer.GetChannelInfo(conChannelInfo) == ReactorReturnCode.SUCCESS);
 
-            int msgSize = (conChannelInfo.ChannelInfo.MaxFragmentSize *
-                conChannelInfo.ChannelInfo.MaxOutputBuffers) * 8;
+            int msgSize = conChannelInfo.ChannelInfo.MaxFragmentSize *
+                conChannelInfo.ChannelInfo.MaxOutputBuffers * 8;
 
             ByteBuffer postByteBuffer = new(msgSize);
             Buffer dataBuffer = new();
@@ -347,8 +348,8 @@ namespace LSEG.Eta.ValuedAdd.Tests
 
             Assert.True(consumer.GetChannelInfo(conChannelInfo) == ReactorReturnCode.SUCCESS);
 
-            int msgSize = (conChannelInfo.ChannelInfo.MaxFragmentSize *
-                conChannelInfo.ChannelInfo.MaxOutputBuffers) * 8;
+            int msgSize = conChannelInfo.ChannelInfo.MaxFragmentSize *
+                conChannelInfo.ChannelInfo.MaxOutputBuffers * 8;
 
             ByteBuffer postByteBuffer = new(msgSize);
             Buffer dataBuffer = new();
@@ -1652,7 +1653,7 @@ namespace LSEG.Eta.ValuedAdd.Tests
             submitOptions.Clear();
             submitOptions.ServiceName = Provider.DefaultService.Info.ServiceName.ToString();
             submitOptions.RequestMsgOptions.UserSpecObj = "77775555";
-            Assert.True(consumer.Submit((MsgBase)directoryRequest, submitOptions) >= ReactorReturnCode.SUCCESS);
+            Assert.True(consumer.Submit(directoryRequest, submitOptions) >= ReactorReturnCode.SUCCESS);
 
             /* Consumer receives directory refresh. */
             consumerReactor.Dispatch(1);
@@ -1676,7 +1677,7 @@ namespace LSEG.Eta.ValuedAdd.Tests
             submitOptions.Clear();
             submitOptions.ServiceName = Provider.DefaultService.Info.ServiceName.ToString();
             submitOptions.RequestMsgOptions.UserSpecObj = "77776666";
-            Assert.True(consumer.Submit((MsgBase)directoryRequest, submitOptions) >= ReactorReturnCode.SUCCESS);
+            Assert.True(consumer.Submit(directoryRequest, submitOptions) >= ReactorReturnCode.SUCCESS);
 
             /* Consumer receives second directory refresh. */
             consumerReactor.Dispatch(1);
@@ -3128,7 +3129,7 @@ namespace LSEG.Eta.ValuedAdd.Tests
             ReactorSubmitOptions submitOptions = new ReactorSubmitOptions();
             TestReactorEvent evt;
             ReactorMsgEvent msgEvent;
-            IRequestMsg requestMsg = (IRequestMsg)new Msg();
+            IRequestMsg requestMsg = new Msg();
             IRequestMsg receivedRequestMsg;
             int providerStreamId;
             int providerPrivateStreamId;

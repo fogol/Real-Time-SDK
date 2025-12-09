@@ -15,7 +15,7 @@ using Xunit;
 using static LSEG.Eta.Rdm.Dictionary;
 using Buffer = LSEG.Eta.Codec.Buffer;
 
-namespace LSEG.Eta.ValuedAdd.Tests
+namespace LSEG.Eta.Tests.ValueAddTest
 {
     public class DictionaryTest
     {

@@ -172,19 +172,14 @@
 			<XmlTraceToStdout value="0"/>
 		</NiProvider>
 		<NiProvider>
-			<Name value="Provider_2"/>
-			<Channel value="Channel_6"/>
-			<Directory value="Directory_2"/>
+			<Name value="Provider_4"/>
+			<Channel value="Channel_7"/>
+			<Directory value="Directory_1"/>
 			<XmlTraceToStdout value="0"/>
 		</NiProvider>
 		<NiProvider>
-			<Name value="Provider_3"/>
-			<Channel value="Channel_6"/>
-			<Directory value="Directory_3"/>
-		</NiProvider>
-		<NiProvider>
-			<Name value="Provider_4"/>
-			<Channel value="Channel_7"/>
+			<Name value="Provider_Session"/>
+			<SessionChannelSet value="NiProv_Connection_1, NiProv_Connection_2"/>
 			<Directory value="Directory_1"/>
 			<XmlTraceToStdout value="0"/>
 		</NiProvider>
@@ -496,6 +491,20 @@
                 </SessionChannelInfo>
                 <SessionChannelInfo>
                         <Name value="Connection_2"/>
+                        <ChannelSet value="Channel_10,Channel_11"/>
+                        <ReconnectAttemptLimit value="4"/>
+                        <ReconnectMinDelay value="3000"/>
+                        <ReconnectMaxDelay value="4000"/>
+                </SessionChannelInfo>
+				 <SessionChannelInfo>
+                        <Name value="NiProv_Connection_1"/>
+                        <ChannelSet value="Channel_7"/>
+                        <ReconnectAttemptLimit value="10"/>
+                        <ReconnectMinDelay value="2000"/>
+                        <ReconnectMaxDelay value="6000"/>
+                </SessionChannelInfo>
+                <SessionChannelInfo>
+                        <Name value="NiProv_Connection_2"/>
                         <ChannelSet value="Channel_10,Channel_11"/>
                         <ReconnectAttemptLimit value="4"/>
                         <ReconnectMinDelay value="3000"/>

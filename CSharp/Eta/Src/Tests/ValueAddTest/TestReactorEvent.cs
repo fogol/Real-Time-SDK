@@ -2,7 +2,7 @@
  *|            This source code is provided under the Apache 2.0 license
  *|  and is provided AS IS with no warranty or guarantee of fit for purpose.
  *|                See the project's LICENSE.md for details.
- *|           Copyright (C) 2023-2024 LSEG. All rights reserved.
+ *|           Copyright (C) 2023-2025 LSEG. All rights reserved.
  *|-----------------------------------------------------------------------------
  */
 
@@ -11,7 +11,7 @@ using LSEG.Eta.Common;
 using LSEG.Eta.ValueAdd.Rdm;
 using LSEG.Eta.ValueAdd.Reactor;
 
-namespace LSEG.Eta.ValuedAdd.Tests;
+namespace LSEG.Eta.Tests.ValueAddTest;
 
 
 /// <summary>
@@ -140,7 +140,7 @@ public class TestReactorEvent
                 }
 
             default:
-                throw new Xunit.Sdk.XunitException("Unknown ComponentEvent type.");
+                throw new global::Xunit.Sdk.XunitException("Unknown ComponentEvent type.");
 
         }
 

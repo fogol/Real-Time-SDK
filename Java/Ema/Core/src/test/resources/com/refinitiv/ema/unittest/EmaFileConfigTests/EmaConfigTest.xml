@@ -222,15 +222,39 @@
 			<Channel value="Channel_4"/>
 			
 			<Directory value="Directory_2"/>
+
+			<ItemCountHint value="500000"/>
+			<ServiceCountHint value="655"/>
+			<LoginRequestTimeOut value="10000"/>
+			<RequestTimeout value="8000"/>
+			<DispatchTimeoutApiThread value="90"/>
+			<MaxDispatchCountApiThread value="400"/>
+			<MaxDispatchCountUserThread value="5"/>
 			
-			<XmlTraceToStdout value="0"/>
-			<XmlTraceToFile value="0"/>
+			<CatchUnknownJsonFids value="1"/>
+			<CatchUnknownJsonKeys value="0"/>
+			<CloseChannelFromConverterFailure value="0"/>
+			<DefaultServiceID value="100"/>
+			<JsonExpandedEnumFields value="1"/>
+			<SendJsonConvError value="1"/>
+			
+			<MergeSourceDirectoryStreams value="0"/>
+			<RecoverUserSubmitSourceDirectory value="0"/>
+			<RefreshFirstRequired value="0"/>
+			<RemoveItemsOnDisconnect value="0"/>
+
+			<ReconnectAttemptLimit value="10"/>
+			<ReconnectMinDelay value="123" />
+			<ReconnectMaxDelay value="456" />
+			<XmlTraceToStdout value="0" />
+			<XmlTraceToFile value="0" />
 			<XmlTraceMaxFileSize value="40000"/>
 			<XmlTraceFileName value="log_test_server"/>
 			<XmlTraceToMultipleFiles value="0"/>
 			<XmlTraceWrite value="0"/>
 			<XmlTraceRead value="0"/>
 			<XmlTracePing value="0"/>
+			<MsgKeyInUpdates value="1"/>
 		</NiProvider>
 		
 		<NiProvider>
@@ -238,7 +262,27 @@
 
 			<!-- channel is optional: defaulted to "RSSL_SOCKET + localhost + 14002" -->
 			<ChannelSet value="Channel_2, Channel_3"/>
-			<Channel	value="Channel_1"/>
+			<Directory value="Directory_2"/>
+			
+			<ReconnectAttemptLimit value="5"/>
+			<ReconnectMinDelay value="330" />
+			<ReconnectMaxDelay value="450" />
+			<!-- XmlTraceFileName value="EmaMyTrace3"/ -->
+			<XmlTraceMaxFileSize value="66666666" />
+			<XmlTraceToStdout value="0" />
+			<XmlTraceToFile value="0" />
+			<XmlTraceFileName value="log_test_server"/>
+			<XmlTraceToMultipleFiles value="1" />
+			<XmlTraceWrite value="1"/>
+			<XmlTraceRead value="1"/>
+			<XmlTracePing value="1"/>
+			<XmlTraceHex value="1"/>
+		</NiProvider>
+		
+		<NiProvider>
+			<Name value="Provider_Session"/>
+
+			<SessionChannelSet value="Connection_1, Connection_2"/>
 
 			<Directory value="Directory_2"/>
 			

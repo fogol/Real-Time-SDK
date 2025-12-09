@@ -16,7 +16,6 @@ using Xunit.Categories;
 
 using LSEG.Eta.Internal;
 using LSEG.Eta.Internal.Interfaces;
-using LSEG.Eta.Tests;
 using System.Text;
 using LSEG.Eta.Transports.Internal;
 using LSEG.Eta.Common;
@@ -26,8 +25,10 @@ using System.Net.Security;
 using System.Runtime.InteropServices;
 using System.Diagnostics;
 using System.Text.RegularExpressions;
+using LSEG.Eta.Transports;
+using ProtocolType = LSEG.Eta.Transports.ProtocolType;
 
-namespace LSEG.Eta.Transports.Tests
+namespace LSEG.Eta.Tests.Transports
 {
     #region Transport Initialization
     /// <summary>

@@ -19,7 +19,7 @@ using LSEG.Eta.Common;
 using System.Threading;
 using AspectInjector.Broker;
 
-namespace LSEG.Eta.ValuedAdd.Tests;
+namespace LSEG.Eta.Tests.ValueAddTest;
 
 [Collection("ValueAdded")]
 public class MultithreadingTests

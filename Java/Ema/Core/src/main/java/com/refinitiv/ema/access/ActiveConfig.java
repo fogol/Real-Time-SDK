@@ -147,7 +147,8 @@ abstract class ActiveConfig extends BaseConfig
 	int						warmStandbyGroupListIndex;
 	List<ChannelConfig>		configChannelSetForWSB;
 	List<WarmStandbyChannelConfig> configWarmStandbySet;
-	List<SessionChannelConfig> configSessionChannelSet;
+	List<ConsumerSessionChannelConfig> configSessionChannelSet;
+	List<NiProviderSessionChannelConfig> niProvConfigSessionChannelSet;
 	String					restProxyHostName;
 	String					restProxyPort;
 	boolean					sessionEnhancedItemRecovery;
@@ -187,6 +188,7 @@ abstract class ActiveConfig extends BaseConfig
 		 configChannelSetForWSB = new ArrayList<>();
 		 configWarmStandbySet = new ArrayList<>();
 		 configSessionChannelSet = new ArrayList<>();
+		 niProvConfigSessionChannelSet = new ArrayList<>();
 		 sessionEnhancedItemRecovery = DEFAULT_SESSION_ENHANCED_ITEM_RECOVERY;
 		 updateTypeFilter = DEFAULT_UPDATE_TYPE_FILTER;
 		 negativeUpdateTypeFilter = DEFAULT_NEGATIVE_UPDATE_TYPE_FILTER;
@@ -361,6 +363,12 @@ abstract class ActiveConfig extends BaseConfig
 	{
 		configSessionChannelSet.clear();
 	}
+	
+	void clearNiProvSessionChannelSet()
+	{
+		niProvConfigSessionChannelSet.clear();
+	}
+
 
 	public static boolean findChannelConfig(List<ChannelConfig> configChannelSetForWSB, String queryName, int pos)
 	{

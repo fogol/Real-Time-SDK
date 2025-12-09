@@ -33,7 +33,7 @@ External modules used by this version of RTSDK Java:
     httpclient5               5.5.1
     httpclient5-cache         5.5.1
     httpcore5                 5.3.6
-    lz4-java                  1.8.0
+    lz4-java                  1.10.1
     mchange-commons-java      0.2.15
     slf4j-api                 2.0.17
     slf4j-jdk14               2.0.17

@@ -17,8 +17,10 @@ using Xunit;
 using Xunit.Categories;
 
 using LSEG.Eta.Common;
+using LSEG.Eta.Transports;
+using ProtocolType = LSEG.Eta.Transports.ProtocolType;
 
-namespace LSEG.Eta.Transports.Tests;
+namespace LSEG.Eta.Tests.Transports;
 
 [Category("TransportLock")]
 public class TransportLockTests : IDisposable

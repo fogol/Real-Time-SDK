@@ -2,7 +2,7 @@
  *|            This source code is provided under the Apache 2.0 license
  *|  and is provided AS IS with no warranty or guarantee of fit for purpose.
  *|                See the project's LICENSE.md for details.
- *|           Copyright (C) 2020-2024 LSEG. All rights reserved.
+ *|           Copyright (C) 2020-2025 LSEG. All rights reserved.
  *|-----------------------------------------------------------------------------
  */
 
@@ -1720,11 +1720,13 @@ class NiProviderDictionaryItem<T> extends SingleItem<T> implements ProviderItem
 	protected boolean 			_specifiedServiceInReq;
 	private TimeoutEvent		_reqTimeoutEvent;
 	private boolean				_receivedInitResp;
-	
+	protected NiProviderSessionChannelInfo<T> _sessionChannelInfo;
+		
 	NiProviderDictionaryItem(OmmBaseImpl<T> baseImpl, T client, Object closure)
 	{
 		super(baseImpl, client, closure, null);
 		_itemWatchList = ((OmmNiProviderImpl)baseImpl).itemWatchList();
+		_sessionChannelInfo = null;
 	}
 	
 	@Override
@@ -1733,6 +1735,7 @@ class NiProviderDictionaryItem<T> extends SingleItem<T> implements ProviderItem
 		super.reset(baseImpl, client, closure, null);
 		
 		_itemWatchList = ((OmmNiProviderImpl)baseImpl).itemWatchList();
+		_sessionChannelInfo = null;
 	}
 
 	@Override
@@ -1801,7 +1804,37 @@ class NiProviderDictionaryItem<T> extends SingleItem<T> implements ProviderItem
 			
 		_itemWatchList.addItem(this);
 		
+		
 		reqMsgImpl.rsslMsg().msgKey().copy(_rsslMsgKey);
+		
+		if(_baseImpl.niProviderSession() != null)
+		{
+			_sessionChannelInfo = null;
+			// Iterate through the session, find the first login that supports provider dictionary downloads
+			for(int index = 0; index < _baseImpl.niProviderSession().sessionChannelList().size(); ++index)
+			{
+				NiProviderSessionChannelInfo<T> sessionChannel = (NiProviderSessionChannelInfo<T>)_baseImpl.niProviderSession().sessionChannelList().get(index);
+				if(sessionChannel.reactorChannel().state() == ReactorChannel.State.READY && sessionChannel.loginRefresh().features().checkHasSupportProviderDictionaryDownload() && sessionChannel.loginRefresh().features().supportProviderDictionaryDownload() == 1)
+				{
+					_sessionChannelInfo = sessionChannel;
+					break;
+				}
+			}
+			
+			if(_sessionChannelInfo == null)
+			{
+				StringBuilder temp = _baseImpl.strBuilder();
+				temp.append("No active connection supports Provider Dictionary Download");
+
+				if (_baseImpl.loggerClient().isErrorEnabled())
+					_baseImpl.loggerClient()
+							.error(_baseImpl.formatLogMessage(NiProviderDictionaryItem.CLIENT_NAME, temp.toString(), Severity.ERROR));
+
+				_baseImpl.handleInvalidUsage(temp.toString(), OmmInvalidUsageException.ErrorCode.INVALID_OPERATION);
+				
+				return false;
+			}
+		}
 		
 		return rsslSubmit(((ReqMsgImpl)reqMsg).rsslMsg(), true);
 	}
@@ -1939,7 +1972,7 @@ class NiProviderDictionaryItem<T> extends SingleItem<T> implements ProviderItem
 		rsslErrorInfo.clear();
 		
 		ChannelInfo activeChannel = _baseImpl.loginCallbackClient().activeChannelInfo();
-		ReactorChannel rsslChannel = (activeChannel != null) ? activeChannel.rsslReactorChannel() : null;
+		ReactorChannel rsslChannel = (activeChannel != null) ? activeChannel.rsslReactorChannel() : ((_sessionChannelInfo != null) ? _sessionChannelInfo.reactorChannel() : null);
 
 		if (rsslChannel == null)
 		{
@@ -1963,7 +1996,7 @@ class NiProviderDictionaryItem<T> extends SingleItem<T> implements ProviderItem
 		}
 
 		int ret;
-
+		
 		if (ReactorReturnCodes.SUCCESS > (ret = rsslChannel.submit(rsslRequestMsg, rsslSubmitOptions, rsslErrorInfo)))
 	    {
 			StringBuilder temp = _baseImpl.strBuilder();
@@ -2001,6 +2034,87 @@ class NiProviderDictionaryItem<T> extends SingleItem<T> implements ProviderItem
 			_reqTimeoutEvent = _baseImpl.addTimeoutEvent(requestTimeout * 1000, new ItemTimeOut( this ) );
 		}
 
+		return true;
+	}
+	
+	@Override
+	boolean rsslSubmit(com.refinitiv.eta.codec.CloseMsg rsslCloseMsg)
+	{	
+		ReactorSubmitOptions rsslSubmitOptions = _baseImpl.rsslSubmitOptions();
+		rsslSubmitOptions.serviceName(null);
+
+		rsslSubmitOptions.requestMsgOptions().userSpecObj(this);
+	
+		if (_streamId == 0)
+		{
+			if (_baseImpl.loggerClient().isErrorEnabled())
+	        	_baseImpl.loggerClient().error(_baseImpl.formatLogMessage(NiProviderDictionaryItem.CLIENT_NAME,
+	        									"Invalid streamId for this item in in SingleItem.submit(CloseMsg)",
+	        									Severity.ERROR));
+		}
+		else
+			rsslCloseMsg.streamId(_streamId);
+	
+		ReactorErrorInfo rsslErrorInfo = _baseImpl.rsslErrorInfo();
+		rsslErrorInfo.clear();
+		ChannelInfo activeChannel = _baseImpl.loginCallbackClient().activeChannelInfo();
+		ReactorChannel rsslChannel = (activeChannel != null) ? activeChannel.rsslReactorChannel() : ((_sessionChannelInfo != null) ? _sessionChannelInfo.reactorChannel() : null);
+		
+		if (rsslChannel == null)
+		{
+			StringBuilder message = _baseImpl.strBuilder();
+
+			if (_baseImpl.loggerClient().isErrorEnabled())
+			{
+				message.append("Internal error: rsslChannel.Submit() failed in SingleItem.submit(CloseMsg)").append(OmmLoggerClient.CR)
+					.append("\tReactorChannel is not available");
+
+				_baseImpl.loggerClient().error(_baseImpl.formatLogMessage(CLIENT_NAME, message.toString(), Severity.ERROR));
+
+				message.setLength(0);
+			}
+
+			message.append("Failed to close item request. Reason: ReactorChannel is not available");
+
+			_baseImpl.handleInvalidUsage(message.toString(), ReactorReturnCodes.FAILURE);
+
+			return false;
+		}
+
+		int ret;
+			
+		if (ReactorReturnCodes.SUCCESS > (ret = rsslChannel.submit(rsslCloseMsg, rsslSubmitOptions, rsslErrorInfo)))
+	    {
+			StringBuilder temp = _baseImpl.strBuilder();
+			
+			if (_baseImpl.loggerClient().isErrorEnabled())
+	    	{
+				com.refinitiv.eta.transport.Error error = rsslErrorInfo.error();
+				
+	        	temp.append("Internal error: ReactorChannel.submit() failed in SingleItem.submit(CloseMsg)")
+	        	.append("RsslChannel ").append(Integer.toHexString(error.channel() != null ? error.channel().hashCode() : 0)) 
+	    			.append(OmmLoggerClient.CR)
+	    			.append("Error Id ").append(error.errorId()).append(OmmLoggerClient.CR)
+	    			.append("Internal sysError ").append(error.sysError()).append(OmmLoggerClient.CR)
+	    			.append("Error Location ").append(rsslErrorInfo.location()).append(OmmLoggerClient.CR)
+	    			.append("Error Text ").append(error.text());
+	        	
+	        	_baseImpl.loggerClient().error(_baseImpl.formatLogMessage(NiProviderDictionaryItem.CLIENT_NAME, temp.toString(), Severity.ERROR));
+	        	
+	        	temp.setLength(0);
+	    	}
+			
+			temp.append("Failed to close item request. Reason: ")
+				.append(ReactorReturnCodes.toString(ret))
+				.append(". Error text: ")
+				.append(rsslErrorInfo.error().text());
+				
+
+			_baseImpl.handleInvalidUsage(temp.toString(), ret);
+	
+			return false;
+	    }
+	
 		return true;
 	}
 	
@@ -2111,6 +2225,16 @@ class NiProviderDictionaryItem<T> extends SingleItem<T> implements ProviderItem
 	public ReentrantLock userLock()
 	{
 		return _baseImpl.userLock();
+	}
+	
+	public void niProviderSessionChannelInfo(NiProviderSessionChannelInfo<T> sessionChannel)
+	{
+		_sessionChannelInfo = sessionChannel;
+	}
+	
+	public NiProviderSessionChannelInfo<T> niProviderSessionChannelInfo()
+	{
+		return _sessionChannelInfo;
 	}
 }
 

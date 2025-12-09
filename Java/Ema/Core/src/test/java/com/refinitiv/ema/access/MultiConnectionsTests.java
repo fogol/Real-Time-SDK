@@ -1,3 +1,11 @@
+/*|-----------------------------------------------------------------------------
+ *|            This source code is provided under the Apache 2.0 license
+ *|  and is provided AS IS with no warranty or guarantee of fit for purpose.
+ *|                See the project's LICENSE.md for details.
+ *|           Copyright (C) 2025 LSEG. All rights reserved.
+ *|-----------------------------------------------------------------------------
+ */
+
 package com.refinitiv.ema.access;
 
 import com.refinitiv.ema.JUnitConfigVariables;
@@ -21,9 +29,11 @@ import org.junit.Test;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicReference;
@@ -671,6 +681,13 @@ public class MultiConnectionsTests {
             assertEquals(2, channelUpStatus);
 
             assertNotNull(consumer);
+            
+            List<ChannelInformation> chnlInfo = new ArrayList<ChannelInformation>();
+        	
+			// Check to see if all the channels are connected
+			consumer.sessionChannelInfo(chnlInfo);
+			
+			assertEquals(1, chnlInfo.size());
         }
         catch (OmmException ex)
         {

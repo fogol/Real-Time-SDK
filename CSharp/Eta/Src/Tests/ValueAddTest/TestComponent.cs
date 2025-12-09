@@ -15,7 +15,7 @@ using LSEG.Eta.Codec;
 using LSEG.Eta.ValueAdd.Rdm;
 using LSEG.Eta.ValueAdd.Reactor;
 
-namespace LSEG.Eta.ValuedAdd.Tests
+namespace LSEG.Eta.Tests.ValueAddTest
 {
     internal class TestComponent : IReactorChannelEventCallback, IDictionaryMsgCallback, IDirectoryMsgCallback, IDefaultMsgCallback, IRDMLoginMsgCallback
     {

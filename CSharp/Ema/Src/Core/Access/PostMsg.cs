@@ -1,8 +1,8 @@
-﻿/*|-----------------------------------------------------------------------------
+/*|-----------------------------------------------------------------------------
  *|            This source code is provided under the Apache 2.0 license
  *|  and is provided AS IS with no warranty or guarantee of fit for purpose.
  *|                See the project's LICENSE.md for details.
- *|           Copyright (C) 2023, 2024 LSEG. All rights reserved.     
+ *|           Copyright (C) 2023-2025 LSEG. All rights reserved.
  *|-----------------------------------------------------------------------------
  */
 
@@ -473,7 +473,7 @@ namespace LSEG.Ema.Access
         public PostMsg Clone()
         {
             var copy = new PostMsg();
-            CopyTo(copy);
+            CopyMsg(copy);
             return copy;
         }
 
@@ -487,7 +487,7 @@ namespace LSEG.Ema.Access
         /// </summary>
         /// <param name="destPostMsg">object to copy <see cref="PostMsg"/> into.</param>
         public void Copy(PostMsg destPostMsg) =>
-            CopyTo(destPostMsg);
+            CopyMsg(destPostMsg);
 
         /// <inheritdoc />
         protected override void CopyAttributesTo(Msg dest)

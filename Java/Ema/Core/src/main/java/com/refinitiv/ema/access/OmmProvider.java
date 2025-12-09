@@ -2,7 +2,7 @@
  *|            This source code is provided under the Apache 2.0 license
  *|  and is provided AS IS with no warranty or guarantee of fit for purpose.
  *|                See the project's LICENSE.md for details.
- *|           Copyright (C) 2020-2021,2024 LSEG. All rights reserved.
+ *|           Copyright (C) 2020-2021,2024-2025 LSEG. All rights reserved.
  *|-----------------------------------------------------------------------------
  */
 
@@ -429,10 +429,21 @@ public interface OmmProvider
 
 	/**
 	 * Closes channel for connected client's channel and associated items.  Only relevant to IProvider
-	 * applications. This method throws an exception is called by NiProvider applications.
+	 * applications. This method throws an exception when called by NiProvider applications.
 	 *
 	 * @param clientHandle specifies a client handle to close its channel.
 	 * @throws OmmInvalidUsageException if is called by an NiProvider application or an invalid client handle.
 	 */
 	void closeChannel(long clientHandle);
+	
+	/**
+	 * Returns a list of channel information for session channels associated with the OmmProvider object.  Only relevant 
+	 * to NIProvider applications. This method throws an exception when called by IProvider applications.
+	 * 
+	 * <p>This function returns an empty list if this event does not have any session channels.</p>
+	 * 
+	 * @param sessionChannelInfo the ChannelInformation List
+ 	 * @throws OmmInvalidUsageException if is called by an IProvider application.
+	 */
+	public void sessionChannelInfo(List<ChannelInformation> sessionChannelInfo);
 }

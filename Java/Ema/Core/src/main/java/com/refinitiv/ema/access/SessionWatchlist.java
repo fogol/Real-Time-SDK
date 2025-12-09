@@ -828,7 +828,7 @@ class SessionWatchlist<T>
         return ret;
     }
 
-	public void recoverStaleWSBItems(SessionChannelInfo<T> sessionChannelInfo, HashSet<SingleItem<T>> wsbStaleItems, boolean forceToRecoveryQueue)
+	public void recoverStaleWSBItems(BaseSessionChannelInfo<T> sessionChannelInfo, HashSet<SingleItem<T>> wsbStaleItems, boolean forceToRecoveryQueue)
 	{
 		Iterator<SingleItem<T>> singleItemIt =  wsbStaleItems.iterator();
 		

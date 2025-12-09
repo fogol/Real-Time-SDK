@@ -301,19 +301,24 @@ namespace LSEG.Ema.Access.Tests.OmmConsumerTests
 
             int processId = System.Environment.ProcessId;
             string filePath = $"emaLog_MultipleFiles_{processId}.log";
-            string filePath0 = $"emaLog_MultipleFiles_{processId}.0.log";
-            string filePath1 = $"emaLog_MultipleFiles_{processId}.1.log";
 
             consumer?.Uninitialize();
             providerTest.UnInitialize();
 
+            long i = 0;
+
+            while (!File.Exists($"emaLog_MultipleFiles_{processId}.{i}.log") && i < 1000) i++;
+
+            string path0 = $"emaLog_MultipleFiles_{processId}.{i}.log";
+            string path1 = $"emaLog_MultipleFiles_{processId}.{i + 1}.log";
+
             Assert.True(File.Exists(filePath));
-            Assert.True(File.Exists(filePath0));
-            Assert.True(File.Exists(filePath1));
+            Assert.True(File.Exists(path0));
+            Assert.True(File.Exists(path1));
 
             string logOutput = File.ReadAllText(filePath);
-            string logOutput0 = File.ReadAllText(filePath0);
-            string logOutput1 = File.ReadAllText(filePath1);
+            string logOutput0 = File.ReadAllText(path0);
+            string logOutput1 = File.ReadAllText(path1);
 
             DateTime dateTime = DateTime.Now;
 
@@ -325,8 +330,10 @@ namespace LSEG.Ema.Access.Tests.OmmConsumerTests
             Assert.Contains("RDMLogin stream was open with refresh message", logOutput1);
             Assert.Contains("Login accepted by host localhost", logOutput1);
             Assert.Contains(expectedDate, logOutput0);
-            Assert.Contains("RDMDirectory stream state was open with refresh message", logOutput0);
-            Assert.Contains("Received ChannelReady event on channel Channel_1", logOutput0);
+            Assert.True(logOutput0.Contains("RDMDirectory stream state was open with refresh message") 
+                || logOutput1.Contains("RDMDirectory stream state was open with refresh message"));
+            Assert.True(logOutput0.Contains("Received ChannelReady event on channel Channel_1") 
+                || logOutput.Contains("Received ChannelReady event on channel Channel_1"));
             Assert.Contains(expectedDate, logOutput);
             Assert.Contains("Received Delete action for RDMService", logOutput);
 

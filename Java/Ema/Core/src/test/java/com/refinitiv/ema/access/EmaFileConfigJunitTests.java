@@ -1016,9 +1016,9 @@ public class EmaFileConfigJunitTests extends TestCase
 			
 			
 			// Expected result for a list of SessionChannelConfig
-			List<SessionChannelConfig> expectedSessionChannelSet = new ArrayList<SessionChannelConfig>();
+			List<ConsumerSessionChannelConfig> expectedSessionChannelSet = new ArrayList<ConsumerSessionChannelConfig>();
 			
-			SessionChannelConfig sessionChannelConfig = new SessionChannelConfig("Connection_1");
+			ConsumerSessionChannelConfig sessionChannelConfig = new ConsumerSessionChannelConfig("Connection_1");
 			sessionChannelConfig.reconnectAttemptLimit = 10;
 			sessionChannelConfig.reconnectMinDelay = 2000;
 			sessionChannelConfig.reconnectMaxDelay = 6000;
@@ -1040,7 +1040,7 @@ public class EmaFileConfigJunitTests extends TestCase
 			sessionChannelConfig.configChannelSet.add(socketChannelConfig);
 			
 			expectedSessionChannelSet.add(sessionChannelConfig);
-			sessionChannelConfig = new SessionChannelConfig("Connection_2");
+			sessionChannelConfig = new ConsumerSessionChannelConfig("Connection_2");
 			sessionChannelConfig.reconnectAttemptLimit = 4;
 			sessionChannelConfig.reconnectMinDelay = 3000;
 			sessionChannelConfig.reconnectMaxDelay = 4000;
@@ -1173,9 +1173,9 @@ public class EmaFileConfigJunitTests extends TestCase
 			sessionChannelConsumer = JUnitTestConnect.createOmmConsumer(testConfig);
 			
 			// Expected result for a list of SessionChannelConfig
-			List<SessionChannelConfig> expectedSessionChannelSet = new ArrayList<SessionChannelConfig>();
+			List<ConsumerSessionChannelConfig> expectedSessionChannelSet = new ArrayList<ConsumerSessionChannelConfig>();
 			
-			SessionChannelConfig sessionChannelConfig = new SessionChannelConfig("Connection_1");
+			ConsumerSessionChannelConfig sessionChannelConfig = new ConsumerSessionChannelConfig("Connection_1");
 			sessionChannelConfig.reconnectAttemptLimit = 10;
 			sessionChannelConfig.reconnectMinDelay = 2000;
 			sessionChannelConfig.reconnectMaxDelay = 6000;
@@ -1197,7 +1197,7 @@ public class EmaFileConfigJunitTests extends TestCase
 			sessionChannelConfig.configChannelSet.add(socketChannelConfig);
 			
 			expectedSessionChannelSet.add(sessionChannelConfig);
-			sessionChannelConfig = new SessionChannelConfig("Connection_2");
+			sessionChannelConfig = new ConsumerSessionChannelConfig("Connection_2");
 			sessionChannelConfig.reconnectAttemptLimit = 4;
 			sessionChannelConfig.reconnectMinDelay = 3000;
 			sessionChannelConfig.reconnectMaxDelay = 4000;
@@ -1851,7 +1851,7 @@ public class EmaFileConfigJunitTests extends TestCase
 			int channelConnType = JUnitTestConnect.activeConfigGetIntLongValue(cons, JUnitTestConnect.ConfigGroupTypeChannel, JUnitTestConnect.ChannelType, 0);
 			TestUtilities.checkResult("channelConnType == ChannelType::RSSL_ENCRYPTED", channelConnType == ChannelTypeEncrypted);
 			int encryptedChannelType = JUnitTestConnect.activeConfigGetIntLongValue(cons, JUnitTestConnect.ConfigGroupTypeChannel, JUnitTestConnect.EncryptedProtocolType, 0);
-			TestUtilities.checkResult("channelConnType == ChannelType::RSSL_ENCRYPTED", channelConnType == ChannelTypeEncrypted);
+			TestUtilities.checkResult("channelConnType == ChannelType::RSSL_HTTP", encryptedChannelType == ChannelTypeHttp);
 		
 			String strValue = JUnitTestConnect.activeConfigGetStringValue(cons, JUnitTestConnect.ConfigGroupTypeChannel, JUnitTestConnect.InterfaceName, 0);
 			TestUtilities.checkResult("InterfaceName == localhost", strValue.contentEquals("localhost"));
@@ -4437,6 +4437,373 @@ public void testLoadCfgFromProgrammaticConfigForIProvEncrypted()
 	}
 }
 
+public void testLoadCfgFromFileNiProv()
+{
+	TestUtilities.printTestHead("testLoadCfgFromFile","Test loading all configuration parameters from the EmaConfig.xml file");
+
+	// To specify EmaConfig.xml file location use -DEmaConfigFileLocation=EmaConfig.xml
+	String EmaConfigFileLocation = System.getProperty("EmaConfigFileLocation");
+	if ( EmaConfigFileLocation == null )
+	{
+		EmaConfigFileLocation = "./src/test/resources/com/refinitiv/ema/unittest/EmaFileConfigTests/EmaConfigTest.xml";
+		System.out.println("EmaConfig.xml file not specified, using default file");
+	}
+	else
+	{
+		System.out.println("Using Ema Config: " + EmaConfigFileLocation);
+	}
+	
+	OmmNiProviderConfigImpl testConfig = (OmmNiProviderConfigImpl) EmaFactory.createOmmNiProviderConfig(EmaConfigFileLocation);
+	
+	// Check default consumer name (Conusmer_2) and associated values
+	System.out.println("Retrieving DefaultConsumer configuration values: (DefaultConsumer value=Consumer_2) "); 
+
+	String defaultNiProvName = JUnitTestConnect.configGetNiProviderName(testConfig);
+	TestUtilities.checkResult("DefaultConsumer value != null", defaultNiProvName != null);
+	TestUtilities.checkResult("DefaultConsumer value == Provider_2", defaultNiProvName.contentEquals("Provider_2") );
+	String niProvChannelVal = JUnitTestConnect.configGetChannelName(testConfig, defaultNiProvName);
+	TestUtilities.checkResult("Channel value != null", niProvChannelVal != null);
+	TestUtilities.checkResult("Channel value == Channel_2", niProvChannelVal.contentEquals("Channel_4") );
+	String niProvDirectoryVal = JUnitTestConnect.configGetDirectoryName(testConfig, defaultNiProvName);
+	TestUtilities.checkResult("Directory value != null", niProvDirectoryVal != null);
+	TestUtilities.checkResult("Channel value == Directory_2", niProvDirectoryVal.contentEquals("Directory_2") );
+	int intLongValue = JUnitTestConnect.configGetIntLongValue(testConfig, defaultNiProvName, JUnitTestConnect.ConfigGroupTypeNiProvider, JUnitTestConnect.ItemCountHint);
+	TestUtilities.checkResult("ItemCountHint value == 500000", intLongValue == 500000 );
+	intLongValue = JUnitTestConnect.configGetIntLongValue(testConfig, defaultNiProvName, JUnitTestConnect.ConfigGroupTypeNiProvider, JUnitTestConnect.ServiceCountHint);
+	TestUtilities.checkResult("ServiceCountHint value == 655", intLongValue == 655 );
+	intLongValue = JUnitTestConnect.configGetIntLongValue(testConfig, defaultNiProvName, JUnitTestConnect.ConfigGroupTypeNiProvider, JUnitTestConnect.RequestTimeout);
+	TestUtilities.checkResult("RequestTimeout value == 8000", intLongValue == 8000 );
+	int intValue = JUnitTestConnect.configGetIntValue(testConfig, defaultNiProvName, JUnitTestConnect.ConfigGroupTypeNiProvider, JUnitTestConnect.DispatchTimeoutApiThread);
+	TestUtilities.checkResult("DispatchTimeoutApiThread value == 90", intValue == 90 );
+	intValue = testConfig.xmlConfig().getGlobalConfig().getPrimitiveValue(ConfigManager.ReactorMsgEventPoolLimit).intValue();
+	TestUtilities.checkResult("ReactorMsgEventPoolLimit value == 2000", intValue == 2000);
+	intValue = testConfig.xmlConfig().getGlobalConfig().getPrimitiveValue(ConfigManager.ReactorChannelEventPoolLimit).intValue();
+	TestUtilities.checkResult("ReactorChannelEventPoolLimit value == 1500", intValue == 1500);
+	intValue = testConfig.xmlConfig().getGlobalConfig().getPrimitiveValue(ConfigManager.WorkerEventPoolLimit).intValue();
+	TestUtilities.checkResult("WorkerEventPoolLimit value == 1000", intValue == 1000);
+	intValue = testConfig.xmlConfig().getGlobalConfig().getPrimitiveValue(ConfigManager.TunnelStreamMsgEventPoolLimit).intValue();
+	TestUtilities.checkResult("TunnelStreamMsgEventPoolLimit value == 2500", intValue == 2500);
+	intValue = testConfig.xmlConfig().getGlobalConfig().getPrimitiveValue(ConfigManager.TunnelStreamStatusEventPoolLimit).intValue();
+	TestUtilities.checkResult("TunnelStreamStatusEventPoolLimit value == 3000", intValue == 3000);
+	intValue = testConfig.xmlConfig().getGlobalConfig().getPrimitiveValue(ConfigManager.WatchlistObjectsPoolLimit).intValue();
+	TestUtilities.checkResult("WatchlistObjectsPoolLimit value == 50000", intValue == 50000);
+	intValue = testConfig.xmlConfig().getGlobalConfig().getPrimitiveValue(ConfigManager.SocketProtocolPoolLimit).intValue();
+	TestUtilities.checkResult("SocketProtocolPoolLimit value == 42", intValue == 42);
+
+	intLongValue = JUnitTestConnect.configGetIntLongValue(testConfig, defaultNiProvName, JUnitTestConnect.ConfigGroupTypeNiProvider, JUnitTestConnect.MaxDispatchCountApiThread);
+	TestUtilities.checkResult("MaxDispatchCountApiThread value == 400", intLongValue == 400 );
+	intLongValue = JUnitTestConnect.configGetIntLongValue(testConfig, defaultNiProvName, JUnitTestConnect.ConfigGroupTypeNiProvider, JUnitTestConnect.MaxDispatchCountUserThread);
+	TestUtilities.checkResult("MaxDispatchCountUserThread value == 5", intLongValue == 5 );
+	
+	boolean boolValue = JUnitTestConnect.configGetBooleanValue(testConfig, defaultNiProvName, JUnitTestConnect.ConfigGroupTypeNiProvider, JUnitTestConnect.CatchUnknownJsonFids);
+	TestUtilities.checkResult("CatchUnknownJsonFids == 0", boolValue == true);
+	boolValue = JUnitTestConnect.configGetBooleanValue(testConfig, defaultNiProvName, JUnitTestConnect.ConfigGroupTypeNiProvider, JUnitTestConnect.CatchUnknownJsonKeys);
+	TestUtilities.checkResult("CatchUnknownJsonKeys == 0", boolValue == false);
+	boolValue = JUnitTestConnect.configGetBooleanValue(testConfig, defaultNiProvName, JUnitTestConnect.ConfigGroupTypeNiProvider, JUnitTestConnect.CloseChannelFromConverterFailure);
+	TestUtilities.checkResult("CloseChannelFromConverterFailure == 0", boolValue == false);
+	intLongValue = JUnitTestConnect.configGetIntLongValue(testConfig, defaultNiProvName, JUnitTestConnect.ConfigGroupTypeNiProvider, JUnitTestConnect.DefaultServiceID);
+	TestUtilities.checkResult("DefaultServiceID == 100", intLongValue == 100);
+	boolValue = JUnitTestConnect.configGetBooleanValue(testConfig, defaultNiProvName, JUnitTestConnect.ConfigGroupTypeNiProvider, JUnitTestConnect.JsonExpandedEnumFields);
+	TestUtilities.checkResult("JsonExpandedEnumFields == 1", boolValue == true);
+	boolValue = JUnitTestConnect.configGetBooleanValue(testConfig, defaultNiProvName, JUnitTestConnect.ConfigGroupTypeNiProvider, JUnitTestConnect.SendJsonConvError);
+	TestUtilities.checkResult("SendJsonConvError == 1", boolValue == true);
+	
+	boolValue = JUnitTestConnect.configGetBooleanValue(testConfig, defaultNiProvName, JUnitTestConnect.ConfigGroupTypeNiProvider, JUnitTestConnect.NiProviderMergeSourceDirectoryStreams);
+	TestUtilities.checkResult("MergeSourceDirectoryStreams == 0", boolValue == false);
+	boolValue = JUnitTestConnect.configGetBooleanValue(testConfig, defaultNiProvName, JUnitTestConnect.ConfigGroupTypeNiProvider, JUnitTestConnect.NiProviderRecoverUserSubmitSourceDirectory);
+	TestUtilities.checkResult("RecoverUserSubmitSourceDirectory == 0", boolValue == false);
+	boolValue = JUnitTestConnect.configGetBooleanValue(testConfig, defaultNiProvName, JUnitTestConnect.ConfigGroupTypeNiProvider, JUnitTestConnect.NiProviderRefreshFirstRequired);
+	TestUtilities.checkResult("RefreshFirstRequired == 0", boolValue == false);
+	boolValue = JUnitTestConnect.configGetBooleanValue(testConfig, defaultNiProvName, JUnitTestConnect.ConfigGroupTypeNiProvider, JUnitTestConnect.NiProviderRemoveItemsOnDisconnect);
+	TestUtilities.checkResult("RemoveItemsOnDisconnect == 0", boolValue == false);
+
+
+	intValue = JUnitTestConnect.configGetIntValue(testConfig, defaultNiProvName, JUnitTestConnect.ConfigGroupTypeNiProvider, JUnitTestConnect.ReconnectAttemptLimit);
+	TestUtilities.checkResult("ReconnectAttemptLimit == 5", intValue == 10);
+	intValue = JUnitTestConnect.configGetIntValue(testConfig, defaultNiProvName, JUnitTestConnect.ConfigGroupTypeNiProvider, JUnitTestConnect.ReconnectMinDelay);
+	TestUtilities.checkResult("ReconnectMinDelay == 330", intValue == 123);
+	intValue = JUnitTestConnect.configGetIntValue(testConfig, defaultNiProvName, JUnitTestConnect.ConfigGroupTypeNiProvider, JUnitTestConnect.ReconnectMaxDelay);
+	TestUtilities.checkResult("ReconnectMaxDelay == 450", intValue == 456);
+	boolValue = JUnitTestConnect.configGetBooleanValue(testConfig, defaultNiProvName, JUnitTestConnect.ConfigGroupTypeNiProvider, JUnitTestConnect.XmlTraceToStdout);
+	TestUtilities.checkResult("XmlTraceToStdout == 0", boolValue == false);
+	boolValue = JUnitTestConnect.configGetBooleanValue(testConfig, defaultNiProvName, JUnitTestConnect.ConfigGroupTypeNiProvider, JUnitTestConnect.XmlTraceToFile);
+	TestUtilities.checkResult("XmlTraceToFile == 0", boolValue == false);
+	long longValue = JUnitTestConnect.configGetIntLongValue(testConfig, defaultNiProvName, JUnitTestConnect.ConfigGroupTypeNiProvider, JUnitTestConnect.XmlTraceMaxFileSize);
+	TestUtilities.checkResult("XmlTraceMaxFileSize == 40000", longValue == 40000);
+	String stringValue = JUnitTestConnect.configGetStringValue(testConfig, defaultNiProvName, JUnitTestConnect.ConfigGroupTypeNiProvider, JUnitTestConnect.XmlTraceFileName);
+	TestUtilities.checkResult("XmlTraceFileName == log_test_server", stringValue.equals("log_test_server"));
+	boolValue = JUnitTestConnect.configGetBooleanValue(testConfig, defaultNiProvName, JUnitTestConnect.ConfigGroupTypeNiProvider, JUnitTestConnect.XmlTraceToMultipleFiles);
+	TestUtilities.checkResult("XmlTraceToMultipleFiles == 0", boolValue == false);
+	boolValue = JUnitTestConnect.configGetBooleanValue(testConfig, defaultNiProvName, JUnitTestConnect.ConfigGroupTypeNiProvider, JUnitTestConnect.XmlTraceWrite);
+	TestUtilities.checkResult("XmlTraceWrite == 0", boolValue == false);
+	boolValue = JUnitTestConnect.configGetBooleanValue(testConfig, defaultNiProvName, JUnitTestConnect.ConfigGroupTypeNiProvider, JUnitTestConnect.XmlTraceRead);
+	TestUtilities.checkResult("XmlTraceRead == 0", boolValue == false);
+	boolValue = JUnitTestConnect.configGetBooleanValue(testConfig, defaultNiProvName, JUnitTestConnect.ConfigGroupTypeNiProvider, JUnitTestConnect.XmlTracePing);
+	TestUtilities.checkResult("XmlTracePing == 0", boolValue == false);
+
+	boolValue = JUnitTestConnect.configGetBooleanValue(testConfig, defaultNiProvName, JUnitTestConnect.ConfigGroupTypeNiProvider, JUnitTestConnect.ConsumerMsgKeyInUpdates);
+	TestUtilities.checkResult("MsgKeyInUpdates == 1", boolValue == true);
+	
+
+	// Check values of Provider_3
+	System.out.println("\nRetrieving Provider_3 configuration values "); 
+
+	niProvChannelVal = JUnitTestConnect.configGetChannelName(testConfig, "Provider_3");
+	TestUtilities.checkResult("Channel value == \"Channel_2, Channel_3\"", niProvChannelVal.contentEquals("Channel_2, Channel_3") );
+
+	// Check values of Provider_Session
+	System.out.println("\nRetrieving Provider_Session configuration values "); 
+
+	niProvChannelVal = JUnitTestConnect.configGetSessionChannel(testConfig, "Provider_Session");
+	TestUtilities.checkResult("Session Channel set value == \"Connection_1, Connection_2\"", niProvChannelVal.contentEquals("Connection_1, Connection_2") );
+
+	
+	// Checks all values from Connection_1 for session channel
+	System.out.println("\nRetrieving Connection_1 for session channel");
+	String sessionChannelInfoAttrib = JUnitTestConnect.configGetStringValue(testConfig, "Connection_1", JUnitTestConnect.ConfigGroupTypeSessionChannel, JUnitTestConnect.ChannelSet);
+	TestUtilities.checkResult("ChannelSet value != null", sessionChannelInfoAttrib != null);
+	TestUtilities.checkResult("ChannelSet value == Channel_1,Channel_2,Channel_3", sessionChannelInfoAttrib.contentEquals("Channel_1,Channel_2,Channel_3") );
+	intValue = JUnitTestConnect.configGetIntValue(testConfig, "Connection_1", JUnitTestConnect.ConfigGroupTypeSessionChannel, JUnitTestConnect.ReconnectAttemptLimit);
+	TestUtilities.checkResult("ReconnectAttemptLimit value == 10", intValue == 10 );
+	intValue = JUnitTestConnect.configGetIntValue(testConfig, "Connection_1", JUnitTestConnect.ConfigGroupTypeSessionChannel, JUnitTestConnect.ReconnectMinDelay);
+	TestUtilities.checkResult("ReconnectMinDelay value == 2000", intValue == 2000 );
+	intValue = JUnitTestConnect.configGetIntValue(testConfig, "Connection_1", JUnitTestConnect.ConfigGroupTypeSessionChannel, JUnitTestConnect.ReconnectMaxDelay);
+	TestUtilities.checkResult("ReconnectMaxDelay value == 6000", intValue == 6000 );
+	
+	// Checks all values from Connection_2 for session channel
+	sessionChannelInfoAttrib = JUnitTestConnect.configGetStringValue(testConfig, "Connection_2", JUnitTestConnect.ConfigGroupTypeSessionChannel, JUnitTestConnect.ChannelSet);
+	TestUtilities.checkResult("ChannelSet value != null", sessionChannelInfoAttrib != null);
+	TestUtilities.checkResult("ChannelSet value == Channel_4,Channel_5", sessionChannelInfoAttrib.contentEquals("Channel_4,Channel_5") );
+	intValue = JUnitTestConnect.configGetIntValue(testConfig, "Connection_2", JUnitTestConnect.ConfigGroupTypeSessionChannel, JUnitTestConnect.ReconnectAttemptLimit);
+	TestUtilities.checkResult("ReconnectAttemptLimit value == 4", intValue == 4 );
+	intValue = JUnitTestConnect.configGetIntValue(testConfig, "Connection_2", JUnitTestConnect.ConfigGroupTypeSessionChannel, JUnitTestConnect.ReconnectMinDelay);
+	TestUtilities.checkResult("ReconnectMinDelay value == 3000", intValue == 3000 );
+	intValue = JUnitTestConnect.configGetIntValue(testConfig, "Connection_2", JUnitTestConnect.ConfigGroupTypeSessionChannel, JUnitTestConnect.ReconnectMaxDelay);
+	TestUtilities.checkResult("ReconnectMaxDelay value == 4000", intValue == 4000 );
+	
+
+	// Check Channel configuration:
+	// Check Channel_1 configuration.
+	niProvChannelVal = "Channel_1";
+	System.out.println("\nRetrieving Channel_1 configuration values "); 
+	int channelConnType = JUnitTestConnect.configGetChannelType(testConfig, niProvChannelVal);
+	TestUtilities.checkResult("channelConnType == ChannelType::RSSL_SOCKET", channelConnType == ChannelTypeSocket);
+
+	intValue = JUnitTestConnect.configGetIntValue(testConfig, niProvChannelVal, JUnitTestConnect.ConfigGroupTypeChannel, JUnitTestConnect.CompressionType);
+	TestUtilities.checkResult("CompressionType == CompressionType::None", intValue == CompressionTypeNone);
+	
+	intLongValue = JUnitTestConnect.configGetIntLongValue(testConfig, niProvChannelVal, JUnitTestConnect.ConfigGroupTypeChannel, JUnitTestConnect.GuaranteedOutputBuffers);
+	TestUtilities.checkResult("GuaranteedOutputBuffers == 5000", intLongValue == 5000);
+	intLongValue = JUnitTestConnect.configGetIntLongValue(testConfig, niProvChannelVal, JUnitTestConnect.ConfigGroupTypeChannel, JUnitTestConnect.NumInputBuffers);
+	TestUtilities.checkResult("NumInputBuffers == 7000", intLongValue == 7000);
+	intLongValue = JUnitTestConnect.configGetIntLongValue(testConfig, niProvChannelVal, JUnitTestConnect.ConfigGroupTypeChannel, JUnitTestConnect.SysRecvBufSize);
+	TestUtilities.checkResult("SysRecvBufSize == 125236", intLongValue == 125236);
+	intLongValue = JUnitTestConnect.configGetIntLongValue(testConfig, niProvChannelVal, JUnitTestConnect.ConfigGroupTypeChannel, JUnitTestConnect.SysSendBufSize);
+	TestUtilities.checkResult("SysSendBufSize == 569823", intLongValue == 569823);
+	intLongValue = JUnitTestConnect.configGetIntLongValue(testConfig, niProvChannelVal, JUnitTestConnect.ConfigGroupTypeChannel, JUnitTestConnect.HighWaterMark);
+	TestUtilities.checkResult("HighWaterMark == 3000", intLongValue == 3000);
+	intLongValue = JUnitTestConnect.configGetIntLongValue(testConfig, niProvChannelVal, JUnitTestConnect.ConfigGroupTypeChannel, JUnitTestConnect.CompressionThreshold);
+	TestUtilities.checkResult("CompressionThreshold == 2048", intLongValue == 2048);
+	intLongValue = JUnitTestConnect.configGetIntLongValue(testConfig, niProvChannelVal, JUnitTestConnect.ConfigGroupTypeChannel, JUnitTestConnect.ConnectionPingTimeout);
+	TestUtilities.checkResult("ConnectionPingTimeout == 30000", intLongValue == 30000);
+	boolValue = JUnitTestConnect.configGetBooleanValue(testConfig, niProvChannelVal, JUnitTestConnect.ConfigGroupTypeChannel, JUnitTestConnect.TcpNodelay);
+	TestUtilities.checkResult("TcpNodelay == 1", boolValue == true);
+	boolValue = JUnitTestConnect.configGetBooleanValue(testConfig, niProvChannelVal, JUnitTestConnect.ConfigGroupTypeChannel, JUnitTestConnect.DirectWrite);
+	TestUtilities.checkResult("DirectWrite == 1", boolValue == true);
+	String chanHost = JUnitTestConnect.configGetChanHost(testConfig, niProvChannelVal);
+	TestUtilities.checkResult("Host == 0.0.0.1", chanHost.contentEquals("0.0.0.1"));
+	String chanPort = JUnitTestConnect.configGetChanPort(testConfig, niProvChannelVal);
+	TestUtilities.checkResult("Port == 19001", chanPort.contentEquals("19001"));
+	intLongValue = JUnitTestConnect.configGetIntValue(testConfig, niProvChannelVal, JUnitTestConnect.ConfigGroupTypeChannel, JUnitTestConnect.ServiceDiscoveryRetryCount);
+	TestUtilities.checkResult("ServiceDiscoveryRetryCount value == 5", intLongValue == 5 );
+	
+	// Check Channel_2 configuration.
+	niProvChannelVal = "Channel_2";
+	System.out.println("\nRetrieving Channel_2 configuration values "); 
+	channelConnType = JUnitTestConnect.configGetChannelType(testConfig, niProvChannelVal);
+	//change to Socket connection due to non-support conn type.
+	//TestUtilities.checkResult("channelConnType == ChannelType::RSSL_ENCRYPTED", channelConnType == ChannelTypeEncrypted);
+	TestUtilities.checkResult("channelConnType == ChannelType::RSSL_SOCKET", channelConnType == ChannelTypeSocket);
+	String strValue = JUnitTestConnect.configGetStringValue(testConfig, niProvChannelVal, JUnitTestConnect.ConfigGroupTypeChannel, JUnitTestConnect.InterfaceName);
+	TestUtilities.checkResult("InterfaceName == localhost4file", strValue.contentEquals("localhost4file"));
+	intValue = JUnitTestConnect.configGetIntValue(testConfig, niProvChannelVal, JUnitTestConnect.ConfigGroupTypeChannel, JUnitTestConnect.CompressionType);
+	TestUtilities.checkResult("CompressionType == CompressionType::Zlib", intValue == CompressionTypeZLib);
+	intLongValue = JUnitTestConnect.configGetIntLongValue(testConfig, niProvChannelVal, JUnitTestConnect.ConfigGroupTypeChannel, JUnitTestConnect.GuaranteedOutputBuffers);
+	TestUtilities.checkResult("GuaranteedOutputBuffers == 6000", intLongValue == 6000);
+	intLongValue = JUnitTestConnect.configGetIntLongValue(testConfig, niProvChannelVal, JUnitTestConnect.ConfigGroupTypeChannel, JUnitTestConnect.NumInputBuffers);
+	TestUtilities.checkResult("NumInputBuffers == 9000", intLongValue == 9000);
+	intLongValue = JUnitTestConnect.configGetIntLongValue(testConfig, niProvChannelVal, JUnitTestConnect.ConfigGroupTypeChannel, JUnitTestConnect.SysRecvBufSize);
+	TestUtilities.checkResult("SysRecvBufSize == 23656", intLongValue == 23656);
+	intLongValue = JUnitTestConnect.configGetIntLongValue(testConfig, niProvChannelVal, JUnitTestConnect.ConfigGroupTypeChannel, JUnitTestConnect.SysSendBufSize);
+	TestUtilities.checkResult("SysSendBufSize == 63656", intLongValue == 63656);
+	intLongValue = JUnitTestConnect.configGetIntLongValue(testConfig, niProvChannelVal, JUnitTestConnect.ConfigGroupTypeChannel, JUnitTestConnect.CompressionThreshold);
+	TestUtilities.checkResult("CompressionThreshold == 4096", intLongValue == 4096);
+	intLongValue = JUnitTestConnect.configGetIntLongValue(testConfig, niProvChannelVal, JUnitTestConnect.ConfigGroupTypeChannel, JUnitTestConnect.ConnectionPingTimeout);
+	TestUtilities.checkResult("ConnectionPingTimeout == 55555", intLongValue == 55555);
+	chanHost = JUnitTestConnect.configGetChanHost(testConfig, niProvChannelVal);
+	TestUtilities.checkResult("Host == 0.0.0.2", chanHost.contentEquals("0.0.0.2"));
+	chanPort = JUnitTestConnect.configGetChanPort(testConfig, niProvChannelVal);
+	TestUtilities.checkResult("Port == 15008", chanPort.contentEquals("15008"));
+	boolValue = JUnitTestConnect.configGetBooleanValue(testConfig, niProvChannelVal, JUnitTestConnect.ConfigGroupTypeChannel, JUnitTestConnect.TcpNodelay);
+	TestUtilities.checkResult("TcpNodelay == 0", boolValue == false);
+	strValue = JUnitTestConnect.configGetStringValue(testConfig, niProvChannelVal, JUnitTestConnect.ConfigGroupTypeChannel, JUnitTestConnect.ObjectName);
+	TestUtilities.checkResult("ObjectName == HttpObjectName", strValue.contentEquals("HttpObjectName"));
+	intLongValue = JUnitTestConnect.configGetIntLongValue(testConfig, niProvChannelVal, JUnitTestConnect.ConfigGroupTypeChannel, JUnitTestConnect.ChannelInitTimeout);
+	TestUtilities.checkResult("InitializationTimeout == 55", intLongValue == 55);
+	intLongValue = JUnitTestConnect.configGetIntValue(testConfig, niProvChannelVal, JUnitTestConnect.ConfigGroupTypeChannel, JUnitTestConnect.ServiceDiscoveryRetryCount);
+	TestUtilities.checkResult("ServiceDiscoveryRetryCount value == 0", intLongValue == 0 );
+
+	// Check Channel_3 configuration.
+	niProvChannelVal = "Channel_3";
+	System.out.println("\nRetrieving Channel_3 configuration values "); 
+	channelConnType = JUnitTestConnect.configGetChannelType(testConfig, niProvChannelVal);
+	//change to Socket connection due to non-support conn type.
+	//TestUtilities.checkResult("channelConnType == ChannelType::RSSL_RELIABLE_MCAST", channelConnType == ChannelTypeMcast);
+	TestUtilities.checkResult("channelConnType == ChannelType::RSSL_SOCKET", channelConnType == ChannelTypeSocket);
+	strValue = JUnitTestConnect.configGetStringValue(testConfig, niProvChannelVal, JUnitTestConnect.ConfigGroupTypeChannel, JUnitTestConnect.InterfaceName);
+	TestUtilities.checkResult("InterfaceName != null", strValue != null);
+	TestUtilities.checkResult("InterfaceName == localhost", strValue.contentEquals("localhost"));
+	strValue = JUnitTestConnect.configGetStringValue(testConfig, niProvChannelVal, JUnitTestConnect.ConfigGroupTypeChannel, JUnitTestConnect.ChannelUnicastPort);
+	TestUtilities.checkResult("Unicastport != null", strValue != null);
+	TestUtilities.checkResult("UnicastPort == 40102", strValue.contentEquals("40102"));
+	strValue = JUnitTestConnect.configGetStringValue(testConfig, niProvChannelVal, JUnitTestConnect.ConfigGroupTypeChannel, JUnitTestConnect.ChannelRecvAddress);
+	TestUtilities.checkResult("RecvAddress != null", strValue != null);
+	TestUtilities.checkResult("RecvAddress == 0.0.0.3", strValue.contentEquals("0.0.0.3"));
+	strValue = JUnitTestConnect.configGetStringValue(testConfig, niProvChannelVal, JUnitTestConnect.ConfigGroupTypeChannel, JUnitTestConnect.ChannelRecvPort);
+	TestUtilities.checkResult("RecvPort != null", strValue != null);
+	TestUtilities.checkResult("RecvPort == 15008", strValue.contentEquals("15008"));
+	strValue = JUnitTestConnect.configGetStringValue(testConfig, niProvChannelVal, JUnitTestConnect.ConfigGroupTypeChannel, JUnitTestConnect.ChannelSendAddress);
+	TestUtilities.checkResult("SendAddress != null", strValue != null);
+	TestUtilities.checkResult("SendAddress == 0.0.0.4", strValue.contentEquals("0.0.0.4"));
+	strValue = JUnitTestConnect.configGetStringValue(testConfig, niProvChannelVal, JUnitTestConnect.ConfigGroupTypeChannel, JUnitTestConnect.ChannelSendPort);
+	TestUtilities.checkResult("SendPort != null", strValue != null);
+	TestUtilities.checkResult("SendPort == 15007", strValue.contentEquals("15007"));
+	strValue = JUnitTestConnect.configGetStringValue(testConfig, niProvChannelVal, JUnitTestConnect.ConfigGroupTypeChannel, JUnitTestConnect.ChannelHsmInterface);
+	TestUtilities.checkResult("HsmInterface != null", strValue != null);
+	TestUtilities.checkResult("HsmInterface == 0.0.0.5", strValue.contentEquals("0.0.0.5"));
+	strValue = JUnitTestConnect.configGetStringValue(testConfig, niProvChannelVal, JUnitTestConnect.ConfigGroupTypeChannel, JUnitTestConnect.ChannelHsmMultAddress);
+	TestUtilities.checkResult("HsmMultAddress != null", strValue != null);
+	TestUtilities.checkResult("HsmMultAddress == 0.0.0.6", strValue.contentEquals("0.0.0.6"));
+	strValue = JUnitTestConnect.configGetStringValue(testConfig, niProvChannelVal, JUnitTestConnect.ConfigGroupTypeChannel, JUnitTestConnect.ChannelHsmPort);
+	TestUtilities.checkResult("HsmPort != null", strValue != null);
+	TestUtilities.checkResult("HsmPort == 15005", strValue.contentEquals("15005"));
+	strValue = JUnitTestConnect.configGetStringValue(testConfig, niProvChannelVal, JUnitTestConnect.ConfigGroupTypeChannel, JUnitTestConnect.ChanneltcpControlPort);
+	TestUtilities.checkResult("TcpControlPort != null", strValue != null);
+	TestUtilities.checkResult("TcpControlPort == 15018", strValue.contentEquals("15018"));
+	intLongValue = JUnitTestConnect.configGetIntLongValue(testConfig, niProvChannelVal, JUnitTestConnect.ConfigGroupTypeChannel, JUnitTestConnect.ChannelPacketTTL);
+	TestUtilities.checkResult("PacketTTL == 10", intLongValue == 10);
+	boolValue = JUnitTestConnect.configGetBooleanValue(testConfig, niProvChannelVal, JUnitTestConnect.ConfigGroupTypeChannel, JUnitTestConnect.ChannelDisconnectOnGap);
+	TestUtilities.checkResult("DisconnectOnGap == 1", boolValue == true);
+	intLongValue = JUnitTestConnect.configGetIntLongValue(testConfig, niProvChannelVal, JUnitTestConnect.ConfigGroupTypeChannel, JUnitTestConnect.Channelndata);
+	TestUtilities.checkResult("ndata == 8", intLongValue == 8);
+	intLongValue = JUnitTestConnect.configGetIntLongValue(testConfig, niProvChannelVal, JUnitTestConnect.ConfigGroupTypeChannel, JUnitTestConnect.Channelnmissing);
+	TestUtilities.checkResult("nmissing == 130", intLongValue == 130);
+	intLongValue = JUnitTestConnect.configGetIntLongValue(testConfig, niProvChannelVal, JUnitTestConnect.ConfigGroupTypeChannel, JUnitTestConnect.Channelnrreq);
+	TestUtilities.checkResult("nrreq == 5", intLongValue == 5);
+	intLongValue = JUnitTestConnect.configGetIntLongValue(testConfig, niProvChannelVal, JUnitTestConnect.ConfigGroupTypeChannel, JUnitTestConnect.Channeltdata);
+	TestUtilities.checkResult("tdata == 0", intLongValue == 0);
+	intLongValue = JUnitTestConnect.configGetIntLongValue(testConfig, niProvChannelVal, JUnitTestConnect.ConfigGroupTypeChannel, JUnitTestConnect.Channeltrreq);
+	TestUtilities.checkResult("trreq == 5", intLongValue == 5);
+	intLongValue = JUnitTestConnect.configGetIntLongValue(testConfig, niProvChannelVal, JUnitTestConnect.ConfigGroupTypeChannel, JUnitTestConnect.ChannelpktPoolLimitHigh);
+	TestUtilities.checkResult("pktPoolLimitHigh == 190500", intLongValue == 190500);
+	intLongValue = JUnitTestConnect.configGetIntLongValue(testConfig, niProvChannelVal, JUnitTestConnect.ConfigGroupTypeChannel, JUnitTestConnect.ChannelpktPoolLimitLow);
+	TestUtilities.checkResult("pktPoolLimitLow == 180500", intLongValue == 180500);
+	intLongValue = JUnitTestConnect.configGetIntLongValue(testConfig, niProvChannelVal, JUnitTestConnect.ConfigGroupTypeChannel, JUnitTestConnect.Channeltwait);
+	TestUtilities.checkResult("twait == 4", intLongValue == 4);
+	intLongValue = JUnitTestConnect.configGetIntLongValue(testConfig, niProvChannelVal, JUnitTestConnect.ConfigGroupTypeChannel, JUnitTestConnect.Channeltbchold);
+	TestUtilities.checkResult("tbchold == 4", intLongValue == 4);
+	intLongValue = JUnitTestConnect.configGetIntLongValue(testConfig, niProvChannelVal, JUnitTestConnect.ConfigGroupTypeChannel, JUnitTestConnect.Channeltpphold);
+	TestUtilities.checkResult("tpphold == 4", intLongValue == 4);
+	intLongValue = JUnitTestConnect.configGetIntLongValue(testConfig, niProvChannelVal, JUnitTestConnect.ConfigGroupTypeChannel, JUnitTestConnect.ChanneluserQLimit);
+	TestUtilities.checkResult("userQLimit == 65535", intLongValue == 65535);
+	intLongValue = JUnitTestConnect.configGetIntLongValue(testConfig, niProvChannelVal, JUnitTestConnect.ConfigGroupTypeChannel, JUnitTestConnect.ChannelHsmInterval);
+	TestUtilities.checkResult("HsmInterval == 10", intLongValue == 10);
+	intLongValue = JUnitTestConnect.configGetIntLongValue(testConfig, niProvChannelVal, JUnitTestConnect.ConfigGroupTypeChannel, JUnitTestConnect.GuaranteedOutputBuffers);
+	TestUtilities.checkResult("GuaranteedOutputBuffers == 5500", intLongValue == 5500);
+	intLongValue = JUnitTestConnect.configGetIntLongValue(testConfig, niProvChannelVal, JUnitTestConnect.ConfigGroupTypeChannel, JUnitTestConnect.NumInputBuffers);
+	TestUtilities.checkResult("NumInputBuffers == 9500", intLongValue == 9500);
+	intLongValue = JUnitTestConnect.configGetIntLongValue(testConfig, niProvChannelVal, JUnitTestConnect.ConfigGroupTypeChannel, JUnitTestConnect.SysRecvBufSize);
+	TestUtilities.checkResult("SysRecvBufSize == 125000", intLongValue == 125000);
+	intLongValue = JUnitTestConnect.configGetIntLongValue(testConfig, niProvChannelVal, JUnitTestConnect.ConfigGroupTypeChannel, JUnitTestConnect.SysSendBufSize);
+	TestUtilities.checkResult("SysSendBufSize == 550000", intLongValue == 550000);
+	intLongValue = JUnitTestConnect.configGetIntLongValue(testConfig, niProvChannelVal, JUnitTestConnect.ConfigGroupTypeChannel, JUnitTestConnect.ConnectionPingTimeout);
+	TestUtilities.checkResult("ConnectionPingTimeout == 3555", intLongValue == 3555);
+	
+	// Check Channel_6 configuration.
+	niProvChannelVal = "Channel_6";
+	System.out.println("\nRetrieving Channel_6 configuration values "); 
+	channelConnType = JUnitTestConnect.configGetChannelType(testConfig, niProvChannelVal);
+	TestUtilities.checkResult("channelConnType == ChannelType::RSSL_ENCRYPTED", channelConnType == ChannelTypeEncrypted);
+			
+	chanHost = JUnitTestConnect.configGetChanHost(testConfig, niProvChannelVal);
+	TestUtilities.checkResult("Host == 122.1.1.200", chanHost.contentEquals("122.1.1.200"));
+	chanPort = JUnitTestConnect.configGetChanPort(testConfig, niProvChannelVal);
+	TestUtilities.checkResult("Port == 14010", chanPort.contentEquals("14010"));
+	strValue = JUnitTestConnect.configGetStringValue(testConfig, niProvChannelVal, JUnitTestConnect.ConfigGroupTypeChannel, JUnitTestConnect.ObjectName);
+	TestUtilities.checkResult("ObjectName == EncrpyptedObjectName2", strValue.contentEquals("EncrpyptedObjectName2"));
+	strValue = JUnitTestConnect.configGetStringValue(testConfig, niProvChannelVal, JUnitTestConnect.ConfigGroupTypeChannel, JUnitTestConnect.Location);
+	TestUtilities.checkResult("Location == us-east-1", strValue.contentEquals("us-east-1"));
+	boolValue = JUnitTestConnect.configGetBooleanValue(testConfig, niProvChannelVal, JUnitTestConnect.ConfigGroupTypeChannel, JUnitTestConnect.EnableSessionMgnt);
+	TestUtilities.checkResult("EnableSessionManagement == 1", boolValue == true);
+
+
+	// Checks ChannelType == RSSL_CONN_TYPE_WEBSOCKET values from Channel_11
+	niProvChannelVal = "Channel_11";
+	System.out.println("\nRetrieving Channel_11 configuration values ");
+	channelConnType = JUnitTestConnect.configGetChannelType(testConfig, niProvChannelVal);
+	TestUtilities.checkResult("channelConnType == ChannelType::RSSL_WEBSOCKET", channelConnType == ChannelTypeWebSocket);
+	chanHost = JUnitTestConnect.configGetChanHost(testConfig, niProvChannelVal);
+	TestUtilities.checkResult("Host == localhost", chanHost.contentEquals("localhost"));
+	chanPort = JUnitTestConnect.configGetChanPort(testConfig, niProvChannelVal);
+	TestUtilities.checkResult("Port == 14011", chanPort.contentEquals("14011"));
+	intLongValue = JUnitTestConnect.configGetIntLongValue(testConfig, niProvChannelVal, JUnitTestConnect.ConfigGroupTypeChannel, JUnitTestConnect.GuaranteedOutputBuffers);
+	TestUtilities.checkResult("GuaranteedOutputBuffers == 5000", intLongValue == 5000);
+	intLongValue = JUnitTestConnect.configGetIntLongValue(testConfig, niProvChannelVal, JUnitTestConnect.ConfigGroupTypeChannel, JUnitTestConnect.ConnectionPingTimeout);
+	TestUtilities.checkResult("GuaranteedOutputBuffers == 30000", intLongValue == 30000);
+	boolValue = JUnitTestConnect.configGetBooleanValue(testConfig, niProvChannelVal, JUnitTestConnect.ConfigGroupTypeChannel, JUnitTestConnect.TcpNodelay);
+	TestUtilities.checkResult("TcpNodelay == 0", boolValue);
+	intLongValue = JUnitTestConnect.configGetIntLongValue(testConfig, niProvChannelVal, JUnitTestConnect.ConfigGroupTypeChannel, JUnitTestConnect.WsMaxMsgSize);
+	TestUtilities.checkResult("WsMaxMsgSize == 100500", intLongValue == 100500);
+	//XML contains "rssl.json.v2, rssl.rwf" but space will be removed after XML parsing.
+	strValue = JUnitTestConnect.configGetStringValue(testConfig, niProvChannelVal, JUnitTestConnect.ConfigGroupTypeChannel, JUnitTestConnect.WsProtocols);
+	TestUtilities.checkResult("WsProtocols == rssl.json.v2,rssl.rwf", "rssl.json.v2, rssl.rwf".contentEquals(strValue));
+
+	// Checks ChannelType == RSSL_CONN_TYPE_ENCRYPTED and EncryptedProtocolType == RSSL_WEBSOCKET values from Channel_12
+	niProvChannelVal = "Channel_12";
+	System.out.println("\nRetrieving Channel_12 configuration values ");
+	channelConnType = JUnitTestConnect.configGetChannelType(testConfig, niProvChannelVal);
+	TestUtilities.checkResult("channelConnType == ChannelType::RSSL_ENCRYPTED", channelConnType == ChannelTypeEncrypted);
+	channelConnType = JUnitTestConnect.configGetIntValue(testConfig, niProvChannelVal, JUnitTestConnect.ConfigGroupTypeChannel, JUnitTestConnect.EncryptedProtocolType);
+	TestUtilities.checkResult("channelConnType == ChannelType::RSSL_WEBSOCKET", channelConnType == ChannelTypeWebSocket);
+	chanHost = JUnitTestConnect.configGetChanHost(testConfig, niProvChannelVal);
+	TestUtilities.checkResult("Host == localhost", chanHost.contentEquals("localhost"));
+	chanPort = JUnitTestConnect.configGetChanPort(testConfig, niProvChannelVal);
+	TestUtilities.checkResult("Port == 14012", chanPort.contentEquals("14012"));
+
+	// Checks Server with ServerType == WEBSOCKET (should be parsed as SOCKET).
+	niProvChannelVal = "Server_3";
+	System.out.println("\nRetrieving Server_3 configuration values ");
+	channelConnType = JUnitTestConnect.configGetIntValue(testConfig, niProvChannelVal, JUnitTestConnect.ConfigGroupTypeServer, JUnitTestConnect.ServerType);
+	TestUtilities.checkResult("serverType == ChannelType::RSSL_SOCKET", channelConnType == ChannelTypeSocket);
+	chanPort = JUnitTestConnect.configGetStringValue(testConfig, niProvChannelVal, JUnitTestConnect.ConfigGroupTypeServer, JUnitTestConnect.ServerPort);
+	TestUtilities.checkResult("Port == 14012", chanPort.contentEquals("14011"));
+	intLongValue = JUnitTestConnect.configGetIntLongValue(testConfig, niProvChannelVal, JUnitTestConnect.ConfigGroupTypeServer, JUnitTestConnect.ServerMaxFragmentSize);
+	TestUtilities.checkResult("MaxFragmentSize == 100500", intLongValue == 100500);
+	strValue = JUnitTestConnect.configGetStringValue(testConfig, niProvChannelVal, JUnitTestConnect.ConfigGroupTypeServer, JUnitTestConnect.ServerWsProtocols);
+	TestUtilities.checkResult("ServerWsProtocols = rssl.json.v2,rssl.rwf", strValue.contentEquals("rssl.json.v2, rssl.rwf"));
+
+	// Check user specified host and port.		
+	niProvChannelVal = "Channel_2";
+	System.out.println("\nCheck user specified host and port "); 
+	String tmpString = "usrLocalhost:usr14002";
+	testConfig.host(tmpString);
+	channelConnType = JUnitTestConnect.configGetChannelType(testConfig, niProvChannelVal);
+	TestUtilities.checkResult("channelConnType == ChannelType::RSSL_SOCKET", channelConnType == ChannelTypeSocket);
+	chanHost = JUnitTestConnect.configGetChanHost(testConfig, niProvChannelVal);
+	TestUtilities.checkResult("Host == usrLocalhost", chanHost.contentEquals("usrLocalhost"));
+	chanPort = JUnitTestConnect.configGetChanPort(testConfig, niProvChannelVal);
+	TestUtilities.checkResult("Port == usr14002", chanPort.contentEquals("usr14002"));
+}
 
 public void testLoadCfgFromProgrammaticConfigForNiProv()
 {
@@ -4484,9 +4851,14 @@ public void testLoadCfgFromProgrammaticConfigForNiProv()
 			innerMap.add(EmaFactory.createMapEntry().keyAscii( "Provider_1", MapEntry.MapAction.ADD, innerElementList));
 			innerElementList.clear();
 			
-			innerElementList.add(EmaFactory.createElementEntry().ascii("Channel", "Channel_2"));
+			innerElementList.add(EmaFactory.createElementEntry().ascii("ChannelSet", "Channel_1, Channel_2"));
 			innerElementList.add(EmaFactory.createElementEntry().ascii("Directory", "Directory_2"));
 			innerMap.add(EmaFactory.createMapEntry().keyAscii( "Provider_2", MapEntry.MapAction.ADD, innerElementList)); 
+			innerElementList.clear();
+			
+			innerElementList.add(EmaFactory.createElementEntry().ascii("SessionChannelSet", "Connection_1, Connection_2"));
+			innerElementList.add(EmaFactory.createElementEntry().ascii("Directory", "Directory_2"));
+			innerMap.add(EmaFactory.createMapEntry().keyAscii( "Provider_3", MapEntry.MapAction.ADD, innerElementList)); 
 			innerElementList.clear();
 					
 			elementList.add(EmaFactory.createElementEntry().map("NiProviderList", innerMap));
@@ -4535,6 +4907,7 @@ public void testLoadCfgFromProgrammaticConfigForNiProv()
 
 			outermostMap.add(EmaFactory.createMapEntry().keyAscii( "DictionaryGroup", MapEntry.MapAction.ADD, elementList));
 			elementList.clear();
+
 
 			/////////////////////////////////////
 			//DirectoryGroup
@@ -4660,57 +5033,57 @@ public void testLoadCfgFromProgrammaticConfigForNiProv()
 			else if (testCase == 1)
 				prov = JUnitTestConnect.createOmmNiProvider(EmaFactory.createOmmNiProviderConfig(localConfigPath).config(outermostMap));
 			
-			String defaultProvName = JUnitTestConnect.activeConfigGetStringValue(prov, JUnitTestConnect.ConfigGroupTypeProvider, JUnitTestConnect.NiProviderName, -1);
+			String defaultProvName = JUnitTestConnect.activeConfigGetStringValue(prov, JUnitTestConnect.ConfigGroupTypeNiProvider, JUnitTestConnect.NiProviderName, -1);
 			TestUtilities.checkResult("DefaultProvider value != null", defaultProvName != null);
 			TestUtilities.checkResult("DefaultProvider value == Provider_1", defaultProvName.contentEquals("Provider_1") );
 			String provChannelVal = JUnitTestConnect.activeConfigGetStringValue(prov, JUnitTestConnect.ConfigGroupTypeChannel, JUnitTestConnect.ChannelName, 0);
 			TestUtilities.checkResult("Channel value != null", provChannelVal != null);
 			TestUtilities.checkResult("Channel value == Channel_10", provChannelVal.contentEquals("Channel_10") );
 
-			boolean boolValue = JUnitTestConnect.activeConfigGetBooleanValue(prov, JUnitTestConnect.ConfigGroupTypeProvider, JUnitTestConnect.NiProviderMergeSourceDirectoryStreams, -1);
+			boolean boolValue = JUnitTestConnect.activeConfigGetBooleanValue(prov, JUnitTestConnect.ConfigGroupTypeNiProvider, JUnitTestConnect.NiProviderMergeSourceDirectoryStreams, -1);
 			TestUtilities.checkResult("MergeSourceDirectoryStreams == 0", boolValue == false);
-			boolValue = JUnitTestConnect.activeConfigGetBooleanValue(prov, JUnitTestConnect.ConfigGroupTypeProvider, JUnitTestConnect.NiProviderRecoverUserSubmitSourceDirectory, -1);
+			boolValue = JUnitTestConnect.activeConfigGetBooleanValue(prov, JUnitTestConnect.ConfigGroupTypeNiProvider, JUnitTestConnect.NiProviderRecoverUserSubmitSourceDirectory, -1);
 			TestUtilities.checkResult("RecoverUserSubmitSourceDirectory == 0", boolValue == false);
-			boolValue = JUnitTestConnect.activeConfigGetBooleanValue(prov, JUnitTestConnect.ConfigGroupTypeProvider, JUnitTestConnect.NiProviderRemoveItemsOnDisconnect, -1);
+			boolValue = JUnitTestConnect.activeConfigGetBooleanValue(prov, JUnitTestConnect.ConfigGroupTypeNiProvider, JUnitTestConnect.NiProviderRemoveItemsOnDisconnect, -1);
 			TestUtilities.checkResult("RemoveItemsOnDisconnect == 0", boolValue == false);
-			boolValue = JUnitTestConnect.activeConfigGetBooleanValue(prov, JUnitTestConnect.ConfigGroupTypeProvider, JUnitTestConnect.NiProviderRefreshFirstRequired, -1);
+			boolValue = JUnitTestConnect.activeConfigGetBooleanValue(prov, JUnitTestConnect.ConfigGroupTypeNiProvider, JUnitTestConnect.NiProviderRefreshFirstRequired, -1);
 			TestUtilities.checkResult("RefreshFirstRequired == 0", boolValue == false);
-			long intLongValue = JUnitTestConnect.activeConfigGetIntLongValue(prov, JUnitTestConnect.ConfigGroupTypeProvider, JUnitTestConnect.ItemCountHint, -1);
+			long intLongValue = JUnitTestConnect.activeConfigGetIntLongValue(prov, JUnitTestConnect.ConfigGroupTypeNiProvider, JUnitTestConnect.ItemCountHint, -1);
 			TestUtilities.checkResult("ItemCountHint value == 5000", intLongValue == 5000 );
-			intLongValue = JUnitTestConnect.activeConfigGetIntLongValue(prov, JUnitTestConnect.ConfigGroupTypeProvider, JUnitTestConnect.ServiceCountHint, -1);
+			intLongValue = JUnitTestConnect.activeConfigGetIntLongValue(prov, JUnitTestConnect.ConfigGroupTypeNiProvider, JUnitTestConnect.ServiceCountHint, -1);
 			TestUtilities.checkResult("ServiceCountHint value == 2000", intLongValue == 2000 );
-			intLongValue = JUnitTestConnect.activeConfigGetIntLongValue(prov, JUnitTestConnect.ConfigGroupTypeProvider, JUnitTestConnect.RequestTimeout, -1);
+			intLongValue = JUnitTestConnect.activeConfigGetIntLongValue(prov, JUnitTestConnect.ConfigGroupTypeNiProvider, JUnitTestConnect.RequestTimeout, -1);
 			TestUtilities.checkResult("RequestTimeout value == 2400", intLongValue == 2400 );
-			intLongValue = JUnitTestConnect.activeConfigGetIntLongValue(prov, JUnitTestConnect.ConfigGroupTypeProvider, JUnitTestConnect.LoginRequestTimeOut, -1);
+			intLongValue = JUnitTestConnect.activeConfigGetIntLongValue(prov, JUnitTestConnect.ConfigGroupTypeNiProvider, JUnitTestConnect.LoginRequestTimeOut, -1);
 			TestUtilities.checkResult("LoginRequestTimeOut value == 50000", intLongValue == 50000 );
-			intLongValue = JUnitTestConnect.activeConfigGetIntLongValue(prov, JUnitTestConnect.ConfigGroupTypeProvider, JUnitTestConnect.DispatchTimeoutApiThread, -1);
+			intLongValue = JUnitTestConnect.activeConfigGetIntLongValue(prov, JUnitTestConnect.ConfigGroupTypeNiProvider, JUnitTestConnect.DispatchTimeoutApiThread, -1);
 			TestUtilities.checkResult("DispatchTimeoutApiThread value == 60", intLongValue == 60 );
-			intLongValue = JUnitTestConnect.activeConfigGetIntLongValue(prov, JUnitTestConnect.ConfigGroupTypeProvider, JUnitTestConnect.MaxDispatchCountApiThread, -1);
+			intLongValue = JUnitTestConnect.activeConfigGetIntLongValue(prov, JUnitTestConnect.ConfigGroupTypeNiProvider, JUnitTestConnect.MaxDispatchCountApiThread, -1);
 			TestUtilities.checkResult("MaxDispatchCountApiThread value == 300", intLongValue == 300 );
-			intLongValue = JUnitTestConnect.activeConfigGetIntLongValue(prov, JUnitTestConnect.ConfigGroupTypeProvider, JUnitTestConnect.MaxDispatchCountUserThread, -1);
+			intLongValue = JUnitTestConnect.activeConfigGetIntLongValue(prov, JUnitTestConnect.ConfigGroupTypeNiProvider, JUnitTestConnect.MaxDispatchCountUserThread, -1);
 			TestUtilities.checkResult("MaxDispatchCountUserThread value == 700", intLongValue == 700 );
-			intLongValue = JUnitTestConnect.activeConfigGetIntLongValue(prov, JUnitTestConnect.ConfigGroupTypeProvider, JUnitTestConnect.ReconnectAttemptLimit, -1);
+			intLongValue = JUnitTestConnect.activeConfigGetIntLongValue(prov, JUnitTestConnect.ConfigGroupTypeNiProvider, JUnitTestConnect.ReconnectAttemptLimit, -1);
 			TestUtilities.checkResult("ReconnectAttemptLimit == 1", intLongValue == 1);
-			intLongValue = JUnitTestConnect.activeConfigGetIntLongValue(prov, JUnitTestConnect.ConfigGroupTypeProvider, JUnitTestConnect.ReconnectMinDelay, -1);
+			intLongValue = JUnitTestConnect.activeConfigGetIntLongValue(prov, JUnitTestConnect.ConfigGroupTypeNiProvider, JUnitTestConnect.ReconnectMinDelay, -1);
 			TestUtilities.checkResult("ReconnectMinDelay == 500", intLongValue == 500);
-			intLongValue = JUnitTestConnect.activeConfigGetIntLongValue(prov, JUnitTestConnect.ConfigGroupTypeProvider, JUnitTestConnect.ReconnectMaxDelay, -1);
+			intLongValue = JUnitTestConnect.activeConfigGetIntLongValue(prov, JUnitTestConnect.ConfigGroupTypeNiProvider, JUnitTestConnect.ReconnectMaxDelay, -1);
 			TestUtilities.checkResult("ReconnectMaxDelay == 600", intLongValue == 600);
 
-			boolValue = JUnitTestConnect.activeConfigGetBooleanValue(prov, JUnitTestConnect.ConfigGroupTypeProvider, JUnitTestConnect.XmlTraceToStdout, -1);
+			boolValue = JUnitTestConnect.activeConfigGetBooleanValue(prov, JUnitTestConnect.ConfigGroupTypeNiProvider, JUnitTestConnect.XmlTraceToStdout, -1);
 			TestUtilities.checkResult("XmlTraceToStdout == 1", boolValue == true);
-			boolValue = JUnitTestConnect.activeConfigGetBooleanValue(prov, JUnitTestConnect.ConfigGroupTypeProvider, JUnitTestConnect.XmlTraceToFile, -1);
+			boolValue = JUnitTestConnect.activeConfigGetBooleanValue(prov, JUnitTestConnect.ConfigGroupTypeNiProvider, JUnitTestConnect.XmlTraceToFile, -1);
 			TestUtilities.checkResult("XmlTraceToFile == 1", boolValue == true);
-			long longValue = JUnitTestConnect.activeConfigGetIntLongValue(prov, JUnitTestConnect.ConfigGroupTypeProvider, JUnitTestConnect.XmlTraceMaxFileSize, -1);
+			long longValue = JUnitTestConnect.activeConfigGetIntLongValue(prov, JUnitTestConnect.ConfigGroupTypeNiProvider, JUnitTestConnect.XmlTraceMaxFileSize, -1);
 			TestUtilities.checkResult("XmlTraceMaxFileSize == 40000", longValue == 40000);
-			String stringValue = JUnitTestConnect.activeConfigGetStringValue(prov, JUnitTestConnect.ConfigGroupTypeProvider, JUnitTestConnect.XmlTraceFileName, -1);
+			String stringValue = JUnitTestConnect.activeConfigGetStringValue(prov, JUnitTestConnect.ConfigGroupTypeNiProvider, JUnitTestConnect.XmlTraceFileName, -1);
 			TestUtilities.checkResult("XmlTraceFileName == log_test_server", stringValue.equals("log_test_server"));
-			boolValue = JUnitTestConnect.activeConfigGetBooleanValue(prov, JUnitTestConnect.ConfigGroupTypeProvider, JUnitTestConnect.XmlTraceToMultipleFiles, -1);
+			boolValue = JUnitTestConnect.activeConfigGetBooleanValue(prov, JUnitTestConnect.ConfigGroupTypeNiProvider, JUnitTestConnect.XmlTraceToMultipleFiles, -1);
 			TestUtilities.checkResult("XmlTraceToMultipleFiles == 0", boolValue == true);
-			boolValue = JUnitTestConnect.activeConfigGetBooleanValue(prov, JUnitTestConnect.ConfigGroupTypeProvider, JUnitTestConnect.XmlTraceWrite, -1);
+			boolValue = JUnitTestConnect.activeConfigGetBooleanValue(prov, JUnitTestConnect.ConfigGroupTypeNiProvider, JUnitTestConnect.XmlTraceWrite, -1);
 			TestUtilities.checkResult("XmlTraceWrite == 0", boolValue == true);
-			boolValue = JUnitTestConnect.activeConfigGetBooleanValue(prov, JUnitTestConnect.ConfigGroupTypeProvider, JUnitTestConnect.XmlTraceRead, -1);
+			boolValue = JUnitTestConnect.activeConfigGetBooleanValue(prov, JUnitTestConnect.ConfigGroupTypeNiProvider, JUnitTestConnect.XmlTraceRead, -1);
 			TestUtilities.checkResult("XmlTraceRead == 0", boolValue == true);
-			boolValue = JUnitTestConnect.activeConfigGetBooleanValue(prov, JUnitTestConnect.ConfigGroupTypeProvider, JUnitTestConnect.XmlTracePing, -1);
+			boolValue = JUnitTestConnect.activeConfigGetBooleanValue(prov, JUnitTestConnect.ConfigGroupTypeNiProvider, JUnitTestConnect.XmlTracePing, -1);
 			TestUtilities.checkResult("XmlTracePing == 0", boolValue == true);
 			
 			// Check Channel configuration:
@@ -4894,6 +5267,163 @@ public void testLoadCfgFromProgrammaticConfigForNiProv()
 			System.out.println(excp.getMessage());
 			TestUtilities.checkResult("Receiving exception, test failed.", false );
 		}
+	}
+}
+
+public void testLoadFromProgrammaticCfgSessionChannelSetNiProv()
+{
+	String providerName = "";
+	TestUtilities.printTestHead("testLoadFromProgrammaticCfgSessionChannelSet","Test reading SessionChannel is configured in programmatic configuration");
+
+	OmmNiProviderConfig testConfig = EmaFactory.createOmmNiProviderConfig();
+	
+	// Test Individual Channel attributes and Common attributes.
+	String tempTestName = "testLoadFromProgrammaticCfgSessionChannelSet";
+	
+	providerName = "Provider_10";
+	OmmProvider sessionChannelProvider= null;
+	testConfig.providerName(providerName);
+	try 
+	{
+		Map outermostMap = EmaFactory.createMap();
+		Map innerMap = EmaFactory.createMap();
+		ElementList elementList = EmaFactory.createElementList();
+		ElementList innerElementList = EmaFactory.createElementList();
+		
+		// Setting up programmatic configuration
+		elementList.add(EmaFactory.createElementEntry().ascii("DefaultProvider", "Provider_10"));
+		innerElementList.add(EmaFactory.createElementEntry().ascii("SessionChannelSet", "Connection_1, Connection_2"));
+		innerElementList.add(EmaFactory.createElementEntry().intValue("ReconnectAttemptLimit", 10));
+		innerElementList.add(EmaFactory.createElementEntry().intValue("ReconnectMinDelay", 4444));
+		innerElementList.add(EmaFactory.createElementEntry().intValue("ReconnectMaxDelay", 7777));
+		
+		innerMap.add(EmaFactory.createMapEntry().keyAscii( "Provider_10", MapEntry.MapAction.ADD, innerElementList));
+		innerElementList.clear();
+		
+		elementList.add(EmaFactory.createElementEntry().map("NiProviderList", innerMap ));
+		innerMap.clear();
+		
+		outermostMap.add(EmaFactory.createMapEntry().keyAscii("NiProviderGroup", MapEntry.MapAction.ADD, elementList ));
+		elementList.clear();
+		
+		innerElementList.add(EmaFactory.createElementEntry().ascii("ChannelSet", "Channel_1, Channel_2, Channel_3"));
+		innerElementList.add(EmaFactory.createElementEntry().intValue("ReconnectAttemptLimit", 10));
+		innerElementList.add(EmaFactory.createElementEntry().intValue("ReconnectMinDelay", 2000));
+		innerElementList.add(EmaFactory.createElementEntry().intValue("ReconnectMaxDelay", 6000));
+		
+		innerMap.add(EmaFactory.createMapEntry().keyAscii( "Connection_1", MapEntry.MapAction.ADD, innerElementList));
+		innerElementList.clear();
+		
+		innerElementList.add(EmaFactory.createElementEntry().ascii("ChannelSet", "Channel_4,Channel_5"));
+		innerElementList.add(EmaFactory.createElementEntry().intValue("ReconnectAttemptLimit", 4));
+		innerElementList.add(EmaFactory.createElementEntry().intValue("ReconnectMinDelay", 3000));
+		innerElementList.add(EmaFactory.createElementEntry().intValue("ReconnectMaxDelay", 4000));
+		
+		innerMap.add(EmaFactory.createMapEntry().keyAscii( "Connection_2", MapEntry.MapAction.ADD, innerElementList));
+		innerElementList.clear();
+		
+		elementList.add(EmaFactory.createElementEntry().map( "SessionChannelList", innerMap ));
+		innerMap.clear();
+		
+		outermostMap.add(EmaFactory.createMapEntry().keyAscii( "SessionChannelGroup", MapEntry.MapAction.ADD, elementList ));
+		elementList.clear();
+		
+		innerElementList.add(EmaFactory.createElementEntry().ascii("ChannelType", "ChannelType::RSSL_SOCKET"));
+		innerElementList.add(EmaFactory.createElementEntry().ascii("Host", "localhost"));
+		innerElementList.add(EmaFactory.createElementEntry().ascii("Port", "14002"));
+		
+		innerMap.add(EmaFactory.createMapEntry().keyAscii( "Channel_1", MapEntry.MapAction.ADD, innerElementList));
+		innerElementList.clear();
+		
+		innerElementList.add(EmaFactory.createElementEntry().ascii("ChannelType", "ChannelType::RSSL_SOCKET"));
+		innerElementList.add(EmaFactory.createElementEntry().ascii("Host", "localhost"));
+		innerElementList.add(EmaFactory.createElementEntry().ascii("Port", "14003"));
+			
+		innerMap.add(EmaFactory.createMapEntry().keyAscii( "Channel_2", MapEntry.MapAction.ADD, innerElementList));
+		innerElementList.clear();
+		
+		innerElementList.add(EmaFactory.createElementEntry().ascii("ChannelType", "ChannelType::RSSL_SOCKET"));
+		innerElementList.add(EmaFactory.createElementEntry().ascii("Host", "localhost"));
+		innerElementList.add(EmaFactory.createElementEntry().ascii("Port", "14004"));
+			
+		innerMap.add(EmaFactory.createMapEntry().keyAscii( "Channel_3", MapEntry.MapAction.ADD, innerElementList));
+		innerElementList.clear();
+		
+		innerElementList.add(EmaFactory.createElementEntry().ascii("ChannelType", "ChannelType::RSSL_SOCKET"));
+		innerElementList.add(EmaFactory.createElementEntry().ascii("Host", "localhost"));
+		innerElementList.add(EmaFactory.createElementEntry().ascii("Port", "14005"));
+			
+		innerMap.add(EmaFactory.createMapEntry().keyAscii( "Channel_4", MapEntry.MapAction.ADD, innerElementList));
+		innerElementList.clear();
+		
+		innerElementList.add(EmaFactory.createElementEntry().ascii("ChannelType", "ChannelType::RSSL_SOCKET"));
+		innerElementList.add(EmaFactory.createElementEntry().ascii("Host", "localhost"));
+		innerElementList.add(EmaFactory.createElementEntry().ascii("Port", "14006"));
+			
+		innerMap.add(EmaFactory.createMapEntry().keyAscii( "Channel_5", MapEntry.MapAction.ADD, innerElementList));
+		innerElementList.clear();
+		
+		elementList.add(EmaFactory.createElementEntry().map( "ChannelList", innerMap ));
+		innerMap.clear();
+
+		outermostMap.add(EmaFactory.createMapEntry().keyAscii( "ChannelGroup", MapEntry.MapAction.ADD, elementList ));
+		
+		testConfig.config(outermostMap);
+		
+		sessionChannelProvider = JUnitTestConnect.createOmmNiProvider(testConfig);
+		
+		// Expected result for a list of SessionChannelConfig
+		List<NiProviderSessionChannelConfig> expectedSessionChannelSet = new ArrayList<NiProviderSessionChannelConfig>();
+		
+		NiProviderSessionChannelConfig sessionChannelConfig = new NiProviderSessionChannelConfig("Connection_1");
+		sessionChannelConfig.reconnectAttemptLimit = 10;
+		sessionChannelConfig.reconnectMinDelay = 2000;
+		sessionChannelConfig.reconnectMaxDelay = 6000;
+		sessionChannelConfig.configChannelSet = new ArrayList<ChannelConfig>();
+		
+		SocketChannelConfig socketChannelConfig = new SocketChannelConfig();
+		socketChannelConfig.name = "Channel_1";
+		socketChannelConfig.rsslConnectionType = ConnectionTypes.SOCKET;
+		sessionChannelConfig.configChannelSet.add(socketChannelConfig);
+		
+		socketChannelConfig = new SocketChannelConfig();
+		socketChannelConfig.name = "Channel_2";
+		socketChannelConfig.rsslConnectionType = ConnectionTypes.SOCKET;
+		sessionChannelConfig.configChannelSet.add(socketChannelConfig);
+		
+		socketChannelConfig = new SocketChannelConfig();
+		socketChannelConfig.name = "Channel_3";
+		socketChannelConfig.rsslConnectionType = ConnectionTypes.SOCKET;
+		sessionChannelConfig.configChannelSet.add(socketChannelConfig);
+		
+		expectedSessionChannelSet.add(sessionChannelConfig);
+		sessionChannelConfig = new NiProviderSessionChannelConfig("Connection_2");
+		sessionChannelConfig.reconnectAttemptLimit = 4;
+		sessionChannelConfig.reconnectMinDelay = 3000;
+		sessionChannelConfig.reconnectMaxDelay = 4000;
+		sessionChannelConfig.configChannelSet = new ArrayList<ChannelConfig>();
+		
+		socketChannelConfig = new SocketChannelConfig();
+		socketChannelConfig.name = "Channel_4";
+		socketChannelConfig.rsslConnectionType = ConnectionTypes.SOCKET;
+		sessionChannelConfig.configChannelSet.add(socketChannelConfig);
+		
+		socketChannelConfig = new SocketChannelConfig();
+		socketChannelConfig.name = "Channel_5";
+		socketChannelConfig.rsslConnectionType = ConnectionTypes.SOCKET;
+		sessionChannelConfig.configChannelSet.add(socketChannelConfig);
+		
+		expectedSessionChannelSet.add(sessionChannelConfig);
+		
+		int result = JUnitTestConnect.configVerifyNiProvSessionChannelAttribs(sessionChannelProvider, testConfig, providerName, expectedSessionChannelSet);
+		tempTestName = "VerifyIndividualSessionChannelAttributes are valid";
+		TestUtilities.checkResult(tempTestName, result == 0);		
+		sessionChannelProvider = null;
+	}
+	catch ( OmmException excp)
+	{
+		System.out.println(excp.getMessage());
+		TestUtilities.checkResult("Receiving exception, test failed.", false );
 	}
 }
 

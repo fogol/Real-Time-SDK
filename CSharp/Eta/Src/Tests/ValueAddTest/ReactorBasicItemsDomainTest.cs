@@ -22,7 +22,7 @@ using LSEG.Eta.Example.Common;
 
 using static LSEG.Eta.Rdm.Directory;
 
-namespace LSEG.Eta.ValuedAdd.Tests;
+namespace LSEG.Eta.Tests.ValueAddTest;
 
 
 /// <summary>

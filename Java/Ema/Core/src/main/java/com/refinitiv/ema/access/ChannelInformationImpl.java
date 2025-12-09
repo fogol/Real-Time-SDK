@@ -52,7 +52,7 @@ class ChannelInformationImpl implements ChannelInformation
 
 	// This is used by EMA uni testing only
 	public ChannelInformationImpl(ReactorChannel channel) {
-		set(channel, null);
+		set(channel);
 	}
 
 	@Override
@@ -77,16 +77,13 @@ class ChannelInformationImpl implements ChannelInformation
 		_confChannelName = "";
 		_confSessionChannelName = "";
 	}
-
-	public void set(ReactorChannel reactorChannel, SessionChannelConfig sessionChannelConfig) {
-		clear();
-		
-		if (reactorChannel == null)
-			return;
-
-		ReactorChannelInfo rci = ReactorFactory.createReactorChannelInfo();
-		ReactorErrorInfo ei = ReactorFactory.createReactorErrorInfo();
-		if( reactorChannel.info(rci, ei) != ReactorReturnCodes.SUCCESS)
+	
+	
+	// Internal set call that handles most of the work
+	private int setInt(ReactorChannel reactorChannel, ReactorChannelInfo rci, ReactorErrorInfo ei) 
+	{
+		int ret;
+		if( (ret = reactorChannel.info(rci, ei)) != ReactorReturnCodes.SUCCESS)
 		{
 			_componentInfo = "unavailable";
 		}
@@ -122,7 +119,6 @@ class ChannelInformationImpl implements ChannelInformation
 				_securityProtocol = rci.channelInfo().securityProtocol();
 			}
 
-			ActiveConfig activeConfig = null;
 			if (reactorChannel.userSpecObj() instanceof ChannelInfo) {
 				ChannelInfo chnlInfo = (ChannelInfo)reactorChannel.userSpecObj();
 				
@@ -130,28 +126,12 @@ class ChannelInformationImpl implements ChannelInformation
 				{
 					if(chnlInfo._channelConfig != null)
 						_confChannelName = chnlInfo._channelConfig.name;
-					
-					activeConfig = chnlInfo.getActiveConfig();
-					
+										
 					if(chnlInfo.sessionChannelInfo() != null)
 					{
 						_confSessionChannelName = chnlInfo.sessionChannelInfo().sessionChannelConfig().name;
 					}
 				}
-				
-			}
-			
-			if(sessionChannelConfig != null)
-			{
-				_preferredHostInfo = convertReactorPreferredHostInfoIntoPreferredHostInfo(rci.preferredHostInfo(), sessionChannelConfig.configChannelSet,
-						sessionChannelConfig.configWarmStandbySet);
-				
-				_confSessionChannelName = sessionChannelConfig.name;
-			}
-			else if(activeConfig != null)
-			{
-				_preferredHostInfo = convertReactorPreferredHostInfoIntoPreferredHostInfo(rci.preferredHostInfo(), activeConfig.channelConfigSet,
-						activeConfig.configWarmStandbySet);
 			}
 		}
 
@@ -178,6 +158,68 @@ class ChannelInformationImpl implements ChannelInformation
 			_connectionType = _protocolType = -1;
 			_majorVersion = _minorVersion = _pingTimeout = 0;
 		}
+		
+		return ret;
+	}
+	
+	public void set(ReactorChannel reactorChannel) {
+		clear();
+		
+		if (reactorChannel == null)
+			return;
+		
+		ReactorChannelInfo rci = ReactorFactory.createReactorChannelInfo();
+		ReactorErrorInfo ei = ReactorFactory.createReactorErrorInfo();
+		
+		if(setInt(reactorChannel, rci, ei) == ReactorReturnCodes.SUCCESS)
+		{
+		
+			ActiveConfig activeConfig = null;
+			if (reactorChannel.userSpecObj() instanceof ChannelInfo) {
+				ChannelInfo chnlInfo = (ChannelInfo)reactorChannel.userSpecObj();
+				
+				if(chnlInfo != null)
+				{
+					activeConfig = chnlInfo.getActiveConfig();
+				}
+			}
+			
+			if(activeConfig != null)
+			{
+				_preferredHostInfo = convertReactorPreferredHostInfoIntoPreferredHostInfo(rci.preferredHostInfo(), activeConfig.channelConfigSet,
+						activeConfig.configWarmStandbySet);
+			}
+		}
+	}
+
+	public void set(ReactorChannel reactorChannel, ConsumerSessionChannelConfig sessionChannelConfig) {
+		if (reactorChannel == null)
+			return;
+
+		ReactorChannelInfo rci = ReactorFactory.createReactorChannelInfo();
+		ReactorErrorInfo ei = ReactorFactory.createReactorErrorInfo();
+
+		if(setInt(reactorChannel, rci, ei) == ReactorReturnCodes.SUCCESS)
+		{
+			if(sessionChannelConfig != null)
+			{
+				_preferredHostInfo = convertReactorPreferredHostInfoIntoPreferredHostInfo(rci.preferredHostInfo(), sessionChannelConfig.configChannelSet,
+						sessionChannelConfig.configWarmStandbySet);
+				
+				_confSessionChannelName = sessionChannelConfig.name;
+			}
+		}
+	}
+	
+	public void set(ReactorChannel reactorChannel, NiProviderSessionChannelConfig sessionChannelConfig) {
+		clear();
+		
+		if (reactorChannel == null)
+			return;
+
+		ReactorChannelInfo rci = ReactorFactory.createReactorChannelInfo();
+		ReactorErrorInfo ei = ReactorFactory.createReactorErrorInfo();
+		setInt(reactorChannel, rci, ei);
 	}
 
 	private PreferredHostInfo convertReactorPreferredHostInfoIntoPreferredHostInfo(ReactorPreferredHostInfo reactorPreferredHostInfo,

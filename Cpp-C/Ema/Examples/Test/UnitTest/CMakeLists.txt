@@ -1,6 +1,8 @@
 
 set(_UnitTestSrcFiles
-        AckMsgTests.cpp ArrayTests.cpp
+        AckMsgTests.cpp
+        ADHSimulator.cpp ADHSimulator.h
+        ArrayTests.cpp
         DataDictionaryTest.cpp
         DataUnitTest.cpp DataUnitTest.h
         DateTimeTests.cpp DomainTypeTest.cpp
@@ -12,7 +14,9 @@ set(_UnitTestSrcFiles
         EmaTestClients.h EmaTestClients.cpp
         FieldListTests.cpp FilterListTests.cpp
         GenericMsgTests.cpp LoginHelperTest.cpp
-        MapTests.cpp NoDataSizeTest.cpp
+        MapTests.cpp
+        NiProviderTests.cpp
+        NoDataSizeTest.cpp
         OmmConsumerTests.cpp 
         OmmExceptionTests.cpp PackedMsgTest.cpp
         PollFdMaintenanceTest.cpp PostMsgTests.cpp

@@ -4,14 +4,14 @@
 ! LSEG. LSEG may update or remove this document
 ! at any time without notice.
 !
-!   Version	 4.20.68_RealTimeDistributionSystem_25.61		08/06/2025
-!	* Modified 08/06/2025 at Oak Brook:
-!     - This file is a based on RWF.DAT from RDMD V4.20.68.
+!   Version	 4.20.70_RealTimeDistributionSystem_25.91		11/25/2025
+!	* Modified 11/25/2025 at Oak Brook:
+!     - This file is a based on RWF.DAT from RDMD V4.20.70.
 !
 !   RDM Field Dictionary
 !   --------------------
 !
-!   Version: 4.20.68_RealTimeDistributionSystem
+!   Version: 4.20.70_RealTimeDistributionSystem
 !
 !   This file contains a complete list of acronyms used in Field Lists
 !   and, for each acronym, gives:
@@ -29,9 +29,9 @@
 !tag Filename  RWF.DAT
 !tag Desc      RDF-D RWF field set
 !tag Type      1
-!tag Version   4.20.68
+!tag Version   4.20.70
 !tag Build     1
-!tag Date      22-May-2025
+!tag Date      16-Oct-2025
 !tag DictionaryId 1
 !
 !ACRONYM    DDE ACRONYM          FID  RIPPLES TO  FIELD TYPE     LENGTH  RWF TYPE   RWF LEN
@@ -2623,7 +2623,8 @@ PAY_FREQ   "PAY FREQ"             868  NULL        ENUMERATED    3 ( 8 )  ENUM  
 !
 OFF_CD_IND "OFF CD IND"           869  NULL        ENUMERATED    3 ( 3 )  ENUM             1
 !
-! An indication of the source of the code in the official code field OFFCL_CODE FID 78.
+! An indication of the source of the code in the official code field OFFCL_CODE FID#78 
+! & OFFCL_CD_D FID#8610.
 !
 MIK_RATING "MIK RATING"           870  NULL        ENUMERATED    3 ( 4 )  ENUM             1
 !
@@ -8104,7 +8105,7 @@ GEARING    "GEARING"             3331  NULL        PRICE              17  REAL64
 !
 GEN_SPREAD "GEN SPREAD FIELD"    3332  NULL        PRICE              17  REAL64           7
 !
-! General purpose spread field.
+! The spread on the floating leg.
 !
 GN_TX20_21 "GN TXT 20 21"        3333  NULL        ALPHANUMERIC       20  RMTES_STRING    20
 GN_TX20_22 "GN TXT 20 22"        3334  NULL        ALPHANUMERIC       20  RMTES_STRING    20
@@ -12640,7 +12641,7 @@ TRNCHE_NM  "TRANCHE NAME"        4832  NULL        ALPHANUMERIC        4  RMTES_
 !
 UPFRNT_FEE "UPFRONT FEE"         4833  NULL        ALPHANUMERIC       12  RMTES_STRING    12
 !
-! Upfront fee for loans.
+! The upfront payment fee.
 !
 ASP12M     "ASST SWAP SPRD 12M"  4834  NULL        PRICE              17  REAL64           7
 !
@@ -16760,7 +16761,7 @@ TRD_TYPE2  "TRADE TYPE2"         6213  NULL        ALPHANUMERIC       20  RMTES_
 !
 NET_TAN_AT "NET TANGIBLE ASSET"  6214  NULL        PRICE              17  REAL64           7
 !
-! Net Tangible Assets (NTA) for ASX securities
+! Net Tangible Assets (NTA).
 !
 IND_OPEN   "IND OPEN PRICE"      6215  NULL        PRICE              17  REAL64           7
 !
@@ -23835,7 +23836,10 @@ DSCMTH_RIC "DISCOUNT METH RIC"   8337  NULL        ALPHANUMERIC       32  ASCII_
 !
 ! Reference instrument used for the discounting method mentioned in the field DSC_METH.
 !
-PRE_AN039  "PRED ALPH NM 039"    8338  NULL        ALPHANUMERIC       32  ASCII_STRING    32
+ASC_RT_RIC "ASC RATE RIC"        8338  NULL        ALPHANUMERIC       32  ASCII_STRING    32
+!
+! Associated instrument used in relation with ASC_RATE.
+!
 PRE_AN040  "PRED ALPH NM 040"    8339  NULL        ALPHANUMERIC       32  ASCII_STRING    32
 PRE_AN041  "PRED ALPH NM 041"    8340  NULL        ALPHANUMERIC       32  ASCII_STRING    32
 PRE_AN042  "PRED ALPH NM 042"    8341  NULL        ALPHANUMERIC       32  ASCII_STRING    32
@@ -24578,7 +24582,10 @@ CNTRDT_TPN "CONTRACT DATE TYPE"  8609  NULL        ALPHANUMERIC       16  RMTES_
 !
 ! Native date qualifier for the field CONT_DATE (#1712)
 !
-PRE_16T043 "PRED 16 TXT 043"     8610  NULL        ALPHANUMERIC       16  RMTES_STRING    16
+OFFCL_CD_D "OFFICIAL CODE D"     8610  NULL        ALPHANUMERIC       16  RMTES_STRING    16
+!
+! Dynamic Reference Field - Unique identification code.
+!
 PRE_16T044 "PRED 16 TXT 044"     8611  NULL        ALPHANUMERIC       16  RMTES_STRING    16
 PRE_16T045 "PRED 16 TXT 045"     8612  NULL        ALPHANUMERIC       16  RMTES_STRING    16
 PRE_16T046 "PRED 16 TXT 046"     8613  NULL        ALPHANUMERIC       16  RMTES_STRING    16
@@ -32384,21 +32391,66 @@ ADJUST_YLD "ADJUSTED YIELD"     11184  NULL        PRICE              17  REAL64
 !
 ! Adjusted Yield.
 !
-PRERL2194  "PRED REAL 2194"     11185  NULL        PRICE              17  REAL64           7
-PRERL2195  "PRED REAL 2195"     11186  NULL        PRICE              17  REAL64           7
-PRERL2196  "PRED REAL 2196"     11187  NULL        PRICE              17  REAL64           7
-PRERL2197  "PRED REAL 2197"     11188  NULL        PRICE              17  REAL64           7
-PRERL2198  "PRED REAL 2198"     11189  NULL        PRICE              17  REAL64           7
-PRERL2199  "PRED REAL 2199"     11190  NULL        PRICE              17  REAL64           7
-PRERL2200  "PRED REAL 2200"     11191  NULL        PRICE              17  REAL64           7
-PRERL2201  "PRED REAL 2201"     11192  NULL        PRICE              17  REAL64           7
-PRERL2202  "PRED REAL 2202"     11193  NULL        PRICE              17  REAL64           7
-PRERL2203  "PRED REAL 2203"     11194  NULL        PRICE              17  REAL64           7
-PRERL2204  "PRED REAL 2204"     11195  NULL        PRICE              17  REAL64           7
-PRERL2205  "PRED REAL 2205"     11196  NULL        PRICE              17  REAL64           7
-PRERL2206  "PRED REAL 2206"     11197  NULL        PRICE              17  REAL64           7
-PRERL2207  "PRED REAL 2207"     11198  NULL        PRICE              17  REAL64           7
-PRERL2208  "PRED REAL 2208"     11199  NULL        PRICE              17  REAL64           7
+B_UPLIMIT  "UPPER BID ORD LMT"  11185  NULL        PRICE              17  REAL64           7
+!
+! Upper bid order limit for today's trading.
+!
+A_UPLIMIT  "UPPER ASK ORD LMT"  11186  NULL        PRICE              17  REAL64           7
+!
+! Upper ask order limit for today's trading.
+!
+B_LOLIMIT  "LOWER BID ORD LMT"  11187  NULL        PRICE              17  REAL64           7
+!
+! Lower bid order limit for today's trading.
+!
+A_LOLIMIT  "LOWER ASK ORD LMT"  11188  NULL        PRICE              17  REAL64           7
+!
+! Lower ask order limit for today's trading.
+!
+OR_LMT_REF "ORD LMT REF PRC"    11189  NULL        PRICE              17  REAL64           7
+!
+! Reference price for upper/lower order limit calculation.
+!
+REL_PRICE  "REL PRICE"          11190  NULL        PRICE              17  REAL64           7
+!
+! Related price.
+!
+MINPRC_AUC "MIN PRC IN AUC"     11191  NULL        PRICE              17  REAL64           7
+!
+! Minimum Price in auction
+!
+MAXPRC_AUC "MAX PRC IN AUC"     11192  NULL        PRICE              17  REAL64           7
+!
+! Maximum price in auction
+!
+AVGPRC_AUC "AVG PRC IN AUC"     11193  NULL        PRICE              17  REAL64           7
+!
+! Average price in auction
+!
+MINYLD_AUC "MIN YLD IN AUC"     11194  NULL        PRICE              17  REAL64           7
+!
+! Minimum yield in auction
+!
+MAXYLD_AUC "MAX YLD IN AUC"     11195  NULL        PRICE              17  REAL64           7
+!
+! Maximum yield in auction
+!
+AVGYLD_AUC "AVG YLD IN AUC"     11196  NULL        PRICE              17  REAL64           7
+!
+! Average yield in auction
+!
+MINCYL_AUC "MIN CMP YLD IN AUC" 11197  NULL        PRICE              17  REAL64           7
+!
+! Minimum compound yield in auction
+!
+MAXCYL_AUC "MAX CMP YLD IN AUC" 11198  NULL        PRICE              17  REAL64           7
+!
+! Maximum compound yield in auction
+!
+AVGCYL_AUC "AVG CMP YLD IN AUC" 11199  NULL        PRICE              17  REAL64           7
+!
+! Average compound yield in auction
+!
 PRERL2209  "PRED REAL 2209"     11200  NULL        PRICE              17  REAL64           7
 PRERL2210  "PRED REAL 2210"     11201  NULL        PRICE              17  REAL64           7
 PRERL2211  "PRED REAL 2211"     11202  NULL        PRICE              17  REAL64           7
@@ -35961,8 +36013,14 @@ ALL_ORD    "ALL ORDERS"         13124  NULL        ENUMERATED    3 ( 8 )  ENUM  
 !
 ! All Orders Prohibition.
 !
-PRE_1ET424 "PRED 1 ET 424"      13125  NULL        ENUMERATED    3 ( 8 )  ENUM             1
-PRE_1ET425 "PRED 1 ET 425"      13126  NULL        ENUMERATED    3 ( 8 )  ENUM             1
+OR_LMT_TP  "LMT ORD QUAL"       13125  NULL        ENUMERATED    3 ( 8 )  ENUM             1
+!
+! Order Limit qualifier.
+!
+REL_PRC_TP "REL PRICE TYPE"     13126  NULL        ENUMERATED    3 ( 8 )  ENUM             1
+!
+! Indicates the type of price for REL_PRICE.
+!
 PRE_1ET426 "PRED 1 ET 426"      13127  NULL        ENUMERATED    3 ( 8 )  ENUM             1
 PRE_1ET427 "PRED 1 ET 427"      13128  NULL        ENUMERATED    3 ( 8 )  ENUM             1
 PRE_1ET428 "PRED 1 ET 428"      13129  NULL        ENUMERATED    3 ( 8 )  ENUM             1
@@ -37146,8 +37204,14 @@ ORD_SZ_Q4  "ORDER SIZE 4 QUAL"  13639  NULL        ENUMERATED    5 ( 8 )  ENUM  
 !
 ! Qualifier associated with fourth order size and value.
 !
-PRE_2ET319 "PRED 2 ET 319"      13640  NULL        ENUMERATED    5 ( 8 )  ENUM             2
-PRE_2ET320 "PRED 2 ET 320"      13641  NULL        ENUMERATED    5 ( 8 )  ENUM             2
+OR_LMTTYPE "LMT ORD TYPE"       13640  NULL        ENUMERATED    5 ( 8 )  ENUM             2
+!
+! Order Limit Type.
+!
+ASC_RATE   "ASC RATE NAME"      13641  NULL        ENUMERATED    5 ( 8 )  ENUM             2
+!
+! Associated Rate Name.
+!
 PRE_2ET321 "PRED 2 ET 321"      13642  NULL        ENUMERATED    5 ( 8 )  ENUM             2
 PRE_2ET322 "PRED 2 ET 322"      13643  NULL        ENUMERATED    5 ( 8 )  ENUM             2
 PRE_2ET323 "PRED 2 ET 323"      13644  NULL        ENUMERATED    5 ( 8 )  ENUM             2
@@ -38814,9 +38878,9 @@ OR_TIM2_NS "ORD ACT TIME2 NS"   14546  NULL        INTEGER            15  TIME  
 !
 ! Additional order book transaction time.
 !
-PRE_117_NS "PRED TIME NS 117"   14547  NULL        INTEGER            15  TIME             8
+OR_LMT_NS  "ORD LMT UPT NS"     14547  NULL        INTEGER            15  TIME             8
 !
-! TBD
+! The update time for order limit, B_UPLIMIT, A_UPLIMIT, B_LOLIMIT, A_LOLIMIT.
 !
 REF_TIM_NS "REF PRICE TIM NS"   14548  NULL        INTEGER            15  TIME             8
 !

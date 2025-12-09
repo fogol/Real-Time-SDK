@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
 
 import com.refinitiv.ema.access.OmmBaseImpl.OmmImplState;
+import com.refinitiv.ema.access.OmmCommonImpl.ImplementationType;
 import com.refinitiv.ema.access.OmmLoggerClient.Severity;
 import com.refinitiv.ema.access.OmmState.DataState;
 import com.refinitiv.ema.access.OmmState.StreamState;
@@ -121,12 +122,16 @@ class LoginCallbackClient<T> extends CallbackClient<T> implements RDMLoginMsgCal
 		LoginMsg loginMsg = event.rdmLoginMsg();
 		ChannelInfo chnlInfo = (ChannelInfo)event.reactorChannel().userSpecObj();
 		
+		
 		if (chnlInfo.getParentChannel() != null)
 			chnlInfo = chnlInfo.getParentChannel();
 		
 		ReactorChannel rsslReactorChannel  = event.reactorChannel();
-		SessionChannelInfo<T> sessionChannelInfo =  chnlInfo.sessionChannelInfo() != null ? (SessionChannelInfo<T>) chnlInfo.sessionChannelInfo() : null;
-		ConsumerSession<T> consumerSession = sessionChannelInfo != null ? sessionChannelInfo.consumerSession() : null;
+		BaseSessionChannelInfo<T> sessionChannelInfo =  chnlInfo.sessionChannelInfo() != null ? 
+				(BaseSessionChannelInfo<T>) chnlInfo.sessionChannelInfo() : (chnlInfo.niProviderSessionChannelInfo() != null ? 
+							(BaseSessionChannelInfo<T>) chnlInfo.niProviderSessionChannelInfo() : null);
+		
+		BaseSession<T> baseSession = sessionChannelInfo != null ? sessionChannelInfo.baseSession() : null;
 
 		_baseImpl.eventReceived();
 
@@ -159,6 +164,7 @@ class LoginCallbackClient<T> extends CallbackClient<T> implements RDMLoginMsgCal
 			case REFRESH :
 			{
 				boolean notifyRefreshMsg = true;
+				boolean niProvAggregateAndNotifyLoginRefresh = false; // If set to true, check the session channels if they are all in LOGIN_STREAM_OPEN_OK state after the channel is closed
 				
 				if (_rsslRefreshMsg == null)
 				{
@@ -175,13 +181,13 @@ class LoginCallbackClient<T> extends CallbackClient<T> implements RDMLoginMsgCal
 				
 				LoginRefresh loginRefresh;
 				
-				if(consumerSession != null)
+				if(baseSession != null)
 				{
 					loginRefresh = sessionChannelInfo.loginRefresh();
 					
-					if(!consumerSession.sessionChannelList().contains(sessionChannelInfo))
+					if(!baseSession.sessionChannelList().contains(sessionChannelInfo))
 					{
-						consumerSession.sessionChannelList().add(sessionChannelInfo);
+						baseSession.sessionChannelList().add(sessionChannelInfo);
 					}
 					
 					sessionChannelInfo.receivedLoginRefresh(true);
@@ -211,21 +217,28 @@ class LoginCallbackClient<T> extends CallbackClient<T> implements RDMLoginMsgCal
 				{
 					closeChannel = true;
 					
-					if(consumerSession != null)
+					if(baseSession != null)
 					{
 						sessionChannelInfo.state(OmmImplState.RSSLCHANNEL_UP_STREAM_NOT_OPEN);
 						
-						consumerSession.increaseNumOfLoginClose();
+						baseSession.increaseNumOfLoginClose();
 						
 						sessionChannelInfo.loginRefresh().state().streamState(state.streamState());
 						sessionChannelInfo.loginRefresh().state().dataState(state.dataState());
 						
-						if(consumerSession.checkAllSessionChannelHasState(OmmImplState.RSSLCHANNEL_UP_STREAM_NOT_OPEN))
+						if(baseSession.checkAllSessionChannelHasState(OmmImplState.RSSLCHANNEL_UP_STREAM_NOT_OPEN))
 						{
 							_ommBaseImpl.ommImplState(OmmImplState.RSSLCHANNEL_UP_STREAM_NOT_OPEN);
 						}
 						
-						consumerSession.currentLoginDataState(state.dataState());
+						baseSession.currentLoginDataState(state.dataState());
+						
+						// If this is a NIProvider session, there may not be any more steps for EMA to take with the channels, so check to see if all 
+						// other channels are in LOGIN_STREAM_OPEN_OK state, and if so, aggregate the remaining logins, and 
+						if(_ommBaseImpl.implType() == ImplementationType.NIPROVIDER)
+						{
+							niProvAggregateAndNotifyLoginRefresh = true;
+						}
 					}
 					else
 					{
@@ -263,7 +276,7 @@ class LoginCallbackClient<T> extends CallbackClient<T> implements RDMLoginMsgCal
 			        	_baseImpl.loggerClient().warn(_baseImpl.formatLogMessage(LoginCallbackClient.CLIENT_NAME, temp.toString(), Severity.WARNING));
 		        	}
 					
-					if(consumerSession != null)
+					if(baseSession != null)
 					{
 						if (sessionChannelInfo.state() >= OmmImplState.RSSLCHANNEL_UP )
 							sessionChannelInfo.state(OmmImplState.LOGIN_STREAM_OPEN_SUSPECT);
@@ -271,7 +284,7 @@ class LoginCallbackClient<T> extends CallbackClient<T> implements RDMLoginMsgCal
 						sessionChannelInfo.loginRefresh().state().streamState(state.streamState());
 						sessionChannelInfo.loginRefresh().state().dataState(state.dataState());
 						
-						consumerSession.currentLoginDataState(state.dataState());
+						baseSession.currentLoginDataState(state.dataState());
 					}
 					else
 					{
@@ -282,32 +295,34 @@ class LoginCallbackClient<T> extends CallbackClient<T> implements RDMLoginMsgCal
 				}
 				else
 				{
-					if(consumerSession != null)
+					if(baseSession != null)
 					{
 						sessionChannelInfo.state(OmmImplState.LOGIN_STREAM_OPEN_OK);
 						
-						consumerSession.increaseNumOfLoginOk();
+						baseSession.increaseNumOfLoginOk();
 						
 						sessionChannelInfo.loginRefresh().state().streamState(state.streamState());
 						sessionChannelInfo.loginRefresh().state().dataState(state.dataState());
 
-						if(consumerSession.checkAllSessionChannelHasState(OmmImplState.LOGIN_STREAM_OPEN_OK) || consumerSession.isInitialLoginRefreshSent())
+						if(baseSession.checkAllSessionChannelHasState(OmmImplState.LOGIN_STREAM_OPEN_OK) || baseSession.isInitialLoginRefreshSent())
 						{
-							consumerSession.aggregateLoginResponse();
+							baseSession.aggregateLoginResponse();
 							
 							/* Swap to send with the aggregated login refresh */
-							loginMsg = consumerSession.loginRefresh();
+							loginMsg = baseSession.loginRefresh();
 							msg = null;
 							
-							consumerSession.sendInitialLoginRefresh(true);
+							baseSession.sendInitialLoginRefresh(true);
 							
-							consumerSession.currentLoginDataState(state.dataState());
+							baseSession.currentLoginDataState(state.dataState());
 						}
 						else
 						{
 							/* Wait until EMA's receives login refresh message from all channels. */
 							notifyRefreshMsg = false;
 						}
+						
+						_ommBaseImpl.reLoadDirectory(sessionChannelInfo);
 					}
 					
 					if(notifyRefreshMsg)
@@ -315,7 +330,10 @@ class LoginCallbackClient<T> extends CallbackClient<T> implements RDMLoginMsgCal
 						_ommBaseImpl.ommImplState(OmmImplState.LOGIN_STREAM_OPEN_OK);
 						
 						_ommBaseImpl.setActiveRsslReactorChannel(chnlInfo);
-						_ommBaseImpl.reLoadDirectory();
+						
+						// Only send this if there is not an ni provider session.
+						if(_ommBaseImpl.niProviderSession() == null)
+							_ommBaseImpl.reLoadDirectory(null);
 						
 						if (_baseImpl.loggerClient().isTraceEnabled())
 			        	{
@@ -340,12 +358,43 @@ class LoginCallbackClient<T> extends CallbackClient<T> implements RDMLoginMsgCal
 					if(sessionChannelInfo != null)
 					{
 						_ommBaseImpl.closeSessionChannel(sessionChannelInfo);
+						
+						if(niProvAggregateAndNotifyLoginRefresh == true)
+						{
+							if(baseSession.checkAllSessionChannelHasState(OmmImplState.LOGIN_STREAM_OPEN_OK))
+							{
+								baseSession.aggregateLoginResponse();
+								
+								/* Swap to send with the aggregated login refresh */
+								loginMsg = baseSession.loginRefresh();
+								
+								baseSession.sendInitialLoginRefresh(true);
+								
+								baseSession.currentLoginDataState(state.dataState());
+																								
+								if (_baseImpl.loggerClient().isTraceEnabled())
+					        	{
+						        	StringBuilder temp = _baseImpl.strBuilder();
+									
+						        	temp.append("RDMLogin stream was open with refresh message").append(OmmLoggerClient.CR)
+						        		.append(loginMsg.toString()).append(OmmLoggerClient.CR);
+				
+						        	
+						        	_baseImpl.loggerClient().trace(_baseImpl.formatLogMessage(LoginCallbackClient.CLIENT_NAME, temp.toString(), Severity.TRACE));
+					        	}
+								
+								// Use the 1st connected reactor channel for this, because we just closed the current reactor channel
+								processRefreshMsg(null, baseSession._sessionChannelList.get(0)._reactorChannel, loginMsg);
+							}
+						}
 					}
 					else
 					{
 						_ommBaseImpl.unsetActiveRsslReactorChannel(chnlInfo);
 						_ommBaseImpl.closeRsslChannel(rsslReactorChannel);
 					}
+					
+					
 				}
 	
 				break;
@@ -354,6 +403,8 @@ class LoginCallbackClient<T> extends CallbackClient<T> implements RDMLoginMsgCal
 			{
 				boolean closeChannel = false;
 				boolean notifyStatusMsg = true;
+				boolean niProvAggregateAndNotifyLoginRefresh = false; // If set to true, check the session channels if they are all in LOGIN_STREAM_OPEN_OK state after the channel is closed
+
 	
 				if (((LoginStatus)loginMsg).checkHasState())
 		    	{
@@ -380,20 +431,20 @@ class LoginCallbackClient<T> extends CallbackClient<T> implements RDMLoginMsgCal
 						
 						closeChannel = true;
 						
-						if(consumerSession != null)
+						if(baseSession != null)
 						{
 							sessionChannelInfo.state(OmmImplState.RSSLCHANNEL_UP_STREAM_NOT_OPEN);
 							
-							consumerSession.increaseNumOfLoginClose();
+							baseSession.increaseNumOfLoginClose();
 							
 							sessionChannelInfo.loginRefresh().state().streamState(state.streamState());
 							sessionChannelInfo.loginRefresh().state().dataState(state.dataState());
 							
-							if(consumerSession.checkAllSessionChannelHasState(OmmImplState.RSSLCHANNEL_UP_STREAM_NOT_OPEN))
+							if(baseSession.checkAllSessionChannelHasState(OmmImplState.RSSLCHANNEL_UP_STREAM_NOT_OPEN))
 							{
 								_ommBaseImpl.ommImplState(OmmImplState.RSSLCHANNEL_UP_STREAM_NOT_OPEN);
 								
-								consumerSession.currentLoginDataState(state.dataState());
+								baseSession.currentLoginDataState(state.dataState());
 							}
 							else
 							{
@@ -408,7 +459,14 @@ class LoginCallbackClient<T> extends CallbackClient<T> implements RDMLoginMsgCal
 								processStatusMsg(null, rsslReactorChannel, loginMsg);
 								
 								loginStatus.state().streamState(streamState);
-							}
+								
+								// If this is a NIProvider session, there may not be any more steps for EMA to take with the channels, so check to see if all 
+								// other channels are in LOGIN_STREAM_OPEN_OK state, and if so, aggregate the remaining logins, and 
+								if(_ommBaseImpl.implType() == ImplementationType.NIPROVIDER)
+								{
+									niProvAggregateAndNotifyLoginRefresh = true;
+								}
+							}							
 						}
 						else
 						{
@@ -430,7 +488,7 @@ class LoginCallbackClient<T> extends CallbackClient<T> implements RDMLoginMsgCal
 				        	_baseImpl.loggerClient().warn(_baseImpl.formatLogMessage(LoginCallbackClient.CLIENT_NAME, temp.toString(), Severity.WARNING));
 			        	}
 						
-						if(consumerSession != null)
+						if(baseSession != null)
 						{
 							 sessionChannelInfo.loginRefresh().state().streamState(state.streamState());
 							 sessionChannelInfo.loginRefresh().state().dataState(state.dataState());
@@ -441,13 +499,13 @@ class LoginCallbackClient<T> extends CallbackClient<T> implements RDMLoginMsgCal
 							}
 							
 							// Checks whether all session channel has the OmmImplState.LOGIN_STREAM_OPEN_SUSPECT state.
-							boolean result = consumerSession.checkAllSessionChannelHasState(OmmImplState.LOGIN_STREAM_OPEN_SUSPECT);
+							boolean result = baseSession.checkAllSessionChannelHasState(OmmImplState.LOGIN_STREAM_OPEN_SUSPECT);
 							
 							if(result)
 							{
 								_ommBaseImpl.ommImplState(OmmImplState.LOGIN_STREAM_OPEN_SUSPECT);
 								
-								consumerSession.currentLoginDataState(state.dataState());
+								baseSession.currentLoginDataState(state.dataState());
 							}
 							else
 							{
@@ -463,7 +521,6 @@ class LoginCallbackClient<T> extends CallbackClient<T> implements RDMLoginMsgCal
 					else
 					{
 						_ommBaseImpl.setActiveRsslReactorChannel(chnlInfo);
-						_ommBaseImpl.reLoadDirectory();
 						
 						if (_baseImpl.loggerClient().isTraceEnabled())
 			        	{
@@ -475,31 +532,35 @@ class LoginCallbackClient<T> extends CallbackClient<T> implements RDMLoginMsgCal
 				        	_baseImpl.loggerClient().trace(_baseImpl.formatLogMessage(LoginCallbackClient.CLIENT_NAME, temp.toString(), Severity.TRACE));
 			        	}
 						
-						if(consumerSession != null)
+						if(baseSession != null)
 						{
 							sessionChannelInfo.state(OmmImplState.LOGIN_STREAM_OPEN_OK);
 							
-							consumerSession.increaseNumOfLoginOk();
+							baseSession.increaseNumOfLoginOk();
 							
 							 sessionChannelInfo.loginRefresh().state().streamState(state.streamState());
 							 sessionChannelInfo.loginRefresh().state().dataState(state.dataState());
 							
-							if(consumerSession.checkAllSessionChannelHasState(OmmImplState.LOGIN_STREAM_OPEN_OK) || consumerSession.isInitialLoginRefreshSent())
+							if(baseSession.checkAllSessionChannelHasState(OmmImplState.LOGIN_STREAM_OPEN_OK) || baseSession.isInitialLoginRefreshSent())
 							{
 								_ommBaseImpl.ommImplState(OmmImplState.LOGIN_STREAM_OPEN_OK);
 								
-								consumerSession.aggregateLoginResponse();
+								baseSession.aggregateLoginResponse();
 								
-								processRefreshMsg(null, sessionChannelInfo.reactorChannel(), consumerSession.loginRefresh());
+								processRefreshMsg(null, sessionChannelInfo.reactorChannel(), baseSession.loginRefresh());
 								
-								consumerSession.currentLoginDataState(state.dataState());
+								baseSession.currentLoginDataState(state.dataState());
 								
-								consumerSession.sendInitialLoginRefresh(true);
+								baseSession.sendInitialLoginRefresh(true);
 								notifyStatusMsg = false;
 							}
+							
+							_ommBaseImpl.reLoadDirectory(sessionChannelInfo);
 						}
 						else
 						{
+							_ommBaseImpl.reLoadDirectory(null);
+
 							_ommBaseImpl.ommImplState(OmmImplState.LOGIN_STREAM_OPEN_OK);
 						}
 					}
@@ -527,6 +588,34 @@ class LoginCallbackClient<T> extends CallbackClient<T> implements RDMLoginMsgCal
 					if(sessionChannelInfo != null)
 					{
 						_ommBaseImpl.closeSessionChannel(sessionChannelInfo);
+						
+						if(niProvAggregateAndNotifyLoginRefresh == true)
+						{
+							if(baseSession.checkAllSessionChannelHasState(OmmImplState.LOGIN_STREAM_OPEN_OK))
+							{
+								_ommBaseImpl.ommImplState(OmmImplState.LOGIN_STREAM_OPEN_OK);
+								baseSession.aggregateLoginResponse();
+								
+								/* Swap to send with the aggregated login refresh */
+								loginMsg = baseSession.loginRefresh();
+								
+								baseSession.sendInitialLoginRefresh(true);
+								
+								if (_baseImpl.loggerClient().isTraceEnabled())
+					        	{
+						        	StringBuilder temp = _baseImpl.strBuilder();
+									
+						        	temp.append("RDMLogin stream was open with refresh message").append(OmmLoggerClient.CR)
+						        		.append(loginMsg.toString()).append(OmmLoggerClient.CR);
+				
+						        	
+						        	_baseImpl.loggerClient().trace(_baseImpl.formatLogMessage(LoginCallbackClient.CLIENT_NAME, temp.toString(), Severity.TRACE));
+					        	}
+								
+								// Use the 1st connected reactor channel for this, because we just closed the current reactor channel, and removed it from the session channel list
+								processRefreshMsg(null, baseSession._sessionChannelList.get(0)._reactorChannel, loginMsg);
+							}
+						}
 					}
 					else
 					{
@@ -585,11 +674,14 @@ class LoginCallbackClient<T> extends CallbackClient<T> implements RDMLoginMsgCal
 		
 		_loginItemLock.lock();
 		
+		BaseSession<T> baseSession = _ommBaseImpl.consumerSession() != null ? _ommBaseImpl.consumerSession() : 
+			_ommBaseImpl.niProviderSession() != null ? _ommBaseImpl.niProviderSession() : null;
+		
 		/* Special handing for the request routing feature */
-		if(_ommBaseImpl.consumerSession() != null && _ommBaseImpl.consumerSession().isInitialLoginRefreshSent())
+		if(baseSession != null && baseSession.isInitialLoginRefreshSent())
 		{
 		    /* Checks whether the user is still login to a server */
-		    if(_ommBaseImpl.consumerSession().checkUserStillLogin())
+		    if(baseSession.checkUserStillLogin())
 		    {
 		    	((OmmStateImpl)_refreshMsg.state()).setDataState(DataState.OK);
 		    	_refreshMsg._isUpdatedAfterCopying = true;
@@ -649,11 +741,14 @@ class LoginCallbackClient<T> extends CallbackClient<T> implements RDMLoginMsgCal
 		
 		_loginItemLock.lock();
 		
+		BaseSession<T> baseSession = _ommBaseImpl.consumerSession() != null ? _ommBaseImpl.consumerSession() : 
+			_ommBaseImpl.niProviderSession() != null ? _ommBaseImpl.niProviderSession() : null;
+		
 		/* Special handing for the request routing feature */
-		if(_ommBaseImpl.consumerSession() != null && _ommBaseImpl.consumerSession().isInitialLoginRefreshSent())
+		if(baseSession != null && baseSession.isInitialLoginRefreshSent())
 		{
 		    /* Checks whether the user is still login to a server */
-		    if(_statusMsg.hasState() && _ommBaseImpl.consumerSession().checkUserStillLogin())
+		    if(_statusMsg.hasState() && baseSession.checkUserStillLogin())
 		    {
 		    	((OmmStateImpl)_statusMsg.state()).setDataState(DataState.OK);
 		    	_statusMsg._isUpdatedAfterCopying = true;
@@ -814,11 +909,11 @@ class LoginCallbackClient<T> extends CallbackClient<T> implements RDMLoginMsgCal
 		}
 	}
 	
-	void removeSessionChannelInfo(SessionChannelInfo<T> sessionChannelInfo)
+	void removeSessionChannelInfo(BaseSessionChannelInfo<T> sessionChannelInfo)
 	{
 		if(sessionChannelInfo != null)
 		{
-			sessionChannelInfo.consumerSession().removeSessionChannelInfo(sessionChannelInfo);
+			sessionChannelInfo.baseSession().removeSessionChannelInfo(sessionChannelInfo);
 		}
 	}
 	
@@ -887,12 +982,15 @@ class LoginCallbackClient<T> extends CallbackClient<T> implements RDMLoginMsgCal
 	    ReactorSubmitOptions rsslSubmitOptions = _ommBaseImpl.rsslSubmitOptions();
 	    rsslSubmitOptions.serviceName(null);
 		rsslSubmitOptions.requestMsgOptions().clear();
+		
+		BaseSession<T> baseSession = _ommBaseImpl.consumerSession() != null ? _ommBaseImpl.consumerSession() : 
+			_ommBaseImpl.niProviderSession() != null ? _ommBaseImpl.niProviderSession() : null;
 	    
-		if(_ommBaseImpl.consumerSession() != null)
+		if(baseSession != null)
 		{
-			List<SessionChannelInfo<T>> sessionChannelList = _ommBaseImpl.consumerSession().sessionChannelList();
+			List<BaseSessionChannelInfo<T>> sessionChannelList = baseSession.sessionChannelList();
 			
-			for(SessionChannelInfo<T> entry : sessionChannelList)
+			for(BaseSessionChannelInfo<T> entry : sessionChannelList)
 			{
 				if(entry.receivedLoginRefresh()) 
 				{
@@ -1470,7 +1568,7 @@ class LoginItem<T> extends SingleItem<T> implements TimeoutClient
 	{
 		LoginCallbackClient<T> loginCallbackClient = _baseImpl.loginCallbackClient();
 		ConsumerSession<T> consumerSession = _baseImpl.consumerSession();
-		List<SessionChannelInfo<T>> sessionChannelList = (consumerSession != null && !consumerSession.sessionChannelList().isEmpty())
+		List<BaseSessionChannelInfo<T>> sessionChannelList = (consumerSession != null && !consumerSession.sessionChannelList().isEmpty())
 				? consumerSession.sessionChannelList() : null;
 		
 		if ( _loginChannelList.isEmpty() && ( consumerSession == null || !consumerSession.checkAllSessionChannelHasState(OmmImplState.LOGIN_STREAM_OPEN_OK)))
@@ -1575,7 +1673,7 @@ class LoginItem<T> extends SingleItem<T> implements TimeoutClient
 		return true;
 	}
 	
-	boolean submit(ConsumerSession<T> consumerSession, LoginRequest rdmRequestMsg)
+	boolean submit(BaseSession<T> baseSession, LoginRequest rdmRequestMsg)
 	{
 		ReactorSubmitOptions rsslSubmitOptions = _baseImpl.rsslSubmitOptions();
 		 ReactorErrorInfo rsslErrorInfo = _baseImpl.rsslErrorInfo();
@@ -1588,7 +1686,7 @@ class LoginItem<T> extends SingleItem<T> implements TimeoutClient
 		 }
 		 
 	    int ret;
-		for (SessionChannelInfo<T> entry : consumerSession.sessionChannelList())
+		for (BaseSessionChannelInfo<T> entry : baseSession.sessionChannelList())
 		{
 			rsslSubmitOptions.serviceName(null);
 			rsslSubmitOptions.requestMsgOptions().userSpecObj(this);
@@ -1666,10 +1764,10 @@ class LoginItem<T> extends SingleItem<T> implements TimeoutClient
 		rsslPostMsg.streamId(_streamId);
 		int ret;
 		
-	    for (SessionChannelInfo<T> entry : consumerSession.sessionChannelList())
+	    for (BaseSessionChannelInfo<T> entry : consumerSession.sessionChannelList())
 		{
 	    	/* Validate whether the service name is valid for SessionChannelInfo before submitting it. */
-	    	boolean result = consumerSession.validateServiceName(entry, rsslPostMsg, serviceName);
+	    	boolean result = consumerSession.validateServiceName((SessionChannelInfo<T>)entry, rsslPostMsg, serviceName);
 	    	
 	    	if(!result)
 	    	{
@@ -1781,10 +1879,10 @@ class LoginItem<T> extends SingleItem<T> implements TimeoutClient
 			originalServiceId = rsslGenericMsg.msgKey().serviceId();
 		}
 		
-	    for (SessionChannelInfo<T> entry : consumerSession.sessionChannelList())
+	    for (BaseSessionChannelInfo<T> entry : consumerSession.sessionChannelList())
 		{
 	    	/* Translate from generated service Id to the actual service Id */
-	    	consumerSession.checkServiceId(entry, rsslGenericMsg);
+	    	consumerSession.checkServiceId((SessionChannelInfo<T>)entry, rsslGenericMsg);
 	    	
 			rsslSubmitOptions.serviceName( null );
 			rsslSubmitOptions.requestMsgOptions().clear();

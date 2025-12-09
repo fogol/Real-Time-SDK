@@ -13,7 +13,7 @@ using LSEG.Eta.Common;
 using Xunit;
 using Xunit.Categories;
 
-namespace LSEG.Eta.Transports.Tests
+namespace LSEG.Eta.Tests.Transports
 {
     public class DataDictionaryTest
     {

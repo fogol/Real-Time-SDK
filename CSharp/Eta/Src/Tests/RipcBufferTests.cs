@@ -15,8 +15,9 @@ using Xunit.Categories;
 using LSEG.Eta.Common;
 using LSEG.Eta.Transports.Internal;
 using LSEG.Eta.Tests;
+using LSEG.Eta.Transports;
 
-namespace LSEG.Eta.Transports.Tests
+namespace LSEG.Eta.Tests.Transports
 {
     [Category("ByteBuffer")]
     public class RipcBufferTests : IDisposable

@@ -1,9 +1,10 @@
-///*|-----------------------------------------------------------------------------
-// *|            This source code is provided under the Apache 2.0 license
-// *|  and is provided AS IS with no warranty or guarantee of fit for purpose.
-// *|                See the project's LICENSE.md for details.
-// *|           Copyright (C) 2024 LSEG. All rights reserved.     
-///*|-----------------------------------------------------------------------------
+/*|-----------------------------------------------------------------------------
+ *|            This source code is provided under the Apache 2.0 license
+ *|  and is provided AS IS with no warranty or guarantee of fit for purpose.
+ *|                See the project's LICENSE.md for details.
+ *|           Copyright (C) 2024-2025 LSEG. All rights reserved.
+ *|-----------------------------------------------------------------------------
+ */
 
 package com.refinitiv.ema.unittest;
 
@@ -44,6 +45,8 @@ import junit.framework.TestCase;
 
 public class PackedMsgTests extends TestCase 
 {
+	private String emaConfigFileLocation = "./src/test/resources/com/refinitiv/ema/unittest/OmmConsumerTests/EmaConfigTest.xml";
+	
 	public PackedMsgTests(String name)
 	{
 		super(name);
@@ -236,13 +239,35 @@ public class PackedMsgTests extends TestCase
 		
 		OmmConsumer consumer = null;
 		OmmConsumerTestClient consumerClient = null;
+		public String configPath = null;
+		public String consumerName = null;
 		
 	    public void run()
 	    {
 	        try {
-	    		OmmConsumerConfig config = EmaFactory.createOmmConsumerConfig();
+	        	OmmConsumerConfig config;
+	        	if(configPath != null)
+	        	{
+	        		config = EmaFactory.createOmmConsumerConfig(configPath);
+	        	}
+	        	else
+	        	{
+	        		config = EmaFactory.createOmmConsumerConfig();
+	        	}
+	        	
+	        	if(consumerName != null)
+	        	{
+	        		config.consumerName(consumerName);
+	        	}
 	    		
-	    		consumer  = EmaFactory.createOmmConsumer(config.host("localhost:14002").username("user"));
+	        	if(configPath != null)
+	        	{
+	        		consumer  = EmaFactory.createOmmConsumer(config.username("user"));
+	        	}
+	        	else
+	        	{
+		    		consumer  = EmaFactory.createOmmConsumer(config.host("localhost:14002").username("user"));
+	        	}
 
 	    		consumerClient = new OmmConsumerTestClient();
 				
@@ -269,7 +294,7 @@ public class PackedMsgTests extends TestCase
 	    }
 	}
 
-	public void testPackedMsg_Encode_Decode()
+	public void testPackedMsg_Encode_DecodeRwf()
 	{
 		TestUtilities.printTestHead("testPackedMsg_Encode_Decode", "ETA handling encoding a PackedMsg using EMA OmmProvider, and decoding using EMA OmmConsumer");	
 		
@@ -330,16 +355,16 @@ public class PackedMsgTests extends TestCase
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
-			TestUtilities.checkResult(consumerThread.getUpdateMsgCount() == 10);
 			consumerThread.shutdown();
 			if (provider != null) provider.uninitialize();
+			TestUtilities.checkResult(consumerThread.getUpdateMsgCount() == 10);
 		}
 		
 		System.out.println("End EMA PackedMsg Encoding, EMA Packed Message Decoding");
 		System.out.println();
 	}
 	
-	public void testPackedMsg_SendRefreshAndUpdates()
+	public void testPackedMsg_SendRefreshAndUpdatesRwf()
 	{
 		TestUtilities.printTestHead("testPackedMsg_Encode_Decode", "ETA handling encoding a PackedMsg using EMA OmmProvider, and decoding using EMA OmmConsumer");	
 		
@@ -415,80 +440,16 @@ public class PackedMsgTests extends TestCase
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
-			TestUtilities.checkResult(consumerThread.getUpdateMsgCount() == 10);
 			consumerThread.shutdown();
 			if (provider != null) provider.uninitialize();
+			TestUtilities.checkResult(consumerThread.getUpdateMsgCount() == 10);
 		}
 		
 		System.out.println("End EMA PackedMsg Encoding, EMA Packed Message Decoding");
 		System.out.println();
 	}
 	
-	public void testPackedMsg_AddingMsgToFullPackedMsg()
-	{
-		TestUtilities.printTestHead("testPackedMsg_AddingMsgToFullPackedMsg", "Attempting to add a message to an already full PackedMsg should return error");	
-		
-		OmmProvider provider = null;
-		OmmProviderTestClient providerClient = new OmmProviderTestClient();
-		ConsumerThread consumerThread = new ConsumerThread();
-
-		try {
-			
-			OmmIProviderConfig providerConfig = EmaFactory.createOmmIProviderConfig();
-			System.out.println("Start EMA OmmProvider");
-			provider = EmaFactory.createOmmProvider(providerConfig.port("14002").
-					adminControlDictionary(OmmIProviderConfig.AdminControl.USER_CONTROL), providerClient);
-
-			consumerThread.start();
-			
-			while(providerClient.itemHandle == 0)
-			{
-				provider.dispatch(1000);
-				Thread.sleep(1000);
-			}
-			
-			PackedMsg packedMsg = EmaFactory.createPackedMsg(provider);
-			packedMsg.initBuffer(providerClient.clientHandle, 50);
-			FieldList fieldList = EmaFactory.createFieldList();
-			
-			System.out.println("Begin EMA Encoding of 10 UpdateMsgs, packed into PackedMsg object");
-			
-			for( int i = 0; i < 10; i++ )
-			{
-				fieldList.clear();
-				fieldList.add(EmaFactory.createFieldEntry().real(22, 3991 + i, OmmReal.MagnitudeType.EXPONENT_NEG_2));
-				fieldList.add(EmaFactory.createFieldEntry().real(30, 10 + i, OmmReal.MagnitudeType.EXPONENT_0));
-				
-				UpdateMsg msg = EmaFactory.createUpdateMsg().payload( fieldList );
-				
-				packedMsg.addMsg(msg, providerClient.itemHandle);
-			}
-
-			TestUtilities.checkResult(packedMsg.remainingSize() < packedMsg.maxSize());
-			TestUtilities.checkResult(packedMsg.packedMsgCount() == 10);
-
-			System.out.println("decode PackedMsg object in EMA Consumer and ensure all messages contained in PackedMsg");
-		
-			provider.submit(packedMsg);
-			packedMsg.clear();
-			provider.dispatch(1000);
-		}
-		catch (InterruptedException | OmmException excp)
-		{
-			System.out.println(excp.getMessage());
-			TestUtilities.checkResult(((OmmInvalidUsageException)excp).errorCode(), OmmInvalidUsageException.ErrorCode.BUFFER_TOO_SMALL);
-		}
-		finally 
-		{
-			consumerThread.shutdown();
-			if (provider != null) provider.uninitialize();
-		}
-		
-		System.out.println("End Adding To Full Packed Message");
-		System.out.println();
-	}
-	
-	public void testPackedMsg_AddingMsgsToMakeExactlyFullPackedMsg()
+	public void testPackedMsg_AddingMsgsToMakeExactlyFullPackedMsgRwf()
 	{
 		TestUtilities.printTestHead("testPackedMsg_AddingMsgsToMakeExactlyFullPackedMsg", "Adding enough message data to exactly fill a packed message should be successful");	
 		
@@ -540,6 +501,7 @@ public class PackedMsgTests extends TestCase
 		catch (InterruptedException | OmmException excp)
 		{
 			System.out.println(excp.getMessage());
+			TestUtilities.checkResult(false);
 		}
 		finally 
 		{
@@ -548,12 +510,514 @@ public class PackedMsgTests extends TestCase
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
-			TestUtilities.checkResult(consumerThread.getUpdateMsgCount() == 2);
 			consumerThread.shutdown();
 			if (provider != null) provider.uninitialize();
+			TestUtilities.checkResult(consumerThread.getUpdateMsgCount() == 2);
 		}
 		
 		System.out.println("End Packing Messages Up To Exact Max Capacity Of Packed Message");
 		System.out.println();
 	}
+	
+	public void testPackedMsg_BufferTooSmallRwf()
+	{
+		TestUtilities.printTestHead("testPackedMsg_BufferTooSmallRwf", "ETA handling encoding a PackedMsg using EMA OmmProvider, and decoding using EMA OmmConsumer");	
+		
+		OmmProvider provider = null;
+		OmmProviderTestClient providerClient = new OmmProviderTestClient();
+		ConsumerThread consumerThread = new ConsumerThread();
+
+		try {
+			
+			OmmIProviderConfig providerConfig = EmaFactory.createOmmIProviderConfig();
+			System.out.println("Start EMA OmmProvider");
+			provider = EmaFactory.createOmmProvider(providerConfig.port("14002").
+					adminControlDictionary(OmmIProviderConfig.AdminControl.USER_CONTROL), providerClient);
+
+			consumerThread.start();
+			
+			while(providerClient.itemHandle == 0)
+			{
+				provider.dispatch(1000);
+				Thread.sleep(1000);
+			}
+			
+			PackedMsg packedMsg = EmaFactory.createPackedMsg(provider);
+			packedMsg.initBuffer(providerClient.clientHandle, 150);
+			FieldList fieldList = EmaFactory.createFieldList();
+			
+			System.out.println("Begin EMA Encoding of 10 UpdateMsgs, packed into PackedMsg object");
+			
+			for( int i = 0; i < 5; i++ )
+			{
+				fieldList.clear();
+				fieldList.add(EmaFactory.createFieldEntry().real(22, 3991 + i, OmmReal.MagnitudeType.EXPONENT_NEG_2));
+				fieldList.add(EmaFactory.createFieldEntry().real(30, 10 + i, OmmReal.MagnitudeType.EXPONENT_0));
+				
+				UpdateMsg msg = EmaFactory.createUpdateMsg().payload( fieldList );
+				
+				packedMsg.addMsg(msg, providerClient.itemHandle);
+			}
+			
+			try
+			{
+				fieldList.clear();
+				fieldList.add(EmaFactory.createFieldEntry().real(22, 4000, OmmReal.MagnitudeType.EXPONENT_NEG_2));
+				fieldList.add(EmaFactory.createFieldEntry().real(30, 15, OmmReal.MagnitudeType.EXPONENT_0));
+				
+				UpdateMsg msg = EmaFactory.createUpdateMsg().payload( fieldList );
+				
+				packedMsg.addMsg(msg, providerClient.itemHandle);
+				// This is expected to fail
+				TestUtilities.checkResult(false);
+			}
+			catch(OmmInvalidUsageException excp)
+			{
+				TestUtilities.checkResult(excp.errorCode() == OmmInvalidUsageException.ErrorCode.BUFFER_TOO_SMALL);
+			}
+
+			TestUtilities.checkResult(packedMsg.remainingSize() < packedMsg.maxSize());
+			TestUtilities.checkResult(packedMsg.packedMsgCount() == 5);
+
+			System.out.println("decode PackedMsg object in EMA Consumer and ensure all messages contained in PackedMsg");
+		
+			provider.submit(packedMsg);
+			packedMsg.clear();
+			provider.dispatch(1000);
+		}
+		catch (InterruptedException | OmmException excp)
+		{
+			System.out.println(excp.getMessage());
+			TestUtilities.checkResult(false);
+		}
+		finally 
+		{
+			try {
+				Thread.sleep(3000);	// Allow time for the consumer to get the messages
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+			TestUtilities.checkResult(consumerThread.getUpdateMsgCount() == 5);
+			consumerThread.shutdown();
+			if (provider != null) provider.uninitialize();
+		}
+		
+		System.out.println("End Buffer Too Small Test");
+		System.out.println();
+	}
+	
+	public void testPackedMsg_Encode_DecodeJSON()
+	{
+		TestUtilities.printTestHead("testPackedMsg_Encode_DecodeJSON", "ETA handling encoding a JSON PackedMsg using EMA OmmProvider, and decoding using EMA OmmConsumer");	
+		
+		OmmProvider provider = null;
+		OmmProviderTestClient providerClient = new OmmProviderTestClient();
+		ConsumerThread consumerThread = new ConsumerThread();
+		consumerThread.configPath = emaConfigFileLocation;
+		consumerThread.consumerName = "Consumer_PackJSON";
+
+		try {
+			
+			OmmIProviderConfig providerConfig = EmaFactory.createOmmIProviderConfig(emaConfigFileLocation);
+			System.out.println("Start EMA OmmProvider");
+			provider = EmaFactory.createOmmProvider(providerConfig, providerClient);
+
+			consumerThread.start();
+			
+			while(providerClient.itemHandle == 0)
+			{
+				provider.dispatch(1000);
+				Thread.sleep(1000);
+			}
+			
+			PackedMsg packedMsg = EmaFactory.createPackedMsg(provider);
+			packedMsg.initBuffer(providerClient.clientHandle);
+			FieldList fieldList = EmaFactory.createFieldList();
+			
+			System.out.println("Begin EMA Encoding of 10 UpdateMsgs, packed into PackedMsg object");
+			
+			for( int i = 0; i < 10; i++ )
+			{
+				fieldList.clear();
+				fieldList.add(EmaFactory.createFieldEntry().real(22, 3991 + i, OmmReal.MagnitudeType.EXPONENT_NEG_2));
+				fieldList.add(EmaFactory.createFieldEntry().real(30, 10 + i, OmmReal.MagnitudeType.EXPONENT_0));
+				
+				UpdateMsg msg = EmaFactory.createUpdateMsg().payload( fieldList );
+				
+				packedMsg.addMsg(msg, providerClient.itemHandle);
+			}
+
+			TestUtilities.checkResult(packedMsg.remainingSize() < packedMsg.maxSize());
+			TestUtilities.checkResult(packedMsg.packedMsgCount() == 10);
+
+			System.out.println("decode PackedMsg object in EMA Consumer and ensure all messages contained in PackedMsg");
+		
+			provider.submit(packedMsg);
+			packedMsg.clear();
+			provider.dispatch(1000);
+		}
+		catch (InterruptedException | OmmException excp)
+		{
+			System.out.println(excp.getMessage());
+			TestUtilities.checkResult(false);
+		}
+		finally 
+		{
+			try {
+				Thread.sleep(3000);	// Allow time for the consumer to get the messages
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+			TestUtilities.checkResult(consumerThread.getUpdateMsgCount() == 10);
+			consumerThread.shutdown();
+			if (provider != null) provider.uninitialize();
+		}
+		
+		System.out.println("End EMA PackedMsg Encoding, EMA Packed Message Decoding");
+		System.out.println();
+	}
+	
+	public void testPackedMsg_SendRefreshAndUpdatesJSON()
+	{
+		TestUtilities.printTestHead("testPackedMsg_SendRefreshAndUpdatesJSON", "ETA handling encoding a JSON PackedMsg using EMA OmmProvider, and decoding using EMA OmmConsumer");	
+		
+		OmmProvider provider = null;
+		OmmProviderTestClient providerClient = new OmmProviderTestClient();
+		ConsumerThread consumerThread = new ConsumerThread();
+		consumerThread.configPath = emaConfigFileLocation;
+		consumerThread.consumerName = "Consumer_PackJSON";
+
+		try {
+			
+			OmmIProviderConfig providerConfig = EmaFactory.createOmmIProviderConfig(emaConfigFileLocation);
+			System.out.println("Start EMA OmmProvider");
+			provider = EmaFactory.createOmmProvider(providerConfig, providerClient);
+
+			consumerThread.start();
+			
+			while(providerClient.itemHandle == 0)
+			{
+				provider.dispatch(1000);
+				Thread.sleep(1000);
+			}
+			
+			PackedMsg packedMsg = EmaFactory.createPackedMsg(provider);
+			packedMsg.initBuffer(providerClient.clientHandle);
+			
+			// Pack Refresh Message first
+			System.out.println("Begin EMA Encoding of RefreshMsg, packed into PackedMsg object");
+			
+			RefreshMsg refreshMsg = EmaFactory.createRefreshMsg();
+			FieldList fieldList = EmaFactory.createFieldList();
+			fieldList.add( EmaFactory.createFieldEntry().real(22, 3990, OmmReal.MagnitudeType.EXPONENT_NEG_2));
+			fieldList.add( EmaFactory.createFieldEntry().real(25, 3994, OmmReal.MagnitudeType.EXPONENT_NEG_2));
+			fieldList.add( EmaFactory.createFieldEntry().real(30, 9,  OmmReal.MagnitudeType.EXPONENT_0));
+			fieldList.add( EmaFactory.createFieldEntry().real(31, 19, OmmReal.MagnitudeType.EXPONENT_0));
+			
+			refreshMsg = EmaFactory.createRefreshMsg().serviceName("DIRECT_FEED").name("IBM.N")
+					.state(OmmState.StreamState.OPEN, OmmState.DataState.OK, OmmState.StatusCode.NONE, "UnSolicited Refresh Completed")
+					.payload(fieldList).complete(true);
+			
+			packedMsg.addMsg(refreshMsg, providerClient.itemHandle);
+			
+			System.out.println("Begin EMA Encoding of 10 UpdateMsgs, packed into PackedMsg object");
+			
+			for( int i = 0; i < 10; i++ )
+			{
+				fieldList.clear();
+				fieldList.add(EmaFactory.createFieldEntry().real(22, 3991 + i, OmmReal.MagnitudeType.EXPONENT_NEG_2));
+				fieldList.add(EmaFactory.createFieldEntry().real(30, 10 + i, OmmReal.MagnitudeType.EXPONENT_0));
+				
+				UpdateMsg msg = EmaFactory.createUpdateMsg().payload( fieldList );
+				
+				packedMsg.addMsg(msg, providerClient.itemHandle);
+			}
+
+			TestUtilities.checkResult(packedMsg.remainingSize() < packedMsg.maxSize());
+			TestUtilities.checkResult(packedMsg.packedMsgCount() == 11);
+
+			System.out.println("decode PackedMsg object in EMA Consumer and ensure all messages contained in PackedMsg");
+		
+			provider.submit(packedMsg);
+			packedMsg.clear();
+			provider.dispatch(1000);
+		}
+		catch (InterruptedException | OmmException excp)
+		{
+			System.out.println(excp.getMessage());
+			TestUtilities.checkResult(false);
+		}
+		finally 
+		{
+			try {
+				Thread.sleep(3000);	// Allow time for the consumer to get the messages
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+			TestUtilities.checkResult(consumerThread.getUpdateMsgCount() == 10);
+			consumerThread.shutdown();
+			if (provider != null) provider.uninitialize();
+		}
+		
+		System.out.println("End EMA PackedMsg Encoding, EMA Packed Message Decoding");
+		System.out.println();
+	}
+	
+	public void testPackedMsg_AddingMsgsToMakeExactlyFullPackedMsgJSON()
+	{
+		TestUtilities.printTestHead("testPackedMsg_AddingMsgsToMakeExactlyFullPackedMsgJSON", "Adding enough message data to exactly fill a packed JSON message should be successful");	
+		
+		OmmProvider provider = null;
+		OmmProviderTestClient providerClient = new OmmProviderTestClient();
+		ConsumerThread consumerThread = new ConsumerThread();
+		consumerThread.configPath = emaConfigFileLocation;
+		consumerThread.consumerName = "Consumer_PackJSON";
+
+		try {
+			
+			OmmIProviderConfig providerConfig = EmaFactory.createOmmIProviderConfig(emaConfigFileLocation);
+			System.out.println("Start EMA OmmProvider");
+			provider = EmaFactory.createOmmProvider(providerConfig, providerClient);
+
+			consumerThread.start();
+			
+			while(providerClient.itemHandle == 0)
+			{
+				provider.dispatch(1000);
+				Thread.sleep(1000);
+			}
+			
+			PackedMsg packedMsg = EmaFactory.createPackedMsg(provider);
+			packedMsg.initBuffer(providerClient.clientHandle, 440);			
+			FieldList fieldList = EmaFactory.createFieldList();
+			
+			System.out.println("Begin EMA Encoding of 5 UpdateMsgs, packed into PackedMsg object");
+			
+			for( int i = 0; i < 5; i++ )
+			{
+				fieldList.clear();
+				fieldList.add(EmaFactory.createFieldEntry().real(22, 3991 + i, OmmReal.MagnitudeType.EXPONENT_NEG_2));
+				fieldList.add(EmaFactory.createFieldEntry().real(30, 10 + i, OmmReal.MagnitudeType.EXPONENT_0));
+				
+				UpdateMsg msg = EmaFactory.createUpdateMsg().payload( fieldList );
+				packedMsg.addMsg(msg, providerClient.itemHandle);
+			}
+
+			TestUtilities.checkResult(packedMsg.remainingSize() < packedMsg.maxSize());
+			TestUtilities.checkResult(packedMsg.packedMsgCount() == 5);
+			TestUtilities.checkResult(packedMsg.remainingSize() == 0);
+
+			System.out.println("decode PackedMsg object in EMA Consumer and ensure all messages contained in PackedMsg");
+		
+			provider.submit(packedMsg);
+			packedMsg.clear();
+			provider.dispatch(1000);
+		}
+		catch (InterruptedException | OmmException excp)
+		{
+			System.out.println(excp.getMessage());
+			TestUtilities.checkResult(false);
+		}
+		finally 
+		{
+			try {
+				Thread.sleep(3000);	// Allow time for the consumer to get the messages
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+			consumerThread.shutdown();
+			if (provider != null) provider.uninitialize();
+			TestUtilities.checkResult(consumerThread.getUpdateMsgCount() == 5);
+		}
+		
+		System.out.println("End Packing Messages Up To Exact Max Capacity Of Packed Message");
+		System.out.println();
+	}
+	
+	public void testPackedMsg_BufferTooSmallJSONMsgEncode()
+	{
+		TestUtilities.printTestHead("testPackedMsg_BufferTooSmallJSONMsgEncode", "ETA handling encoding a PackedMsg using EMA OmmProvider, and decoding using EMA OmmConsumer");	
+		
+		OmmProvider provider = null;
+		OmmProviderTestClient providerClient = new OmmProviderTestClient();
+		ConsumerThread consumerThread = new ConsumerThread();
+		consumerThread.configPath = emaConfigFileLocation;
+		consumerThread.consumerName = "Consumer_PackJSON";
+
+		try {
+			// Load default Provider_1 in this config.
+			OmmIProviderConfig providerConfig = EmaFactory.createOmmIProviderConfig(emaConfigFileLocation);
+			System.out.println("Start EMA OmmProvider");
+			provider = EmaFactory.createOmmProvider(providerConfig, providerClient);
+
+			consumerThread.start();
+			
+			while(providerClient.itemHandle == 0)
+			{
+				provider.dispatch(1000);
+				Thread.sleep(1000);
+			}
+			
+			// This pack buffer length is long enough to encode the 5 converted JSON messages but not long enough for the 6th RWF message to be added for the Reactor pack 
+			PackedMsg packedMsg = EmaFactory.createPackedMsg(provider);
+			packedMsg.initBuffer(providerClient.clientHandle, 450);
+			FieldList fieldList = EmaFactory.createFieldList();
+			
+			System.out.println("Begin EMA Encoding of 5 UpdateMsgs, packed into PackedMsg object");
+			
+			for( int i = 0; i < 5; i++ )
+			{
+				fieldList.clear();
+				fieldList.add(EmaFactory.createFieldEntry().real(22, 3991 + i, OmmReal.MagnitudeType.EXPONENT_NEG_2));
+				fieldList.add(EmaFactory.createFieldEntry().real(30, 10 + i, OmmReal.MagnitudeType.EXPONENT_0));
+				
+				UpdateMsg msg = EmaFactory.createUpdateMsg().payload( fieldList );
+				
+				packedMsg.addMsg(msg, providerClient.itemHandle);
+			}
+			
+			System.out.println("Packed");
+			
+			try
+			{
+				fieldList.clear();
+				fieldList.add(EmaFactory.createFieldEntry().real(22, 4000, OmmReal.MagnitudeType.EXPONENT_NEG_2));
+				fieldList.add(EmaFactory.createFieldEntry().real(30, 15, OmmReal.MagnitudeType.EXPONENT_0));
+				
+				UpdateMsg msg = EmaFactory.createUpdateMsg().payload( fieldList );
+				
+				packedMsg.addMsg(msg, providerClient.itemHandle);
+
+				// This is expected to fail
+				TestUtilities.checkResult(false);
+			}
+			catch(OmmInvalidUsageException excp)
+			{
+				TestUtilities.checkResult(excp.errorCode() == OmmInvalidUsageException.ErrorCode.BUFFER_TOO_SMALL);
+				System.out.println(excp.getMessage());
+			}
+
+			TestUtilities.checkResult(packedMsg.remainingSize() < packedMsg.maxSize());
+			TestUtilities.checkResult(packedMsg.packedMsgCount() == 5);
+
+			System.out.println("decode PackedMsg object in EMA Consumer and ensure all messages contained in PackedMsg");
+		
+			provider.submit(packedMsg);
+			packedMsg.clear();
+			provider.dispatch(1000);
+		}
+		catch (InterruptedException | OmmException excp)
+		{
+			System.out.println(excp.getMessage());
+			TestUtilities.checkResult(false);
+		}
+		finally 
+		{
+			try {
+				Thread.sleep(3000);	// Allow time for the consumer to get the messages
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+			consumerThread.shutdown();
+			if (provider != null) provider.uninitialize();
+			TestUtilities.checkResult(consumerThread.getUpdateMsgCount() == 5);
+		}
+		
+		System.out.println("End Buffer Too Small Test");
+		System.out.println();
+	}
+	
+	public void testPackedMsg_BufferTooSmallJSONConversion()
+	{
+		TestUtilities.printTestHead("testPackedMsg_BufferTooSmallJSONConversion", "ETA handling encoding a PackedMsg using EMA OmmProvider, and decoding using EMA OmmConsumer");	
+		
+		OmmProvider provider = null;
+		OmmProviderTestClient providerClient = new OmmProviderTestClient();
+		ConsumerThread consumerThread = new ConsumerThread();
+		consumerThread.configPath = emaConfigFileLocation;
+		consumerThread.consumerName = "Consumer_PackJSON";
+
+		try {
+			// Load default Provider_1 in this config.
+			OmmIProviderConfig providerConfig = EmaFactory.createOmmIProviderConfig(emaConfigFileLocation);
+			System.out.println("Start EMA OmmProvider");
+			provider = EmaFactory.createOmmProvider(providerConfig, providerClient);
+
+			consumerThread.start();
+			
+			while(providerClient.itemHandle == 0)
+			{
+				provider.dispatch(1000);
+				Thread.sleep(1000);
+			}
+			
+			// This pack buffer length is long enough to encode the 6th JSON update messages plus the RWF message for the reactor to convert, but not long enough for the converted JSON message 
+			PackedMsg packedMsg = EmaFactory.createPackedMsg(provider);
+			packedMsg.initBuffer(providerClient.clientHandle, 470);
+			FieldList fieldList = EmaFactory.createFieldList();
+			
+			System.out.println("Begin EMA Encoding of 5 UpdateMsgs, packed into PackedMsg object");
+			
+			for( int i = 0; i < 5; i++ )
+			{
+				fieldList.clear();
+				fieldList.add(EmaFactory.createFieldEntry().real(22, 3991 + i, OmmReal.MagnitudeType.EXPONENT_NEG_2));
+				fieldList.add(EmaFactory.createFieldEntry().real(30, 10 + i, OmmReal.MagnitudeType.EXPONENT_0));
+				
+				UpdateMsg msg = EmaFactory.createUpdateMsg().payload( fieldList );
+				
+				packedMsg.addMsg(msg, providerClient.itemHandle);
+			}
+						
+			try
+			{
+				fieldList.clear();
+				fieldList.add(EmaFactory.createFieldEntry().real(22, 4000, OmmReal.MagnitudeType.EXPONENT_NEG_2));
+				fieldList.add(EmaFactory.createFieldEntry().real(30, 15, OmmReal.MagnitudeType.EXPONENT_0));
+				
+				UpdateMsg msg = EmaFactory.createUpdateMsg().payload( fieldList );
+				
+				packedMsg.addMsg(msg, providerClient.itemHandle);
+
+				// This is expected to fail
+				TestUtilities.checkResult(false);
+			}
+			catch(OmmInvalidUsageException excp)
+			{
+				TestUtilities.checkResult(excp.errorCode() == OmmInvalidUsageException.ErrorCode.BUFFER_TOO_SMALL);
+				System.out.println(excp.getMessage());
+			}
+
+			TestUtilities.checkResult(packedMsg.remainingSize() < packedMsg.maxSize());
+			TestUtilities.checkResult(packedMsg.packedMsgCount() == 5);
+
+			System.out.println("decode PackedMsg object in EMA Consumer and ensure all messages contained in PackedMsg");
+		
+			provider.submit(packedMsg);
+			packedMsg.clear();
+			provider.dispatch(1000);
+		}
+		catch (InterruptedException | OmmException excp)
+		{
+			System.out.println(excp.getMessage());
+			TestUtilities.checkResult(false);
+		}
+		finally 
+		{
+			try {
+				Thread.sleep(3000);	// Allow time for the consumer to get the messages
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+			consumerThread.shutdown();
+			if (provider != null) provider.uninitialize();
+			System.out.println(consumerThread.getUpdateMsgCount());
+			TestUtilities.checkResult(consumerThread.getUpdateMsgCount() == 5);
+			
+		}
+		
+		System.out.println("End Buffer Too Small Test");
+		System.out.println();
+	}
+	
 }

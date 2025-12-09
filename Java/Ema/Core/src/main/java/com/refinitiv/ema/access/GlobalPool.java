@@ -2,7 +2,7 @@
  *|            This source code is provided under the Apache 2.0 license
  *|  and is provided AS IS with no warranty or guarantee of fit for purpose.
  *|                See the project's LICENSE.md for details.
- *|           Copyright (C) 2020-2021,2024 LSEG. All rights reserved.
+ *|           Copyright (C) 2020-2021,2024-2025 LSEG. All rights reserved.
  *|-----------------------------------------------------------------------------
  */
 
@@ -191,6 +191,7 @@ class GlobalPool
 		return _UIntPool.pop();
 	}
 	
+
 	static void returnPool(int dataType,Object value)
 	{
 		if ( dataType == com.refinitiv.eta.codec.DataTypes.UNKNOWN )

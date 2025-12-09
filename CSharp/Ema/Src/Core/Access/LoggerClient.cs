@@ -1,11 +1,10 @@
-﻿/*|-----------------------------------------------------------------------------
+/*|-----------------------------------------------------------------------------
  *|            This source code is provided under the Apache 2.0 license
  *|  and is provided AS IS with no warranty or guarantee of fit for purpose.
  *|                See the project's LICENSE.md for details.
- *|           Copyright (C) 2023-2024 LSEG. All rights reserved.     
+ *|           Copyright (C) 2023-2025 LSEG. All rights reserved.
  *|-----------------------------------------------------------------------------
  */
-
 
 using NLog;
 using NLog.Config;
@@ -92,17 +91,15 @@ namespace LSEG.Ema.Access
                     string fileName = string.IsNullOrEmpty(loggerConfig.FileName) ?
                         EMA_Default_File_Name : loggerConfig.FileName;
 
-                    ulong maxArchivesFiles = loggerConfig.NumberOfLogFiles > 0 ?
-                        loggerConfig.NumberOfLogFiles : 1;
-
                     var fileTarget = new FileTarget
                     {
                         Name = EMA_File_Name,
                         FileName = $"{fileName}_{ProcessId}.log",
+                        ArchiveFileName = $"{fileName}_{ProcessId}.{{#}}.log",
                         Layout = messageLayout,
-                        MaxArchiveFiles = (int)maxArchivesFiles,
+                        MaxArchiveFiles = (int)loggerConfig.NumberOfLogFiles,
                         ArchiveEvery = loggerConfig.FileArchivePeriod,
-                        ArchiveSuffixFormat = "_{1:yyyyMMdd}_{0:00}",
+                        ArchiveSuffixFormat = ".{0:0}",
                         ArchiveAboveSize = (int)loggerConfig.MaxLogFileSize,
                         KeepFileOpen = false
                     };

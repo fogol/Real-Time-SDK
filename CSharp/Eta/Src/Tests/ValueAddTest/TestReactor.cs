@@ -16,9 +16,9 @@ using System;
 using System.Linq;
 using System.Net.Sockets;
 
-using static LSEG.Eta.ValuedAdd.Tests.TestUtil;
+using static LSEG.Eta.Tests.ValueAddTest.TestUtil;
 
-namespace LSEG.Eta.ValuedAdd.Tests;
+namespace LSEG.Eta.Tests.ValueAddTest;
 
 /// <summary>
 /// This class represents a single Reactor.

@@ -2,7 +2,7 @@
  *|            This source code is provided under the Apache 2.0 license
  *|  and is provided AS IS with no warranty or guarantee of fit for purpose.
  *|                See the project's LICENSE.md for details.
- *|           Copyright (C) 2023-2024 LSEG. All rights reserved.
+ *|           Copyright (C) 2023-2025 LSEG. All rights reserved.
  *|-----------------------------------------------------------------------------
  */
 
@@ -38,11 +38,11 @@ namespace LSEG.Eta.Tests
 
         public Socket Socket => null;
 
-        public event Transports.ConnectionStateChangeHandler OnConnected;
+        public event Eta.Transports.ConnectionStateChangeHandler OnConnected;
         public event DataXferHandler OnDataReady;
         public event DataXferHandler OnDataSent;
-        public event Transports.ConnectionStateChangeHandler OnDisconnected;
-        public event Transports.ConnectionStateChangeHandler OnError;
+        public event Eta.Transports.ConnectionStateChangeHandler OnDisconnected;
+        public event Eta.Transports.ConnectionStateChangeHandler OnError;
 
         internal ByteBuffer m_networkBuffer = new ByteBuffer(131072); // Default to write mode
 

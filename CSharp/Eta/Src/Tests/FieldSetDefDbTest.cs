@@ -13,7 +13,7 @@ using LSEG.Eta.Rdm;
 using Xunit;
 using Xunit.Categories;
 
-namespace LSEG.Eta.Transports.Tests
+namespace LSEG.Eta.Tests.Transports
 {
     [Category("ByteBuffer")]
     public class FieldSetDefDbTest

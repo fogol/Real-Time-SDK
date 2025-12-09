@@ -887,6 +887,7 @@ public class ReactorChannel extends VaNode
                     "submitOptions cannot be null.");
 
         _reactor._reactorLock.lock();
+        
 
         try
         {
@@ -1315,7 +1316,19 @@ public class ReactorChannel extends VaNode
                     }
                     else
                     {
-                        return _reactor.populateErrorInfo(errorInfo, ReactorReturnCodes.FAILURE,
+                    	// Reset the Transport Buffer here: An RWF message was encoded, so the position currently reflects that, but this is meant to be sent as JSON.
+						if (packedBufferImpl.nextRWFBufferPosition() == 0)
+						{
+							buffer.data().position(buffer.dataStartPosition());
+						}
+						else
+						{
+							buffer.data().position(packedBufferImpl.nextRWFBufferPosition());
+						}
+
+                        System.out.println("buffer position" + buffer.data().position());
+
+                        return _reactor.populateErrorInfo(errorInfo, CodecReturnCodes.BUFFER_TOO_SMALL,
                                 "Reactor.packBuffer", "Failed to pack buffer as the required buffer size(" + neededSize + ") is larger than "
                                                       + "the remaining packed buffer size(" + packedBufferImpl.remainingSize + ").");
                     }

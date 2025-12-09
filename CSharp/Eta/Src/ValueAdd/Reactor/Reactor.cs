@@ -24,13 +24,15 @@ namespace LSEG.Eta.ValueAdd.Reactor
     /// create connections by calling <see cref="Reactor.Connect(ReactorConnectOptions, ReactorRole, out ReactorErrorInfo?)"/> and process events 
     /// by calling <see cref="Reactor.Dispatch(ReactorDispatchOptions, out ReactorErrorInfo?)"/>
     /// </summary>
-    sealed public class Reactor : IReactorEventSender
+    sealed public class Reactor : IReactor
     {
         internal const int DEFAULT_INIT_EVENT_POOLS = 10;
 
         internal const int DEFAULT_WAIT_CLOSE_CHANNEL_ACK = 5; /* Maximum wait time to receive close ack from the worker thread. */
 
         internal MonitorWriteLocker ReactorLock { get; set; } = new MonitorWriteLocker(new object());
+
+        Locker IReactor.ReactorLock => ReactorLock;
 
         private VaDoubleLinkList<ReactorChannel> m_ReactorChannelQueue = new VaDoubleLinkList<ReactorChannel>();
         private bool m_ReactorActive = false;
@@ -3524,13 +3526,13 @@ namespace LSEG.Eta.ValueAdd.Reactor
 
         #region IReactorEventSender implementation
 
-        void IReactorEventSender.SendPreferredHostComplete(ReactorChannel reactorChannel) =>
+        void IReactor.SendPreferredHostComplete(ReactorChannel reactorChannel) =>
             SendPreferredHostComplete(reactorChannel);
 
-        void IReactorEventSender.SendPreferredHostNoFallback(ReactorChannel reactorChannel) =>
+        void IReactor.SendPreferredHostNoFallback(ReactorChannel reactorChannel) =>
             SendPreferredHostNoFallback(reactorChannel);
 
-        ReactorReturnCode IReactorEventSender.SendWorkerImplEvent(ReactorEventImpl.ImplType eventType, ReactorChannel? reactorChannel, object? additionalPayload) =>
+        ReactorReturnCode IReactor.SendWorkerImplEvent(ReactorEventImpl.ImplType eventType, ReactorChannel? reactorChannel, object? additionalPayload) =>
             SendWorkerImplEvent(eventType, reactorChannel, additionalPayload);
 
         #endregion

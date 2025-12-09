@@ -9,6 +9,7 @@
 using AspectInjector.Broker;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 
 namespace LSEG.Ema.Access.Tests;
@@ -99,11 +100,26 @@ public static class EtaGlobalPoolTestUtil
     {
         _allSectionsCleared.Wait();
         var pool = EtaObjectGlobalPool.Instance;
-        Assert.Equal(EtaObjectGlobalPool.INITIAL_POOL_SIZE, pool.m_etaBufferPool.Count);
-        Assert.Equal(EtaObjectGlobalPool.INITIAL_POOL_SIZE, pool.m_etaEncodeIteratorPool.Count);
-        foreach (var keyVal in pool.m_etaByteBufferBySizePool)
+        if (pool.m_objectPoolTracker.Enabled)
         {
-            Assert.Equal(EtaObjectGlobalPool.INITIAL_POOL_SIZE, keyVal.Value.Count);
+            var nonReturnedObjects = pool.m_objectPoolTracker.GetNonReturnedObjectInfos();
+            if (nonReturnedObjects.Count > 0)
+            {
+                Assert.Fail($"The following objects hasn't been returned to EtaGlobalPool ({nonReturnedObjects.Count}):{NewLine}"
+                    + string.Join(
+                        $"-----------------{NewLine}",
+                        nonReturnedObjects
+                            .Select(_ => $"Type: {_.ObjectType}{NewLine}Requested from: {_.RequestedFrom}{NewLine}")));
+            }
+        }
+        else
+        {
+            Assert.Equal(EtaObjectGlobalPool.INITIAL_POOL_SIZE, pool.m_etaBufferPool.Count);
+            Assert.Equal(EtaObjectGlobalPool.INITIAL_POOL_SIZE, pool.m_etaEncodeIteratorPool.Count);
+            foreach (var keyVal in pool.m_etaByteBufferBySizePool)
+            {
+                Assert.Equal(EtaObjectGlobalPool.INITIAL_POOL_SIZE, keyVal.Value.Count);
+            }
         }
     }
 }

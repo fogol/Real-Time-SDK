@@ -1,4 +1,12 @@
-﻿using LSEG.Ema.Rdm;
+/*|-----------------------------------------------------------------------------
+ *|            This source code is provided under the Apache 2.0 license
+ *|  and is provided AS IS with no warranty or guarantee of fit for purpose.
+ *|                See the project's LICENSE.md for details.
+ *|           Copyright (C) 2025 LSEG. All rights reserved.
+ *|-----------------------------------------------------------------------------
+ */
+
+using LSEG.Ema.Rdm;
 using LSEG.Eta.Codec;
 using System;
 using System.Linq;
@@ -186,6 +194,10 @@ namespace LSEG.Ema.Access.Tests.ComplexTypeTests
         }
 
         [Fact]
+        public void RefreshMsgCopyCtorTest() =>
+            TestRefreshMsgCloning(msg => new(msg));
+
+        [Fact]
         public void RefreshMsgCloneTest() =>
             TestRefreshMsgCloning(msg => msg.Clone());
 
@@ -230,6 +242,10 @@ namespace LSEG.Ema.Access.Tests.ComplexTypeTests
         }
 
         [Fact]
+        public void UpdateMsgCopyCtorTest() =>
+            TestUpdateMsgCloning(msg => new(msg));
+
+        [Fact]
         public void UpdateMsgCloneTest() =>
             TestUpdateMsgCloning(msg => msg.Clone());
 
@@ -265,6 +281,10 @@ namespace LSEG.Ema.Access.Tests.ComplexTypeTests
         }
 
         [Fact]
+        public void StatusMsgCopyCtorTest() =>
+            TestStatusMsgCloning(msg => new(msg));
+
+        [Fact]
         public void StatusMsgCloneTest() =>
             TestStatusMsgCloning(msg => msg.Clone());
 
@@ -293,6 +313,10 @@ namespace LSEG.Ema.Access.Tests.ComplexTypeTests
                 PropPayload<AckMsg>((msg, v) => msg.Payload(v))
                 );
         }
+
+        [Fact]
+        public void AckMsgCopyCtorTest() =>
+            TestAckMsgCloning(msg => new(msg));
 
         [Fact]
         public void AckMsgCloneTest() =>
@@ -325,6 +349,10 @@ namespace LSEG.Ema.Access.Tests.ComplexTypeTests
         }
 
         [Fact]
+        public void PostMsgCopyCtorTest() =>
+            TestPostMsgCloning(msg => new(msg));
+
+        [Fact]
         public void PostMsgCloneTest() =>
             TestPostMsgCloning(msg => msg.Clone());
 
@@ -352,6 +380,10 @@ namespace LSEG.Ema.Access.Tests.ComplexTypeTests
                 PropPayload<RequestMsg>((msg, v) => msg.Payload(v))
                 );
         }
+
+        [Fact]
+        public void RequestMsgCopyCtorTest() =>
+            TestRequestMsgCloning(msg => new(msg));
 
         [Fact]
         public void RequestMsgCloneTest() =>

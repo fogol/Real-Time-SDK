@@ -375,12 +375,24 @@ class WlStream extends VaNode
         
         return ret;
     }
+
+    int sendMsgOnLoop(Msg msg, ReactorSubmitOptions submitOptions, ReactorErrorInfo errorInfo, boolean fromPendingMsg)
+    {
+        int ret = sendMsg(msg, submitOptions, errorInfo, fromPendingMsg);
+
+        return ret;
+    }
+
+    int sendMsg(Msg msg, ReactorSubmitOptions submitOptions, ReactorErrorInfo errorInfo)
+    {
+        return sendMsg(msg, submitOptions, errorInfo, false);
+    }
     
     
     /* Wrapper for sendMsg, used when looping through the pending item queue. Can return SUCCESS, FAILURE, or NO_BUFFERS, allowing the loop to stop if NO_BUFFERS is received */
     int sendMsgOnLoop(Msg msg, ReactorSubmitOptions submitOptions, ReactorErrorInfo errorInfo)
     {
-    	int ret = sendMsg(msg, submitOptions, errorInfo);
+    	int ret = sendMsg(msg, submitOptions, errorInfo, false);
     	
     	return ret;
     }
@@ -388,7 +400,7 @@ class WlStream extends VaNode
     /* Wrapper for sendMsg, used when just sending a message. Can return SUCCESS, or FAILURE */
     int sendMsgOutOfLoop(Msg msg, ReactorSubmitOptions submitOptions, ReactorErrorInfo errorInfo)
     {
-    	int ret = sendMsg(msg, submitOptions, errorInfo);
+    	int ret = sendMsg(msg, submitOptions, errorInfo, false);
     	
     	if(ret == ReactorReturnCodes.NO_BUFFERS)
         {
@@ -399,7 +411,7 @@ class WlStream extends VaNode
     }
     
     /* Sends a message to the stream. */
-    int sendMsg(Msg msg, ReactorSubmitOptions submitOptions, ReactorErrorInfo errorInfo)
+    int sendMsg(Msg msg, ReactorSubmitOptions submitOptions, ReactorErrorInfo errorInfo, boolean fromPendingMsg)
     {
         int ret = ReactorReturnCodes.SUCCESS;
 
@@ -432,7 +444,7 @@ class WlStream extends VaNode
 					// add to waiting request list
 					handler().addPendingRequest(null);
 
-					return ReactorReturnCodes.SUCCESS;
+					if (!fromPendingMsg) return ReactorReturnCodes.SUCCESS;
 				}
 			}
 			else

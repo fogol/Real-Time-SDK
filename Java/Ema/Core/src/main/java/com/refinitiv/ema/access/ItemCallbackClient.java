@@ -5367,13 +5367,37 @@ class ItemWatchList
 		_itemList.remove(providerItem);
 	}
 	
-	void processChannelEvent(ReactorChannelEvent reactorChannelEvent)
+	void processIProviderChannelEvent(ReactorChannelEvent reactorChannelEvent)
 	{
 		switch ( reactorChannelEvent.eventType() )
 		{
 			case ReactorChannelEventTypes.CHANNEL_DOWN:
 			case ReactorChannelEventTypes.CHANNEL_DOWN_RECONNECTING:
 				notifyClosedRecoverableStatusMessage();
+				break;
+			default:
+				break;
+		}
+	}
+	
+	// This is strictly for the NiProvider handling of dictionary requests.
+	@SuppressWarnings("unchecked")
+	void processNiProvChannelEvent(ReactorChannelEvent reactorChannelEvent)
+	{
+		switch ( reactorChannelEvent.eventType() )
+		{
+			case ReactorChannelEventTypes.CHANNEL_DOWN:
+			case ReactorChannelEventTypes.CHANNEL_DOWN_RECONNECTING:
+				for(int index = 0; index < _itemList.size(); index++ )
+				{
+					NiProviderSessionChannelInfo<OmmProviderClient> sessionChannel = ((ChannelInfo)reactorChannelEvent.reactorChannel().userSpecObj()).niProviderSessionChannelInfo();
+					// For NiProviders, all items in _itemList should be NiProviderDictionaryItem objects.
+					NiProviderDictionaryItem<OmmProviderClient> dictionaryItem =  (NiProviderDictionaryItem<OmmProviderClient>)_itemList.get(index);
+					
+					// Schedule the closed recoverable status for the item if the sessionChannel is null, or if the session channel is the same as the dictionary item's niProv session channel info
+					if(sessionChannel == null || (sessionChannel == dictionaryItem.niProviderSessionChannelInfo()))
+						dictionaryItem.scheduleItemClosedRecoverableStatus("channel down", true);
+				}
 				break;
 			default:
 				break;

@@ -20,7 +20,7 @@ public class ProviderSessionInfo extends SessionInfo {
     private long handle;
 
     void loadProviderSession(OmmProvider provider, ReactorChannel reactorChannel) {
-        super.loadSessionInfo(reactorChannel);
+        loadSessionInfo(reactorChannel);
         final ClientSession clientSession = (ClientSession) reactorChannel.userSpecObj();
         if (clientSession != null) {
             handle = clientSession.getLoginHandle();
@@ -51,5 +51,35 @@ public class ProviderSessionInfo extends SessionInfo {
      */
     public long getHandle() {
         return handle;
+    }
+    
+    @Override
+    protected void loadSessionInfo(ReactorChannel channel) {
+        channelInformation.clear();
+        
+        if(channel == null)
+        	return;
+        
+        /* Checks whether the SessionChannelInfo is available */
+        if(channel.userSpecObj() != null && channel.userSpecObj() instanceof ChannelInfo)
+        {
+        	ChannelInfo chnlInfo = (ChannelInfo)channel.userSpecObj();
+        	
+        	// This will only be not null if it's a NiProvider
+        	if(chnlInfo.sessionChannelInfo() != null)
+        	{
+        		channelInformation.set(channel, (NiProviderSessionChannelConfig)chnlInfo.sessionChannelInfo().sessionChannelConfig());
+        	}
+        	else
+        	{
+        		channelInformation.set(channel);
+        	}
+        	
+        	channelInformation.channelName(chnlInfo._channelConfig.name);
+        }
+        else
+        {
+        	channelInformation.set(channel);
+        }
     }
 }

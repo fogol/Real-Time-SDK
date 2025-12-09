@@ -1,22 +1,61 @@
-///*|-----------------------------------------------------------------------------
-// *|            This source code is provided under the Apache 2.0 license
-// *|  and is provided AS IS with no warranty or guarantee of fit for purpose.
-// *|                See the project's LICENSE.md for details.
-// *|           Copyright (C) 2024 LSEG. All rights reserved.     
-///*|-----------------------------------------------------------------------------
+/*|-----------------------------------------------------------------------------
+ *|            This source code is provided under the Apache 2.0 license
+ *|  and is provided AS IS with no warranty or guarantee of fit for purpose.
+ *|                See the project's LICENSE.md for details.
+ *|           Copyright (C) 2024-2025 LSEG. All rights reserved.
+ *|-----------------------------------------------------------------------------
+ */
 
 package com.refinitiv.ema.access;
 
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.List;
+
 import com.refinitiv.ema.access.OmmNiProviderImpl.StreamInfo;
 import com.refinitiv.ema.access.OmmNiProviderImpl.StreamType;
+import com.refinitiv.eta.codec.Buffer;
 import com.refinitiv.eta.codec.CodecFactory;
 import com.refinitiv.eta.codec.CodecReturnCodes;
 import com.refinitiv.eta.codec.EncodeIterator;
+import com.refinitiv.eta.transport.Channel;
 import com.refinitiv.eta.transport.TransportBuffer;
 import com.refinitiv.eta.valueadd.reactor.ReactorChannel;
 import com.refinitiv.eta.valueadd.reactor.ReactorErrorInfo;
 import com.refinitiv.eta.valueadd.reactor.ReactorFactory;
 import com.refinitiv.eta.valueadd.reactor.ReactorReturnCodes;
+import com.refinitiv.eta.valueadd.reactor.ReactorChannel.State;
+
+class NiProvSessionTransportBuffer {
+	public TransportBuffer transportBuffer = null;
+	public NiProviderSessionChannelInfo<OmmProviderClient> niProvSessionChannel = null;
+	public Channel rsslChannel = null;
+	
+	public NiProvSessionTransportBuffer()
+	{
+		clear();
+	}
+	
+	public void releaseBuffer(ReactorErrorInfo errorInfo)
+	{
+		// If the rsslChannel doesn't match, this means that it the old underlying ETA channel has been closed so the transport buffer has been cleaned up already.
+		if(transportBuffer != null && niProvSessionChannel != null && niProvSessionChannel.reactorChannel() != null && niProvSessionChannel.reactorChannel().channel() == rsslChannel)
+		{
+			niProvSessionChannel.reactorChannel().releaseBuffer(transportBuffer, errorInfo);
+		}
+		
+		transportBuffer = null;
+		rsslChannel = null;
+	}
+	
+	// This assumes that buffer has already been released
+	public void clear()
+	{
+		transportBuffer = null;
+		niProvSessionChannel = null;
+		rsslChannel = null;
+	}
+}
 
 class PackedMsgImpl implements PackedMsg {
 	private TransportBuffer transportBuffer;
@@ -30,7 +69,12 @@ class PackedMsgImpl implements PackedMsg {
 	private OmmNiProviderImpl niProviderImpl;
 	private OmmInvalidUsageExceptionImpl _ommIUExcept;
 	private ReactorErrorInfo errorInfo;
+	
+	private Buffer encBuffer;
+	private List<NiProvSessionTransportBuffer> rwfSessionBufferList = null;
 	EncodeIterator encIter;
+	
+	boolean initBufferCalled = false;
 
 	final static int DEFAULT_MAX_SIZE = 6000;
 	
@@ -61,10 +105,25 @@ class PackedMsgImpl implements PackedMsg {
 		}
 		else if (niProviderImpl != null)
 		{
-			this.reactorChannel = niProviderImpl._channelCallbackClient.channelList().get(0).rsslReactorChannel();
+			if(niProviderImpl.niProviderSession() == null)
+			{
+				this.reactorChannel = niProviderImpl._channelCallbackClient.channelList().get(0).rsslReactorChannel();
+			}
+			else
+			{
+				if(rwfSessionBufferList == null)
+					rwfSessionBufferList = new ArrayList<NiProvSessionTransportBuffer>();
+				
+				rwfSessionBufferList.clear();
+				
+				if(encBuffer == null)
+					encBuffer = CodecFactory.createBuffer();
+			}
+			
 		}
 		
 		getBuffer();
+		initBufferCalled = true;
 		return this;
 	}
 	
@@ -81,10 +140,24 @@ class PackedMsgImpl implements PackedMsg {
 		}
 		else if (niProviderImpl != null)
 		{
-			this.reactorChannel = niProviderImpl._channelCallbackClient.channelList().get(0).rsslReactorChannel();
+			if(niProviderImpl.niProviderSession() == null)
+			{
+				this.reactorChannel = niProviderImpl._channelCallbackClient.channelList().get(0).rsslReactorChannel();
+			}
+			else
+			{
+				if(rwfSessionBufferList == null)
+					rwfSessionBufferList = new ArrayList<NiProvSessionTransportBuffer>();
+				
+				rwfSessionBufferList.clear();
+				
+				if(encBuffer == null)
+					encBuffer = CodecFactory.createBuffer();
+			}
 		}
 		
 		getBuffer();
+		initBufferCalled = true;
 		return this;
 	}
 	
@@ -111,6 +184,7 @@ class PackedMsgImpl implements PackedMsg {
 		}
 
 		getBuffer();
+		initBufferCalled = true;
 		return this;
 	}
 	
@@ -137,7 +211,7 @@ class PackedMsgImpl implements PackedMsg {
 		}
 		
 		getBuffer();
-		
+		initBufferCalled = true;
 		return this;
 	}
 	
@@ -146,22 +220,77 @@ class PackedMsgImpl implements PackedMsg {
 		if (errorInfo == null)
 			errorInfo = ReactorFactory.createReactorErrorInfo();
 		
-		if (reactorChannel.channel() == null)
+		// If iProviderImpl is null, niProviderImpl should not be null
+		if(iProviderImpl != null || niProviderImpl.niProviderSession() == null )
 		{
-			String temp = "Failed to retrieve transport buffer. No active channel exists." ;
-			throw ommIUExcept().message(temp, OmmInvalidUsageException.ErrorCode.NO_ACTIVE_CHANNEL);
+			if (reactorChannel.channel() == null)
+			{
+				String temp = "Failed to retrieve transport buffer. No active channel exists." ;
+				throw ommIUExcept().message(temp, OmmInvalidUsageException.ErrorCode.NO_ACTIVE_CHANNEL);
+			}
+			transportBuffer = reactorChannel.getBuffer(maxSize, true, errorInfo);
+			if (transportBuffer == null)
+			{
+				String temp = "Failed to retrieve transport buffer from channel." ;
+				throw ommIUExcept().message(temp, OmmInvalidUsageException.ErrorCode.NO_BUFFERS);
+			}
 		}
-		transportBuffer = reactorChannel.getBuffer(maxSize, true, errorInfo);
-		if (transportBuffer == null)
+		else
 		{
-			String temp = "Failed to retrieve transport buffer from channel." ;
-			throw ommIUExcept().message(temp, OmmInvalidUsageException.ErrorCode.NO_BUFFERS);
+			// NiProvider session
+			for(int index = 0; index < niProviderImpl.niProviderSession().sessionChannelList().size(); ++index)
+			{
+				NiProviderSessionChannelInfo<OmmProviderClient> channelInfo = (NiProviderSessionChannelInfo<OmmProviderClient>)niProviderImpl.niProviderSession().sessionChannelList().get(index);
+				
+				// Only get a buffer if the state is READY.
+				if(channelInfo.reactorChannel().state() == State.READY)
+				{
+					TransportBuffer tempBuffer = channelInfo.reactorChannel().getBuffer(maxSize, true, errorInfo);
+					if (tempBuffer == null)
+					{
+						while(rwfSessionBufferList.size() != 0)
+						{
+							NiProvSessionTransportBuffer tmpBuffer = rwfSessionBufferList.remove(0);
+							
+							tmpBuffer.releaseBuffer(errorInfo);
+							tmpBuffer.clear();
+						}
+						
+						String temp = "Failed to retrieve transport buffer from channel: ";
+						throw ommIUExcept().message(temp, OmmInvalidUsageException.ErrorCode.NO_BUFFERS);
+					}
+					
+					
+					NiProvSessionTransportBuffer packedSessionBuffer = new NiProvSessionTransportBuffer();
+					packedSessionBuffer.rsslChannel = channelInfo.reactorChannel().channel();
+					packedSessionBuffer.niProvSessionChannel = channelInfo;
+					packedSessionBuffer.transportBuffer = tempBuffer;
+					
+					
+					rwfSessionBufferList.add(packedSessionBuffer);
+				}
+				
+				// Setup and allocate the encode buffer.  Re-allocate if we need a larger bytebuffer.
+				if(encBuffer.capacity() < maxSize)
+				{
+					encBuffer.clear();
+					
+					encBuffer.data(ByteBuffer.allocate(maxSize));
+				}
+				else
+				{
+					// Just reset the buffer length
+					encBuffer.data().clear();
+				}
+				
+			}
 		}
 	}
 	
 	public PackedMsg addMsg(Msg msg, long handle) {
 		// If this reactorChannel has no channel set, our connection is not established anymore
-		if (reactorChannel.channel() == null)
+		// For a NiProvider session, this will be handled below.
+		if ((reactorChannel != null && reactorChannel.channel() == null))
 		{
 			String temp = "addMsg() failed because connection is not established." ;
 			throw ommIUExcept().message(temp, OmmInvalidUsageException.ErrorCode.NO_ACTIVE_CHANNEL);
@@ -173,7 +302,7 @@ class PackedMsgImpl implements PackedMsg {
 			throw ommIUExcept().message(temp, OmmInvalidUsageException.ErrorCode.INVALID_OPERATION);
 		}
 		
-		if (transportBuffer == null)
+		if (initBufferCalled == false )
 		{
 			String temp = "addMsg() failed because initBuffer() was not called." ;
 			throw ommIUExcept().message(temp, OmmInvalidUsageException.ErrorCode.INVALID_OPERATION);
@@ -189,8 +318,6 @@ class PackedMsgImpl implements PackedMsg {
 		else
 			encIter.clear();
 		
-		encIter.setBufferAndRWFVersion(transportBuffer, reactorChannel.majorVersion(), reactorChannel.minorVersion());
-		
 		// Set StreamId of the message
 		ItemInfo itemInfo = null;
 		boolean niProviderStreamAdded = false;	// Check if stream was added for NiProvider
@@ -199,6 +326,7 @@ class PackedMsgImpl implements PackedMsg {
 		if (iProviderImpl != null)
 		{
 			iProviderImpl.userLock().lock();
+						
 			itemInfo = iProviderImpl.getItemInfo(handle);
 			if (itemInfo == null)	// Stream is down
 			{
@@ -295,60 +423,200 @@ class PackedMsgImpl implements PackedMsg {
 				}
 			}
 		}
-
-		retCode = msgImpl._rsslMsg.encode(encIter);
-		if (retCode < CodecReturnCodes.SUCCESS)
+		
+		if(iProviderImpl != null || niProviderImpl.niProviderSession() == null)
 		{
-			if (niProviderStreamAdded && niProviderStream != null)
+
+			encIter.setBufferAndRWFVersion(transportBuffer, reactorChannel.majorVersion(), reactorChannel.minorVersion());
+
+			retCode = msgImpl._rsslMsg.encode(encIter);
+			if (retCode < CodecReturnCodes.SUCCESS)
 			{
-				niProviderImpl._handleToStreamInfo.remove(niProviderStream.handle());
-				niProviderStream.returnToPool();
-				niProviderStream = null;
+				if (niProviderStreamAdded && niProviderStream != null)
+				{
+					niProviderImpl._handleToStreamInfo.remove(niProviderStream.handle());
+					niProviderStream.returnToPool();
+					niProviderStream = null;
+				}
+				
+				if (retCode == CodecReturnCodes.BUFFER_TOO_SMALL)
+				{
+					String temp = "Not enough space remaining in this PackedMsg buffer after encoding message." ;
+					throw ommIUExcept().message(temp, OmmInvalidUsageException.ErrorCode.BUFFER_TOO_SMALL);
+				}
+				else
+				{
+					releaseBuffer();
+					String temp = "Failed to encode message during addMsg()." ;
+					throw ommIUExcept().message(temp, OmmInvalidUsageException.ErrorCode.FAILURE);
+				}
+			}
+		
+			// This will handle both RWF and JSON.
+			if ((retCode = reactorChannel.packBuffer(transportBuffer, errorInfo)) < ReactorReturnCodes.SUCCESS) 
+			{
+				if (niProviderStreamAdded && niProviderStream != null)
+				{
+					niProviderImpl._handleToStreamInfo.remove(niProviderStream.handle());
+					niProviderStream.returnToPool();
+					niProviderStream = null;
+				}
+				
+				String temp;
+				switch(errorInfo.code())
+				{
+					case CodecReturnCodes.BUFFER_TOO_SMALL:
+						temp = "Not enough space remaining in this PackedMsg buffer." ;
+						throw ommIUExcept().message(temp, OmmInvalidUsageException.ErrorCode.BUFFER_TOO_SMALL);
+					case ReactorReturnCodes.FAILURE:
+						releaseBuffer();
+						temp = "Failed to pack buffer during addMsg().";
+						throw ommIUExcept().message(temp, OmmInvalidUsageException.ErrorCode.FAILURE);
+					case ReactorReturnCodes.SHUTDOWN:
+						releaseBuffer();
+						temp = "Failed to pack buffer during addMsg().";
+						throw ommIUExcept().message(temp, OmmInvalidUsageException.ErrorCode.CHANNEL_ERROR);
+					default: 
+						releaseBuffer();
+						temp = "Failed to pack buffer during addMsg().";
+						throw ommIUExcept().message(temp, OmmInvalidUsageException.ErrorCode.FAILURE);
+				}
 			}
 			
-			if (retCode == CodecReturnCodes.BUFFER_TOO_SMALL)
-			{
-				String temp = "Not enough space remaining in this PackedMsg buffer." ;
-				throw ommIUExcept().message(temp, OmmInvalidUsageException.ErrorCode.BUFFER_TOO_SMALL);
-			}
-			else
-			{
-				releaseBuffer();
-				String temp = "Failed to encode message during addMsg()." ;
-				throw ommIUExcept().message(temp, OmmInvalidUsageException.ErrorCode.FAILURE);
-			}
+			remainingSize = retCode;	// Set remainingSize to our return from packBuffer
+			packedMsgCount++;
 		}
-
-		if ((retCode = reactorChannel.packBuffer(transportBuffer, errorInfo)) < ReactorReturnCodes.SUCCESS) 
+		else
 		{
-			if (niProviderStreamAdded && niProviderStream != null)
+			int packedMessages = 0;
+			boolean encodedData = false;
+			encBuffer.data().clear();
+			
+			// Go through JSON first, because JSON messages will generally be larger than OMMRWF, so if there is a BUFFER_TOO_SMALL scenario, we should hit it
+			// with JSON before RWF.
+			boolean jsonRemainingSizeSet = false;
+			int bufferListSize = rwfSessionBufferList.size();
+			int index = 0;
+			
+			for(int count = 0; count < bufferListSize; ++count)
 			{
-				niProviderImpl._handleToStreamInfo.remove(niProviderStream.handle());
-				niProviderStream.returnToPool();
-				niProviderStream = null;
+				NiProvSessionTransportBuffer packedBuffer = rwfSessionBufferList.get(index);
+				
+				// If the original ETA Channel for the pack does not match the current reactor channel, remove the channel from the list and continue. 
+				if(packedBuffer.rsslChannel != packedBuffer.niProvSessionChannel.reactorChannel().channel())
+				{
+					rwfSessionBufferList.remove(index);
+					packedBuffer.clear();
+					continue;
+				}
+				
+				if(encodedData == false)
+				{
+					// NiProvider session
+					encIter.setBufferAndRWFVersion(encBuffer, packedBuffer.niProvSessionChannel.reactorChannel().majorVersion(), packedBuffer.niProvSessionChannel.reactorChannel().minorVersion());
+					
+					retCode = msgImpl._rsslMsg.encode(encIter);
+					if (retCode < CodecReturnCodes.SUCCESS)
+					{
+						if (niProviderStreamAdded && niProviderStream != null)
+						{
+							niProviderImpl._handleToStreamInfo.remove(niProviderStream.handle());
+							niProviderStream.returnToPool();
+							niProviderStream = null;
+						}
+						
+						if (retCode == CodecReturnCodes.BUFFER_TOO_SMALL)
+						{
+							String temp = "Not enough space remaining in this PackedMsg buffer." ;
+							throw ommIUExcept().message(temp, OmmInvalidUsageException.ErrorCode.BUFFER_TOO_SMALL);
+						}
+						else
+						{
+							releaseBuffer();
+							String temp = "Failed to encode message during addMsg()." ;
+							throw ommIUExcept().message(temp, OmmInvalidUsageException.ErrorCode.FAILURE);
+						}
+					}
+					
+					// Check to see if this can fit in the previous remaining size.  If not, return an error.
+					if(encBuffer.length() > remainingSize)
+					{
+						String temp = "Not enough space remaining in this PackedMsg buffer." ;
+						throw ommIUExcept().message(temp, OmmInvalidUsageException.ErrorCode.BUFFER_TOO_SMALL);
+					}
+					
+					encodedData = true;
+				}
+				
+				encBuffer.data().flip();
+				
+				packedBuffer.transportBuffer.data().put(encBuffer.data());
+				
+				// This will handle both RWF and JSON.
+				if ((retCode = packedBuffer.niProvSessionChannel.reactorChannel().packBuffer(packedBuffer.transportBuffer, errorInfo)) < ReactorReturnCodes.SUCCESS) 
+				{
+					
+					if (niProviderStreamAdded && niProviderStream != null)
+					{
+						niProviderImpl._handleToStreamInfo.remove(niProviderStream.handle());
+						niProviderStream.returnToPool();
+						niProviderStream = null;
+					}
+					
+					String temp;
+					switch(errorInfo.code())
+					{
+						case CodecReturnCodes.BUFFER_TOO_SMALL:
+							temp = "Not enough space remaining in this PackedMsg buffer." ;
+							throw ommIUExcept().message(temp, OmmInvalidUsageException.ErrorCode.BUFFER_TOO_SMALL);
+						case ReactorReturnCodes.FAILURE:
+							// This means that there was a channel failure between the initial check and here, so just cleanup the packed buffer and continue.
+							if(packedBuffer.niProvSessionChannel.reactorChannel().state() != State.READY)
+							{
+								rwfSessionBufferList.remove(index);
+								packedBuffer.clear();
+								continue;
+							}
+							releaseBuffer();
+							temp = "Failed to pack buffer during addMsg().";
+							throw ommIUExcept().message(temp, OmmInvalidUsageException.ErrorCode.FAILURE);
+						case ReactorReturnCodes.SHUTDOWN:
+							releaseBuffer();
+							temp = "Failed to pack buffer during addMsg().";
+							throw ommIUExcept().message(temp, OmmInvalidUsageException.ErrorCode.CHANNEL_ERROR);
+						default: 
+							releaseBuffer();
+							temp = "Failed to pack buffer during addMsg().";
+							throw ommIUExcept().message(temp, OmmInvalidUsageException.ErrorCode.FAILURE);
+					}
+				}
+				else
+				{
+					packedMessages++;
+					if(jsonRemainingSizeSet == false)
+						remainingSize = retCode;	// Set remainingSize to our return from packBuffer.  JSON should always be a smaller buffer after encoding, so in the case of a mixed JSON and RWF connection set, we will defer to the remaining JSON buffer
+				}
+				
+				
+				index++;
 			}
 			
-			String temp;
-			switch(errorInfo.code())
+			if(packedMessages == 0)
 			{
-				case ReactorReturnCodes.FAILURE:
-					releaseBuffer();
-					temp = "Failed to pack buffer during addMsg().";
-					throw ommIUExcept().message(temp, OmmInvalidUsageException.ErrorCode.FAILURE);
-				case ReactorReturnCodes.SHUTDOWN:
-					releaseBuffer();
-					temp = "Failed to pack buffer during addMsg().";
-					throw ommIUExcept().message(temp, OmmInvalidUsageException.ErrorCode.CHANNEL_ERROR);
-				default: 
-					releaseBuffer();
-					temp = "Failed to pack buffer during addMsg().";
-					throw ommIUExcept().message(temp, OmmInvalidUsageException.ErrorCode.FAILURE);
+				if (niProviderStreamAdded && niProviderStream != null)
+				{
+					niProviderImpl._handleToStreamInfo.remove(niProviderStream.handle());
+					niProviderStream.returnToPool();
+					niProviderStream = null;
+				}
+				
+				String temp = "addMsg() failed because connection is not established." ;
+				throw ommIUExcept().message(temp, OmmInvalidUsageException.ErrorCode.NO_ACTIVE_CHANNEL);
 			}
+			
+			packedMsgCount++;
 		}
 		
-		remainingSize = retCode;	// Set remainingSize to our return from packBuffer
-		packedMsgCount++;
-
 		return this;
 	}
 
@@ -367,9 +635,13 @@ class PackedMsgImpl implements PackedMsg {
 	}
 
 	public PackedMsg clear() {
+		initBufferCalled = false;
 		remainingSize = 0;
 		packedMsgCount = 0;
 		releaseBuffer();
+		
+		if(rwfSessionBufferList != null)
+			rwfSessionBufferList.clear();
 		return this;
 	}
 	
@@ -381,6 +653,11 @@ class PackedMsgImpl implements PackedMsg {
 	public void setTransportBuffer(TransportBuffer transportBuffer)
 	{
 		this.transportBuffer = transportBuffer;
+	}
+	
+	public void setCalledInitbuffer(boolean calledInit)
+	{
+		initBufferCalled = calledInit;
 	}
 	
 	OmmInvalidUsageExceptionImpl ommIUExcept()
@@ -408,5 +685,27 @@ class PackedMsgImpl implements PackedMsg {
 			reactorChannel.releaseBuffer(transportBuffer, errorInfo);
 			transportBuffer = null;
 		}
+		
+		NiProvSessionTransportBuffer packedBuffer;
+		
+		if(rwfSessionBufferList != null)
+		{
+			int bufferListSize = rwfSessionBufferList.size();
+			
+			for(int count = 0; count < bufferListSize; ++count)
+			{
+				packedBuffer = rwfSessionBufferList.get(count);
+				packedBuffer.releaseBuffer(errorInfo);
+				packedBuffer.clear();
+			}
+		}
+		
+		initBufferCalled = false;
+		
+	}
+	
+	List<NiProvSessionTransportBuffer> getRwfBufferList()
+	{
+		return rwfSessionBufferList;
 	}
 }
