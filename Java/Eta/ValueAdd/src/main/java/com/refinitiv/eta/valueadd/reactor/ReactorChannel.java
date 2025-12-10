@@ -1326,8 +1326,6 @@ public class ReactorChannel extends VaNode
 							buffer.data().position(packedBufferImpl.nextRWFBufferPosition());
 						}
 
-                        System.out.println("buffer position" + buffer.data().position());
-
                         return _reactor.populateErrorInfo(errorInfo, CodecReturnCodes.BUFFER_TOO_SMALL,
                                 "Reactor.packBuffer", "Failed to pack buffer as the required buffer size(" + neededSize + ") is larger than "
                                                       + "the remaining packed buffer size(" + packedBufferImpl.remainingSize + ").");
