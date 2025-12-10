@@ -437,7 +437,7 @@ class OmmNiProviderImpl extends OmmBaseImpl<OmmProviderClient> implements OmmPro
 			return;
 		}
 		
-		if(_activeChannelInfo == null && (activeSessionChannelList != null && activeSessionChannelList.size() == 0) )
+		if((activeSessionChannelList == null && _activeChannelInfo == null) || (activeSessionChannelList != null && activeSessionChannelList.size() == 0) )
 		{
 			userLock().unlock();
 			handleInvalidUsage(strBuilder().append("No active channel to send message.").toString(), OmmInvalidUsageException.ErrorCode.NO_ACTIVE_CHANNEL);
@@ -906,7 +906,7 @@ class OmmNiProviderImpl extends OmmBaseImpl<OmmProviderClient> implements OmmPro
 			return;
 		}
 		
-		if(_activeChannelInfo == null && (activeSessionChannelList != null && activeSessionChannelList.size() == 0) )
+		if((activeSessionChannelList == null && _activeChannelInfo == null) || (activeSessionChannelList != null && activeSessionChannelList.size() == 0) )
 		{
 			userLock().unlock();
 			handleInvalidUsage(strBuilder().append("No active channel to send message.").toString(), OmmInvalidUsageException.ErrorCode.NO_ACTIVE_CHANNEL);
@@ -1371,7 +1371,7 @@ class OmmNiProviderImpl extends OmmBaseImpl<OmmProviderClient> implements OmmPro
 			return;
 		}
 		
-		if(_activeChannelInfo == null && (activeSessionChannelList != null && activeSessionChannelList.size() == 0) )
+		if((activeSessionChannelList == null && _activeChannelInfo == null) || (activeSessionChannelList != null && activeSessionChannelList.size() == 0) )
 		{
 			userLock().unlock();
 			handleInvalidUsage(strBuilder().append("No active channel to send message.").toString(), OmmInvalidUsageException.ErrorCode.NO_ACTIVE_CHANNEL);
@@ -1822,7 +1822,7 @@ class OmmNiProviderImpl extends OmmBaseImpl<OmmProviderClient> implements OmmPro
 		if(_niProviderSession != null)
 			activeSessionChannelList = _niProviderSession.activeSessionChannelList();
 		
-		if(_activeChannelInfo == null && (activeSessionChannelList != null && activeSessionChannelList.size() == 0) )
+		if((activeSessionChannelList == null && _activeChannelInfo == null) || (activeSessionChannelList != null && activeSessionChannelList.size() == 0) )
 		{
 			userLock().unlock();
 			handleInvalidUsage(strBuilder().append("No active channel to send message.").toString(), OmmInvalidUsageException.ErrorCode.NO_ACTIVE_CHANNEL);
@@ -2574,7 +2574,7 @@ class OmmNiProviderImpl extends OmmBaseImpl<OmmProviderClient> implements OmmPro
 		if(_niProviderSession != null)
 			activeSessionChannelList = _niProviderSession.activeSessionChannelList();
 		
-		if(_activeChannelInfo == null && (activeSessionChannelList != null && activeSessionChannelList.size() == 0) )
+		if((activeSessionChannelList == null && _activeChannelInfo == null) || (activeSessionChannelList != null && activeSessionChannelList.size() == 0) )
 		{
 			userLock().unlock();
 			handleInvalidUsage(strBuilder().append("No active channel to send message.").toString(), OmmInvalidUsageException.ErrorCode.NO_ACTIVE_CHANNEL);
