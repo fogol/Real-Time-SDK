@@ -79,21 +79,29 @@ public:
 		pReactorOptions(nullptr), sendGenericMsg(false),
 		compressionType(0), compressionLevel(0)
 	{
-		*portNo = '\0';
+		memset(this->portNo, 0, sizeof(this->portNo));
 	}
 
 	ADHSimulatorOptions(RsslCreateReactorOptions* pReactorOpts, const char* portNo) :
 		pReactorOptions(pReactorOpts), sendGenericMsg(false),
 		compressionType(0), compressionLevel(0)
 	{
-		memcpy(this->portNo, portNo, sizeof(this->portNo));
+		memset(this->portNo, 0, sizeof(this->portNo));
+		if ( portNo )
+		{
+			strncpy(this->portNo, portNo, sizeof(this->portNo) - 1);
+		}
 	}
 
 	ADHSimulatorOptions(RsslCreateReactorOptions* pReactorOpts, char* portNo, bool sendGenericMsg) :
 		pReactorOptions(pReactorOpts), sendGenericMsg(sendGenericMsg),
 		compressionType(0), compressionLevel(0)
 	{
-		memcpy(this->portNo, portNo, sizeof(this->portNo));
+		memset(this->portNo, 0, sizeof(this->portNo));
+		if ( portNo )
+		{
+			strncpy(this->portNo, portNo, sizeof(this->portNo) - 1);
+		}
 	}
 
 	ADHSimulatorOptions(ADHSimulatorOptions const& adhOpts) :
@@ -102,7 +110,11 @@ public:
 		compressionType(adhOpts.compressionType),
 		compressionLevel(adhOpts.compressionLevel)
 	{
-		memcpy(this->portNo, adhOpts.portNo, sizeof(this->portNo));
+		memset(this->portNo, 0, sizeof(this->portNo));
+		if ( adhOpts.portNo )
+		{
+			strncpy(this->portNo, adhOpts.portNo, sizeof(this->portNo) - 1);
+		}
 	}
 
 	ADHSimulatorOptions& operator=(ADHSimulatorOptions const& adhOpts)
@@ -110,10 +122,15 @@ public:
 		if (this != &adhOpts)
 		{
 			pReactorOptions = adhOpts.pReactorOptions;
-			memcpy(this->portNo, adhOpts.portNo, sizeof(this->portNo));
 			sendGenericMsg = adhOpts.sendGenericMsg.load();
 			compressionType = adhOpts.compressionType;
 			compressionLevel = adhOpts.compressionLevel;
+
+			memset(this->portNo, 0, sizeof(this->portNo));
+			if ( adhOpts.portNo )
+			{
+				strncpy(this->portNo, adhOpts.portNo, sizeof(this->portNo) - 1);
+			}
 		}
 		return *this;
 	}
