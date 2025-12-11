@@ -22,11 +22,11 @@ External modules used by this version of RTSDK C/C++:
      openSSL               3.0.X  * 
      openSSL               3.1.X  ** 
      ccron                 2.0.0
-     cJSON                 1.7.18
-     curl                  8.12.1
+     cJSON                 1.7.19
+     curl                  8.16.0
      googletest            1.8.1 (for older than Linux7) and 1.12.1 
      l8w8jwt               2.5.0
-     libxml2               2.13.8
+     libxml2               2.13.9
      lz4                   1.9.4 (for older than Linux7) and 1.10.0
      zlib                  1.3.1
 \* Tested on supported Linux and Windows platforms; \*\* Tested on supported Windows platform 
@@ -74,7 +74,6 @@ Linux system libraries used by RTSDK C/C++:
 - Red Hat Enterprise Server 9.X, 64-bit
 - Ubuntu 20.04, 64-bit
 - Galaxy Kylin 10, 64-bit (TCP qualification only; multicast transport not tested)
-- Amazon Linux 2, 64-bit
 - Amazon Linux 2023, 64-bit
 
 - TCP/IP networking support installed if using TCP Socket connection types
@@ -114,7 +113,6 @@ Notes:
 Platforms & Compilers:
 
      GCC compiler suite version 7.3.0 or higher for Galaxy Kylin 10, 64-bit, qualification with RH8 library build
-     GCC compiler suite version 7.3.1 or higher for Amazon Linux 2, 64-bit, qualification with RH8 library build
      GCC compiler suite version 8.3.1 or higher for Red Hat Enterprise Server 8.X, 64-bit, Native build
      Clang compiler version 9.0.1 for Linux 8 64-bit, qualification with RH8 library build 
      GCC compiler suite version 9.3.0 or higher for Ubuntu 20.04, 64-bit, qualification with RH8 library build
@@ -138,7 +136,6 @@ This release has been tested with the following on supported platform/OS combina
      OS                                           GCC Version     Use-Prebuilt Library     Use-Natively Build Library
      --------------------------------             ------------    --------------------     ----------------------------          
      Galaxy Kylin 10 64-bit                       GCC 7.3.0       RHEL8_64_GCC831          KYL10_64_GCC730
-     Amazon Linux 2 64-bit                        GCC 7.3.1       RHEL8_64_GCC831          AMA2_64_GCC731 
      Red Hat Enterprise Linux Server 8.X 64-bit   GCC 8.3.1       RHEL8_64_GCC831          RHEL8_64_GCC831
      Galaxy Kylin 10 64-bit                       GCC 8.4.0       RHEL8_64_GCC831          KYL10_64_GCC840
      Red Hat Enterprise Linux Server 8.X 64-bit   GCC 9.2.1       RHEL8_64_GCC831          RHEL8_64_GCC921
@@ -185,9 +182,9 @@ NOTE: Connectivity to Data Feed Direct (LDFD) is supported for Level 1 and Level
 
 This release has been tested with the following:
 
-- ADS 3.9.0 
-- ADH 3.9.0
-- DACS 7.12
+- ADS 3.9.1 
+- ADH 3.9.1
+- DACS 8.1
 
 # Documentation
 

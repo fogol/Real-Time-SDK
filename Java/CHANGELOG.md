@@ -9,18 +9,68 @@ There are three types of RTSDK releases that append a letter directly followed b
 "E" releases (E-Loads) are emergency RTSDK releases that are uploaded to MyAccount and Developer Community but not to GitHub. Also note that emergency releases may only be partial (i.e., Java or C++/C only).
 
 ----------------------------------------------------------------------------------------
-CURRENT RELEASE HIGHLIGHTS - RTSDK Java 2.3.1.G2 aka EMA/ETA 3.9.1.G2 aka 3.9.1.3
+CURRENT RELEASE HIGHLIGHTS - RTSDK Java 2.3.2.L1 aka EMA/ETA 3.9.2.L1 aka 3.9.2.0
 ----------------------------------------------------------------------------------------
 
-This is a maintenance release with critical fixes for customer issues.
+This release of RTSDK Java supports the NIProvider Multi-Connect Fannout feature in EMA which permits user to configure a NIProvider session which prompts API to fanout any submits of messages to all specificied connections. In addition, this release also has critical customer issue fixes.
 
 Customer Issues Resolved
 ------------------------
-- [Case Number: 15439870] - [RTSDK-10325] - ArrayOutOfBoundsException when process message in EMA and ETA Java 
+- [Case Number: 04097628] - [RTSDK-130] ValueAdd RDM Helpers should not require setting of message class
+- [Case Number: 14841566] - [RTSDK-9994, RTSDK-9867] NiProvider Multi-Connection Session Feature implementation in EMA Java 
+- [Case Number: 14872123] - [RTSDK-9896] Added examples to showcase posting SYMBOL_LIST domain using ETA Java
+- [Case Number: 15131572] - [RTSDK-10097] Submit observed during multiple server restarts fixed by adding to inactive queue 
+- [Case Number: 15174148] - [RTSDK-10119] Incomplete recovery post OnDispatchError EMA Java 
+- [Case Number: 15292274] - [RTSDK-10200] Fix to default EMA config to permit XmlTrace of Read/Write when tracing is enabled for consumer example 501
+- [Case Number: 15292653] - [RTSDK-10201] java.lang.NoClassDefFoundError: org/quartz/CronExpression when running ex500_PreferredHost_FileCfg.Consumer shipped with RTSDK-2.3.1.L1.java.rrg package
+- [Case Number: 15308229] - [RTSDK-10225] Fix to error upon fallbackPreferredHost() method call with feature disabled
+- [Case Number: 15438502] - [RTSDK-10318] Fix Readme.txt files associated with PreferredHost EMA Examples
+- [Case Number: 15482140] - [RTSDK-10350] Missed refreshes when requesting view with a large number of items requests upon recovery  
+- [GitHub #327] - [RTSDK-10388] - Update to lz4-java from 1.8.0 to 1.10.1
 
 ----------------------------------------------------------------------------------------
 FULL CHANGELOG
 ----------------------------------------------------------------------------------------
+--------------------------------------------
+RTSDK Java Release 2.3.2.L1 (Dec 16, 2025)
+--------------------------------------------
+
+EMA Java 3.9.2.L1 Issues Resolved
+---------------------------------
+- [RTSDK-9994, RTSDK-9867] - New Feature: NiProvider Multi-Connection Session Feature implementation in EMA Java [Case Number: 14841566]
+- [RTSDK-9947] - Added comments for fixedWidth vs Array Entries to 360 Consumer examples
+- [RTSDK-10200] - Fix to default EMA config to permit XmlTrace of Read/Write when tracing is enabled for consumer example 501 [Case Number: 15292274] 
+- [RTSDK-10201] - java.lang.NoClassDefFoundError: org/quartz/CronExpression when running ex500_PreferredHost_FileCfg.Consumer shipped with RTSDK-2.3.1.L1.java.rrg package [Case Number: 15292653]
+- [RTSDK-10318] - Fix to Readme.txt files associated with PreferredHost EMA Examples [Case Number: 15438502]
+- [RTSDK-10391] - Fix ETAJ VAConsumer to properly set the Reactor Channel when receiving a CHANNEL_UP callback
+
+ETA Java 3.9.2.L1 Issues Resolved
+---------------------------------
+- [RTSDK-35] - tempWlRequest in WlItemHandler's handleReissue should only be used when view is involved
+- [RTSDK-41] - Java Reactor, Generic Messages: VA Consumer is receiving generic messages of LOGIN/SOURCE domains on the wrong callback - they should arrive on defaultmsgcallback
+- [RTSDK-130] - ValueAdd RDM Helpers should not require setting of message class [Case Number: 04097628]
+- [RTSDK-160] - BigInteger should not be used in WlItemHandler's extractViewFromMsg and extractSymbolList
+- [RTSDK-196] - Compression enhancement: buffer for compression should be backed by byte array
+- [RTSDK-210, RTSDK-9894] - Watchlist message handlers should process the State of incoming messages before calling the msg callback instead of after
+- [RTSDK-8158] - Slowness in successive batch snapshot requests with overlapping item when view is specified
+- [RTSDK-9048] - Fix enableXmlTracePing in ETA consumer, provider and niprovider examples
+- [RTSDK-9119] - ETAJ Provider forceCompression=1, Compression=1 does not force compressionType of 1
+- [RTSDK-9874] - In case of reissue scenario, setting different item name in subsequent request doesn't cause an error
+- [RTSDK-9896] - Added examples to showcase posting SYMBOL_LIST domain using ETA Java [Case Number: 14872123]
+- [RTSDK-10292] - Removed time validation check in ETAJ Json Converter
+
+Both ETA Java and EMA Java 3.9.2.L1 Issues Resolved
+---------------------------------------------------
+- [RTSDK-8348] - Fix RSSL_TRACE_PING_ONLY (false by default) in ETA and add to EMA config
+- [RTSDK-9701] - Added configuration parameters to adjust the number of client sessions and item information
+- [RTSDK-10097] - Submit observed during multiple server restarts fixed by adding to inactive queue [Case Number: 15131572]
+- [RTSDK-10112] - Improved notification when ReactorChannel is already on the preferred host 
+- [RTSDK-10119] - Incomplete recovery post OnDispatchError EMA Java [Case Number: 15174148]
+- [RTSDK-10132] - Fixes to unit tests to be more deterministic for detectionTimeSchedule
+- [RTSDK-10136] - Update to java dependencies
+- [RTSDK-10225] - Fix to error upon fallbackPreferredHost() method call with feature disabled [Case Number: 15308229]
+- [RTSDK-10350] - Missed refreshes when requesting view with a large number of items requests upon recovery [Case Number: 15482140]
+- [RTSDK-10388] - Update to lz4-java from 1.8.0 to 1.10.1 [GitHub #327]
 
 --------------------------------------------
 RTSDK Java Release 2.3.1.G2 (Nov 25, 2025)
@@ -78,7 +128,7 @@ Both ETA Java and EMA Java 3.9.1.L1 Issues Resolved
 - [RTSDK-9428] - Added event PREFERRED_HOST_STARTING_FALLBACK to support Preferred Host feature
 - [RTSDK-9541] - Integration of Request Routing and Preferred Host feature using new event created using RTSDK-9428
 - [RTSDK-9588] - New Feature: Abilty to obtain URL of connecting websocket application
-- [RTSDK-9600] - New Feature: Support for Update Filtering specified via Login Request
+- [RTSDK-9600] - New Feature: Support for Update Filtering feature with mask specified in login request used by server to filter updates by type
 - [RTSDK-9687] - Update to Java dependencies: see README for comprehensive list
 
 --------------------------------------------

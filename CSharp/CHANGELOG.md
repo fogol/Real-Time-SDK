@@ -10,23 +10,73 @@ There are three types of RTSDK releases that append a letter directly followed b
     Also note that emergency releases may only be partial (i.e., CSharp, Java or C++/C only).
 
 ----------------------------------------------------------------------------------------
-CURRENT RELEASE HIGHLIGHTS - RTSDK CSharp 2.3.0.L2 aka EMA/ETA 3.4.0.L2 aka 3.4.0.0
+CURRENT RELEASE HIGHLIGHTS - RTSDK CSharp 2.3.2.L1 aka EMA/ETA 3.5.0.L1 aka 3.5.0.0
 ----------------------------------------------------------------------------------------
 
-This release of EMA C# has support for the Request Routing feature and application defined ServiceLists. Request Routing, a client-side feature, provides the application the capability to route market data item requests to multiple connections depending on the availability of services on each connection by matching quality of service and capabilities.
+This release has support for the Preferred Host feature which applies to both channelset and connection-recovery: the feature allows a switch back to a preferred host in channelSet or connection recovery configuration.
 
-In addition, this serves as maintenance release with support for Amazon Linux versions and bug fixes. 
+In this release is added support for update filtering feature which permits API users to request a filter on update type in the Login Request message. Used with a server side that supports this feature, there is a potential for bandwidth saving by limiting traffic to certain update types.  
+
+In addition, this serves as a maintenance release with fixes.
+
+Customer Issues Resolved
+------------------------
+- [GitHub #306, #318] - [RTSDK-9607] - Added configuration parameters to adjust the number of client sessions and item information
+- [Case Number: 15424547] - [RTSDK-10307] - Fix for memory leak when subscribing to unknown service (pending items) upon repeated OmmConsumer unintialize 
+- [Case Number: 15449113] - [RTSDK-10326] - Missed refreshes when requesting view with a large number of items requests upon recovery 
 
 ----------------------------------------------------------------------------------------
 FULL CHANGELOG
 ----------------------------------------------------------------------------------------
 
 ---------------------------------------------
+RTSDK CSharp Release 2.3.2.L1 (Dec 16, 2025)
+---------------------------------------------
+
+EMA CSharp 3.5.0.L1 Issues Resolved
+-----------------------------------
+- [RTSDK-8504] - New Feature: EMA C# to support the preferred host feature
+- [RTSDK-9947] - Added comments for fixedWidth vs Array Entries to 360 Consumer examples
+- [RTSDK-9607] - Added configuration parameters to adjust the number of client sessions and item information [GitHub #306, #318]
+- [RTSDK-10200] - Fix to default EMA config to permit XmlTrace of Read/Write when tracing is enabled for consumer example 501
+- [RTSDK-10255] - EMA C# RequestRouting: Cons510 does NOT show loggerMsg with INFO: ChannelUp event
+
+ETA CSharp 3.5.0.L1 Issues Resolved
+-----------------------------------
+- [RTSDK-10092] - Example added to demonstrate posting SYMBOL_LIST domain using ETA
+- [RTSDK-8620] - ETACSharp WL requests an existing item in SymbolList datastream using new streamId, it causes ADS sends status Closed to the existing streamId
+- [RTSDK-9302] - Fixes to unit tests when executed as a batch
+- [RTSDK-8501] - New Feature: ETA C# Reactor to support the preferred host feature
+- [RTSDK-10381] - Fix namespaces for .NET unit tests
+
+Both ETA and EMA CSharp 3.5.0.L1 Issues Resolved
+------------------------------------------------
+- [RTSDK-9601] - New Feature: Support for UpdateFilter feature with mask specified in login request used by server to filter updates by type
+- [RTSDK-9615] - New Feature: Supports pooling of cloned messages for better memory management
+- [RTSDK-10290] - Fix to error upon fallbackPreferredHost() method call with feature disabled
+- [RTSDK-10307] - Fix for memory leak when subscribing to unknown service (pending items) upon repeated OmmConsumer unintialize [Case Number: 15424547]
+- [RTSDK-10326] - Missed refreshes when requesting view with a large number of items requests [Case Number: 15449113]
+- [RTSDK-9905] - C# Refman warnings "No comments found for member"; related to <inheritdoc/> tag
+- [RTSDK-9957] - C# fails to send very large dictionary message to client side
+- [RTSDK-10253] - Fix XmlTracePingOnly (false by default) in ETA and add to EMA config
+- [RTSDK-9106] - Update Sandcastle build to use .net 8 and fix warnings
+- [RTSDK-9460] - Added event PREFERRED_HOST_STARTING_FALLBACK to support Preferred Host feature
+- [RTSDK-9859] - Update to RTSDK C# dependencies
+- [RTSDK-9864] - Integration of Request Routing and Preferred Host features
+- [RTSDK-9954] - Migrate C# to NLog 6
+- [RTSDK-10095] - Use IDisposable interface in C# API
+- [RTSDK-10112] - Improved notification when ReactorChannel is already on the preferred host
+
+---------------------------------------------
 RTSDK CSharp Release 2.3.0.L2 (May 28, 2025)
 ---------------------------------------------
 
-EMA CSharp 3.4.0.L2/3.4.0.0 Issues Resolved
--------------------------------------------
+This release of EMA C# has support for the Request Routing feature and application defined ServiceLists. Request Routing, a client-side feature, provides the application the capability to route market data item requests to multiple connections depending on the availability of services on each connection by matching quality of service and capabilities.
+
+In addition, this serves as maintenance release with support for Amazon Linux versions and bug fixes. 
+
+EMA CSharp 3.4.0.L2 Issues Resolved
+-----------------------------------
 - [RTSDK-1143] - Improved EMA exception and error handling documentation
 - [RTSDK-8435] - EMA C# support for OmmJson to represent JSON data type
 - [RTSDK-8469] - EMA C# Request Routing: Add new configuration values for XML and programmatic config

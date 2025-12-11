@@ -7,14 +7,67 @@ There are three types of RTSDK releases that append a letter directly followed b
 "E" releases (E-Loads) are emergency RTSDK releases that are uploaded to MyAccount and Developer Community but not to GitHub. Also note that emergency releases may only be partial (i.e., Java or C++/C only).
 
 ----------------------------------------------------------------------------------------
-CURRENT RELEASE HIGHLIGHTS - RTSDK C/CPP 2.3.1.L1 aka EMA/ETA 3.9.1.L1 aka 3.9.1.0
+CURRENT RELEASE HIGHLIGHTS - RTSDK C/CPP 2.3.2.L1 aka EMA/ETA 3.9.2.L1 aka 3.9.2.0
 ----------------------------------------------------------------------------------------
 
-This is a maintenance release with critical fixes to ETA and a fix related to the Preferred Host feature.
+This release consists of critical fixes for customer issues, optimizations to message cloning, ability to override cipher for TLS 1.3, and additional fixes for the Preferred Host feature. 
+
+Customer Issues Resolved
+----------------------------------------------------------------------------------------
+- [GitHub #304]- [RTSDK-9596] - EMA: IncludeDateInLoggerOutput is loaded by the EMA when setting it programmatically 
+- [Case Number: 14872123] - [RTSDK-10092] - Example added to demonstrate posting SYMBOL_LIST domain using ETA 
+- [Case Number: 15413435] - [RTSDK-10296] - Remove unused HandleException config in EMA example Cons421 and Cons511
+- [Case Number: 15438502] - [RTSDK-10318] - Fix Readme.txt files associated with PreferredHost EMA Examples
+- [Case Number: 15485165] - [RTSDK-10357] - rsslRMTESToUTF8 does not return BUFFER_TOO_SMALL in some scenarios
 
 ----------------------------------------------------------------------------------------
 FULL CHANGELOG
 ----------------------------------------------------------------------------------------
+
+--------------------------------------------
+RTSDK C++/C Release 2.3.2.L1 (Dec 16, 2025)
+--------------------------------------------
+
+EMA C++ 3.9.2.L1 Issues Resolved
+--------------------------------
+- [RTSDK-9654] - EMA Unit Test: Additional testing for NIProvider, Provider and Consumers
+- [RTSDK-9596] - EMA: IncludeDateInLoggerOutput is loaded by the EMA when setting it programmatically [GitHub #304]
+- [RTSDK-10166] - EMA Packing a too large message on a JSON IProv or NIProv connection will not throw a IUE exception with a BUFFER_TOO_SMALL code
+- [RTSDK-10181] - EMA Cons502 IoctlInterval doesn't work properly with fallback interval, when IoctInterval is greater than fallback interval
+- [RTSDK-10188] - EMA 480_MP_MultiCredentials option for jwkFile is missing
+- [RTSDK-10200] - Fix to default EMA config to permit XmlTrace of Read/Write when tracing is enabled for consumer example 501 
+- [RTSDK-10296] - Remove unused HandleException config in EMA example Cons421 and Cons511 [Case Number: 15413435]
+- [RTSDK-10318] - Fix Readme.txt files associated with PreferredHost EMA Examples [Case Number: 15438502] 
+
+ETA C 3.9.2.L1 Issues Resolved
+--------------------------------
+- [RTSDK-8216] - Watchlist core dump in connection recovery with cutover from OAuthV2 Login (invalid endpoint) to regular login
+- [RTSDK-8961] - rsslReactorConnect function incorrectly checks for OAuth credential list contents
+- [RTSDK-10092] - Example added to demonstrate posting SYMBOL_LIST domain using ETA [Case Number: 14872123]
+- [RTSDK-10169] - ETA C VAConsumer resets ioctlInterval whenever ChannelUp occurs
+- [RTSDK-10254] - Improved provider checks upon FD switch for Java encrypted connections 
+- [RTSDK-10349] - Fix to typo in CMake for ValueAdd NIProvider example .pdb directory 
+- [RTSDK-10357] - rsslRMTESToUTF8 does not return BUFFER_TOO_SMALL in some scenarios [Case Number: 15485165] 
+- [RTSDK-10384] - Documentation: Update doxygen for rsslRMTESToUTF8 to explain behaviors with a truncated UTF8 string if the Rmtes cache buffer contains a UTF-8 escape sequence
+
+Both ETA C and EMA C++ 3.9.2.L1 Issues Resolved
+-----------------------------------------------
+- [RTSDK-8119] - Support ability to configure cipher when using TLS 1.3
+- [RTSDK-9808] - Update C/C++ dependencies
+- [RTSDK-9613] - Permit/support pooling of cloned messages for better memory management
+- [RTSDK-10109] - EMA PH WSBLogin stays on non-preferred server in non-preferred group when PH timeinterval trigger and preferred server is available
+- [RTSDK-10112] - Improved notification when ReactorChannel is already on the preferred host
+- [RTSDK-10152] - CMake Fsanitize option added to build options
+- [RTSDK-10198] - Sanitizer shows memory leak when running Provider with identifying -cipherTLSv1.3 to invalid value
+- [RTSDK-10211] - rsslMemoryBuffer runtime error with sanitizer option enabled when receives Login and Directory Responses
+- [RTSDK-10230] - Fix to error upon fallbackPreferredHost() method call with feature disabled 
+- [RTSDK-10274] - EMA PH WSBLogin Cons500 core dumped when switch over from non-preferred to preferred wsb group, fallbackWithinWSBGroup=false
+
+--------------------------------------------
+RTSDK C++/C Release 2.3.1.L1 (Sep 9, 2025)
+--------------------------------------------
+
+This is a maintenance release with critical fixes to ETA and a fix related to the Preferred Host feature.
 
 EMA C++ 3.9.1.L1 Issues Resolved
 --------------------------------
@@ -54,7 +107,7 @@ Both ETA C and EMA C++ 3.9.0.L3 Issues Resolved
 -----------------------------------------------
 - [RTSDK-701] - Ability to build esdk with code coverage using CMAKE_CODE_COVERAGE_FLAGS
 - [RTSDK-9356] - Added/fixed copyrights in source files
-- [RTSDK-9599] - Support for Full Tick Replatform CVA UpdateFilter login settings
+- [RTSDK-9599] - Support for UpdateFilter feature with mask specified in login request used by server to filter updates by type 
 - [RTSDK-9752] - Additional Fixes for issues found by Coverity Security scan
 
 --------------------------------------------

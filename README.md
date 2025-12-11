@@ -92,4 +92,4 @@ Any source code, header files not specified above (even if included by header fi
 
 # Support SLA
 
-Issues raised via GitHub will be addressed in a best-effort manner. For broad questions regarding RTSDK, please refer to documentation (see Documentation section above) and [Q&A forum](https://community.developers.refinitiv.com/index.html) on Developer Community which supported by an active community of API users. Please contact Premium Support for any issues or questions that require prompt responses.
+Issues raised via GitHub will be addressed in a best-effort manner. For broad questions regarding RTSDK, please refer to documentation (see Documentation section above) and [Q&A forum](https://community.developers.lseg.com/index.html) on Developer Community which supported by an active community of API users. Please contact Premium Support for any issues or questions that require prompt responses.

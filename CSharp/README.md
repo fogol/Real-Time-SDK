@@ -19,20 +19,20 @@ External modules used by this version of RTSDK CSharp:
         ----------                                 -------
         K4os.Compression.LZ4                       1.3.8
         Microsoft.Csharp                           4.5.0
-        Microsoft.IdentityModel.Abstractions       8.9.0 
-        Microsoft.IdentityModel.Jsonwebtokends     8.9.0 
-        Microsoft.IdentityModel.Logging            8.9.0 
-        Microsoft.IdentityModel.Tokens             8.9.0 
+        Microsoft.IdentityModel.Abstractions       8.14.0
+        Microsoft.IdentityModel.Jsonwebtokends     8.14.0
+        Microsoft.IdentityModel.Logging            8.14.0
+        Microsoft.IdentityModel.Tokens             8.14.0
         Microsoft.Netcore.Platforms                5.0.0
-        NLog                                       5.4.0
-        NLog.Extensions.Logging                    5.4.0
-        System.IdentityModel.Tokens.Jwt            8.9.0
+        NLog                                       6.0.6
+        NLog.Extensions.Logging                    6.1.0
+        System.IdentityModel.Tokens.Jwt            8.14.0
 
 
 # Software Requirements
 - Visual Studio 2022
 - .NET Core 6 or .NET Core 8. NOTE: .NET 8 is used in default build
-- xUnit 2.9.3 or higher for unit testing.
+- xUnit 3.1.5 or higher for unit testing.
 
 ### Platforms and Compilers used in Test
 
@@ -44,7 +44,6 @@ External modules used by this version of RTSDK CSharp:
         Red Hat Enterprise Server 9.X Release 64-bit, .NET SDK 8.0.401
         Ubuntu 20.04 64-bit, .NET SDK 6.0.421
         Galaxy Kylin 10, 64-bit
-        Amazon Linux 2, 64-bit
         Amazon Linux 2023, 64-bit
 
 ### Encryption Support
@@ -71,9 +70,9 @@ NOTE: Connectivity to RDF-Direct is supported for Level 1 and Level 2 data. Conn
 
 This release has been tested with the following:
 
-- ADS 3.8.2
-- ADH 3.8.2
-- DACS 7.12
+- ADS 3.9.1
+- ADH 3.9.1
+- DACS 8.1
 
 # Documentation
   
@@ -177,11 +176,11 @@ You can download RTSDK libraries and dependencies from NuGet. Choose the appropr
 
         <dependency>
                 <ItemGroup>
-                    <PackageReference Include="LSEG.Eta.Core" Version="3.4.0.0"/>
-                    <PackageReference Include="LSEG.Eta.ValueAdd" Version="3.4.0.0"/>
-                    <PackageReference Include="LSEG.Eta.Ansi" Version="3.4.0.0"/>
-                    <PackageReference Include="LSEG.Eta.AnsiPage" Version="3.4.0.0"/>
-                    <PackageReference Include="LSEG.Ema.Core" Version="3.4.0.0"/>
+                    <PackageReference Include="LSEG.Eta.Core" Version="3.5.0.0"/>
+                    <PackageReference Include="LSEG.Eta.ValueAdd" Version="3.5.0.0"/>
+                    <PackageReference Include="LSEG.Eta.Ansi" Version="3.5.0.0"/>
+                    <PackageReference Include="LSEG.Eta.AnsiPage" Version="3.5.0.0"/>
+                    <PackageReference Include="LSEG.Ema.Core" Version="3.5.0.0"/>
                 </ItemGroup/>
         </dependency>
 
