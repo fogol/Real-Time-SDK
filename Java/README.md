@@ -42,6 +42,7 @@ External modules used by this version of RTSDK Java:
 
 Additional dependencies used for testing:
     mockito-core              5.20.0
+    hamcrest                  3.0
     junit                     4.13.2
 
 
@@ -93,7 +94,6 @@ Platforms:
     Red Hat Enterprise Server 9.X Release 64-bit
     Ubuntu 20.04 64-bit Qualification
     Galaxy Kylin 10, 64-bit
-    Amazon Linux 2, 64-bit
     Amazon Linux 2023, 64-bit
 
 #### Tested Versions
@@ -142,9 +142,9 @@ NOTE: Connectivity to Real-Time Direct is supported for Level 1 and Level 2 data
 
 This release has been tested with the following:
 
-- ADS 3.9.0
-- ADH 3.9.0
-- DACS 7.12
+- ADS 3.9.1
+- ADH 3.9.1
+- DACS 8.1 
 
 # Documentation
   
@@ -225,40 +225,40 @@ You can download RTSDK libraries and dependencies from Maven Central using sever
     <dependency>
         <groupId>com.refinitiv.ema</groupId>
         <artifactId>ema</artifactId>
-        <version>3.9.1.3</version>
+        <version>3.9.2.0</version>
     </dependency>
 
     <dependency>
         <groupId>com.refinitiv.eta</groupId>
         <artifactId>eta</artifactId>
-        <version>3.9.1.3</version>
+        <version>3.9.2.0</version>
     </dependency>
 
     <dependency>
         <groupId>com.refinitiv.eta.valueadd</groupId>
         <artifactId>etaValueAdd</artifactId>
-        <version>3.9.1.3</version>
+        <version>3.9.2.0</version>
     </dependency>
 
     <dependency>
         <groupId>com.refinitiv.eta.valueadd.cache</groupId>
         <artifactId>etaValueAddCache</artifactId>
-        <version>3.9.1.3</version>
+        <version>3.9.2.0</version>
     </dependency>
 
     <dependency>
         <groupId>com.refinitiv.eta.ansi</groupId>
         <artifactId>ansipage</artifactId>
-        <version>3.9.1.3</version>
+        <version>3.9.2.0</version>
     </dependency>
 
 Gradle uses the following syntax to specify RTSDK dependencies:
 
-    compile group: 'com.refinitiv.ema', name: 'ema', version: '3.9.1.3'
-    compile group: 'com.refinitiv.eta', name: 'eta', version: '3.9.1.3'
-    compile group: 'com.refinitiv.eta.valueadd', name: 'etaValueAdd', version: '3.9.1.3'
-    compile group: 'com.refinitiv.eta.valueadd.cache', name: 'etaValueAddCache', version: '3.9.1.3'
-    compile group: 'com.refinitiv.eta.ansi', name: 'ansipage', version: '3.9.1.3'
+    compile group: 'com.refinitiv.ema', name: 'ema', version: '3.9.2.0'
+    compile group: 'com.refinitiv.eta', name: 'eta', version: '3.9.2.0'
+    compile group: 'com.refinitiv.eta.valueadd', name: 'etaValueAdd', version: '3.9.2.0'
+    compile group: 'com.refinitiv.eta.valueadd.cache', name: 'etaValueAddCache', version: '3.9.2.0'
+    compile group: 'com.refinitiv.eta.ansi', name: 'ansipage', version: '3.9.2.0'
 
 # Developing 
 
@@ -276,7 +276,7 @@ In the event you would like to contribute to this repository, it is required tha
 - [Entity Contributor License Agreement](https://github.com/Refinitiv/Real-Time-SDK/blob/master/Real-Time%20API%20Entity%20Contributor%20License%20Agreement.pdf)
 
 
-Please email a signed and scanned copy to sdkagreement@lseg.com.  If you require that a signed agreement has to be physically mailed to us, please email the request for a mailing address and we will get back to you on where you can send the signed documents.
+Please email a signed and scanned copy to sdkagreement@lseg.com. If you require that a signed agreement has to be physically mailed to us, please email the request for a mailing address and we will get back to you on where you can send the signed documents.
 
 
 # Notes:
