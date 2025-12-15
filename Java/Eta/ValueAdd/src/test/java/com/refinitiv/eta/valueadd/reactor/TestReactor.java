@@ -694,6 +694,9 @@ public class TestReactor {
 		case ReactorChannelEventTypes.PREFERRED_HOST_STARTING_FALLBACK:
 			System.out.println("Preferred Host Start Fallback callback received.");
 			break;
+		case ReactorChannelEventTypes.PREFERRED_HOST_NO_FALLBACK:
+			System.out.println("Preferred Host No Fallback callback received.");
+			break;
 		default:
 			fail("Unhandled ReactorChannelEventType.");
 				
