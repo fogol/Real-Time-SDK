@@ -4542,13 +4542,14 @@ static RsslRet _reactorHandleChannelDown(RsslReactorImpl *pReactorImpl, RsslReac
 					}
 					else
 					{
+						// There are still other wsb channels currently active, so send a FD_CHANGE Event.
 						channelEventTypeTemp = pEvent->channelEvent.channelEventType;
 
 						pCallbackChannel = &pReactorChannel->pWarmStandByHandlerImpl->mainReactorChannelImpl.reactorChannel;
 						_reactorSetupMainWSBReactorChannel(pCallbackChannel, pReactorChannel);
 
-						if (pReactorChannel->reactorChannel.pRsslChannel && pReactorChannel->reactorChannel.pRsslChannel->state == RSSL_CH_STATE_ACTIVE &&
-							channelEventTypeTemp == RSSL_RC_CET_CHANNEL_DOWN_RECONNECTING)
+						// Set up the FDs in the wsb socket list.
+						if (pReactorChannel->reactorChannel.pRsslChannel && pReactorChannel->reactorChannel.pRsslChannel->state == RSSL_CH_STATE_ACTIVE )
 						{
 							/* Remove this channel as it will be closed */
 							_reactorHandlesWSBSocketList(pReactorChannel->pWarmStandByHandlerImpl, pCallbackChannel, &pReactorChannel->reactorChannel.pRsslChannel->socketId);
